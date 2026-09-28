@@ -25,6 +25,9 @@ button.active{border-color:#7dd3fc;background:linear-gradient(180deg,#173d52,#12
 #pause{color:#dce3ed}
 #tip{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(14,19,27,.9);border:1px solid rgba(255,255,255,.1);border-radius:13px;padding:10px 15px;font-size:12px;text-align:center;max-width:min(560px,92vw);box-shadow:0 10px 30px #0005;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 #tip b{color:#fff}
+#pauseMenu{position:fixed;inset:0;margin:auto;width:min(330px,86vw);height:max-content;padding:24px;display:grid;gap:12px;place-items:stretch;z-index:20;text-align:center;background:rgba(10,15,22,.96)}
+.pauseTitle{font-size:26px;font-weight:800;letter-spacing:2px;margin-bottom:4px}
+#pauseMenu button{padding:13px 16px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:#17212c;color:#fff;font:inherit;font-weight:700}
 #panel{position:absolute;right:14px;top:78px;width:270px;padding:16px;pointer-events:auto;display:none}
 #pname{display:block;font-size:17px;letter-spacing:-.02em;margin-bottom:10px}
 .row{display:flex;justify-content:space-between;gap:10px;margin:9px 0;color:#8f9bad;font-size:12px}
@@ -88,9 +91,14 @@ canvas{display:block;width:100%;height:100%;touch-action:none;-webkit-tap-highli
     <div class="grow"></div>
     <button id="road">🛣️ Road <span id="roads">0</span></button>
     <button id="erase">⌫ Erase</button>
-    <button id="pause">Ⅱ Pause</button><button id="newgame">↻ New Game</button>
+    <button id="pause">Ⅱ Pause</button>
   </div>
-  <div id="panel" class="card">
+  <div id="pauseMenu" class="overlay card" style="display:none">
+  <div class="pauseTitle">PAUSED</div>
+  <button id="resumeGame">▶ Resume</button>
+  <button id="pauseNewGame">↻ New Game</button>
+</div>
+<div id="panel" class="card">
     <b id="pname">Factory</b>
     <div class="row"><span>Type</span><b id="ptype">Factory</b></div>
     <div class="row"><span>Output</span><b id="pout">—</b></div>
@@ -369,10 +377,11 @@ function upgrade(n){
 }
 document.getElementById('up1').onclick=()=>upgrade(1);document.getElementById('up2').onclick=()=>upgrade(2);
 function setMode(next){mode=mode===next?'select':next;document.getElementById('road').classList.toggle('active',mode==='road');document.getElementById('erase').classList.toggle('active',mode==='erase');}
+document.getElementById('resumeGame').onclick=()=>{paused=false;document.getElementById('pause').textContent='Ⅱ Pause';document.getElementById('pauseMenu').style.display='none'};
+document.getElementById('pauseNewGame').onclick=()=>{if(confirm('Start a new game? Your current city will be lost.')){document.getElementById('pauseMenu').style.display='none';start()}};
 document.getElementById('road').onclick=()=>setMode('road');
 document.getElementById('erase').onclick=()=>setMode('erase');
-document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'Resume':'Pause'};
-document.getElementById('newgame').onclick=()=>{if(confirm('Start a new game? Your current city will be lost.'))start();};
+document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'Resume':'Pause';document.getElementById('pauseMenu').style.display=paused?'grid':'none'};
 document.getElementById('again').onclick=start;
 document.getElementById('again').ontouchend=e=>{e.preventDefault();start();};
 function pos(e){const r=canvas.getBoundingClientRect();return screenToWorld(e.clientX-r.left,e.clientY-r.top)}
