@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Mini Factories</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#0b0e13;color:#eef2f7;font-family:Inter,system-ui,Arial,sans-serif}body{touch-action:none}
+#ui{position:fixed;inset:0;pointer-events:none}.top{display:flex;gap:8px;align-items:center;padding:12px;position:absolute;left:0;right:0;top:0}.card{background:rgba(16,21,29,.94);border:1px solid #29313d;border-radius:12px;padding:8px 11px;box-shadow:0 8px 30px #0005}.stat b{display:block;font-size:18px}.stat span{font-size:10px;color:#8995a5;text-transform:uppercase;letter-spacing:.08em}.grow{flex:1}
+button{pointer-events:auto;border:1px solid #35404d;background:#151b24;color:#eaf0f6;border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer}button:hover{background:#1d2632}button.active{border-color:#7dd3fc;background:#123044}
+#tip{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:#10151dE8;border:1px solid #29313d;border-radius:12px;padding:10px 14px;font-size:12px;text-align:center;max-width:92%}
+#panel{position:absolute;right:12px;top:70px;width:245px;pointer-events:auto;display:none}.row{display:flex;justify-content:space-between;gap:10px;margin:8px 0;color:#aeb8c6;font-size:12px}.row b{color:#fff}.upgrade{width:100%;margin-top:7px;text-align:left}.upgrade small{display:block;color:#8995a5;font-weight:500;margin-top:3px}
+#over{position:fixed;inset:0;display:none;place-items:center;background:#080b0fcc;z-index:5}.modal{width:min(420px,90vw);background:#111720;border:1px solid #303b48;border-radius:18px;padding:28px;text-align:center}.modal h1{margin:0 0 8px;font-size:34px}.modal p{color:#9eabbc}.modal button{margin-top:8px}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <div class="top">
+    <div class="card stat"><span>Cash</span><b id="cash">£500</b></div>
+    <div class="card stat"><span>Delivered</span><b id="del">0</b></div>
+    <div class="card stat"><span>Week</span><b id="week">1</b></div>
+    <div class="card stat"><span>Best</span><b id="best">0</b></div>
+    <div class="grow"></div>
+    <button id="road">Road <span id="roads">0</span></button>
+    <button id="erase">Erase</button>
+    <button id="pause">Pause</button>
+  </div>
+  <div id="panel" class="card">
+    <b id="pname">Factory</b>
+    <div class="row"><span>Type</span><b id="ptype">Factory</b></div>
+    <div class="row"><span>Output</span><b id="pout">—</b></div>
+    <div class="row"><span>Demand</span><b id="pdemand">—</b></div>
+    <button class="upgrade" id="up1">⚡ Faster machines £120<small>Increase production speed.</small></button>
+    <button class="upgrade" id="up2">📦 Bigger storage £180<small>Hold more goods before blocking.</small></button>
+  </div>
+  <div id="tip">Connect <b>factories</b> to matching <b>shops</b>. Drag from one building to another to build roads.</div>
+</div>
+<div id="over"><div class="modal"><h1>Factory Closed</h1><p id="scoreline"></p><button id="again">Start a new factory</button></div></div>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H,dpr,mouse={x:0,y:0,down:false},drag=null,selected=null,paused=false,mode='road',last=performance.now();
+let cash=500,delivered=0,week=1,weekTimer=0,roadBudget=10,gameOver=false,roads=[],buildings=[],trucks=[],particles=[];
+let upgrades={speed:0,storage:0};
+const types=[
+ {name:'Steel',color:'#8bd5ff',price:24,icon:'S',kind:'factory'},
+ {name:'Food',color:'#a7e66f',price:18,icon:'F',kind:'factory'},
+ {name:'Parts',color:'#c5a7ff',price:30,icon:'P',kind:'factory'},
+ {name:'Market',color:'#ffd166',need:'Food',kind:'shop'},
+ {name:'Garage',color:'#ff8f8f',need:'Parts',kind:'shop'},
+ {name:'Builder',color:'#f4a261',need:'Steel',kind:'shop'}
+];
+function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+function rnd(a,b){return a+Math.random()*(b-a)}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function spawn(kind){
+ const t=types.find(x=>x.kind===kind && (kind==='shop'||Math.random()<.55))||types.find(x=>x.kind===kind);
+ let x,y,ok=false;
+ for(let n=0;n<100&&!ok;n++){x=rnd(80,W-80);y=rnd(115,H-85);ok=buildings.every(b=>Math.hypot(b.x-x,b.y-y)>85)}
+ buildings.push({id:crypto.randomUUID(),x,y,r:24,type:t.name,color:t.color,kind:t.kind,need:t.need||null,level:0,stock:0,max:kind==='factory'?4:8,prod:0,demand:kind==='shop'?rnd(2.5,5):0,pulse:Math.random()*6.28});
+}
+function start(){cash=500;delivered=0;week=1;weekTimer=0;roadBudget=10;gameOver=false;paused=false;roads=[];buildings=[];trucks=[];particles=[];upgrades={speed:0,storage:0};for(let i=0;i<3;i++)spawn('factory');for(let i=0;i<3;i++)spawn('shop');hidePanel();updateUI()}
+start();
+function bAt(x,y){return buildings.find(b=>Math.hypot(b.x-x,b.y-y)<b.r+8)}
+function hasRoad(a,b){return roads.some(r=>(r.a===a.id&&r.b===b.id)||(r.a===b.id&&r.b===a.id))}
+function removeRoad(a,b){roads=roads.filter(r=>!((r.a===a.id&&r.b===b.id)||(r.a===b.id&&r.b===a.id)))}
+function connected(a,b){
+ if(a===b)return true;let seen=new Set([a.id]),q=[a];
+ while(q.length){let x=q.shift();for(const r of roads){let id=r.a===x.id?r.b:r.b===x.id?r.a:null;if(id&&!seen.has(id)){if(id===b.id)return true;seen.add(id);let z=buildings.find(v=>v.id===id);if(z)q.push(z)}}}return false;
+}
+function pathCost(a,b){return Math.ceil(dist(a,b)/65)}
+function addRoad(a,b){
+ if(a===b||hasRoad(a,b))return;
+ const cost=pathCost(a,b); if(roadBudget<cost)return flash('Not enough road budget');
+ roadBudget-=cost;roads.push({a:a.id,b:b.id});cash-=cost*3;
+}
+function flash(s){const old=document.getElementById('tip').innerHTML;document.getElementById('tip').innerHTML=s;setTimeout(()=>document.getElementById('tip').innerHTML=old,1000)}
+function select(b){selected=b;const p=document.getElementById('panel');p.style.display='block';document.getElementById('pname').textContent=b.name||b.type;document.getElementById('ptype').textContent=b.kind==='factory'?'Factory':'Shop';document.getElementById('pout').textContent=b.kind==='factory'?b.type:'Needs '+b.need;document.getElementById('pdemand').textContent=b.kind==='shop'?Math.ceil(b.demand):b.stock+'/'+b.max}
+function hidePanel(){selected=null;document.getElementById('panel').style.display='none'}
+function upgrade(n){
+ if(!selected||selected.kind!=='factory')return;
+ const price=n===1?120:180;
+ if(cash<price)return flash('Not enough cash');
+ if(n===1&&selected.level<3){cash-=price;selected.level++;upgrades.speed++;flash('Machine upgraded')}
+ else if(n===2&&selected.max<14){cash-=price;selected.max+=2;flash('Storage upgraded')}
+ updateUI();select(selected)
+}
+document.getElementById('up1').onclick=()=>upgrade(1);document.getElementById('up2').onclick=()=>upgrade(2);
+document.getElementById('road').onclick=()=>{mode='road';document.getElementById('road').classList.add('active');document.getElementById('erase').classList.remove('active')};
+document.getElementById('erase').onclick=()=>{mode='erase';document.getElementById('erase').classList.add('active');document.getElementById('road').classList.remove('active')};
+document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'Resume':'Pause'};
+document.getElementById('again').onclick=start;
+function pos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+canvas.addEventListener('pointerdown',e=>{const p=pos(e);mouse={...p,down:true};const b=bAt(p.x,p.y);if(mode==='erase'&&b){roads=roads.filter(r=>r.a!==b.id&&r.b!==b.id);buildings=buildings.filter(x=>x!==b);hidePanel();return}if(b){select(b);drag=b}else{hidePanel();drag=null}});
+canvas.addEventListener('pointermove',e=>{const p=pos(e);mouse={...p,down:mouse.down}});
+canvas.addEventListener('pointerup',e=>{const p=pos(e);mouse={...p,down:false};if(drag&&mode==='road'){const b=bAt(p.x,p.y);if(b&&b!==drag){addRoad(drag,b)}}drag=null});
+function nearestShop(f){
+ let best=null,bd=1e9;for(const s of buildings)if(s.kind==='shop'&&s.need===f.type&&connected(f,s)&&s.demand>0){const d=dist(f,s);if(d<bd){bd=d;best=s}}return best
+}
+function spawnTruck(f,s){
+ if(f.stock<=0||s.demand<=0)return;
+ f.stock--;s.demand--;trucks.push({from:f,to:s,t:0,speed:rnd(.18,.28),value:types.find(t=>t.name===f.type).price});
+}
+function tick(dt){
+ if(paused||gameOver)return;
+ weekTimer+=dt;if(weekTimer>28){week++;weekTimer=0;roadBudget+=5;cash+=35;for(const s of buildings)if(s.kind==='shop')s.demand=Math.min(10,s.demand+rnd(1,3));}
+ for(const b of buildings){
+   if(b.kind==='factory'){b.prod+=dt*(.55+b.level*.18);if(b.prod>1&&b.stock<b.max){let n=Math.floor(b.prod);b.prod-=n;b.stock=Math.min(b.max,b.stock+n)}}
+   else b.demand=Math.min(12,b.demand+dt*.045);
+ }
+ for(const f of buildings.filter(b=>b.kind==='factory')){const s=nearestShop(f);if(s&&Math.random()<dt*(.9+f.level*.35))spawnTruck(f,s)}
+ for(const t of trucks){t.t+=dt*t.speed;if(t.t>=1){cash+=t.value;delivered++;particles.push({x:t.to.x,y:t.to.y,t:0,text:'+'+t.value});t.dead=true}}
+ trucks=trucks.filter(t=>!t.dead);
+ for(const p of particles)p.t+=dt;particles=particles.filter(p=>p.t<1);
+ const upkeep=roads.length*dt*.06;cash-=upkeep;
+ if(cash<0){cash=0;gameOver=true;document.getElementById('scoreline').textContent='You delivered '+delivered+' orders across '+week+' weeks.';document.getElementById('over').style.display='grid'}
+ updateUI();
+}
+function updateUI(){document.getElementById('cash').textContent='£'+Math.floor(cash);document.getElementById('del').textContent=delivered;document.getElementById('week').textContent=week;document.getElementById('roads').textContent=roadBudget;document.getElementById('best').textContent=Math.max(delivered,+localStorage.mfBest||0);if(delivered>(+localStorage.mfBest||0))localStorage.mfBest=delivered}
+function draw(){
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#0b0e13';ctx.fillRect(0,0,W,H);
+ ctx.strokeStyle='#171e27';ctx.lineWidth=1;for(let x=0;x<W;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ for(const r of roads){const a=buildings.find(b=>b.id===r.a),b=buildings.find(b=>b.id===r.b);if(!a||!b)continue;ctx.strokeStyle='#52606f';ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.strokeStyle='#252e39';ctx.lineWidth=2;ctx.stroke()}
+ if(drag&&mouse.down&&mode==='road'){ctx.strokeStyle='#8bd5ff88';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(drag.x,drag.y);ctx.lineTo(mouse.x,mouse.y);ctx.stroke()}
+ for(const t of trucks){const x=t.from.x+(t.to.x-t.from.x)*t.t,y=t.from.y+(t.to.y-t.from.y)*t.t;ctx.fillStyle='#f8fafc';ctx.fillRect(x-5,y-5,10,10);ctx.fillStyle='#111';ctx.fillRect(x-3,y-3,6,6)}
+ for(const b of buildings){
+   const pulse=Math.sin(performance.now()/500+b.pulse)*2;
+   ctx.beginPath();ctx.arc(b.x,b.y,b.r+pulse,0,Math.PI*2);ctx.fillStyle='#111820';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=b.color;ctx.stroke();
+   ctx.fillStyle=b.color;ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(b.kind==='factory'?b.type[0]:b.need[0],b.x,b.y);
+   ctx.font='11px system-ui';ctx.fillStyle='#d8dee7';ctx.fillText(b.kind==='factory'?b.type:b.name||b.type,b.x,b.y+b.r+15);
+   if(b.kind==='factory'){ctx.fillStyle='#202a34';ctx.fillRect(b.x-24,b.y-b.r-12,48,4);ctx.fillStyle=b.color;ctx.fillRect(b.x-24,b.y-b.r-12,48*(b.stock/b.max),4)}
+   else {ctx.fillStyle='#202a34';ctx.fillRect(b.x-24,b.y-b.r-12,48,4);ctx.fillStyle=b.color;ctx.fillRect(b.x-24,b.y-b.r-12,48*Math.min(1,b.demand/8),4)}
+ }
+ for(const p of particles){ctx.globalAlpha=1-p.t;ctx.fillStyle='#a7e66f';ctx.font='bold 14px system-ui';ctx.textAlign='center';ctx.fillText(p.text,p.x,p.y-p.t*30);ctx.globalAlpha=1}
+ if(selected){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(selected.x,selected.y,selected.r+8,0,Math.PI*2);ctx.stroke()}
+}
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+</script>
+</body>
+</html>
