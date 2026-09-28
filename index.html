@@ -103,7 +103,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none;-webkit-tap-highli
 <div id="over"><div class="modal"><h1>Factory Closed</h1><p id="scoreline"></p><button id="again">Start a new factory</button></div></div>
 <script>
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
-let W,H,dpr,mouse={x:0,y:0,down:false},drag=null,selected=null,paused=false,mode='road',last=performance.now();
+let W,H,dpr,mouse={x:0,y:0,down:false},drag=null,selected=null,paused=false,mode='select',last=performance.now();
 let pointerStart=null,pointerMoved=false,pointers=new Map();
 let camera={x:0,y:0,zoom:1},gesture=null;
 let cash=500,delivered=0,week=1,weekTimer=0,roadBudget=10,gameOver=false,saveTimer=0;
@@ -332,8 +332,9 @@ function upgrade(n){
  updateUI();select(selected);
 }
 document.getElementById('up1').onclick=()=>upgrade(1);document.getElementById('up2').onclick=()=>upgrade(2);
-document.getElementById('road').onclick=()=>{mode='road';document.getElementById('road').classList.add('active');document.getElementById('erase').classList.remove('active')};
-document.getElementById('erase').onclick=()=>{mode='erase';document.getElementById('erase').classList.add('active');document.getElementById('road').classList.remove('active')};
+function setMode(next){mode=mode===next?'select':next;document.getElementById('road').classList.toggle('active',mode==='road');document.getElementById('erase').classList.toggle('active',mode==='erase');}
+document.getElementById('road').onclick=()=>setMode('road');
+document.getElementById('erase').onclick=()=>setMode('erase');
 document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'Resume':'Pause'};
 document.getElementById('again').onclick=start;
 function pos(e){const r=canvas.getBoundingClientRect();return screenToWorld(e.clientX-r.left,e.clientY-r.top)}
@@ -358,7 +359,17 @@ canvas.addEventListener('pointerdown',e=>{
  const sp=screenPos(e);pointers.set(e.pointerId,sp);
  if(pointers.size===2){beginGesture();return}
  const p=pos(e);mouse={...p,down:true};pointerStart=p;pointerMoved=false;
- if(mode==='erase'){const b=bAt(p.x,p.y);if(b){roads=roads.filter(r=>!roadTouchesBuilding(r,b));buildings=buildings.filter(x=>x!==b);hidePanel();saveGame();navigator.vibrate?.(12);flash('Removed')}else removeRoadAt(p.x,p.y);return}
+ if(mode==='erase'){
+  removeRoadAt(p.x,p.y);
+  canvas.setPointerCapture?.(e.pointerId);
+  return;
+ }
+ if(mode!=='road'){
+  const b=bAt(p.x,p.y);
+  if(b)select(b);else hidePanel();
+  canvas.setPointerCapture?.(e.pointerId);
+  return;
+ }
  const b=bAt(p.x,p.y);
  if(b){select(b);drag={building:b,points:[{x:b.x,y:b.y}],armed:false,pointerId:e.pointerId};}
  else {
@@ -372,7 +383,12 @@ canvas.addEventListener('pointerdown',e=>{
 canvas.addEventListener('pointermove',e=>{
  if(pointers.has(e.pointerId)){pointers.set(e.pointerId,screenPos(e));if(pointers.size>=2){updateGesture();return}}
  const p=pos(e);mouse={...p,down:mouse.down};
- if(pointers.size>1||!drag||mode!=='road'||!pointerStart||e.pointerId!==drag.pointerId)return;
+ if(pointers.size>1)return;
+ if(mode==='erase'&&mouse.down){
+  removeRoadAt(p.x,p.y);
+  return;
+ }
+ if(!drag||mode!=='road'||!pointerStart||e.pointerId!==drag.pointerId)return;
  if(dist(pointerStart,p)>8){
   pointerMoved=true;
   drag.armed=true;
