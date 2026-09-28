@@ -149,7 +149,7 @@ const SAVE_KEY='miniFactoriesSaveV2';
 function serializeGame(){
  return {
   version:2,cash,delivered,week,weekTimer,roadBudget,nextSpawn,congestion,upgrades,
-  roads:roads.map(r=>({id:r.id,points:r.points,cost:r.cost,age:r.age})),
+  roads:roads.map(r=>({id:r.id,points:r.points,cost:r.cost,age:r.age,bridge:!!r.bridge})),
   buildings:buildings.map(b=>({id:b.id,x:b.x,y:b.y,r:b.r,type:b.type,color:b.color,kind:b.kind,need:b.need||null,level:b.level,stock:b.stock,max:b.max,prod:b.prod,demand:b.demand,pulse:b.pulse,served:b.served})),
   camera:{x:camera.x,y:camera.y,zoom:camera.zoom}
  };
@@ -167,7 +167,7 @@ function loadGame(){
   roadBudget=Number.isFinite(d.roadBudget)?d.roadBudget:10;nextSpawn=Number.isFinite(d.nextSpawn)?d.nextSpawn:10;
   congestion=Number.isFinite(d.congestion)?d.congestion:0;
   upgrades=d.upgrades||{speed:0,storage:0};
-  roads=d.roads.filter(r=>Array.isArray(r.points)&&r.points.length>=2).map(r=>({...r,points:r.points.map(p=>({x:+p.x,y:+p.y}))}));
+  roads=d.roads.filter(r=>Array.isArray(r.points)&&r.points.length>=2).map(r=>({...r,bridge:!!r.bridge,points:r.points.map(p=>({x:+p.x,y:+p.y}))}));
   buildings=d.buildings.map(b=>({...b}));
   trucks=[];particles=[];roadGraphCache=null;gameOver=false;paused=false;
   if(d.camera&&Number.isFinite(d.camera.zoom))camera={x:Number.isFinite(d.camera.x)?d.camera.x:W/2,y:Number.isFinite(d.camera.y)?d.camera.y:H/2,zoom:Math.max(.65,Math.min(1.8,d.camera.zoom))};
@@ -326,14 +326,19 @@ function snappedRoadPath(start,rawEnd,exclude){
  const end=building;
  return orthogonalPath(start,end);
 }
+function riverYAt(x){return 420+Math.sin(x*.002)*35}
+function roadCrossesRiver(points){
+ for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x);if(maxX-minX<1)continue;for(let k=0;k<=10;k++){const x=minX+(maxX-minX)*k/10,t=(x-a.x)/(b.x-a.x||1),y=a.y+(b.y-a.y)*t;if(Math.abs(y-riverYAt(x))<40)return true}}
+ return false;
+}
 function addRoad(points){
  points=simplify(points);if(points.length<2)return;
- const length=pathLength(points),cost=Math.max(1,Math.ceil(length/55));
+ const length=pathLength(points),bridge=roadCrossesRiver(points),cost=Math.max(1,Math.ceil(length/55)+(bridge?2:0));
  if(roadBudget<cost){flash('Not enough road tiles');return}
  const a=bAt(points[0].x,points[0].y),b=bAt(points[points.length-1].x,points[points.length-1].y);
  if(!a&&!b&&length<35)return;
  roadBudget-=cost;cash-=cost*2;
- roads.push({id:crypto.randomUUID(),points,cost,age:0});roadGraphCache=null;saveGame();
+ roads.push({id:crypto.randomUUID(),points,cost,age:0,bridge});roadGraphCache=null;saveGame();
 }
 function removeRoadAt(x,y){
  let best=null,bd=13;
@@ -540,6 +545,8 @@ function drawBuilding(b){
  ctx.beginPath();ctx.arc(b.x,b.y,Math.max(w,h)/2+5+pulse,0,Math.PI*2);ctx.strokeStyle=b.color+'28';ctx.lineWidth=2;ctx.stroke();
  ctx.fillStyle='#d8dee7';ctx.font='11px system-ui';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(b.type,b.x,b.y+20);
 }
+function drawJunctions(){const junctions=[];for(let i=0;i<roads.length;i++)for(let j=i+1;j<roads.length;j++){const a=roads[i],b=roads[j];for(let ai=1;ai<a.points.length;ai++)for(let bj=1;bj<b.points.length;bj++){const hit=segIntersection(a.points[ai-1],a.points[ai],b.points[bj-1],b.points[bj]);if(hit)junctions.push({x:hit.x,y:hit.y})}}for(const p of junctions){ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);ctx.fillStyle='#17212a';ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle='#f5c84b';ctx.fill()}}
+function drawBridges(){for(const r of roads){if(!r.bridge)continue;for(let i=1;i<r.points.length;i++){const a=r.points[i-1],b=r.points[i],minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x);if(maxX-minX<1)continue;const x=(minX+maxX)/2,t=(x-a.x)/(b.x-a.x||1),y=a.y+(b.y-a.y)*t;if(Math.abs(y-riverYAt(x))<55){const ang=Math.atan2(b.y-a.y,b.x-a.x);ctx.save();ctx.translate(x,y);ctx.rotate(ang);ctx.fillStyle='#8d7348';ctx.fillRect(-18,-9,36,18);ctx.strokeStyle='#c7a56a';ctx.lineWidth=2;ctx.strokeRect(-18,-9,36,18);ctx.strokeStyle='#e0c383';for(let k=-12;k<=12;k+=8){ctx.beginPath();ctx.moveTo(k,-7);ctx.lineTo(k,7);ctx.stroke()}ctx.restore()}}}}
 function drawRoad(points,color,width){
  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);ctx.stroke();
 }
@@ -564,8 +571,9 @@ function draw(){
  drawCityDecor(left,right,top,bottom,block);
  for(const r of roads){
   drawRoad(r.points,'#11171e',14);drawRoad(r.points,'#2b333d',9);
-  drawRoad(r.points,congestion>.35?'#c58b3c':'#667585',5);drawRoadMarkings(r.points);
+  drawRoad(r.points,congestion>.35?'#c58b3c':(r.bridge?'#b18a55':'#667585'),5);drawRoadMarkings(r.points);
  }
+ drawBridges();drawJunctions();
  if(drag&&mouse.down&&mode==='road'&&drag.armed){
   const preview=snappedRoadPath(drag.points[0],mouse,drag.building);
   drawRoad(preview,'#8bd5ff99',6);
