@@ -236,14 +236,39 @@ function simplify(points){
  const out=[];for(const p of points){const last=out[out.length-1];if(!last||dist(last,p)>10)out.push(p)}
  return out;
 }
+function nearestRoadPoint(p){
+ let best=null,bd=22;
+ for(const r of roads){
+  for(let i=1;i<r.points.length;i++){
+   const a=r.points[i-1],b=r.points[i],dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;
+   if(!l)continue;
+   let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/l;t=Math.max(0,Math.min(1,t));
+   const q={x:a.x+dx*t,y:a.y+dy*t};
+   const d=dist(p,q);
+   if(d<bd){bd=d;best=q}
+  }
+ }
+ return best;
+}
 function snapRoadPoint(p,exclude){
- let best=null,bd=24;
+ let best=null,bd=28;
  for(const b of buildings){
   if(b===exclude)continue;
   const d=dist(p,b);
   if(d<bd){bd=d;best={x:b.x,y:b.y}}
  }
- return best||p;
+ if(best)return best;
+ return nearestRoadPoint(p)||p;
+}
+function orthogonalPath(start,end){
+ const dx=Math.abs(end.x-start.x),dy=Math.abs(end.y-start.y);
+ if(dx<8||dy<8)return [start,end];
+ if(dx>=dy)return [start,{x:end.x,y:start.y},end];
+ return [start,{x:start.x,y:end.y},end];
+}
+function snappedRoadPath(start,rawEnd,exclude){
+ const end=snapRoadPoint(rawEnd,exclude);
+ return orthogonalPath(start,end);
 }
 function addRoad(points){
  points=simplify(points);if(points.length<2)return;
@@ -305,7 +330,12 @@ canvas.addEventListener('pointerdown',e=>{
  if(mode==='erase'){const b=bAt(p.x,p.y);if(b){roads=roads.filter(r=>!roadTouchesBuilding(r,b));buildings=buildings.filter(x=>x!==b);hidePanel();navigator.vibrate?.(12);flash('Removed')}else removeRoadAt(p.x,p.y);return}
  const b=bAt(p.x,p.y);
  if(b){select(b);drag={building:b,points:[{x:b.x,y:b.y}],armed:false};}
- else {hidePanel();drag={building:null,points:[p],armed:false};}
+ else {
+  hidePanel();
+  const roadStart=nearestRoadPoint(p);
+  const start=roadStart||p;
+  drag={building:null,points:[start],armed:false};
+ }
  canvas.setPointerCapture?.(e.pointerId);
 });
 canvas.addEventListener('pointermove',e=>{
@@ -315,8 +345,7 @@ canvas.addEventListener('pointermove',e=>{
  if(dist(pointerStart,p)>12){
   pointerMoved=true;
   drag.armed=true;
-  const last=drag.points[drag.points.length-1];
-  if(dist(last,p)>9)drag.points.push(p);
+  drag.points=snappedRoadPath(drag.points[0],p,drag.building);
  }
 });
 canvas.addEventListener('pointerup',e=>{
@@ -324,15 +353,9 @@ canvas.addEventListener('pointerup',e=>{
  if(gesture&&pointers.size<2){gesture=null;mouse.down=false;drag=null;pointerStart=null;pointerMoved=false;return}
  const p=pos(e);mouse={...p,down:false};
  if(drag&&mode==='road'&&drag.armed){
-  const end=bAt(p.x,p.y);
-  if(end&&end!==drag.building)drag.points.push({x:end.x,y:end.y});
-  else if(!end)drag.points.push(p);
-  const snapped=drag.points.map((q,i)=>{
-   if(i===0)return q;
-   const hit=bAt(q.x,q.y);
-   return hit&&hit!==drag.building?{x:hit.x,y:hit.y}:q;
-  });
-  addRoad(snapped);navigator.vibrate?.(8);
+  const snapped=snappedRoadPath(drag.points[0],p,drag.building);
+  addRoad(snapped);
+  navigator.vibrate?.(8);
  }
  if(!pointerMoved&&drag?.building)select(drag.building);
  drag=null;pointerStart=null;pointerMoved=false;
@@ -402,7 +425,13 @@ function draw(){
  for(let x=0;x<W;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
  for(let y=0;y<H;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
  for(const r of roads){drawRoad(r.points,'#252c35',11);drawRoad(r.points,congestion>.35?'#c58b3c':'#52606f',6)}
- if(drag&&mouse.down&&mode==='road'&&drag.points.length>1)drawRoad(drag.points,'#8bd5ff99',6);
+ if(drag&&mouse.down&&mode==='road'&&drag.armed){
+  const preview=snappedRoadPath(drag.points[0],mouse,drag.building);
+  drawRoad(preview,'#8bd5ff99',6);
+  const target=preview[preview.length-1];
+  ctx.fillStyle='#8bd5ff';
+  ctx.beginPath();ctx.arc(target.x,target.y,4,0,Math.PI*2);ctx.fill();
+}
  for(const t of trucks){const p=routePoint(t.route,t.t);ctx.fillStyle='#f8fafc';ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(p.x,p.y,2,0,Math.PI*2);ctx.fill()}
  for(const b of buildings){
   const pulse=Math.sin(performance.now()/500+b.pulse)*2;
