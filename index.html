@@ -166,7 +166,7 @@ function loadGame(){
 function start(){
  try{localStorage.removeItem(SAVE_KEY)}catch(e){}
  cash=500;delivered=0;week=1;weekTimer=0;roadBudget=10;gameOver=false;paused=false;
- roads=[];buildings=[];trucks=[];particles=[];nextSpawn=10;congestion=0;roadGraphCache=null;upgrades={speed:0,storage:0};resetCamera();
+ roads=[];buildings=[];trucks=[];particles=[];nextSpawn=18;congestion=0;roadGraphCache=null;upgrades={speed:0,storage:0};resetCamera();
  mode='select';document.getElementById('road').classList.remove('active');document.getElementById('erase').classList.remove('active');
  for(const t of ['Steel','Food','Parts'])spawn('factory',t);
  for(const t of ['Market','Garage','Builder'])spawn('shop',t);
@@ -439,7 +439,7 @@ function routePoint(points,t){
  return points[points.length-1];
 }
 function addBuildingOverTime(){
- if(buildings.length>=16)return;
+ if(buildings.length>=10)return;
  const factories=buildings.filter(b=>b.kind==='factory'),shops=buildings.filter(b=>b.kind==='shop');
  const target=Math.random()<.5?shops[Math.floor(Math.random()*shops.length)]:factories[Math.floor(Math.random()*factories.length)];
  if(!target)return;
@@ -449,7 +449,7 @@ function tick(dt){
  if(paused||gameOver)return;
  weekTimer+=dt;nextSpawn-=dt;saveTimer+=dt;if(saveTimer>=2){saveTimer=0;saveGame();}
  if(weekTimer>32){week++;weekTimer=0;roadBudget+=5;cash+=35;for(const s of buildings)if(s.kind==='shop')s.demand=Math.min(14,s.demand+rnd(1.5,3.5));flash('Week '+week+' — +5 road tiles')}
- if(nextSpawn<=0){addBuildingOverTime();nextSpawn=Math.max(6,13-week*.45)}
+ if(nextSpawn<=0){addBuildingOverTime();nextSpawn=Math.max(14,24-week*.35)}
  for(const b of buildings){
   if(b.kind==='factory'){b.prod+=dt*(.52+b.level*.17);if(b.prod>1&&b.stock<b.max){const n=Math.floor(b.prod);b.prod-=n;b.stock=Math.min(b.max,b.stock+n)}}
   else b.demand=Math.min(14,b.demand+dt*(.055+week*.003));
