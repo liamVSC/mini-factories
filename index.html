@@ -172,7 +172,7 @@ function start(){
  for(const t of ['Market','Garage','Builder'])spawn('shop',t);
  hidePanel();document.getElementById('pause').textContent='Pause';document.getElementById('over').style.display='none';updateUI();
 }
-if(!loadGame())start();
+start();
 function bAt(x,y){return buildings.find(b=>Math.hypot(b.x-x,b.y-y)<b.r+10)}
 function pointSegDistance(p,a,b){
  const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;
