@@ -34,7 +34,7 @@ button.active{border-color:#7dd3fc;background:linear-gradient(180deg,#173d52,#12
 #over{position:fixed;inset:0;display:none;place-items:center;background:rgba(3,5,8,.78);z-index:5;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .modal{width:min(430px,90vw);background:#101620;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:30px;text-align:center;box-shadow:0 25px 80px #0008}
 .modal h1{margin:0 0 8px;font-size:36px;letter-spacing:-.04em}.modal p{color:#9eabbc}.modal button{margin-top:8px}
-canvas{display:block;width:100%;height:100%;touch-action:none}
+canvas{display:block;width:100%;height:100%;touch-action:none;-webkit-tap-highlight-color:transparent}
 @media(max-width:700px){
  body{overscroll-behavior:none}
  .top{padding:0;display:block;position:static}
@@ -101,6 +101,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 <script>
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 let W,H,dpr,mouse={x:0,y:0,down:false},drag=null,selected=null,paused=false,mode='road',last=performance.now();
+let pointerStart=null,pointerMoved=false;
 let cash=500,delivered=0,week=1,weekTimer=0,roadBudget=10,gameOver=false;
 let roads=[],buildings=[],trucks=[],particles=[],nextSpawn=10,congestion=0;
 let upgrades={speed:0,storage:0};
@@ -213,26 +214,38 @@ document.getElementById('pause').onclick=()=>{paused=!paused;document.getElement
 document.getElementById('again').onclick=start;
 function pos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 canvas.addEventListener('pointerdown',e=>{
- const p=pos(e);mouse={...p,down:true};
- if(mode==='erase'){const b=bAt(p.x,p.y);if(b){roads=roads.filter(r=>!roadTouchesBuilding(r,b));buildings=buildings.filter(x=>x!==b);hidePanel();flash('Removed')}else removeRoadAt(p.x,p.y);return}
+ const p=pos(e);mouse={...p,down:true};pointerStart=p;pointerMoved=false;
+ if(mode==='erase'){const b=bAt(p.x,p.y);if(b){roads=roads.filter(r=>!roadTouchesBuilding(r,b));buildings=buildings.filter(x=>x!==b);hidePanel();navigator.vibrate?.(12);flash('Removed')}else removeRoadAt(p.x,p.y);return}
  const b=bAt(p.x,p.y);
- if(b){select(b);drag={building:b,points:[{x:b.x,y:b.y}]};canvas.setPointerCapture?.(e.pointerId)}
- else {hidePanel();drag={building:null,points:[p]};canvas.setPointerCapture?.(e.pointerId)}
+ if(b){select(b);drag={building:b,points:[{x:b.x,y:b.y}],armed:false};}
+ else {hidePanel();drag={building:null,points:[p],armed:false};}
+ canvas.setPointerCapture?.(e.pointerId);
 });
 canvas.addEventListener('pointermove',e=>{
  const p=pos(e);mouse={...p,down:mouse.down};
- if(mouse.down&&drag&&mode==='road'){
+ if(!mouse.down||!drag||mode!=='road'||!pointerStart)return;
+ if(dist(pointerStart,p)>12){
+  pointerMoved=true;
+  drag.armed=true;
   const last=drag.points[drag.points.length-1];
   if(dist(last,p)>9)drag.points.push(p);
  }
 });
 canvas.addEventListener('pointerup',e=>{
  const p=pos(e);mouse={...p,down:false};
- if(drag&&mode==='road'){
-  if(drag.building){const end=bAt(p.x,p.y);if(end&&end!==drag.building){drag.points.push({x:end.x,y:end.y});addRoad(drag.points)}}
-  else {drag.points.push(p);const end=bAt(p.x,p.y);if(end)drag.points[drag.points.length-1]={x:end.x,y:end.y};addRoad(drag.points)}
+ if(drag&&mode==='road'&&drag.armed){
+  if(drag.building){
+   const end=bAt(p.x,p.y);
+   if(end&&end!==drag.building){drag.points.push({x:end.x,y:end.y});addRoad(drag.points);navigator.vibrate?.(8)}
+  } else {
+   drag.points.push(p);
+   const end=bAt(p.x,p.y);
+   if(end)drag.points[drag.points.length-1]={x:end.x,y:end.y};
+   addRoad(drag.points);navigator.vibrate?.(8);
+  }
  }
- drag=null;
+ if(!pointerMoved&&drag?.building)select(drag.building);
+ drag=null;pointerStart=null;pointerMoved=false;
 });
 function nearestShop(f){
  let best=null,bd=1e9;
