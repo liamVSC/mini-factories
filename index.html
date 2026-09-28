@@ -88,7 +88,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none;-webkit-tap-highli
     <div class="grow"></div>
     <button id="road">🛣️ Road <span id="roads">0</span></button>
     <button id="erase">⌫ Erase</button>
-    <button id="pause">Ⅱ Pause</button>
+    <button id="pause">Ⅱ Pause</button><button id="newgame">↻ New Game</button>
   </div>
   <div id="panel" class="card">
     <b id="pname">Factory</b>
@@ -372,6 +372,7 @@ function setMode(next){mode=mode===next?'select':next;document.getElementById('r
 document.getElementById('road').onclick=()=>setMode('road');
 document.getElementById('erase').onclick=()=>setMode('erase');
 document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'Resume':'Pause'};
+document.getElementById('newgame').onclick=()=>{if(confirm('Start a new game? Your current city will be lost.'))start();};
 document.getElementById('again').onclick=start;
 document.getElementById('again').ontouchend=e=>{e.preventDefault();start();};
 function pos(e){const r=canvas.getBoundingClientRect();return screenToWorld(e.clientX-r.left,e.clientY-r.top)}
