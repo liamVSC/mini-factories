@@ -107,7 +107,7 @@ let W,H,dpr,mouse={x:0,y:0,down:false},drag=null,selected=null,paused=false,mode
 let pointerStart=null,pointerMoved=false,pointers=new Map();
 let camera={x:0,y:0,zoom:1},gesture=null;
 let cash=500,delivered=0,week=1,weekTimer=0,roadBudget=10,gameOver=false;
-let roads=[],buildings=[],trucks=[],particles=[],nextSpawn=10,congestion=0;
+let roads=[],buildings=[],trucks=[],particles=[],nextSpawn=10,congestion=0,roadGraphCache=null;
 let upgrades={speed:0,storage:0};
 const types=[
  {name:'Steel',color:'#8bd5ff',price:24,icon:'S',kind:'factory'},
@@ -135,7 +135,7 @@ function resetCamera(){camera={x:W/2,y:H/2,zoom:1};}
 function screenToWorld(x,y){return{x:(x-camera.x)/camera.zoom+W/2,y:(y-camera.y)/camera.zoom+H/2}}
 function start(){
  cash=500;delivered=0;week=1;weekTimer=0;roadBudget=10;gameOver=false;paused=false;
- roads=[];buildings=[];trucks=[];particles=[];nextSpawn=10;congestion=0;upgrades={speed:0,storage:0};resetCamera();
+ roads=[];buildings=[];trucks=[];particles=[];nextSpawn=10;congestion=0;roadGraphCache=null;upgrades={speed:0,storage:0};resetCamera();
  for(const t of ['Steel','Food','Parts'])spawn('factory',t);
  for(const t of ['Market','Garage','Builder'])spawn('shop',t);
  hidePanel();document.getElementById('pause').textContent='Pause';document.getElementById('over').style.display='none';updateUI();
@@ -210,8 +210,9 @@ function nearestRoadNode(graph,b){
 }
 function findRoute(a,b){
  if(a===b)return [];
+ if(roadGraphCache===null)roadGraphCache=buildRoadGraph();
  if(!roads.length)return null;
- const {nodes,graph}=buildRoadGraph();
+ const {nodes,graph}=roadGraphCache;
  const start=nearestRoadNode({nodes},a),goal=nearestRoadNode({nodes},b);
  if(!start||!goal)return null;
  const distMap=new Map(nodes.map(n=>[n,Infinity])),prev=new Map(),open=[start];
@@ -242,12 +243,12 @@ function addRoad(points){
  const a=bAt(points[0].x,points[0].y),b=bAt(points[points.length-1].x,points[points.length-1].y);
  if(!a&&!b&&length<35)return;
  roadBudget-=cost;cash-=cost*2;
- roads.push({id:crypto.randomUUID(),points,cost,age:0});
+ roads.push({id:crypto.randomUUID(),points,cost,age:0});roadGraphCache=null;
 }
 function removeRoadAt(x,y){
  let best=null,bd=13;
  for(const r of roads)for(let i=1;i<r.points.length;i++){const d=pointSegDistance({x,y},r.points[i-1],r.points[i]);if(d<bd){bd=d;best=r}}
- if(best){roads=roads.filter(r=>r!==best);flash('Road removed')}
+ if(best){roads=roads.filter(r=>r!==best);roadGraphCache=null;flash('Road removed')}
 }
 function flash(s){const tip=document.getElementById('tip'),old=tip.innerHTML;tip.innerHTML=s;setTimeout(()=>tip.innerHTML=old,1100)}
 function select(b){
@@ -314,15 +315,10 @@ canvas.addEventListener('pointerup',e=>{
  if(gesture&&pointers.size<2){gesture=null;mouse.down=false;drag=null;pointerStart=null;pointerMoved=false;return}
  const p=pos(e);mouse={...p,down:false};
  if(drag&&mode==='road'&&drag.armed){
-  if(drag.building){
-   const end=bAt(p.x,p.y);
-   if(end&&end!==drag.building){drag.points.push({x:end.x,y:end.y});addRoad(drag.points);navigator.vibrate?.(8)}
-  } else {
-   drag.points.push(p);
-   const end=bAt(p.x,p.y);
-   if(end)drag.points[drag.points.length-1]={x:end.x,y:end.y};
-   addRoad(drag.points);navigator.vibrate?.(8);
-  }
+  const end=bAt(p.x,p.y);
+  if(end&&end!==drag.building)drag.points.push({x:end.x,y:end.y});
+  else if(!end)drag.points.push(p);
+  addRoad(drag.points);navigator.vibrate?.(8);
  }
  if(!pointerMoved&&drag?.building)select(drag.building);
  drag=null;pointerStart=null;pointerMoved=false;
@@ -339,7 +335,7 @@ function nearestShop(f){
 function routeFor(f,s){return findRoute(f,s)}
 function spawnTruck(f,s){
  if(f.stock<=0||s.demand<=0)return;
- const r=routeFor(f,s);if(!r)return;
+ const r=routeFor(f,s);if(!r||r.points.length<2)return;
  f.stock--;s.demand--;
  trucks.push({route:r.points,t:0,speed:rnd(.055,.085)*(1+f.level*.08),value:types.find(t=>t.name===f.type).price,to:s});
 }
