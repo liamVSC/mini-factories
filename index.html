@@ -199,15 +199,8 @@ function pointSegDistance(p,a,b){
  return Math.hypot(p.x-(a.x+dx*t),p.y-(a.y+dy*t));
 }
 function roadTouchesBuilding(r,b){return r.points.some(p=>dist(p,b)<b.r+14)}
-function roadIntersectsRoad(a,b){
- for(let i=0;i<a.points.length-1;i++)for(let j=0;j<b.points.length-1;j++){
-  if(segmentsCross(a.points[i],a.points[i+1],b.points[j],b.points[j+1]))return true;
- }return false;
-}
-function segmentsCross(a,b,c,d){
- const ccw=(p1,p2,p3)=>(p3.y-p1.y)*(p2.x-p1.x)>(p2.y-p1.y)*(p3.x-p1.x);
- return ccw(a,c,d)!==ccw(b,c,d)&&ccw(a,b,c)!==ccw(a,b,d);
-}
+
+
 function pathLength(points){let n=0;for(let i=1;i<points.length;i++)n+=dist(points[i-1],points[i]);return n}
 function segIntersection(a,b,c,d){
  const x1=a.x,y1=a.y,x2=b.x,y2=b.y,x3=c.x,y3=c.y,x4=d.x,y4=d.y;
@@ -457,15 +450,7 @@ function finishPointer(e,canceled=false){
 }
 canvas.addEventListener('pointerup',e=>finishPointer(e,false));
 canvas.addEventListener('pointercancel',e=>finishPointer(e,true));
-function nearestShop(f){
- let best=null,bd=1e9;
- for(const s of buildings){
-  if(s.kind!=='shop'||s.need!==f.type||s.demand<=0)continue;
-  const route=findRoute(f,s);
-  if(route&&route.distance<bd){bd=route.distance;best=s}
- }
- return best;
-}
+
 function routeFor(f,s){
  const base=findRoute(f,s);if(!base)return null;
  const queuePenalty=trucks.length*.8+trucks.filter(t=>t.wait>0).length*4;
