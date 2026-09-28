@@ -254,6 +254,14 @@ function nearestRoadNode(graph,b){
 }
 function findRoute(a,b){
  if(a===b)return [];
+ // Fast path: a single road can directly connect two buildings.
+ for(const r of roads){
+  if(roadTouchesBuilding(r,a)&&roadTouchesBuilding(r,b)){
+   const forward=dist(r.points[0],a)<=dist(r.points[r.points.length-1],a);
+   const pts=forward?r.points:[...r.points].reverse();
+   return {points:[{x:a.x,y:a.y},...pts,{x:b.x,y:b.y}],distance:pathLength(pts)+dist(a,pts[0])+dist(pts[pts.length-1],b)};
+  }
+ }
  if(roadGraphCache===null)roadGraphCache=buildRoadGraph();
  if(!roads.length)return null;
  const {nodes,graph}=roadGraphCache;
@@ -430,11 +438,11 @@ function finishPointer(e,canceled=false){
 canvas.addEventListener('pointerup',e=>finishPointer(e,false));
 canvas.addEventListener('pointercancel',e=>finishPointer(e,true));
 function nearestShop(f){
- let best=null,bestRoute=null,bd=1e9;
+ let best=null,bd=1e9;
  for(const s of buildings){
   if(s.kind!=='shop'||s.need!==f.type||s.demand<=0)continue;
   const route=findRoute(f,s);
-  if(route&&route.distance<bd){bd=route.distance;best=s;bestRoute=route}
+  if(route&&route.distance<bd){bd=route.distance;best=s}
  }
  return best;
 }
@@ -443,7 +451,7 @@ function spawnTruck(f,s){
  if(f.stock<=0||s.demand<=0)return;
  const r=routeFor(f,s);if(!r||r.points.length<2)return;
  f.stock--;s.demand--;
- trucks.push({route:r.points,t:0,speed:rnd(.055,.085)*(1+f.level*.08),value:types.find(t=>t.name===f.type).price,to:s});
+ trucks.push({route:r.points,t:0,speed:rnd(.075,.105)*(1+f.level*.08),value:types.find(t=>t.name===f.type).price,to:s,kind:f.type});
 }
 function routePoint(points,t){
  const total=pathLength(points);let want=total*t,run=0;
@@ -466,7 +474,7 @@ function tick(dt){
   if(b.kind==='factory'){b.prod+=dt*(.52+b.level*.17);if(b.prod>1&&b.stock<b.max){const n=Math.floor(b.prod);b.prod-=n;b.stock=Math.min(b.max,b.stock+n)}}
   else b.demand=Math.min(14,b.demand+dt*(.055+week*.003));
  }
- for(const f of buildings.filter(b=>b.kind==='factory')){const s=nearestShop(f);if(s&&Math.random()<dt*(.85+f.level*.35))spawnTruck(f,s)}
+ for(const f of buildings.filter(b=>b.kind==='factory')){const s=nearestShop(f);if(s&&Math.random()<dt*(1.8+f.level*.45))spawnTruck(f,s)}
  for(const t of trucks){t.t+=dt*t.speed;if(t.t>=1){cash+=t.value;delivered++;t.to.served++;particles.push({x:t.to.x,y:t.to.y,t:0,text:'+'+t.value});t.dead=true}}
  trucks=trucks.filter(t=>!t.dead);
  for(const r of roads)r.age+=dt;
@@ -501,12 +509,18 @@ function draw(){
   ctx.fillStyle='#8bd5ff';
   ctx.beginPath();ctx.arc(target.x,target.y,4,0,Math.PI*2);ctx.fill();
 }
- for(const t of trucks){const p=routePoint(t.route,t.t);ctx.fillStyle='#f8fafc';ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(p.x,p.y,2,0,Math.PI*2);ctx.fill()}
+ for(const t of trucks){
+  const p=routePoint(t.route,t.t),next=routePoint(t.route,Math.min(1,t.t+.01));
+  const ang=Math.atan2(next.y-p.y,next.x-p.x);
+  ctx.save();ctx.translate(p.x,p.y);ctx.rotate(ang);
+  ctx.fillStyle='#f5f7fa';ctx.fillRect(-8,-5,16,10);ctx.fillStyle='#8bd5ff';ctx.fillRect(-2,-4,6,3);ctx.fillStyle='#111820';ctx.fillRect(-5,5,4,3);ctx.fillRect(3,5,4,3);ctx.restore();
+}
  for(const b of buildings){
   const pulse=Math.sin(performance.now()/500+b.pulse)*2;
   ctx.beginPath();ctx.arc(b.x,b.y,b.r+pulse,0,Math.PI*2);ctx.fillStyle='#111820';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=b.color;ctx.stroke();
   ctx.fillStyle=b.color;ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(b.kind==='factory'?b.type[0]:b.need[0],b.x,b.y);
   ctx.font='11px system-ui';ctx.fillStyle='#d8dee7';ctx.fillText(b.kind==='factory'?b.type:b.type,b.x,b.y+b.r+15);
+  if(b.kind==='factory'&&b.stock>0){ctx.fillStyle='#d8dee7';ctx.font='10px system-ui';ctx.fillText('●'.repeat(Math.min(4,b.stock)),b.x,b.y-b.r-18)}
   ctx.fillStyle='#202a34';ctx.fillRect(b.x-24,b.y-b.r-12,48,4);
   if(b.kind==='factory'){ctx.fillStyle=b.color;ctx.fillRect(b.x-24,b.y-b.r-12,48*(b.stock/b.max),4)}
   else{ctx.fillStyle=b.color;ctx.fillRect(b.x-24,b.y-b.r-12,48*Math.min(1,b.demand/8),4);if(b.demand>9){ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.fillText('!',b.x+19,b.y-20)}}
