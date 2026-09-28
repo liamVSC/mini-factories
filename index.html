@@ -93,7 +93,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none;-webkit-tap-highli
     <button id="erase">⌫ Erase</button>
     <button id="pause">Ⅱ Pause</button>
   </div>
-  <div id="pauseMenu" class="overlay card" style="display:none">
+  <div id="pauseMenu" class="card" style="display:none">
   <div class="pauseTitle">PAUSED</div>
   <button id="resumeGame">▶ Resume</button>
   <button id="pauseNewGame">↻ New Game</button>
@@ -143,13 +143,13 @@ function spawn(kind,forcedType){
    x=radius*Math.cos(angle)+rnd(-70,70);
    y=radius*Math.sin(angle)+rnd(-70,70);
   }else{
-   const angle=rnd(0,Math.PI*2);
-   const anchor=buildings[Math.floor(Math.random()*buildings.length)];
-   const radius=rnd(260,Math.min(620,420+week*14));
-   x=anchor.x+Math.cos(angle)*radius;
-   y=anchor.y+Math.sin(angle)*radius;
+   const sector=(buildings.length-6+n)%12;
+   const angle=sector*(Math.PI*2/12)+rnd(-.16,.16);
+   const radius=rnd(360,Math.min(720,460+week*12));
+   x=radius*Math.cos(angle)+rnd(-90,90);
+   y=radius*Math.sin(angle)+rnd(-90,90);
   }
-  const river=riverYAt(x);
+  const river=typeof riverYAt==='function'?riverYAt(x):420;
   if(Math.abs(y-river)<95&&Math.random()<.72)y+=y<river?-120:120;
   ok=buildings.every(b=>dist(b,{x,y})>145);
   ok=ok&&x>world.minX-900&&x<world.maxX+900&&y>world.minY-900&&y<world.maxY+900;
@@ -194,7 +194,7 @@ function loadGame(){
   else resetCamera();
   world={minX:-W/2,maxX:W/2,minY:-H/2,maxY:H/2};
   for(const b of buildings){world.minX=Math.min(world.minX,b.x-180);world.maxX=Math.max(world.maxX,b.x+180);world.minY=Math.min(world.minY,b.y-180);world.maxY=Math.max(world.maxY,b.y+180)}
-  hidePanel();document.getElementById('pause').textContent='Pause';document.getElementById('over').style.display='none';updateUI();
+  hidePanel();document.getElementById('pause').textContent='Ⅱ Pause';document.getElementById('pauseMenu').style.display='none';document.getElementById('over').style.display='none';updateUI();
   return true;
  }catch(e){return false}
 }
@@ -378,10 +378,10 @@ function upgrade(n){
 document.getElementById('up1').onclick=()=>upgrade(1);document.getElementById('up2').onclick=()=>upgrade(2);
 function setMode(next){mode=mode===next?'select':next;document.getElementById('road').classList.toggle('active',mode==='road');document.getElementById('erase').classList.toggle('active',mode==='erase');}
 document.getElementById('resumeGame').onclick=()=>{paused=false;document.getElementById('pause').textContent='Ⅱ Pause';document.getElementById('pauseMenu').style.display='none'};
-document.getElementById('pauseNewGame').onclick=()=>{if(confirm('Start a new game? Your current city will be lost.')){document.getElementById('pauseMenu').style.display='none';start()}};
+document.getElementById('pauseNewGame').onclick=()=>{document.getElementById('pauseMenu').style.display='none';start()};
 document.getElementById('road').onclick=()=>setMode('road');
 document.getElementById('erase').onclick=()=>setMode('erase');
-document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'Resume':'Pause';document.getElementById('pauseMenu').style.display=paused?'grid':'none'};
+document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'Resume':'Pause';document.getElementById('pauseMenu').style.display=paused?'grid':'none';hidePanel()};
 document.getElementById('again').onclick=start;
 document.getElementById('again').ontouchend=e=>{e.preventDefault();start();};
 function pos(e){const r=canvas.getBoundingClientRect();return screenToWorld(e.clientX-r.left,e.clientY-r.top)}
