@@ -248,6 +248,8 @@ function nearestRoadNode(graph,b){
  return best;
 }
 function roadNodeNear(graph,b){return nearestRoadNode(graph,b)}
+function heapPush(heap,item,score){let i=heap.length;heap.push({item,score});while(i){const p=(i-1)>>1;if(heap[p].score<=score)break;heap[i]=heap[p];i=p;heap[i]={item,score}}}
+function heapPop(heap){if(!heap.length)return null;const top=heap[0],last=heap.pop();if(heap.length){let i=0;while(true){let l=i*2+1;if(l>=heap.length)break;let r=l+1,c=r<heap.length&&heap[r].score<heap[l].score?r:l;if(heap[c].score>=last.score)break;heap[i]=heap[c];i=c}heap[i]=last}return top}
 function findRoute(a,b){
  if(a===b)return [];
  // Fast path: a single road can directly connect two buildings.
@@ -263,15 +265,17 @@ function findRoute(a,b){
  const {nodes,graph}=roadGraphCache;
  const start=roadNodeNear({nodes},a),goal=roadNodeNear({nodes},b);
  if(!start||!goal)return null;
- const distMap=new Map(nodes.map(n=>[n,Infinity])),prev=new Map(),open=[start];
- distMap.set(start,0);
+ const distMap=new Map(nodes.map(n=>[n,Infinity])),prev=new Map(),open=[];
+ distMap.set(start,0);heapPush(open,start,dist(start,goal));
  while(open.length){
-  let bi=0;for(let i=1;i<open.length;i++)if(distMap.get(open[i])<distMap.get(open[bi]))bi=i;
-  const cur=open.splice(bi,1)[0];
+  const entry=heapPop(open);if(!entry)break;
+  const cur=entry.item;
+  const bestKnown=distMap.get(cur);
+  if(entry.score>bestKnown+dist(cur,goal))continue;
   if(cur===goal)break;
   for(const e of graph.get(cur)){
-   const nd=distMap.get(cur)+e.w;
-   if(nd<distMap.get(e.to)){distMap.set(e.to,nd);prev.set(e.to,cur);if(!open.includes(e.to))open.push(e.to)}
+   const nd=bestKnown+e.w;
+   if(nd<distMap.get(e.to)){distMap.set(e.to,nd);prev.set(e.to,cur);heapPush(open,e.to,nd+dist(e.to,goal))}
   }
  }
  if(!prev.has(goal)&&goal!==start)return null;
