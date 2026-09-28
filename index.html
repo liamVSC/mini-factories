@@ -104,7 +104,9 @@ canvas{display:block;width:100%;height:100%;touch-action:none;-webkit-tap-highli
     <div class="row"><span>Output</span><b id="pout">—</b></div>
     <div class="row"><span>Demand</span><b id="pdemand">—</b></div>
     <button class="upgrade" id="up1">⚡ Faster machines £120<small>Increase production speed.</small></button>
-    <button class="upgrade" id="up2">📦 Bigger storage £180<small>Hold more goods before blocking.</small></button>
+    <button class="upgrade" id="up2">📦 Bigger storage <span id="up2price">£180</span><small>Hold more goods before blocking.</small></button>
+    <button class="upgrade" id="up3">🚚 Loading bay <span id="up3price">£220</span><small>Faster dispatch and better delivery value.</small></button>
+    <button class="upgrade" id="up4">🧭 Logistics <span id="up4price">£300</span><small>Find shorter routes and reduce congestion penalties.</small></button>
   </div>
   <div id="tip">🛣️ <b>Build your network</b> — drag roads through the city and keep every shop supplied.</div>
 </div>
@@ -364,18 +366,33 @@ function select(b){
  selected=b;const p=document.getElementById('panel');p.style.display='block';
  document.getElementById('pname').textContent=b.name||b.type;
  document.getElementById('ptype').textContent=b.kind==='factory'?'Factory':'Shop';
- document.getElementById('pout').textContent=b.kind==='factory'?b.type:'Needs '+b.need;
+ document.getElementById('pout').textContent=b.kind==='factory'?b.type+' • Level '+(1+b.level):'Needs '+b.need;
  document.getElementById('pdemand').textContent=b.kind==='shop'?Math.ceil(b.demand):b.stock+'/'+b.max;
+ const speedCost=120*(b.level+1),storageCost=180+((b.max-4)/2)*70,loadingCost=220*((b.loading||0)+1),logisticsCost=300*((b.logistics||0)+1);
+ document.getElementById('up1').innerHTML='⚡ Faster machines <span>£'+speedCost+'</span><small>Increase production speed. Level '+b.level+'/3</small>';
+ document.getElementById('up2').innerHTML='📦 Bigger storage <span>£'+storageCost+'</span><small>Hold more goods. '+b.max+'/14 capacity</small>';
+ document.getElementById('up3').innerHTML='🚚 Loading bay <span>£'+loadingCost+'</span><small>Level '+(b.loading||0)+'/2 • Faster dispatch and higher delivery value.</small>';
+ document.getElementById('up4').innerHTML='🧭 Logistics <span>£'+logisticsCost+'</span><small>Level '+(b.logistics||0)+'/2 • Better routing and lower congestion impact.</small>';
+ document.getElementById('up1').disabled=b.level>=3;
+ document.getElementById('up2').disabled=b.max>=14;
+ document.getElementById('up3').disabled=(b.loading||0)>=2;
+ document.getElementById('up4').disabled=(b.logistics||0)>=2;
 }
 function hidePanel(){selected=null;document.getElementById('panel').style.display='none'}
 function upgrade(n){
- if(!selected||selected.kind!=='factory')return;const price=n===1?120:180;
+ if(!selected||selected.kind!=='factory')return;
+ const b=selected,level=b.level||0,loading=b.loading||0,logistics=b.logistics||0;
+ const price=n===1?120*(level+1):n===2?180+((b.max-4)/2)*70:n===3?220*(loading+1):300*(logistics+1);
  if(cash<price)return flash('Not enough cash');
- if(n===1&&selected.level<3){cash-=price;selected.level++;saveGame();flash('Machine upgraded')}
- else if(n===2&&selected.max<14){cash-=price;selected.max+=2;saveGame();flash('Storage upgraded')}
- updateUI();select(selected);
+ if(n===1&&level<3){cash-=price;b.level=level+1;flash('Machines upgraded to level '+(b.level+1))}
+ else if(n===2&&b.max<14){cash-=price;b.max=Math.min(14,b.max+2);flash('Storage upgraded')}
+ else if(n===3&&loading<2){cash-=price;b.loading=loading+1;flash('Loading bay upgraded')}
+ else if(n===4&&logistics<2){cash-=price;b.logistics=logistics+1;flash('Logistics upgraded')}
+ else return;
+ saveGame();updateUI();select(b);
 }
 document.getElementById('up1').onclick=()=>upgrade(1);document.getElementById('up2').onclick=()=>upgrade(2);
+document.getElementById('up3').onclick=()=>upgrade(3);document.getElementById('up4').onclick=()=>upgrade(4);
 function setMode(next){mode=mode===next?'select':next;document.getElementById('road').classList.toggle('active',mode==='road');document.getElementById('erase').classList.toggle('active',mode==='erase');}
 document.getElementById('resumeGame').onclick=()=>{paused=false;document.getElementById('pause').textContent='Ⅱ Pause';document.getElementById('pauseMenu').style.display='none'};
 document.getElementById('pauseNewGame').onclick=()=>{document.getElementById('pauseMenu').style.display='none';start()};
@@ -500,7 +517,12 @@ function spawnTruck(f,s){
  const r=routeFor(f,s);if(!r||r.points.length<2)return;
  f.stock--;s.demand--;
  const blocked=trucks.filter(t=>{const p=routePoint(t.route,t.t);return dist(p,r.points[0])<34}).length;
- trucks.push({route:r.points,t:0,speed:rnd(.075,.105)*(1+f.level*.08),value:types.find(t=>t.name===f.type).price,to:s,kind:f.type,wait:0,queue:blocked});
+ const baseValue=types.find(t=>t.name===f.type).price;
+ const distanceBonus=Math.min(1.2,(r.distance||pathLength(r.points))/650);
+ const levelBonus=1+(f.level||0)*.08+(f.loading||0)*.10;
+ const logisticsBonus=1+(f.logistics||0)*.05;
+ const value=Math.round(baseValue*(1+distanceBonus*.45)*levelBonus*logisticsBonus);
+ trucks.push({route:r.points,t:0,speed:rnd(.075,.105)*(1+(f.level||0)*.08+(f.loading||0)*.04),value,to:s,kind:f.type,wait:0,queue:blocked,source:f});
 }
 function routePoint(points,t){
  const total=pathLength(points);let want=total*t,run=0;
@@ -530,7 +552,7 @@ function weekMilestone(){
 function tick(dt){
  if(paused||gameOver)return;
  weekTimer+=dt;nextSpawn-=dt;saveTimer+=dt;if(saveTimer>=2){saveTimer=0;saveGame();}
- if(weekTimer>32){week++;weekTimer=0;roadBudget+=5;cash+=35;weekMilestone();for(const s of buildings)if(s.kind==='shop')s.demand=Math.min(14,s.demand+rnd(1.5,3.5));flash('Week '+week+' — +5 road tiles')}
+ if(weekTimer>32){week++;weekTimer=0;roadBudget+=5;cash+=35+week*4;weekMilestone();for(const s of buildings)if(s.kind==='shop')s.demand=Math.min(14,s.demand+rnd(1.5,3.5));flash('Week '+week+' — +5 road tiles • £'+(35+week*4)+' city grant')}
  if(nextSpawn<=0){addBuildingOverTime();nextSpawn=Math.max(14,24-week*.35)}
  for(const b of buildings){
   if(b.kind==='factory'){b.prod+=dt*(.52+b.level*.17);if(b.prod>1&&b.stock<b.max){const n=Math.floor(b.prod);b.prod-=n;b.stock=Math.min(b.max,b.stock+n)}}
@@ -548,7 +570,8 @@ function tick(dt){
  for(const p of particles)p.t+=dt;particles=particles.filter(p=>p.t<1);
  updateTrafficLights();
  congestion=Math.min(1,(trucks.length+trucks.filter(t=>t.wait>0).length*1.5)/Math.max(3,roads.length*2));
- cash-=roads.length*dt*.055*(1+congestion);
+ const logisticsReduction=trucks.reduce((n,t)=>n+((t.source?.logistics||0)),0)/Math.max(1,trucks.length);
+ cash-=roads.length*dt*.055*(1+congestion*Math.max(.55,1-logisticsReduction*.12));
  if(cash<0){cash=0;saveGame();gameOver=true;document.getElementById('scoreline').textContent='You delivered '+delivered+' orders across '+week+' weeks.';document.getElementById('over').style.display='grid'}
  updateUI();
 }
