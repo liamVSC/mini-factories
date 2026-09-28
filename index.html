@@ -267,7 +267,8 @@ function orthogonalPath(start,end){
  return [start,{x:start.x,y:end.y},end];
 }
 function snappedRoadPath(start,rawEnd,exclude){
- const end=snapRoadPoint(rawEnd,exclude);
+ const building=snapRoadPoint(rawEnd,exclude);
+ const end=building;
  return orthogonalPath(start,end);
 }
 function addRoad(points){
@@ -341,8 +342,8 @@ canvas.addEventListener('pointerdown',e=>{
 canvas.addEventListener('pointermove',e=>{
  if(pointers.has(e.pointerId)){pointers.set(e.pointerId,screenPos(e));if(pointers.size>=2){updateGesture();return}}
  const p=pos(e);mouse={...p,down:mouse.down};
- if(pointers.size>1||!mouse.down||!drag||mode!=='road'||!pointerStart)return;
- if(dist(pointerStart,p)>12){
+ if(pointers.size>1||!drag||mode!=='road'||!pointerStart)return;
+ if(dist(pointerStart,p)>8){
   pointerMoved=true;
   drag.armed=true;
   drag.points=snappedRoadPath(drag.points[0],p,drag.building);
@@ -354,8 +355,10 @@ canvas.addEventListener('pointerup',e=>{
  const p=pos(e);mouse={...p,down:false};
  if(drag&&mode==='road'&&drag.armed){
   const snapped=snappedRoadPath(drag.points[0],p,drag.building);
-  addRoad(snapped);
-  navigator.vibrate?.(8);
+  if(snapped.length>1&&pathLength(snapped)>12){
+   addRoad(snapped);
+   navigator.vibrate?.(8);
+  }
  }
  if(!pointerMoved&&drag?.building)select(drag.building);
  drag=null;pointerStart=null;pointerMoved=false;
