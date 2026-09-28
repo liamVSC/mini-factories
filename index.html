@@ -371,8 +371,10 @@ canvas.addEventListener('pointerdown',e=>{
   return;
  }
  const b=bAt(p.x,p.y);
- if(b){select(b);drag={building:b,points:[{x:b.x,y:b.y}],armed:false,pointerId:e.pointerId};}
- else {
+ if(b){
+  hidePanel();
+  drag={building:b,points:[{x:b.x,y:b.y}],armed:false,pointerId:e.pointerId};
+ } else {
   hidePanel();
   const roadStart=nearestRoadPoint(p);
   const start=roadStart||p;
