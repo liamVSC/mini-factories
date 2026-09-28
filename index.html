@@ -105,7 +105,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none;-webkit-tap-highli
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 let W,H,dpr,mouse={x:0,y:0,down:false},drag=null,selected=null,paused=false,mode='select',last=performance.now();
 let pointerStart=null,pointerMoved=false,pointers=new Map();
-let camera={x:0,y:0,zoom:1},gesture=null;
+let camera={x:0,y:0,zoom:1},gesture=null,world={minX:0,maxX:0,minY:0,maxY:0};
 let cash=500,delivered=0,week=1,weekTimer=0,roadBudget=10,gameOver=false,saveTimer=0;
 let roads=[],buildings=[],trucks=[],particles=[],nextSpawn=10,congestion=0,roadGraphCache=null;
 let upgrades={speed:0,storage:0};
@@ -125,13 +125,25 @@ function spawn(kind,forcedType){
  const pool=types.filter(x=>x.kind===kind&&(!forcedType||x.name===forcedType));
  const t=pool[Math.floor(Math.random()*pool.length)];
  let x,y,ok=false;
- for(let n=0;n<150&&!ok;n++){x=rnd(75,W-75);y=rnd(115,H-85);ok=buildings.every(b=>dist(b,{x,y})>78)}
+ const margin=110;
+ for(let n=0;n<250&&!ok;n++){
+  if(buildings.length<6){
+   x=rnd(world.minX+margin,world.maxX-margin); y=rnd(world.minY+margin,world.maxY-margin);
+  }else{
+   const angle=rnd(0,Math.PI*2),radius=rnd(170,300);
+   const anchor=buildings[Math.floor(Math.random()*buildings.length)];
+   x=anchor.x+Math.cos(angle)*radius; y=anchor.y+Math.sin(angle)*radius;
+  }
+  ok=buildings.every(b=>dist(b,{x,y})>125);
+ }
  if(!ok)return null;
+ world.minX=Math.min(world.minX,x-140);world.maxX=Math.max(world.maxX,x+140);
+ world.minY=Math.min(world.minY,y-140);world.maxY=Math.max(world.maxY,y+140);
  const b={id:crypto.randomUUID(),x,y,r:23,type:t.name,color:t.color,kind:t.kind,need:t.need||null,
  level:0,stock:0,max:kind==='factory'?4:8,prod:0,demand:kind==='shop'?rnd(2.8,5):0,pulse:Math.random()*6.28,served:0};
  buildings.push(b);return b;
 }
-function resetCamera(){camera={x:W/2,y:H/2,zoom:1};}
+function resetCamera(){camera={x:W/2,y:H/2,zoom:1};world={minX:-W/2,maxX:W/2,minY:-H/2,maxY:H/2};}
 function screenToWorld(x,y){return{x:(x-camera.x)/camera.zoom+W/2,y:(y-camera.y)/camera.zoom+H/2}}
 const SAVE_KEY='miniFactoriesSaveV2';
 function serializeGame(){
