@@ -513,8 +513,14 @@ function tick(dt){
   else b.demand=Math.min(14,b.demand+dt*(.055+week*.003));
  }
  for(const f of buildings.filter(b=>b.kind==='factory')){const s=chooseShopForFactory(f);if(s&&Math.random()<dt*(1.8+f.level*.45))spawnTruck(f,s)}
- for(const t of trucks){const p=routePoint(t.route,t.t);const j=nearestJunction(p.x,p.y);if(j&&dist(p,j)<22&&isLightRed(j)){t.wait=Math.min(2,t.wait+dt);continue}
-  const ahead=trucks.some(o=>o!==t&&o.route===t.route&&o.t>t.t&&o.t-t.t<.018);if(ahead){t.wait=Math.min(1,t.wait+dt);continue}t.wait=0;t.t+=dt*t.speed*(t.wait>0?.55:1);if(t.t>=1){cash+=t.value;delivered++;t.to.served++;particles.push({x:t.to.x,y:t.to.y,t:0,text:'+'+t.value});t.dead=true}}
+ const shopTraffic=new Map();
+ for(const t of trucks)if(t.to)shopTraffic.set(t.to,(shopTraffic.get(t.to)||0)+1);
+ for(const t of trucks){const p=routePoint(t.route,t.t);const j=nearestJunction(p.x,p.y);const lightRed=j&&dist(p,j)<22&&isLightRed(j);
+  let queued=false;
+  if(!lightRed)for(const o of trucks){if(o===t||o.dead)continue;const op=routePoint(o.route,o.t);if(dist(p,op)<30&&o.t>t.t-0.01&&o.t<t.t+0.025){queued=true;break}}
+  if(lightRed||queued){t.wait=Math.min(2,t.wait+dt);continue}
+  const wasWaiting=t.wait>0;t.wait=Math.max(0,t.wait-dt*2);t.t+=dt*t.speed*(wasWaiting?.72:1);
+  if(t.t>=1){cash+=t.value;delivered++;t.to.served++;particles.push({x:t.to.x,y:t.to.y,t:0,text:'+'+t.value});t.dead=true}}
  trucks=trucks.filter(t=>!t.dead);
  for(const r of roads)r.age+=dt;
  for(const p of particles)p.t+=dt;particles=particles.filter(p=>p.t<1);
