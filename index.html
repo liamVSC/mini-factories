@@ -208,10 +208,6 @@ function segmentsCross(a,b,c,d){
  const ccw=(p1,p2,p3)=>(p3.y-p1.y)*(p2.x-p1.x)>(p2.y-p1.y)*(p3.x-p1.x);
  return ccw(a,c,d)!==ccw(b,c,d)&&ccw(a,b,c)!==ccw(a,b,d);
 }
-function connected(a,b){
- if(a===b)return true;
- return !!findRoute(a,b);
-}
 function pathLength(points){let n=0;for(let i=1;i<points.length;i++)n+=dist(points[i-1],points[i]);return n}
 function segIntersection(a,b,c,d){
  const x1=a.x,y1=a.y,x2=b.x,y2=b.y,x3=c.x,y3=c.y,x4=d.x,y4=d.y;
@@ -258,6 +254,7 @@ function nearestRoadNode(graph,b){
  for(const n of graph.nodes){const d=dist(n,b);if(d<bd){bd=d;best=n}}
  return best;
 }
+function roadNodeNear(graph,b){return nearestRoadNode(graph,b)}
 function findRoute(a,b){
  if(a===b)return [];
  // Fast path: a single road can directly connect two buildings.
@@ -271,7 +268,7 @@ function findRoute(a,b){
  if(roadGraphCache===null)roadGraphCache=buildRoadGraph();
  if(!roads.length)return null;
  const {nodes,graph}=roadGraphCache;
- const start=nearestRoadNode({nodes},a),goal=nearestRoadNode({nodes},b);
+ const start=roadNodeNear({nodes},a),goal=roadNodeNear({nodes},b);
  if(!start||!goal)return null;
  const distMap=new Map(nodes.map(n=>[n,Infinity])),prev=new Map(),open=[start];
  distMap.set(start,0);
@@ -471,8 +468,6 @@ function nearestShop(f){
 }
 function routeFor(f,s){
  const base=findRoute(f,s);if(!base)return null;
- const alternatives=[];
- for(const r of roads){if(roadTouchesBuilding(r,f)&&roadTouchesBuilding(r,s))alternatives.push({route:r,distance:pathLength(r.points)})}
  const queuePenalty=trucks.length*.8+trucks.filter(t=>t.wait>0).length*4;
  base.score=base.distance+queuePenalty;return base;
 }
