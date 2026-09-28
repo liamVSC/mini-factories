@@ -170,7 +170,10 @@ function loadGame(){
   roads=d.roads.filter(r=>Array.isArray(r.points)&&r.points.length>=2).map(r=>({...r,points:r.points.map(p=>({x:+p.x,y:+p.y}))}));
   buildings=d.buildings.map(b=>({...b}));
   trucks=[];particles=[];roadGraphCache=null;gameOver=false;paused=false;
-  if(d.camera&&Number.isFinite(d.camera.zoom))camera={x:d.camera.x||0,y:d.camera.y||0,zoom:Math.max(.72,Math.min(1.65,d.camera.zoom))};
+  if(d.camera&&Number.isFinite(d.camera.zoom))camera={x:Number.isFinite(d.camera.x)?d.camera.x:W/2,y:Number.isFinite(d.camera.y)?d.camera.y:H/2,zoom:Math.max(.65,Math.min(1.8,d.camera.zoom))};
+  else resetCamera();
+  world={minX:-W/2,maxX:W/2,minY:-H/2,maxY:H/2};
+  for(const b of buildings){world.minX=Math.min(world.minX,b.x-180);world.maxX=Math.max(world.maxX,b.x+180);world.minY=Math.min(world.minY,b.y-180);world.maxY=Math.max(world.maxY,b.y+180)}
   hidePanel();document.getElementById('pause').textContent='Pause';document.getElementById('over').style.display='none';updateUI();
   return true;
  }catch(e){return false}
@@ -184,7 +187,7 @@ function start(){
  for(const t of ['Market','Garage','Builder'])spawn('shop',t);
  hidePanel();document.getElementById('pause').textContent='Pause';document.getElementById('over').style.display='none';updateUI();
 }
-start();
+if(!loadGame())start();
 function bAt(x,y){return buildings.find(b=>Math.hypot(b.x-x,b.y-y)<b.r+10)}
 function pointSegDistance(p,a,b){
  const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;
@@ -381,6 +384,7 @@ canvas.addEventListener('pointerdown',e=>{
  const sp=screenPos(e);pointers.set(e.pointerId,sp);
  if(pointers.size===2){beginGesture();return}
  const p=pos(e);mouse={...p,down:true};pointerStart=p;pointerMoved=false;
+ drag=null;
  if(mode==='erase'){
   removeRoadAt(p.x,p.y);
   canvas.setPointerCapture?.(e.pointerId);
@@ -408,6 +412,16 @@ canvas.addEventListener('pointermove',e=>{
  if(pointers.has(e.pointerId)){pointers.set(e.pointerId,screenPos(e));if(pointers.size>=2){updateGesture();return}}
  const p=pos(e);mouse={...p,down:mouse.down};
  if(pointers.size>1)return;
+ if(mode==='select'&&mouse.down&&!drag&&pointerStart){
+  const sp=screenPos(e),dx=sp.x-(pointerStart.x-camera.x),dy=sp.y-(pointerStart.y-camera.y);
+  if(Math.hypot(dx,dy)>5){
+   pointerMoved=true;
+   camera.x+=dx-camera._panDX||0;
+   camera.y+=dy-camera._panDY||0;
+   camera._panDX=dx;camera._panDY=dy;
+  }
+  return;
+ }
  if(mode==='erase'&&mouse.down){
   removeRoadAt(p.x,p.y);
   return;
@@ -424,6 +438,7 @@ function finishPointer(e,canceled=false){
  pointers.delete(e.pointerId);
  if(gesture&&pointers.size<2){gesture=null;mouse.down=false;drag=null;pointerStart=null;pointerMoved=false;return}
  const p=pos(e);mouse={...p,down:false};
+ camera._panDX=0;camera._panDY=0;
  if(!canceled&&drag&&mode==='road'&&drag.armed){
   const snapped=snappedRoadPath(drag.points[0],p,drag.building);
   if(snapped.length>1&&pathLength(snapped)>12){
@@ -494,13 +509,23 @@ function drawRoad(points,color,width){
  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);ctx.stroke();
 }
 function draw(){
- ctx.clearRect(0,0,W,H);ctx.fillStyle='#0b0e13';ctx.fillRect(0,0,W,H);
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#090d12';ctx.fillRect(0,0,W,H);
  ctx.save();
  ctx.translate(camera.x,camera.y);ctx.scale(camera.zoom,camera.zoom);
  ctx.translate(-W/2,-H/2);
- ctx.strokeStyle='#171e27';ctx.lineWidth=1;
- for(let x=0;x<W;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
- for(let y=0;y<H;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ // Infinite-feeling map grid: draw only the world currently visible through the camera.
+ const left=(-camera.x)/camera.zoom+W/2, right=(W-camera.x)/camera.zoom+W/2;
+ const top=(-camera.y)/camera.zoom+H/2, bottom=(H-camera.y)/camera.zoom+H/2;
+ const step=48;
+ ctx.strokeStyle='#121922';ctx.lineWidth=1;
+ const gx=Math.floor(left/step)*step, gy=Math.floor(top/step)*step;
+ for(let x=gx;x<=right;x+=step){ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke()}
+ for(let y=gy;y<=bottom;y+=step){ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke()}
+ // Subtle larger city blocks make the expanding map easier to read.
+ ctx.strokeStyle='#0e151d';ctx.lineWidth=2;
+ const block=192,bx=Math.floor(left/block)*block,by=Math.floor(top/block)*block;
+ for(let x=bx;x<=right;x+=block){ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke()}
+ for(let y=by;y<=bottom;y+=block){ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke()}
  for(const r of roads){drawRoad(r.points,'#252c35',11);drawRoad(r.points,congestion>.35?'#c58b3c':'#52606f',6)}
  if(drag&&mouse.down&&mode==='road'&&drag.armed){
   const preview=snappedRoadPath(drag.points[0],mouse,drag.building);
