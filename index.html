@@ -106,7 +106,7 @@ const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 let W,H,dpr,mouse={x:0,y:0,down:false},drag=null,selected=null,paused=false,mode='road',last=performance.now();
 let pointerStart=null,pointerMoved=false,pointers=new Map();
 let camera={x:0,y:0,zoom:1},gesture=null;
-let cash=500,delivered=0,week=1,weekTimer=0,roadBudget=10,gameOver=false;
+let cash=500,delivered=0,week=1,weekTimer=0,roadBudget=10,gameOver=false,saveTimer=0;
 let roads=[],buildings=[],trucks=[],particles=[],nextSpawn=10,congestion=0,roadGraphCache=null;
 let upgrades={speed:0,storage:0};
 const types=[
@@ -133,6 +133,36 @@ function spawn(kind,forcedType){
 }
 function resetCamera(){camera={x:W/2,y:H/2,zoom:1};}
 function screenToWorld(x,y){return{x:(x-camera.x)/camera.zoom+W/2,y:(y-camera.y)/camera.zoom+H/2}}
+const SAVE_KEY='miniFactoriesSaveV2';
+function serializeGame(){
+ return {
+  version:2,cash,delivered,week,weekTimer,roadBudget,nextSpawn,congestion,upgrades,
+  roads:roads.map(r=>({id:r.id,points:r.points,cost:r.cost,age:r.age})),
+  buildings:buildings.map(b=>({id:b.id,x:b.x,y:b.y,r:b.r,type:b.type,color:b.color,kind:b.kind,need:b.need||null,level:b.level,stock:b.stock,max:b.max,prod:b.prod,demand:b.demand,pulse:b.pulse,served:b.served})),
+  camera:{x:camera.x,y:camera.y,zoom:camera.zoom}
+ };
+}
+function saveGame(){
+ if(gameOver)return;
+ try{localStorage.setItem(SAVE_KEY,JSON.stringify(serializeGame()));}catch(e){}
+}
+function loadGame(){
+ try{
+  const raw=localStorage.getItem(SAVE_KEY);if(!raw)return false;
+  const d=JSON.parse(raw);if(!d||d.version!==2||!Array.isArray(d.buildings)||!Array.isArray(d.roads))return false;
+  cash=Number.isFinite(d.cash)?d.cash:500;delivered=Number.isFinite(d.delivered)?d.delivered:0;
+  week=Number.isFinite(d.week)?d.week:1;weekTimer=Number.isFinite(d.weekTimer)?d.weekTimer:0;
+  roadBudget=Number.isFinite(d.roadBudget)?d.roadBudget:10;nextSpawn=Number.isFinite(d.nextSpawn)?d.nextSpawn:10;
+  congestion=Number.isFinite(d.congestion)?d.congestion:0;
+  upgrades=d.upgrades||{speed:0,storage:0};
+  roads=d.roads.filter(r=>Array.isArray(r.points)&&r.points.length>=2).map(r=>({...r,points:r.points.map(p=>({x:+p.x,y:+p.y}))}));
+  buildings=d.buildings.map(b=>({...b}));
+  trucks=[];particles=[];roadGraphCache=null;gameOver=false;paused=false;
+  if(d.camera&&Number.isFinite(d.camera.zoom))camera={x:d.camera.x||0,y:d.camera.y||0,zoom:Math.max(.72,Math.min(1.65,d.camera.zoom))};
+  hidePanel();document.getElementById('pause').textContent='Pause';document.getElementById('over').style.display='none';updateUI();
+  return true;
+ }catch(e){return false}
+}
 function start(){
  cash=500;delivered=0;week=1;weekTimer=0;roadBudget=10;gameOver=false;paused=false;
  roads=[];buildings=[];trucks=[];particles=[];nextSpawn=10;congestion=0;roadGraphCache=null;upgrades={speed:0,storage:0};resetCamera();
@@ -140,7 +170,7 @@ function start(){
  for(const t of ['Market','Garage','Builder'])spawn('shop',t);
  hidePanel();document.getElementById('pause').textContent='Pause';document.getElementById('over').style.display='none';updateUI();
 }
-start();
+if(!loadGame())start();
 function bAt(x,y){return buildings.find(b=>Math.hypot(b.x-x,b.y-y)<b.r+10)}
 function pointSegDistance(p,a,b){
  const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;
@@ -278,12 +308,12 @@ function addRoad(points){
  const a=bAt(points[0].x,points[0].y),b=bAt(points[points.length-1].x,points[points.length-1].y);
  if(!a&&!b&&length<35)return;
  roadBudget-=cost;cash-=cost*2;
- roads.push({id:crypto.randomUUID(),points,cost,age:0});roadGraphCache=null;
+ roads.push({id:crypto.randomUUID(),points,cost,age:0});roadGraphCache=null;saveGame();
 }
 function removeRoadAt(x,y){
  let best=null,bd=13;
  for(const r of roads)for(let i=1;i<r.points.length;i++){const d=pointSegDistance({x,y},r.points[i-1],r.points[i]);if(d<bd){bd=d;best=r}}
- if(best){roads=roads.filter(r=>r!==best);roadGraphCache=null;flash('Road removed')}
+ if(best){roads=roads.filter(r=>r!==best);roadGraphCache=null;saveGame();flash('Road removed')}
 }
 function flash(s){const tip=document.getElementById('tip'),old=tip.innerHTML;tip.innerHTML=s;setTimeout(()=>tip.innerHTML=old,1100)}
 function select(b){
@@ -297,8 +327,8 @@ function hidePanel(){selected=null;document.getElementById('panel').style.displa
 function upgrade(n){
  if(!selected||selected.kind!=='factory')return;const price=n===1?120:180;
  if(cash<price)return flash('Not enough cash');
- if(n===1&&selected.level<3){cash-=price;selected.level++;flash('Machine upgraded')}
- else if(n===2&&selected.max<14){cash-=price;selected.max+=2;flash('Storage upgraded')}
+ if(n===1&&selected.level<3){cash-=price;selected.level++;saveGame();flash('Machine upgraded')}
+ else if(n===2&&selected.max<14){cash-=price;selected.max+=2;saveGame();flash('Storage upgraded')}
  updateUI();select(selected);
 }
 document.getElementById('up1').onclick=()=>upgrade(1);document.getElementById('up2').onclick=()=>upgrade(2);
@@ -328,26 +358,30 @@ canvas.addEventListener('pointerdown',e=>{
  const sp=screenPos(e);pointers.set(e.pointerId,sp);
  if(pointers.size===2){beginGesture();return}
  const p=pos(e);mouse={...p,down:true};pointerStart=p;pointerMoved=false;
- if(mode==='erase'){const b=bAt(p.x,p.y);if(b){roads=roads.filter(r=>!roadTouchesBuilding(r,b));buildings=buildings.filter(x=>x!==b);hidePanel();navigator.vibrate?.(12);flash('Removed')}else removeRoadAt(p.x,p.y);return}
+ if(mode==='erase'){const b=bAt(p.x,p.y);if(b){roads=roads.filter(r=>!roadTouchesBuilding(r,b));buildings=buildings.filter(x=>x!==b);hidePanel();saveGame();navigator.vibrate?.(12);flash('Removed')}else removeRoadAt(p.x,p.y);return}
  const b=bAt(p.x,p.y);
- if(b){select(b);drag={building:b,points:[{x:b.x,y:b.y}],armed:false};}
+ if(b){select(b);drag={building:b,points:[{x:b.x,y:b.y}],armed:false,pointerId:e.pointerId};}
  else {
   hidePanel();
   const roadStart=nearestRoadPoint(p);
   const start=roadStart||p;
-  drag={building:null,points:[start],armed:false};
+  drag={building:null,points:[start],armed:false,pointerId:e.pointerId};
  }
  canvas.setPointerCapture?.(e.pointerId);
 });
 canvas.addEventListener('pointermove',e=>{
  if(pointers.has(e.pointerId)){pointers.set(e.pointerId,screenPos(e));if(pointers.size>=2){updateGesture();return}}
  const p=pos(e);mouse={...p,down:mouse.down};
- if(pointers.size>1||!drag||mode!=='road'||!pointerStart)return;
+ if(pointers.size>1||!drag||mode!=='road'||!pointerStart||e.pointerId!==drag.pointerId)return;
  if(dist(pointerStart,p)>8){
   pointerMoved=true;
   drag.armed=true;
   drag.points=snappedRoadPath(drag.points[0],p,drag.building);
  }
+});
+canvas.addEventListener('pointercancel',e=>{
+ pointers.delete(e.pointerId);mouse.down=false;
+ if(drag&&drag.pointerId===e.pointerId){drag=null;pointerStart=null;pointerMoved=false;}
 });
 canvas.addEventListener('pointerup',e=>{
  pointers.delete(e.pointerId);
@@ -393,7 +427,7 @@ function addBuildingOverTime(){
 }
 function tick(dt){
  if(paused||gameOver)return;
- weekTimer+=dt;nextSpawn-=dt;
+ weekTimer+=dt;nextSpawn-=dt;saveTimer+=dt;if(saveTimer>=2){saveTimer=0;saveGame();}
  if(weekTimer>32){week++;weekTimer=0;roadBudget+=5;cash+=35;for(const s of buildings)if(s.kind==='shop')s.demand=Math.min(14,s.demand+rnd(1.5,3.5));flash('Week '+week+' — +5 road tiles')}
  if(nextSpawn<=0){addBuildingOverTime();nextSpawn=Math.max(6,13-week*.45)}
  for(const b of buildings){
@@ -407,7 +441,7 @@ function tick(dt){
  for(const p of particles)p.t+=dt;particles=particles.filter(p=>p.t<1);
  congestion=Math.min(1,trucks.length/Math.max(3,roads.length*2));
  cash-=roads.length*dt*.055*(1+congestion);
- if(cash<0){cash=0;gameOver=true;document.getElementById('scoreline').textContent='You delivered '+delivered+' orders across '+week+' weeks.';document.getElementById('over').style.display='grid'}
+ if(cash<0){cash=0;saveGame();gameOver=true;document.getElementById('scoreline').textContent='You delivered '+delivered+' orders across '+week+' weeks.';document.getElementById('over').style.display='grid'}
  updateUI();
 }
 function updateUI(){
