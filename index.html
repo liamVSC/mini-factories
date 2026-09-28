@@ -510,31 +510,31 @@ function nearBuilding(x,y,pad=0){return buildings.some(b=>Math.hypot(b.x-x,b.y-y
 function drawTree(x,y,scale=1){
  if(nearBuilding(x,y,18))return;
  ctx.fillStyle='#101a18';ctx.fillRect(x-2*scale,y+5*scale,4*scale,8*scale);
- ctx.beginPath();ctx.arc(x,y,8*scale,0,Math.PI*2);ctx.fillStyle='#20352b';ctx.fill();
- ctx.beginPath();ctx.arc(x-3*scale,y-3*scale,5*scale,0,Math.PI*2);ctx.fillStyle='#294634';ctx.fill();
+ ctx.beginPath();ctx.arc(x,y,8*scale,0,Math.PI*2);ctx.fillStyle='#2d7048';ctx.fill();
+ ctx.beginPath();ctx.arc(x-3*scale,y-3*scale,5*scale,0,Math.PI*2);ctx.fillStyle='#3c8a55';ctx.fill();
 }
 function drawCityDecor(left,right,top,bottom,block){
  const riverY=420+Math.sin(left*.002)*35;
  ctx.beginPath();ctx.moveTo(left,riverY-38);
  for(let x=left;x<=right;x+=24)ctx.lineTo(x,riverY-38+Math.sin(x*.035)*7);
  for(let x=right;x>=left;x-=24)ctx.lineTo(x,riverY+38+Math.sin(x*.035)*7);
- ctx.closePath();ctx.fillStyle='#0b2530';ctx.fill();ctx.strokeStyle='#123b49';ctx.lineWidth=2;ctx.stroke();
- for(let x=Math.floor(left/48)*48;x<=right;x+=48){const y=riverY+Math.sin(x*.035)*4;ctx.strokeStyle='#174453';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x-10,y);ctx.lineTo(x+10,y);ctx.stroke()}
+ ctx.closePath();ctx.fillStyle='#0b3445';ctx.fill();ctx.strokeStyle='#17617a';ctx.lineWidth=2;ctx.stroke();
+ for(let x=Math.floor(left/48)*48;x<=right;x+=48){const y=riverY+Math.sin(x*.035)*4;ctx.strokeStyle='#23809b';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x-10,y);ctx.lineTo(x+10,y);ctx.stroke()}
  const minX=Math.floor(left/block)*block,minY=Math.floor(top/block)*block;
  for(let x=minX;x<=right;x+=block)for(let y=minY;y<=bottom;y+=block){
   const h=hash2(x/192,y/192),cx=x+42+hash2(x+7,y)*90,cy=y+42+hash2(x+17,y+3)*90;
-  if(h>.78&&!nearBuilding(cx,cy,30)){ctx.fillStyle='#0d1a16';ctx.fillRect(cx-42,cy-30,84,60);ctx.strokeStyle='#173126';ctx.lineWidth=2;ctx.strokeRect(cx-42,cy-30,84,60);for(let k=0;k<5;k++)drawTree(cx-25+k*12,cy+(k%2)*10-8,.72)}
+  if(h>.78&&!nearBuilding(cx,cy,30)){ctx.fillStyle='#173d2c';ctx.fillRect(cx-42,cy-30,84,60);ctx.strokeStyle='#285b3e';ctx.lineWidth=2;ctx.strokeRect(cx-42,cy-30,84,60);for(let k=0;k<5;k++)drawTree(cx-25+k*12,cy+(k%2)*10-8,.72)}
  }
  ctx.font='700 9px system-ui';ctx.textAlign='left';ctx.textBaseline='top';
  const names=['NORTH DISTRICT','RIVERSIDE','INDUSTRIAL','MARKET QUARTER','WEST END'];
- for(let x=minX;x<=right;x+=block*2)for(let y=minY;y<=bottom;y+=block*2)if(hash2(x/384+2,y/384+9)>.55){ctx.fillStyle='#1c2832';ctx.fillText(names[Math.floor(hash2(x,y)*names.length)],x+14,y+12)}
+ for(let x=minX;x<=right;x+=block*2)for(let y=minY;y<=bottom;y+=block*2)if(hash2(x/384+2,y/384+9)>.55){ctx.fillStyle='#334b5b';ctx.fillText(names[Math.floor(hash2(x,y)*names.length)],x+14,y+12)}
 }
 function drawRoadMarkings(points){ctx.save();ctx.setLineDash([10,12]);ctx.strokeStyle='#8d98a4';ctx.lineWidth=1.2;ctx.globalAlpha=.48;ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);ctx.stroke();ctx.restore()}
 function drawBuilding(b){
  const pulse=Math.sin(performance.now()/500+b.pulse)*1.5;ctx.save();ctx.translate(b.x,b.y);
  const w=b.kind==='factory'?34:30,h=b.kind==='factory'?30:26;
- ctx.fillStyle='#080d12';ctx.fillRect(-w/2+3,-h/2+5,w,h);ctx.fillStyle='#18212b';ctx.fillRect(-w/2,-h/2,w,h);ctx.strokeStyle=b.color;ctx.lineWidth=2.5;ctx.strokeRect(-w/2,-h/2,w,h);
- if(b.kind==='factory'){ctx.fillStyle='#25313c';ctx.fillRect(-w/2+5,-h/2+5,w-10,6);ctx.fillStyle=b.color;ctx.fillRect(-w/2+8,-h/2+14,5,8);ctx.fillRect(-w/2+17,-h/2+12,5,10);ctx.fillStyle='#0f151b';ctx.fillRect(w/2-7,-h/2-8,3,10)}
+ ctx.fillStyle='#080d12';ctx.fillRect(-w/2+3,-h/2+5,w,h);ctx.fillStyle=b.kind==='factory'?'#243746':'#2d3543';ctx.fillRect(-w/2,-h/2,w,h);ctx.strokeStyle=b.color;ctx.lineWidth=2.5;ctx.strokeRect(-w/2,-h/2,w,h);
+ if(b.kind==='factory'){ctx.fillStyle='#365062';ctx.fillRect(-w/2+5,-h/2+5,w-10,6);ctx.fillStyle=b.color;ctx.fillRect(-w/2+8,-h/2+14,5,8);ctx.fillRect(-w/2+17,-h/2+12,5,10);ctx.fillStyle='#0f151b';ctx.fillRect(w/2-7,-h/2-8,3,10)}
  else{ctx.fillStyle=b.color;ctx.fillRect(-w/2+5,-h/2+5,w-10,7);ctx.fillStyle='#0f151b';ctx.fillRect(-w/2+6,2,w-12,3)}
  ctx.fillStyle=b.color;ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(b.kind==='factory'?b.type[0]:b.need[0],0,2);ctx.restore();
  ctx.beginPath();ctx.arc(b.x,b.y,Math.max(w,h)/2+5+pulse,0,Math.PI*2);ctx.strokeStyle=b.color+'28';ctx.lineWidth=2;ctx.stroke();
@@ -544,7 +544,7 @@ function drawRoad(points,color,width){
  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);ctx.stroke();
 }
 function draw(){
- ctx.clearRect(0,0,W,H);ctx.fillStyle='#090d12';ctx.fillRect(0,0,W,H);
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#101923';ctx.fillRect(0,0,W,H);
  ctx.save();
  ctx.translate(camera.x,camera.y);ctx.scale(camera.zoom,camera.zoom);
  ctx.translate(-W/2,-H/2);
@@ -552,12 +552,12 @@ function draw(){
  const left=(-camera.x)/camera.zoom+W/2, right=(W-camera.x)/camera.zoom+W/2;
  const top=(-camera.y)/camera.zoom+H/2, bottom=(H-camera.y)/camera.zoom+H/2;
  const step=48;
- ctx.strokeStyle='#121922';ctx.lineWidth=1;
+ ctx.strokeStyle='#1a2935';ctx.lineWidth=1;
  const gx=Math.floor(left/step)*step, gy=Math.floor(top/step)*step;
  for(let x=gx;x<=right;x+=step){ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke()}
  for(let y=gy;y<=bottom;y+=step){ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke()}
  // City-block structure and lightweight procedural scenery.
- ctx.strokeStyle='#0e151d';ctx.lineWidth=2;
+ ctx.strokeStyle='#172632';ctx.lineWidth=2;
  const block=192,bx=Math.floor(left/block)*block,by=Math.floor(top/block)*block;
  for(let x=bx;x<=right;x+=block){ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke()}
  for(let y=by;y<=bottom;y+=block){ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke()}
@@ -577,7 +577,7 @@ function draw(){
   const p=routePoint(t.route,t.t),next=routePoint(t.route,Math.min(1,t.t+.01));
   const ang=Math.atan2(next.y-p.y,next.x-p.x);
   ctx.save();ctx.translate(p.x,p.y);ctx.rotate(ang);
-  ctx.fillStyle='#f5f7fa';ctx.fillRect(-8,-5,16,10);ctx.fillStyle='#8bd5ff';ctx.fillRect(-2,-4,6,3);ctx.fillStyle='#111820';ctx.fillRect(-5,5,4,3);ctx.fillRect(3,5,4,3);ctx.restore();
+  ctx.fillStyle='#f5b942';ctx.fillRect(-8,-5,16,10);ctx.fillStyle='#5fd3ff';ctx.fillRect(-2,-4,6,3);ctx.fillStyle='#111820';ctx.fillRect(-5,5,4,3);ctx.fillRect(3,5,4,3);ctx.restore();
 }
  for(const b of buildings){
   drawBuilding(b);
