@@ -476,9 +476,21 @@ function routeFor(f,s){
  const queuePenalty=trucks.length*.8+trucks.filter(t=>t.wait>0).length*4;
  base.score=base.distance+queuePenalty;return base;
 }
-function nearestJunction(x,y){let best=null,bd=34;for(const r of roads)for(let i=1;i<r.points.length;i++)for(const rr of roads)if(rr!==r)for(let j=1;j<rr.points.length;j++){const hit=segIntersection(r.points[i-1],r.points[i],rr.points[j-1],rr.points[j]);if(hit){const d=Math.hypot(x-hit.x,y-hit.y);if(d<bd){bd=d;best={x:hit.x,y:hit.y}}}}return best}
+function rebuildJunctionCache(){
+ const seen=[];
+ for(let i=0;i<roads.length;i++)for(let j=i+1;j<roads.length;j++){
+  const a=roads[i],b=roads[j];
+  for(let ai=1;ai<a.points.length;ai++)for(let bj=1;bj<b.points.length;bj++){
+   const hit=segIntersection(a.points[ai-1],a.points[ai],b.points[bj-1],b.points[bj]);
+   if(hit&&!seen.some(p=>Math.hypot(p.x-hit.x,p.y-hit.y)<12))seen.push({x:hit.x,y:hit.y});
+  }
+ }
+ junctionCache=seen;return seen;
+}
+function getJunctions(){return junctionCache||(rebuildJunctionCache()||[])}
+function nearestJunction(x,y){let best=null,bd=34;for(const p of getJunctions()){const d=Math.hypot(x-p.x,y-p.y);if(d<bd){bd=d;best=p}}return best}
 function isLightRed(p){const l=trafficLights.find(x=>Math.hypot(x.x-p.x,x.y-p.y)<18);return !!l&&Math.floor(performance.now()/2200)%2===0}
-function updateTrafficLights(){const seen=[];for(let i=0;i<roads.length;i++)for(let j=i+1;j<roads.length;j++)for(let a=1;a<roads[i].points.length;a++)for(let b=1;b<roads[j].points.length;b++){const h=segIntersection(roads[i].points[a-1],roads[i].points[a],roads[j].points[b-1],roads[j].points[b]);if(h&&!seen.some(p=>Math.hypot(p.x-h.x,p.y-h.y)<12))seen.push({x:h.x,y:h.y})}trafficLights=trafficLights.filter(l=>seen.some(p=>Math.hypot(p.x-l.x,p.y-l.y)<12));for(const p of seen)if(!trafficLights.some(l=>Math.hypot(l.x-p.x,l.y-p.y)<12)&&trafficLights.length<6)trafficLights.push(p)}
+function updateTrafficLights(){const seen=getJunctions();trafficLights=trafficLights.filter(l=>seen.some(p=>Math.hypot(p.x-l.x,p.y-l.y)<12));for(const p of seen)if(!trafficLights.some(l=>Math.hypot(l.x-p.x,l.y-p.y)<12)&&trafficLights.length<6)trafficLights.push({x:p.x,y:p.y})}
 function spawnTruck(f,s){
  if(f.stock<=0||s.demand<=0)return;
  const r=routeFor(f,s);if(!r||r.points.length<2)return;
@@ -573,7 +585,7 @@ function drawBuilding(b){
  ctx.beginPath();ctx.arc(b.x,b.y,Math.max(w,h)/2+5+pulse,0,Math.PI*2);ctx.strokeStyle=b.color+'28';ctx.lineWidth=2;ctx.stroke();
  ctx.fillStyle='#d8dee7';ctx.font='11px system-ui';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(b.type,b.x,b.y+20);
 }
-function drawJunctions(){const junctions=[];for(let i=0;i<roads.length;i++)for(let j=i+1;j<roads.length;j++){const a=roads[i],b=roads[j];for(let ai=1;ai<a.points.length;ai++)for(let bj=1;bj<b.points.length;bj++){const hit=segIntersection(a.points[ai-1],a.points[ai],b.points[bj-1],b.points[bj]);if(hit)junctions.push({x:hit.x,y:hit.y})}}for(const p of junctions){ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);ctx.fillStyle='#17212a';ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle='#f5c84b';ctx.fill()}}
+function drawJunctions(){for(const p of getJunctions()){ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);ctx.fillStyle='#17212a';ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle='#f5c84b';ctx.fill()}}
 function drawBridges(){for(const r of roads){if(!r.bridge)continue;for(let i=1;i<r.points.length;i++){const a=r.points[i-1],b=r.points[i],minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x);if(maxX-minX<1)continue;const x=(minX+maxX)/2,t=(x-a.x)/(b.x-a.x||1),y=a.y+(b.y-a.y)*t;if(Math.abs(y-riverYAt(x))<55){const ang=Math.atan2(b.y-a.y,b.x-a.x);ctx.save();ctx.translate(x,y);ctx.rotate(ang);ctx.fillStyle='#8d7348';ctx.fillRect(-18,-9,36,18);ctx.strokeStyle='#c7a56a';ctx.lineWidth=2;ctx.strokeRect(-18,-9,36,18);ctx.strokeStyle='#e0c383';for(let k=-12;k<=12;k+=8){ctx.beginPath();ctx.moveTo(k,-7);ctx.lineTo(k,7);ctx.stroke()}ctx.restore()}}}}
 function drawRoad(points,color,width){
  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);ctx.stroke();
