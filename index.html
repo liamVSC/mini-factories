@@ -5,25 +5,50 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Mini Factories</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#0b0e13;color:#eef2f7;font-family:Inter,system-ui,Arial,sans-serif}body{touch-action:none}
-#ui{position:fixed;inset:0;pointer-events:none}.top{display:flex;gap:8px;align-items:center;padding:12px;position:absolute;left:0;right:0;top:0}.card{background:rgba(16,21,29,.94);border:1px solid #29313d;border-radius:12px;padding:8px 11px;box-shadow:0 8px 30px #0005}.stat b{display:block;font-size:18px}.stat span{font-size:10px;color:#8995a5;text-transform:uppercase;letter-spacing:.08em}.grow{flex:1}
-button{pointer-events:auto;border:1px solid #35404d;background:#151b24;color:#eaf0f6;border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer}button:hover{background:#1d2632}button.active{border-color:#7dd3fc;background:#123044}
-#tip{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:#10151dE8;border:1px solid #29313d;border-radius:12px;padding:10px 14px;font-size:12px;text-align:center;max-width:92%}
-#panel{position:absolute;right:12px;top:70px;width:245px;pointer-events:auto;display:none}.row{display:flex;justify-content:space-between;gap:10px;margin:8px 0;color:#aeb8c6;font-size:12px}.row b{color:#fff}.upgrade{width:100%;margin-top:7px;text-align:left}.upgrade small{display:block;color:#8995a5;font-weight:500;margin-top:3px}
-#over{position:fixed;inset:0;display:none;place-items:center;background:#080b0fcc;z-index:5}.modal{width:min(420px,90vw);background:#111720;border:1px solid #303b48;border-radius:18px;padding:28px;text-align:center}.modal h1{margin:0 0 8px;font-size:34px}.modal p{color:#9eabbc}.modal button{margin-top:8px}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#080b10;color:#f4f7fb;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{touch-action:none}
+#ui{position:fixed;inset:0;pointer-events:none}
+.top{display:flex;gap:9px;align-items:center;padding:12px 14px;position:absolute;left:0;right:0;top:0}
+.card{background:rgba(14,19,27,.9);border:1px solid rgba(255,255,255,.09);border-radius:14px;box-shadow:0 10px 35px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.035);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.stat{min-width:88px;padding:8px 12px}
+.stat span{display:block;font-size:9px;color:#7f8b9b;text-transform:uppercase;letter-spacing:.12em;font-weight:800}
+.stat b{display:block;margin-top:2px;font-size:18px;line-height:1.1;letter-spacing:-.02em}
+.stat:first-child b{color:#b8f58a}
+.grow{flex:1}
+button{pointer-events:auto;border:1px solid rgba(255,255,255,.1);background:rgba(21,27,36,.95);color:#eaf0f6;border-radius:11px;padding:9px 13px;font-weight:800;cursor:pointer;transition:.15s transform,.15s background,.15s border-color;box-shadow:0 5px 15px rgba(0,0,0,.16)}
+button:hover{background:#202936;border-color:rgba(255,255,255,.18)}
+button:active{transform:translateY(1px) scale(.98)}
+button.active{border-color:#7dd3fc;background:linear-gradient(180deg,#173d52,#123044);box-shadow:0 0 0 1px #7dd3fc22,0 6px 18px #0004}
+#road{color:#dff6ff}
+#erase{color:#ffd0d0}
+#pause{color:#dce3ed}
+#tip{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(14,19,27,.9);border:1px solid rgba(255,255,255,.1);border-radius:13px;padding:10px 15px;font-size:12px;text-align:center;max-width:min(560px,92vw);box-shadow:0 10px 30px #0005;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#tip b{color:#fff}
+#panel{position:absolute;right:14px;top:78px;width:270px;padding:16px;pointer-events:auto;display:none}
+#pname{display:block;font-size:17px;letter-spacing:-.02em;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;gap:10px;margin:9px 0;color:#8f9bad;font-size:12px}
+.row b{color:#f5f7fa}
+.upgrade{width:100%;margin-top:8px;text-align:left;padding:11px 12px}
+.upgrade small{display:block;color:#7f8b9b;font-weight:500;margin-top:4px;line-height:1.3}
+#over{position:fixed;inset:0;display:none;place-items:center;background:rgba(3,5,8,.78);z-index:5;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.modal{width:min(430px,90vw);background:#101620;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:30px;text-align:center;box-shadow:0 25px 80px #0008}
+.modal h1{margin:0 0 8px;font-size:36px;letter-spacing:-.04em}.modal p{color:#9eabbc}.modal button{margin-top:8px}
 canvas{display:block;width:100%;height:100%;touch-action:none}
-
-@media (max-width:420px){
-  .top{gap:4px}
-  .stat{flex:1;min-width:70px}
-  .stat b{font-size:14px}
-  #road,#erase,#pause{flex:1}
-  #tip{display:none}
-  #panel{bottom:8px;max-height:42vh;overflow:auto}
+@media(max-width:700px){
+ .top{padding:8px;gap:6px;overflow-x:auto;align-items:stretch}
+ .top::-webkit-scrollbar{display:none}
+ .stat{min-width:76px;padding:7px 9px}.stat b{font-size:15px}.stat span{font-size:8px}
+ .grow{display:none}
+ .top button{min-width:76px;min-height:42px;padding:8px 9px}
+ #panel{right:8px;top:auto;bottom:8px;width:min(290px,calc(100vw - 16px));max-height:44vh;overflow:auto}
+ #tip{bottom:8px;font-size:11px;padding:8px 11px;max-width:calc(100vw - 20px)}
 }
-@media (pointer:coarse){
-  button{min-height:44px}
+@media(max-width:420px){
+ .top{padding:7px}.stat{min-width:70px}.top button{min-width:70px}
+ #tip{display:none}
 }
+@media(prefers-reduced-motion:reduce){button{transition:none}}
 </style>
 </head>
 <body>
@@ -31,13 +56,13 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 <div id="ui">
   <div class="top">
     <div class="card stat"><span>Cash</span><b id="cash">£500</b></div>
-    <div class="card stat"><span>Delivered</span><b id="del">0</b></div>
+    <div class="card stat"><span>Orders</span><b id="del">0</b></div>
     <div class="card stat"><span>Week</span><b id="week">1</b></div>
     <div class="card stat"><span>Best</span><b id="best">0</b></div>
     <div class="grow"></div>
-    <button id="road">Road <span id="roads">0</span></button>
-    <button id="erase">Erase</button>
-    <button id="pause">Pause</button>
+    <button id="road">🛣️ Road <span id="roads">0</span></button>
+    <button id="erase">⌫ Erase</button>
+    <button id="pause">Ⅱ Pause</button>
   </div>
   <div id="panel" class="card">
     <b id="pname">Factory</b>
@@ -47,7 +72,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
     <button class="upgrade" id="up1">⚡ Faster machines £120<small>Increase production speed.</small></button>
     <button class="upgrade" id="up2">📦 Bigger storage £180<small>Hold more goods before blocking.</small></button>
   </div>
-  <div id="tip">Connect <b>factories</b> to matching <b>shops</b>. Drag from one building to another to build roads.</div>
+  <div id="tip">🛣️ <b>Build your network</b> — drag roads through the city and keep every shop supplied.</div>
 </div>
 <div id="over"><div class="modal"><h1>Factory Closed</h1><p id="scoreline"></p><button id="again">Start a new factory</button></div></div>
 <script>
