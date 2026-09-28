@@ -373,6 +373,7 @@ document.getElementById('road').onclick=()=>setMode('road');
 document.getElementById('erase').onclick=()=>setMode('erase');
 document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'Resume':'Pause'};
 document.getElementById('again').onclick=start;
+document.getElementById('again').ontouchend=e=>{e.preventDefault();start();};
 function pos(e){const r=canvas.getBoundingClientRect();return screenToWorld(e.clientX-r.left,e.clientY-r.top)}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 function beginGesture(){
