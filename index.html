@@ -236,6 +236,15 @@ function simplify(points){
  const out=[];for(const p of points){const last=out[out.length-1];if(!last||dist(last,p)>10)out.push(p)}
  return out;
 }
+function snapRoadPoint(p,exclude){
+ let best=null,bd=24;
+ for(const b of buildings){
+  if(b===exclude)continue;
+  const d=dist(p,b);
+  if(d<bd){bd=d;best={x:b.x,y:b.y}}
+ }
+ return best||p;
+}
 function addRoad(points){
  points=simplify(points);if(points.length<2)return;
  const length=pathLength(points),cost=Math.max(1,Math.ceil(length/55));
@@ -318,7 +327,12 @@ canvas.addEventListener('pointerup',e=>{
   const end=bAt(p.x,p.y);
   if(end&&end!==drag.building)drag.points.push({x:end.x,y:end.y});
   else if(!end)drag.points.push(p);
-  addRoad(drag.points);navigator.vibrate?.(8);
+  const snapped=drag.points.map((q,i)=>{
+   if(i===0)return q;
+   const hit=bAt(q.x,q.y);
+   return hit&&hit!==drag.building?{x:hit.x,y:hit.y}:q;
+  });
+  addRoad(snapped);navigator.vibrate?.(8);
  }
  if(!pointerMoved&&drag?.building)select(drag.building);
  drag=null;pointerStart=null;pointerMoved=false;
