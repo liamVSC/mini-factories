@@ -210,10 +210,11 @@ function completeContractDelivery(shop,truck){
  const c=contractForShop(shop);if(!c||c.type!==truck.kind||c.remaining<=0)return;
  c.remaining--;
  if(c.remaining<=0){
+  const earlyBonus=c.expires>c.initial*.5?Math.round(c.reward*.12):0;
   const urgencyBonus=c.urgent?Math.round(c.reward*.18):0;
-  const payout=c.reward+urgencyBonus;
+  const payout=c.reward+urgencyBonus+earlyBonus;
   cash+=payout;reputation=Math.min(100,reputation+2);particles.push({x:shop.x,y:shop.y,t:0,text:'CONTRACT +£'+payout});
-  flash((c.urgent?'Urgent contract complete — ':'Contract complete — ')+'£'+payout);
+  flash((c.urgent?'Urgent contract complete — ':'Contract complete — ')+'£'+payout+(earlyBonus?' • early bonus':'') );
   c.done=true;shop.contract=null;objectiveCheck('contract',1);
  }
 }
@@ -255,14 +256,15 @@ function loadGame(){
   roadBudget=Number.isFinite(d.roadBudget)?d.roadBudget:10;nextSpawn=Number.isFinite(d.nextSpawn)?d.nextSpawn:10;
   congestion=Number.isFinite(d.congestion)?d.congestion:0;
   reputation=Number.isFinite(d.reputation)?d.reputation:100;contractSeq=Number.isFinite(d.contractSeq)?d.contractSeq:1;
-  objectives=Array.isArray(d.objectives)?d.objectives:[];objectiveIndex=Number.isFinite(d.objectiveIndex)?d.objectiveIndex:0;
+  const savedObjectiveIndex=Number.isFinite(d.objectiveIndex)?d.objectiveIndex:0;
+  const savedObjectiveDone=Array.isArray(d.objectives)?d.objectives.map(o=>!!o.done):[];
+  initObjectives();objectiveIndex=Math.max(0,Math.min(objectives.length-1,savedObjectiveIndex));objectives.forEach((o,i)=>o.done=!!savedObjectiveDone[i]);
   deliveryIncome=Number.isFinite(d.deliveryIncome)?d.deliveryIncome:0;deliveredByProduct=d.deliveredByProduct||{};longContracts=Number.isFinite(d.longContracts)?d.longContracts:0;
   upgrades=d.upgrades||{speed:0,storage:0};
   trafficLights=Array.isArray(d.trafficLights)?d.trafficLights.map(p=>({x:+p.x,y:+p.y})):[];
   roads=d.roads.filter(r=>Array.isArray(r.points)&&r.points.length>=2).map(r=>({...r,bridge:!!r.bridge,points:r.points.map(p=>({x:+p.x,y:+p.y}))}));
   buildings=d.buildings.map(b=>({...b,district:b.district||districtAt(b),contract:b.contract||null,loading:b.loading||0,logistics:b.logistics||0}));
-  if(!objectives.length)initObjectives();
-  trucks=[];particles=[];roadGraphCache=null;junctionCache=null;gameOver=false;paused=false;
+    trucks=[];particles=[];roadGraphCache=null;junctionCache=null;gameOver=false;paused=false;
   if(d.camera&&Number.isFinite(d.camera.zoom))camera={x:Number.isFinite(d.camera.x)?d.camera.x:W/2,y:Number.isFinite(d.camera.y)?d.camera.y:H/2,zoom:Math.max(.65,Math.min(1.8,d.camera.zoom))};
   else resetCamera();
   world={minX:-W/2,maxX:W/2,minY:-H/2,maxY:H/2};
