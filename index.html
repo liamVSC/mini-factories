@@ -109,7 +109,7 @@ let camera={x:0,y:0,zoom:1},gesture=null,world={minX:0,maxX:0,minY:0,maxY:0};
 let cash=500,delivered=0,week=1,weekTimer=0,roadBudget=10,gameOver=false,saveTimer=0;
 let roads=[],buildings=[],trucks=[],particles=[],nextSpawn=10,congestion=0,roadGraphCache=null;
 let upgrades={speed:0,storage:0};
-let trafficLights=[];
+let trafficLights=[],junctionCache=null;
 const types=[
  {name:'Steel',color:'#8bd5ff',price:24,icon:'S',kind:'factory'},
  {name:'Food',color:'#a7e66f',price:18,icon:'F',kind:'factory'},
@@ -172,7 +172,7 @@ function loadGame(){
   trafficLights=Array.isArray(d.trafficLights)?d.trafficLights.map(p=>({x:+p.x,y:+p.y})):[];
   roads=d.roads.filter(r=>Array.isArray(r.points)&&r.points.length>=2).map(r=>({...r,bridge:!!r.bridge,points:r.points.map(p=>({x:+p.x,y:+p.y}))}));
   buildings=d.buildings.map(b=>({...b}));
-  trucks=[];particles=[];roadGraphCache=null;gameOver=false;paused=false;
+  trucks=[];particles=[];roadGraphCache=null;junctionCache=null;gameOver=false;paused=false;
   if(d.camera&&Number.isFinite(d.camera.zoom))camera={x:Number.isFinite(d.camera.x)?d.camera.x:W/2,y:Number.isFinite(d.camera.y)?d.camera.y:H/2,zoom:Math.max(.65,Math.min(1.8,d.camera.zoom))};
   else resetCamera();
   world={minX:-W/2,maxX:W/2,minY:-H/2,maxY:H/2};
@@ -184,7 +184,7 @@ function loadGame(){
 function start(){
  try{localStorage.removeItem(SAVE_KEY)}catch(e){}
  cash=500;delivered=0;week=1;weekTimer=0;roadBudget=10;gameOver=false;paused=false;
- roads=[];buildings=[];trucks=[];particles=[];nextSpawn=18;congestion=0;roadGraphCache=null;upgrades={speed:0,storage:0};trafficLights=[];resetCamera();
+ roads=[];buildings=[];trucks=[];particles=[];nextSpawn=18;congestion=0;roadGraphCache=null;junctionCache=null;upgrades={speed:0,storage:0};trafficLights=[];resetCamera();
  mode='select';document.getElementById('road').classList.remove('active');document.getElementById('erase').classList.remove('active');
  for(const t of ['Steel','Food','Parts'])spawn('factory',t);
  for(const t of ['Market','Garage','Builder'])spawn('shop',t);
@@ -341,12 +341,12 @@ function addRoad(points){
  const a=bAt(points[0].x,points[0].y),b=bAt(points[points.length-1].x,points[points.length-1].y);
  if(!a&&!b&&length<35)return;
  roadBudget-=cost;cash-=cost*2;
- roads.push({id:crypto.randomUUID(),points,cost,age:0,bridge});roadGraphCache=null;saveGame();
+ roads.push({id:crypto.randomUUID(),points,cost,age:0,bridge});roadGraphCache=null;junctionCache=null;updateTrafficLights();saveGame();
 }
 function removeRoadAt(x,y){
  let best=null,bd=13;
  for(const r of roads)for(let i=1;i<r.points.length;i++){const d=pointSegDistance({x,y},r.points[i-1],r.points[i]);if(d<bd){bd=d;best=r}}
- if(best){roads=roads.filter(r=>r!==best);roadGraphCache=null;saveGame();flash('Road removed')}
+ if(best){roads=roads.filter(r=>r!==best);roadGraphCache=null;junctionCache=null;updateTrafficLights();saveGame();flash('Road removed')}
 }
 function flash(s){const tip=document.getElementById('tip'),old=tip.innerHTML;tip.innerHTML=s;setTimeout(()=>tip.innerHTML=old,1100)}
 function select(b){
@@ -478,7 +478,7 @@ function routeFor(f,s){
 }
 function nearestJunction(x,y){let best=null,bd=34;for(const r of roads)for(let i=1;i<r.points.length;i++)for(const rr of roads)if(rr!==r)for(let j=1;j<rr.points.length;j++){const hit=segIntersection(r.points[i-1],r.points[i],rr.points[j-1],rr.points[j]);if(hit){const d=Math.hypot(x-hit.x,y-hit.y);if(d<bd){bd=d;best={x:hit.x,y:hit.y}}}}return best}
 function isLightRed(p){const l=trafficLights.find(x=>Math.hypot(x.x-p.x,x.y-p.y)<18);return !!l&&Math.floor(performance.now()/2200)%2===0}
-function updateTrafficLights(){const seen=[];for(let i=0;i<roads.length;i++)for(let j=i+1;j<roads.length;j++){for(let a=1;a<roads[i].points.length;a++)for(let b=1;b<roads[j].points.length;b++){const h=segIntersection(roads[i].points[a-1],roads[i].points[a],roads[j].points[b-1],roads[j].points[b]);if(h&&!seen.some(p=>Math.hypot(p.x-h.x,p.y-h.y)<12))seen.push({x:h.x,y:h.y})}}for(const p of seen)if(!trafficLights.some(l=>Math.hypot(l.x-p.x,l.y-p.y)<12)&&trafficLights.length<6)trafficLights.push(p)}
+function updateTrafficLights(){const seen=[];for(let i=0;i<roads.length;i++)for(let j=i+1;j<roads.length;j++)for(let a=1;a<roads[i].points.length;a++)for(let b=1;b<roads[j].points.length;b++){const h=segIntersection(roads[i].points[a-1],roads[i].points[a],roads[j].points[b-1],roads[j].points[b]);if(h&&!seen.some(p=>Math.hypot(p.x-h.x,p.y-h.y)<12))seen.push({x:h.x,y:h.y})}trafficLights=trafficLights.filter(l=>seen.some(p=>Math.hypot(p.x-l.x,p.y-l.y)<12));for(const p of seen)if(!trafficLights.some(l=>Math.hypot(l.x-p.x,l.y-p.y)<12)&&trafficLights.length<6)trafficLights.push(p)}
 function spawnTruck(f,s){
  if(f.stock<=0||s.demand<=0)return;
  const r=routeFor(f,s);if(!r||r.points.length<2)return;
@@ -502,7 +502,7 @@ function chooseShopForFactory(f){
  const shops=buildings.filter(b=>b.kind==='shop'&&b.need===f.type&&b.demand>0);
  if(!shops.length)return null;
  let best=null,bestScore=Infinity;
- for(const shop of shops){const r=routeFor(f,shop);if(!r)continue;const near=trucks.filter(t=>t.to===shop).length;const score=(r.distance||pathLength(r.points))*(1+near*.12)+shop.demand<1?9999:0;
+ for(const shop of shops){const r=routeFor(f,shop);if(!r)continue;const near=trucks.filter(t=>t.to===shop).length;const score=(r.distance||pathLength(r.points))*(1+near*.12);
   if(score<bestScore){bestScore=score;best=shop}}
  return best;
 }
