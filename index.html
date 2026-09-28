@@ -164,8 +164,10 @@ function loadGame(){
  }catch(e){return false}
 }
 function start(){
+ try{localStorage.removeItem(SAVE_KEY)}catch(e){}
  cash=500;delivered=0;week=1;weekTimer=0;roadBudget=10;gameOver=false;paused=false;
  roads=[];buildings=[];trucks=[];particles=[];nextSpawn=10;congestion=0;roadGraphCache=null;upgrades={speed:0,storage:0};resetCamera();
+ mode='select';document.getElementById('road').classList.remove('active');document.getElementById('erase').classList.remove('active');
  for(const t of ['Steel','Food','Parts'])spawn('factory',t);
  for(const t of ['Market','Garage','Builder'])spawn('shop',t);
  hidePanel();document.getElementById('pause').textContent='Pause';document.getElementById('over').style.display='none';updateUI();
@@ -397,24 +399,24 @@ canvas.addEventListener('pointermove',e=>{
   drag.points=snappedRoadPath(drag.points[0],p,drag.building);
  }
 });
-canvas.addEventListener('pointercancel',e=>{
- pointers.delete(e.pointerId);mouse.down=false;
- if(drag&&drag.pointerId===e.pointerId){drag=null;pointerStart=null;pointerMoved=false;}
-});
-canvas.addEventListener('pointerup',e=>{
+
+function finishPointer(e,canceled=false){
  pointers.delete(e.pointerId);
  if(gesture&&pointers.size<2){gesture=null;mouse.down=false;drag=null;pointerStart=null;pointerMoved=false;return}
  const p=pos(e);mouse={...p,down:false};
- if(drag&&mode==='road'&&drag.armed){
+ if(!canceled&&drag&&mode==='road'&&drag.armed){
   const snapped=snappedRoadPath(drag.points[0],p,drag.building);
   if(snapped.length>1&&pathLength(snapped)>12){
    addRoad(snapped);
    navigator.vibrate?.(8);
   }
  }
- if(!pointerMoved&&drag?.building)select(drag.building);
+ if(!canceled&&mode==='select'&&!pointerMoved&&drag?.building)select(drag.building);
  drag=null;pointerStart=null;pointerMoved=false;
-});
+ try{if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId)}catch(err){}
+}
+canvas.addEventListener('pointerup',e=>finishPointer(e,false));
+canvas.addEventListener('pointercancel',e=>finishPointer(e,true));
 function nearestShop(f){
  let best=null,bestRoute=null,bd=1e9;
  for(const s of buildings){
