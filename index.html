@@ -53,7 +53,8 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 <script>
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 let W,H,dpr,mouse={x:0,y:0,down:false},drag=null,selected=null,paused=false,mode='road',last=performance.now();
-let cash=500,delivered=0,week=1,weekTimer=0,roadBudget=10,gameOver=false,roads=[],buildings=[],trucks=[],particles=[];
+let cash=500,delivered=0,week=1,weekTimer=0,roadBudget=10,gameOver=false;
+let roads=[],buildings=[],trucks=[],particles=[],nextSpawn=10,congestion=0,stats={orders:0};
 let upgrades={speed:0,storage:0};
 const types=[
  {name:'Steel',color:'#8bd5ff',price:24,icon:'S',kind:'factory'},
@@ -67,29 +68,55 @@ function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;canvas.widt
 addEventListener('resize',resize);resize();
 function rnd(a,b){return a+Math.random()*(b-a)}
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
-function spawn(kind){
- const t=types.find(x=>x.kind===kind && (kind==='shop'||Math.random()<.55))||types.find(x=>x.kind===kind);
+function spawn(kind,forcedType){
+ const pool=types.filter(x=>x.kind===kind && (!forcedType||x.name===forcedType));
+ const t=pool[Math.floor(Math.random()*pool.length)];
  let x,y,ok=false;
- for(let n=0;n<100&&!ok;n++){x=rnd(80,W-80);y=rnd(115,H-85);ok=buildings.every(b=>Math.hypot(b.x-x,b.y-y)>85)}
- buildings.push({id:crypto.randomUUID(),x,y,r:24,type:t.name,color:t.color,kind:t.kind,need:t.need||null,level:0,stock:0,max:kind==='factory'?4:8,prod:0,demand:kind==='shop'?rnd(2.5,5):0,pulse:Math.random()*6.28});
+ for(let n=0;n<150&&!ok;n++){x=rnd(75,W-75);y=rnd(115,H-85);ok=buildings.every(b=>Math.hypot(b.x-x,b.y-y)>78)}
+ if(!ok)return null;
+ const b={id:crypto.randomUUID(),x,y,r:23,type:t.name,color:t.color,kind:t.kind,need:t.need||null,
+   level:0,stock:0,max:kind==='factory'?4:8,prod:0,demand:kind==='shop'?rnd(2.8,5):0,pulse:Math.random()*6.28,
+   age:0,served:0};
+ buildings.push(b);return b;
 }
-function start(){cash=500;delivered=0;week=1;weekTimer=0;roadBudget=10;gameOver=false;paused=false;roads=[];buildings=[];trucks=[];particles=[];upgrades={speed:0,storage:0};for(let i=0;i<3;i++)spawn('factory');for(let i=0;i<3;i++)spawn('shop');hidePanel();updateUI()}
+function start(){
+ cash=500;delivered=0;week=1;weekTimer=0;roadBudget=10;gameOver=false;paused=false;
+ roads=[];buildings=[];trucks=[];particles=[];upgrades={speed:0,storage:0};nextSpawn=10;congestion=0;
+ for(const t of ['Steel','Food','Parts'])spawn('factory',t);
+ for(const t of ['Market','Garage','Builder'])spawn('shop',t);
+ hidePanel();document.getElementById('pause').textContent='Pause';updateUI();
+}
 start();
-function bAt(x,y){return buildings.find(b=>Math.hypot(b.x-x,b.y-y)<b.r+8)}
+function bAt(x,y){return buildings.find(b=>Math.hypot(b.x-x,b.y-y)<b.r+10)}
 function hasRoad(a,b){return roads.some(r=>(r.a===a.id&&r.b===b.id)||(r.a===b.id&&r.b===a.id))}
-function removeRoad(a,b){roads=roads.filter(r=>!((r.a===a.id&&r.b===b.id)||(r.a===b.id&&r.b===a.id)))}
 function connected(a,b){
- if(a===b)return true;let seen=new Set([a.id]),q=[a];
- while(q.length){let x=q.shift();for(const r of roads){let id=r.a===x.id?r.b:r.b===x.id?r.a:null;if(id&&!seen.has(id)){if(id===b.id)return true;seen.add(id);let z=buildings.find(v=>v.id===id);if(z)q.push(z)}}}return false;
+ if(a===b)return true;
+ const seen=new Set([a.id]),q=[a];
+ while(q.length){const x=q.shift();for(const r of roads){
+   const id=r.a===x.id?r.b:r.b===x.id?r.a:null;
+   if(id&&!seen.has(id)){if(id===b.id)return true;seen.add(id);const z=buildings.find(v=>v.id===id);if(z)q.push(z)}
+ }}
+ return false;
 }
-function pathCost(a,b){return Math.ceil(dist(a,b)/65)}
+function pathCost(a,b){return Math.max(1,Math.ceil(dist(a,b)/65))}
 function addRoad(a,b){
  if(a===b||hasRoad(a,b))return;
- const cost=pathCost(a,b); if(roadBudget<cost)return flash('Not enough road budget');
- roadBudget-=cost;roads.push({a:a.id,b:b.id});cash-=cost*3;
+ const cost=pathCost(a,b);
+ if(roadBudget<cost)return flash('Not enough road tiles');
+ roadBudget-=cost;cash-=cost*2;
+ roads.push({a:a.id,b:b.id,cost,age:0});
 }
-function flash(s){const old=document.getElementById('tip').innerHTML;document.getElementById('tip').innerHTML=s;setTimeout(()=>document.getElementById('tip').innerHTML=old,1000)}
-function select(b){selected=b;const p=document.getElementById('panel');p.style.display='block';document.getElementById('pname').textContent=b.name||b.type;document.getElementById('ptype').textContent=b.kind==='factory'?'Factory':'Shop';document.getElementById('pout').textContent=b.kind==='factory'?b.type:'Needs '+b.need;document.getElementById('pdemand').textContent=b.kind==='shop'?Math.ceil(b.demand):b.stock+'/'+b.max}
+function flash(s){
+ const tip=document.getElementById('tip'),old=tip.innerHTML;
+ tip.innerHTML=s;setTimeout(()=>tip.innerHTML=old,1100);
+}
+function select(b){
+ selected=b;const p=document.getElementById('panel');p.style.display='block';
+ document.getElementById('pname').textContent=b.name||b.type;
+ document.getElementById('ptype').textContent=b.kind==='factory'?'Factory':'Shop';
+ document.getElementById('pout').textContent=b.kind==='factory'?b.type:'Needs '+b.need;
+ document.getElementById('pdemand').textContent=b.kind==='shop'?Math.ceil(b.demand):b.stock+'/'+b.max;
+}
 function hidePanel(){selected=null;document.getElementById('panel').style.display='none'}
 function upgrade(n){
  if(!selected||selected.kind!=='factory')return;
@@ -97,58 +124,133 @@ function upgrade(n){
  if(cash<price)return flash('Not enough cash');
  if(n===1&&selected.level<3){cash-=price;selected.level++;upgrades.speed++;flash('Machine upgraded')}
  else if(n===2&&selected.max<14){cash-=price;selected.max+=2;flash('Storage upgraded')}
- updateUI();select(selected)
+ updateUI();select(selected);
 }
-document.getElementById('up1').onclick=()=>upgrade(1);document.getElementById('up2').onclick=()=>upgrade(2);
+document.getElementById('up1').onclick=()=>upgrade(1);
+document.getElementById('up2').onclick=()=>upgrade(2);
 document.getElementById('road').onclick=()=>{mode='road';document.getElementById('road').classList.add('active');document.getElementById('erase').classList.remove('active')};
 document.getElementById('erase').onclick=()=>{mode='erase';document.getElementById('erase').classList.add('active');document.getElementById('road').classList.remove('active')};
 document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'Resume':'Pause'};
 document.getElementById('again').onclick=start;
 function pos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-canvas.addEventListener('pointerdown',e=>{const p=pos(e);mouse={...p,down:true};const b=bAt(p.x,p.y);if(mode==='erase'&&b){roads=roads.filter(r=>r.a!==b.id&&r.b!==b.id);buildings=buildings.filter(x=>x!==b);hidePanel();return}if(b){select(b);drag=b}else{hidePanel();drag=null}});
+canvas.addEventListener('pointerdown',e=>{
+ const p=pos(e);mouse={...p,down:true};const b=bAt(p.x,p.y);
+ if(mode==='erase'){
+   if(b){roads=roads.filter(r=>r.a!==b.id&&r.b!==b.id);buildings=buildings.filter(x=>x!==b);hidePanel();flash('Removed')}
+   return;
+ }
+ if(b){select(b);drag=b}else{hidePanel();drag=null}
+});
 canvas.addEventListener('pointermove',e=>{const p=pos(e);mouse={...p,down:mouse.down}});
-canvas.addEventListener('pointerup',e=>{const p=pos(e);mouse={...p,down:false};if(drag&&mode==='road'){const b=bAt(p.x,p.y);if(b&&b!==drag){addRoad(drag,b)}}drag=null});
+canvas.addEventListener('pointerup',e=>{
+ const p=pos(e);mouse={...p,down:false};
+ if(drag&&mode==='road'){const b=bAt(p.x,p.y);if(b&&b!==drag)addRoad(drag,b)}
+ drag=null;
+});
 function nearestShop(f){
- let best=null,bd=1e9;for(const s of buildings)if(s.kind==='shop'&&s.need===f.type&&connected(f,s)&&s.demand>0){const d=dist(f,s);if(d<bd){bd=d;best=s}}return best
+ let best=null,bd=1e9;
+ for(const s of buildings)if(s.kind==='shop'&&s.need===f.type&&connected(f,s)&&s.demand>0){
+   const d=dist(f,s);if(d<bd){bd=d;best=s}
+ }
+ return best;
 }
 function spawnTruck(f,s){
  if(f.stock<=0||s.demand<=0)return;
- f.stock--;s.demand--;trucks.push({from:f,to:s,t:0,speed:rnd(.18,.28),value:types.find(t=>t.name===f.type).price});
+ f.stock--;s.demand--;trucks.push({from:f,to:s,t:0,speed:rnd(.16,.25)*(1+f.level*.08),value:types.find(t=>t.name===f.type).price});
+}
+function addBuildingOverTime(){
+ const factories=buildings.filter(b=>b.kind==='factory'),shops=buildings.filter(b=>b.kind==='shop');
+ const unserved=shops.filter(s=>!factories.some(f=>f.type===s.need&&connected(f,s)));
+ if(unserved.length<2 && buildings.length<14){
+   const kind=Math.random()<.48?'factory':'shop';
+   const target=kind==='factory' ? shops[Math.floor(Math.random()*shops.length)] : factories[Math.floor(Math.random()*factories.length)];
+   spawn(kind,target?.kind==='shop'?target.need:null);
+ }
 }
 function tick(dt){
  if(paused||gameOver)return;
- weekTimer+=dt;if(weekTimer>28){week++;weekTimer=0;roadBudget+=5;cash+=35;for(const s of buildings)if(s.kind==='shop')s.demand=Math.min(10,s.demand+rnd(1,3));}
- for(const b of buildings){
-   if(b.kind==='factory'){b.prod+=dt*(.55+b.level*.18);if(b.prod>1&&b.stock<b.max){let n=Math.floor(b.prod);b.prod-=n;b.stock=Math.min(b.max,b.stock+n)}}
-   else b.demand=Math.min(12,b.demand+dt*.045);
+ weekTimer+=dt;nextSpawn-=dt;
+ if(weekTimer>32){
+   week++;weekTimer=0;roadBudget+=5;cash+=35;
+   for(const s of buildings)if(s.kind==='shop')s.demand=Math.min(14,s.demand+rnd(1.5,3.5));
+   flash('Week '+week+' — +5 road tiles');
  }
- for(const f of buildings.filter(b=>b.kind==='factory')){const s=nearestShop(f);if(s&&Math.random()<dt*(.9+f.level*.35))spawnTruck(f,s)}
- for(const t of trucks){t.t+=dt*t.speed;if(t.t>=1){cash+=t.value;delivered++;particles.push({x:t.to.x,y:t.to.y,t:0,text:'+'+t.value});t.dead=true}}
+ if(nextSpawn<=0){addBuildingOverTime();nextSpawn=Math.max(6,13-week*.45)}
+ for(const b of buildings){
+   b.age+=dt;
+   if(b.kind==='factory'){
+     b.prod+=dt*(.52+b.level*.17);
+     if(b.prod>1&&b.stock<b.max){const n=Math.floor(b.prod);b.prod-=n;b.stock=Math.min(b.max,b.stock+n)}
+   }else b.demand=Math.min(14,b.demand+dt*(.055+week*.003));
+ }
+ for(const f of buildings.filter(b=>b.kind==='factory')){
+   const s=nearestShop(f);
+   if(s&&Math.random()<dt*(.85+f.level*.35))spawnTruck(f,s);
+ }
+ for(const t of trucks){
+   t.t+=dt*t.speed;
+   if(t.t>=1){
+     cash+=t.value;delivered++;t.to.served++;particles.push({x:t.to.x,y:t.to.y,t:0,text:'+'+t.value});t.dead=true;
+   }
+ }
  trucks=trucks.filter(t=>!t.dead);
+ for(const r of roads)r.age+=dt;
  for(const p of particles)p.t+=dt;particles=particles.filter(p=>p.t<1);
- const upkeep=roads.length*dt*.06;cash-=upkeep;
- if(cash<0){cash=0;gameOver=true;document.getElementById('scoreline').textContent='You delivered '+delivered+' orders across '+week+' weeks.';document.getElementById('over').style.display='grid'}
+ const busy=trucks.length/Math.max(1,roads.length);
+ congestion=Math.min(1,busy*.12);
+ cash-=roads.length*dt*.055*(1+congestion);
+ if(cash<0){
+   cash=0;gameOver=true;
+   document.getElementById('scoreline').textContent='You delivered '+delivered+' orders across '+week+' weeks.';
+   document.getElementById('over').style.display='grid';
+ }
  updateUI();
 }
-function updateUI(){document.getElementById('cash').textContent='£'+Math.floor(cash);document.getElementById('del').textContent=delivered;document.getElementById('week').textContent=week;document.getElementById('roads').textContent=roadBudget;document.getElementById('best').textContent=Math.max(delivered,+localStorage.mfBest||0);if(delivered>(+localStorage.mfBest||0))localStorage.mfBest=delivered}
+function updateUI(){
+ document.getElementById('cash').textContent='£'+Math.floor(cash);
+ document.getElementById('del').textContent=delivered;
+ document.getElementById('week').textContent=week;
+ document.getElementById('roads').textContent=roadBudget;
+ const best=Math.max(delivered,+localStorage.mfBest||0);
+ document.getElementById('best').textContent=best;
+ if(delivered>(+localStorage.mfBest||0))localStorage.mfBest=delivered;
+ if(selected&&document.getElementById('panel').style.display!=='none')select(selected);
+}
 function draw(){
  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0b0e13';ctx.fillRect(0,0,W,H);
- ctx.strokeStyle='#171e27';ctx.lineWidth=1;for(let x=0;x<W;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
- for(const r of roads){const a=buildings.find(b=>b.id===r.a),b=buildings.find(b=>b.id===r.b);if(!a||!b)continue;ctx.strokeStyle='#52606f';ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.strokeStyle='#252e39';ctx.lineWidth=2;ctx.stroke()}
- if(drag&&mouse.down&&mode==='road'){ctx.strokeStyle='#8bd5ff88';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(drag.x,drag.y);ctx.lineTo(mouse.x,mouse.y);ctx.stroke()}
- for(const t of trucks){const x=t.from.x+(t.to.x-t.from.x)*t.t,y=t.from.y+(t.to.y-t.from.y)*t.t;ctx.fillStyle='#f8fafc';ctx.fillRect(x-5,y-5,10,10);ctx.fillStyle='#111';ctx.fillRect(x-3,y-3,6,6)}
+ ctx.strokeStyle='#171e27';ctx.lineWidth=1;
+ for(let x=0;x<W;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+ for(let y=0;y<H;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ for(const r of roads){
+   const a=buildings.find(b=>b.id===r.a),b=buildings.find(b=>b.id===r.b);if(!a||!b)continue;
+   ctx.lineCap='round';ctx.strokeStyle='#252c35';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+   ctx.strokeStyle=congestion>.35?'#c58b3c':'#52606f';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+ }
+ if(drag&&mouse.down&&mode==='road'){
+   ctx.strokeStyle='#8bd5ff99';ctx.lineWidth=6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(drag.x,drag.y);ctx.lineTo(mouse.x,mouse.y);ctx.stroke();
+ }
+ for(const t of trucks){
+   const x=t.from.x+(t.to.x-t.from.x)*t.t,y=t.from.y+(t.to.y-t.from.y)*t.t;
+   ctx.fillStyle='#f8fafc';ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#111';ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill();
+ }
  for(const b of buildings){
    const pulse=Math.sin(performance.now()/500+b.pulse)*2;
-   ctx.beginPath();ctx.arc(b.x,b.y,b.r+pulse,0,Math.PI*2);ctx.fillStyle='#111820';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=b.color;ctx.stroke();
-   ctx.fillStyle=b.color;ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(b.kind==='factory'?b.type[0]:b.need[0],b.x,b.y);
-   ctx.font='11px system-ui';ctx.fillStyle='#d8dee7';ctx.fillText(b.kind==='factory'?b.type:b.name||b.type,b.x,b.y+b.r+15);
-   if(b.kind==='factory'){ctx.fillStyle='#202a34';ctx.fillRect(b.x-24,b.y-b.r-12,48,4);ctx.fillStyle=b.color;ctx.fillRect(b.x-24,b.y-b.r-12,48*(b.stock/b.max),4)}
-   else {ctx.fillStyle='#202a34';ctx.fillRect(b.x-24,b.y-b.r-12,48,4);ctx.fillStyle=b.color;ctx.fillRect(b.x-24,b.y-b.r-12,48*Math.min(1,b.demand/8),4)}
+   ctx.beginPath();ctx.arc(b.x,b.y,b.r+pulse,0,Math.PI*2);ctx.fillStyle='#111820';ctx.fill();
+   ctx.lineWidth=3;ctx.strokeStyle=b.color;ctx.stroke();
+   ctx.fillStyle=b.color;ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+   ctx.fillText(b.kind==='factory'?b.type[0]:b.need[0],b.x,b.y);
+   ctx.font='11px system-ui';ctx.fillStyle='#d8dee7';ctx.fillText(b.kind==='factory'?b.type:b.type,b.x,b.y+b.r+15);
+   ctx.fillStyle='#202a34';ctx.fillRect(b.x-24,b.y-b.r-12,48,4);
+   if(b.kind==='factory'){ctx.fillStyle=b.color;ctx.fillRect(b.x-24,b.y-b.r-12,48*(b.stock/b.max),4)}
+   else {ctx.fillStyle=b.color;ctx.fillRect(b.x-24,b.y-b.r-12,48*Math.min(1,b.demand/8),4)}
+   if(b.kind==='shop'&&b.demand>9){ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.fillText('!',b.x+19,b.y-20)}
  }
  for(const p of particles){ctx.globalAlpha=1-p.t;ctx.fillStyle='#a7e66f';ctx.font='bold 14px system-ui';ctx.textAlign='center';ctx.fillText(p.text,p.x,p.y-p.t*30);ctx.globalAlpha=1}
  if(selected){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(selected.x,selected.y,selected.r+8,0,Math.PI*2);ctx.stroke()}
 }
-function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);draw();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
