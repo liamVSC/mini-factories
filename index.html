@@ -160,25 +160,77 @@ function segmentsCross(a,b,c,d){
 }
 function connected(a,b){
  if(a===b)return true;
- const seen=new Set([a.id]),q=[a];
- while(q.length){
-  const node=q.shift();
-  for(const r of roads){
-   const touchesNode=roadTouchesBuilding(r,node);
-   if(!touchesNode)continue;
-   for(const other of buildings){
-    if(other.id===node.id||seen.has(other.id))continue;
-    if(roadTouchesBuilding(r,other)){seen.add(other.id);q.push(other)}
-   }
-   for(const rr of roads){
-    if(rr===r||!roadIntersectsRoad(r,rr))continue;
-    for(const other of buildings)if(!seen.has(other.id)&&roadTouchesBuilding(rr,other)){seen.add(other.id);q.push(other)}
-   }
-  }
- }
- return seen.has(b.id);
+ return !!findRoute(a,b);
 }
 function pathLength(points){let n=0;for(let i=1;i<points.length;i++)n+=dist(points[i-1],points[i]);return n}
+function segIntersection(a,b,c,d){
+ const x1=a.x,y1=a.y,x2=b.x,y2=b.y,x3=c.x,y3=c.y,x4=d.x,y4=d.y;
+ const den=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);
+ if(Math.abs(den)<1e-9)return null;
+ const t=((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/den;
+ const u=-((x1-x2)*(y1-y3)-(y1-y2)*(x1-x3))/den;
+ if(t<-1e-7||t>1.0000001||u<-1e-7||u>1.0000001)return null;
+ return{x:x1+t*(x2-x1),y:y1+t*(y2-y1),t,u};
+}
+function buildRoadGraph(){
+ const nodes=[],edges=[];
+ const nodeAt=(p)=>{
+  for(const n of nodes)if(dist(n,p)<1.5)return n;
+  const n={id:nodes.length,x:p.x,y:p.y};nodes.push(n);return n;
+ };
+ const edge=(a,b)=>{
+  if(a===b)return;
+  const w=dist(a,b);
+  if(w<.01)return;
+  edges.push({a,b,w});
+ };
+ for(const r of roads){
+  for(let i=0;i<r.points.length-1;i++){
+   const a=r.points[i],b=r.points[i+1],cuts=[{t:0,p:a},{t:1,p:b}];
+   for(const rr of roads){
+    if(rr===r)continue;
+    for(let j=0;j<rr.points.length-1;j++){
+     const hit=segIntersection(a,b,rr.points[j],rr.points[j+1]);
+     if(hit)cuts.push({t:hit.t,p:{x:hit.x,y:hit.y}});
+    }
+   }
+   cuts.sort((u,v)=>u.t-v.t);
+   for(let k=0;k<cuts.length;k++)nodeAt(cuts[k].p);
+   for(let k=1;k<cuts.length;k++)edge(nodeAt(cuts[k-1].p),nodeAt(cuts[k].p));
+  }
+ }
+ const graph=new Map(nodes.map(n=>[n,[]]));
+ for(const e of edges){graph.get(e.a).push({to:e.b,w:e.w});graph.get(e.b).push({to:e.a,w:e.w});}
+ return {nodes,graph};
+}
+function nearestRoadNode(graph,b){
+ let best=null,bd=b.r+18;
+ for(const n of graph.nodes){const d=dist(n,b);if(d<bd){bd=d;best=n}}
+ return best;
+}
+function findRoute(a,b){
+ if(a===b)return [];
+ if(!roads.length)return null;
+ const {nodes,graph}=buildRoadGraph();
+ const start=nearestRoadNode({nodes},a),goal=nearestRoadNode({nodes},b);
+ if(!start||!goal)return null;
+ const distMap=new Map(nodes.map(n=>[n,Infinity])),prev=new Map(),open=[start];
+ distMap.set(start,0);
+ while(open.length){
+  let bi=0;for(let i=1;i<open.length;i++)if(distMap.get(open[i])<distMap.get(open[bi]))bi=i;
+  const cur=open.splice(bi,1)[0];
+  if(cur===goal)break;
+  for(const e of graph.get(cur)){
+   const nd=distMap.get(cur)+e.w;
+   if(nd<distMap.get(e.to)){distMap.set(e.to,nd);prev.set(e.to,cur);if(!open.includes(e.to))open.push(e.to)}
+  }
+ }
+ if(!prev.has(goal)&&goal!==start)return null;
+ const route=[];let cur=goal;while(cur){route.push({x:cur.x,y:cur.y});if(cur===start)break;cur=prev.get(cur)}
+ route.reverse();
+ if(route.length)route.unshift({x:a.x,y:a.y}),route.push({x:b.x,y:b.y});
+ return {points:route,distance:distMap.get(goal)};
+}
 function simplify(points){
  const out=[];for(const p of points){const last=out[out.length-1];if(!last||dist(last,p)>10)out.push(p)}
  return out;
@@ -276,23 +328,20 @@ canvas.addEventListener('pointerup',e=>{
  drag=null;pointerStart=null;pointerMoved=false;
 });
 function nearestShop(f){
- let best=null,bd=1e9;
- for(const s of buildings)if(s.kind==='shop'&&s.need===f.type&&connected(f,s)&&s.demand>0){const d=dist(f,s);if(d<bd){bd=d;best=s}}
- return best;
-}
-function routeFor(f,s){
- let best=null,bd=1e9;
- for(const r of roads){
-  if(roadTouchesBuilding(r,f)&&roadTouchesBuilding(r,s)){const d=pathLength(r.points);if(d<bd){bd=d;best=r}}
+ let best=null,bestRoute=null,bd=1e9;
+ for(const s of buildings){
+  if(s.kind!=='shop'||s.need!==f.type||s.demand<=0)continue;
+  const route=findRoute(f,s);
+  if(route&&route.distance<bd){bd=route.distance;best=s;bestRoute=route}
  }
  return best;
 }
+function routeFor(f,s){return findRoute(f,s)}
 function spawnTruck(f,s){
  if(f.stock<=0||s.demand<=0)return;
  const r=routeFor(f,s);if(!r)return;
  f.stock--;s.demand--;
- const pts=r.points.slice();if(dist(pts[0],f)>dist(pts[pts.length-1],f))pts.reverse();
- trucks.push({route:pts,t:0,speed:rnd(.055,.085)*(1+f.level*.08),value:types.find(t=>t.name===f.type).price,to:s});
+ trucks.push({route:r.points,t:0,speed:rnd(.055,.085)*(1+f.level*.08),value:types.find(t=>t.name===f.type).price,to:s});
 }
 function routePoint(points,t){
  const total=pathLength(points);let want=total*t,run=0;
