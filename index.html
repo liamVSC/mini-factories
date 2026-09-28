@@ -126,20 +126,29 @@ function spawn(kind,forcedType){
  const pool=types.filter(x=>x.kind===kind&&(!forcedType||x.name===forcedType));
  const t=pool[Math.floor(Math.random()*pool.length)];
  let x,y,ok=false;
- const margin=110;
- for(let n=0;n<250&&!ok;n++){
-  if(buildings.length<6){
-   x=rnd(world.minX+margin,world.maxX-margin); y=rnd(world.minY+margin,world.maxY-margin);
+ const firstWave=buildings.length<6;
+ const spread=Math.max(520,Math.min(980,520+buildings.length*55));
+ for(let n=0;n<500&&!ok;n++){
+  if(firstWave){
+   const angle=(n%6)*(Math.PI*2/6)+rnd(-.22,.22);
+   const radius=rnd(220,spread*.72);
+   x=radius*Math.cos(angle)+rnd(-70,70);
+   y=radius*Math.sin(angle)+rnd(-70,70);
   }else{
-   const angle=rnd(0,Math.PI*2),radius=rnd(170,300);
+   const angle=rnd(0,Math.PI*2);
    const anchor=buildings[Math.floor(Math.random()*buildings.length)];
-   x=anchor.x+Math.cos(angle)*radius; y=anchor.y+Math.sin(angle)*radius;
+   const radius=rnd(260,Math.min(620,420+week*14));
+   x=anchor.x+Math.cos(angle)*radius;
+   y=anchor.y+Math.sin(angle)*radius;
   }
-  ok=buildings.every(b=>dist(b,{x,y})>125);
+  const river=riverYAt(x);
+  if(Math.abs(y-river)<95&&Math.random()<.72)y+=y<river?-120:120;
+  ok=buildings.every(b=>dist(b,{x,y})>145);
+  ok=ok&&x>world.minX-900&&x<world.maxX+900&&y>world.minY-900&&y<world.maxY+900;
  }
  if(!ok)return null;
- world.minX=Math.min(world.minX,x-140);world.maxX=Math.max(world.maxX,x+140);
- world.minY=Math.min(world.minY,y-140);world.maxY=Math.max(world.maxY,y+140);
+ world.minX=Math.min(world.minX,x-220);world.maxX=Math.max(world.maxX,x+220);
+ world.minY=Math.min(world.minY,y-220);world.maxY=Math.max(world.maxY,y+220);
  const b={id:crypto.randomUUID(),x,y,r:23,type:t.name,color:t.color,kind:t.kind,need:t.need||null,
  level:0,stock:0,max:kind==='factory'?4:8,prod:0,demand:kind==='shop'?rnd(2.8,5):0,pulse:Math.random()*6.28,served:0};
  buildings.push(b);return b;
