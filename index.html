@@ -498,16 +498,29 @@ function addBuildingOverTime(){
  if(!target)return;
  spawn(target.kind==='shop'?'factory':'shop',target.kind==='shop'?target.need:target.type);
 }
+function chooseShopForFactory(f){
+ const shops=buildings.filter(b=>b.kind==='shop'&&b.need===f.type&&b.demand>0);
+ if(!shops.length)return null;
+ let best=null,bestScore=Infinity;
+ for(const shop of shops){const r=routeFor(f,shop);if(!r)continue;const near=trucks.filter(t=>t.to===shop).length;const score=(r.distance||pathLength(r.points))*(1+near*.12)+shop.demand<1?9999:0;
+  if(score<bestScore){bestScore=score;best=shop}}
+ return best;
+}
+function weekMilestone(){
+ if(week===3)flash('Week 3 — congestion is rising');
+ if(week===5)flash('Week 5 — demand is accelerating');
+ if(week===8)flash('Week 8 — the city is getting crowded');
+}
 function tick(dt){
  if(paused||gameOver)return;
  weekTimer+=dt;nextSpawn-=dt;saveTimer+=dt;if(saveTimer>=2){saveTimer=0;saveGame();}
- if(weekTimer>32){week++;weekTimer=0;roadBudget+=5;cash+=35;for(const s of buildings)if(s.kind==='shop')s.demand=Math.min(14,s.demand+rnd(1.5,3.5));flash('Week '+week+' — +5 road tiles')}
+ if(weekTimer>32){week++;weekTimer=0;roadBudget+=5;cash+=35;weekMilestone();for(const s of buildings)if(s.kind==='shop')s.demand=Math.min(14,s.demand+rnd(1.5,3.5));flash('Week '+week+' — +5 road tiles')}
  if(nextSpawn<=0){addBuildingOverTime();nextSpawn=Math.max(14,24-week*.35)}
  for(const b of buildings){
   if(b.kind==='factory'){b.prod+=dt*(.52+b.level*.17);if(b.prod>1&&b.stock<b.max){const n=Math.floor(b.prod);b.prod-=n;b.stock=Math.min(b.max,b.stock+n)}}
   else b.demand=Math.min(14,b.demand+dt*(.055+week*.003));
  }
- for(const f of buildings.filter(b=>b.kind==='factory')){const s=nearestShop(f);if(s&&Math.random()<dt*(1.8+f.level*.45))spawnTruck(f,s)}
+ for(const f of buildings.filter(b=>b.kind==='factory')){const s=chooseShopForFactory(f);if(s&&Math.random()<dt*(1.8+f.level*.45))spawnTruck(f,s)}
  for(const t of trucks){const p=routePoint(t.route,t.t);const j=nearestJunction(p.x,p.y);if(j&&dist(p,j)<22&&isLightRed(j)){t.wait=Math.min(2,t.wait+dt);continue}
   const ahead=trucks.some(o=>o!==t&&o.route===t.route&&o.t>t.t&&o.t-t.t<.018);if(ahead){t.wait=Math.min(1,t.wait+dt);continue}t.wait=0;t.t+=dt*t.speed*(t.wait>0?.55:1);if(t.t>=1){cash+=t.value;delivered++;t.to.served++;particles.push({x:t.to.x,y:t.to.y,t:0,text:'+'+t.value});t.dead=true}}
  trucks=trucks.filter(t=>!t.dead);
