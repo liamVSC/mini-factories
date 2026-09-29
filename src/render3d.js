@@ -18,9 +18,80 @@ function box(w,h,d,color){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat
 function makeRoad(points,bridge){
   if(!Array.isArray(points)||points.length<2)return new THREE.Group();
   const group=new THREE.Group();
-  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p.x,.04,p.y)),false,'catmullrom',.15);
-  group.add(new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,points.length*10),bridge?4.8:5.8,8,false),mat(bridge?'#9b6f3f':'#3f4648')));
-  if(!bridge){const lc=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p.x,.18,p.y)),false,'catmullrom',.15);group.add(new THREE.Mesh(new THREE.TubeGeometry(lc,Math.max(8,points.length*10),.42,6,false),mat('#d9c56d')));}
+  const clean=points.filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y));
+  if(clean.length<2)return group;
+
+  const roadWidth=bridge?15:18;
+  const surfaceY=bridge?.04:.02;
+  const edgeWidth=.9;
+  const markWidth=.8;
+
+  // Build a flat strip from the road centre line. Keeping this as indexed
+  // quads avoids the heavy cylindrical geometry previously used for roads.
+  const vertices=[],indices=[];
+  const addStrip=(width,y,material)=>{
+    const half=width/2;
+    const base=vertices.length/3;
+    for(let i=0;i<clean.length;i++){
+      const p=clean[i];
+      const prev=clean[Math.max(0,i-1)],next=clean[Math.min(clean.length-1,i+1)];
+      let dx=next.x-prev.x,dy=next.y-prev.y,len=Math.hypot(dx,dy)||1;
+      const nx=-dy/len,ny=dx/len;
+      vertices.push(p.x+nx*half,y,p.y+ny*half,p.x-nx*half,y,p.y-ny*half);
+    }
+    for(let i=0;i<clean.length-1;i++){
+      const a=base+i*2,b=a+1,c=a+2,d=a+3;
+      indices.push(a,b,c,b,d,c);
+    }
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices.slice(base*3),3));
+    geometry.setIndex(indices.slice(-((clean.length-1)*6)));
+    geometry.computeVertexNormals();
+    group.add(new THREE.Mesh(geometry,material));
+  };
+
+  // Asphalt.
+  addStrip(roadWidth,surfaceY,mat(bridge?'#755638':'#3f4648'));
+
+  if(!bridge){
+    // Narrow edge strips provide definition without turning the road into
+    // rounded geometry.
+    const edgeMaterial=mat('#62696a');
+    addStrip(roadWidth+edgeWidth*2,.025,edgeMaterial);
+
+    // Centre marking, split into short dashes along the road centre line.
+    const markingGroup=new THREE.Group();
+    const dashMaterial=mat('#d9c56d');
+    for(let i=0;i<clean.length-1;i++){
+      const a=clean[i],b=clean[i+1];
+      const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+      if(len<1)continue;
+      const dashLen=Math.min(18,len);
+      const gap=12;
+      for(let along=0;along<len;along+=dashLen+gap){
+        const end=Math.min(along+dashLen,len);
+        if(end<=along)continue;
+        const t1=along/len,t2=end/len;
+        const x1=a.x+dx*t1,y1=a.y+dy*t1,x2=a.x+dx*t2,y2=a.y+dy*t2;
+        const mx=(x1+x2)/2,my=(y1+y2)/2;
+        const dash=box(Math.max(.1,end-along),markWidth,.9,'#d9c56d');
+        dash.position.set(mx,.09,my);
+        dash.rotation.y=-Math.atan2(y2-y1,x2-x1);
+        markingGroup.add(dash);
+      }
+    }
+    group.add(markingGroup);
+  }else{
+    // Bridges get simple side rails rather than cylindrical road geometry.
+    const railMaterial=mat('#b58a52');
+    for(const side of [-1,1]){
+      const rail=box(Math.max(1,length(clean)),1.5,.8,'#b58a52');
+      const a=clean[0],b=clean.at(-1);
+      rail.position.set((a.x+b.x)/2,.95,(a.y+b.y)/2);
+      rail.rotation.y=-Math.atan2(b.y-a.y,b.x-a.x);
+      group.add(rail);
+    }
+  }
   return group;
 }
 function addBuilding(b){
