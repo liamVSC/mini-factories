@@ -96,7 +96,7 @@ test('truck dispatch and delivery complete on a connected road', () => {
   const f = building('Food', 0, 0);
   const shop = building('Market', 220, 0);
   f.stock = 3;
-  f.dispatchTimer = 2;
+  f.dispatchTimer = 0;
   shop.demand = 3;
   s.buildings.push(f, shop);
   s.roads.push(road([{x:35,y:0},{x:185,y:0}]));
