@@ -169,7 +169,7 @@ export function addRoad(s,points){
  if(!Array.isArray(points)||points.length<2)return false;
  const clean=points.filter((p,i)=>!i||dist(p,points[i-1])>10);if(clean.length<2)return false;
  const roadLength=length(clean);if(roadLength<18)return false;
- const cost=Math.max(1,Math.ceil(roadLength/55)),cashCost=cost*2;if(s.roadBudget<cost||s.cash<cashCost)return false;
+ const cost=Math.max(1,Math.ceil(roadLength/90)),cashCost=cost*2;if(s.roadBudget<cost||s.cash<cashCost)return false;
  if(s.roads.some(r=>roadDistance(r,clean)<12&&Math.abs(length(r.points)-roadLength)<25))return false;
  s.roadBudget-=cost;s.cash-=cashCost;s.roads.push({id:crypto.randomUUID(),points:clean,age:0,bridge:clean.some((p,i)=>i&&Math.abs(p.y-riverY(p.x))<45),condition:1});return true;
 }
