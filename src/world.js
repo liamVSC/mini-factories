@@ -107,7 +107,7 @@ export function addRoad(s,points){
   const clean=simplifyRoad(points);
   if(clean.length<2)return'invalid';
   const roadLength=length(clean);
-  if(!Number.isFinite(roadLength)||roadLength<6)return'too-short';
+  if(!Number.isFinite(roadLength)||roadLength<1)return'too-short';
   if(roadPathBlocked(s,clean))return'blocked';
   const cost=Math.max(1,Math.ceil(roadLength/180))*2;
   if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';
