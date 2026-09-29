@@ -106,7 +106,7 @@ export function routeOnRoadNetwork(s,a,b){
 
   // Buildings may use a short driveway to the road, but never allow a truck
   // to "teleport" to a distant road and then travel across the map.
-  const MAX_DRIVEWAY=72;
+  const MAX_DRIVEWAY=30;
   if(sa.distance>MAX_DRIVEWAY||sb.distance>MAX_DRIVEWAY)return null;
 
   const start={x:sa.point.x,y:sa.point.y,virtual:true};
