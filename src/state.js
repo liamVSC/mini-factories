@@ -11,7 +11,7 @@ export const TYPES=[
  {name:'Furniture',kind:'shop',need:'Glass',color:'#90d9b4',icon:'F',role:'Furniture retailer',desc:'Consumes glass for furniture demand.',unlock:'industry',unlockLevel:2},
  {name:'Warehouse',kind:'warehouse',need:null,color:'#e9c46a',icon:'W',role:'Storage hub',desc:'Stores goods and connects production to retail.',unlock:'logistics',unlockLevel:1}
 ];
-export function freshState(){return{cash:500,orders:0,companyLevel:1,xp:0,xpToNext:100,roadBudget:10,reputation:100,roads:[],buildings:[],trucks:[],particles:[],selected:null,mode:'select',paused:false,gameOver:false,nextBuilding:20,congestion:0,objective:0,goals:goalList(),deliveryIncome:0,deliveredBy:{},longContracts:0,contractId:1,research:{automation:0,logistics:0,industry:0},buildMode:null,camera:{x:innerWidth/2,y:innerHeight/2,zoom:1}}}
+export function freshState(){return{cash:500,orders:0,companyLevel:1,xp:0,xpToNext:100,roadBudget:10,reputation:100,roads:[],buildings:[],trucks:[],particles:[],selected:null,mode:'select',paused:false,gameOver:false,congestion:0,objective:0,goals:goalList(),deliveryIncome:0,deliveredBy:{},longContracts:0,contractId:1,research:{automation:0,logistics:0,industry:0},buildMode:null,camera:{x:innerWidth/2,y:innerHeight/2,zoom:1}}}
 export function goalList(){return[
  {text:'Deliver 10 Food orders',target:10,progress:s=>s.deliveredBy.Food||0,done:s=>(s.deliveredBy.Food||0)>=10},
  {text:'Earn £1,000 from deliveries',target:1000,progress:s=>s.deliveryIncome,done:s=>s.deliveryIncome>=1000},
