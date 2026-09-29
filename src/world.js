@@ -22,64 +22,67 @@ export function roadPreview(s,a,b){
  return {path,start,end,snappedStart:start.distance<Infinity,snappedEnd:end.distance<Infinity};
 }
 export function snap(s,p){return nearestBuilding(s,p)||nearestRoad(s,p)||p}
-function segmentIntersection(a,b,c,d){const ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y},cross=(u,v)=>u.x*v.y-u.y*v.x,den=cross(ab,cd),ac={x:c.x-a.x,y:c.y-a.y};if(Math.abs(den)<1e-9)return null;const t=cross(ac,cd)/den,u=cross(ac,ab)/den;if(t<-.000001||t>1.000001||u<-.000001||u>1.000001)return null;return{x:a.x+ab.x*t,y:a.y+ab.y*t}}
-function segmentDistance(a,b,c,d){const hit=segmentIntersection(a,b,c,d);if(hit)return 0;return Math.min(projectSegment(a,c,d).distance,projectSegment(b,c,d).distance,projectSegment(c,a,b).distance,projectSegment(d,a,b).distance)}
-function roadDistance(a,b){let best=Infinity;for(let i=1;i<a.points.length;i++)for(let j=1;j<b.points.length;j++)best=Math.min(best,segmentDistance(a.points[i-1],a.points[i],b.points[j-1],b.points[j]));return best}
+function segmentIntersection(a,b,c,d){
+  const ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y};
+  const cross=(u,v)=>u.x*v.y-u.y*v.x;
+  const den=cross(ab,cd),ac={x:c.x-a.x,y:c.y-a.y};
+  if(Math.abs(den)<1e-9)return null;
+  const t=cross(ac,cd)/den,u=cross(ac,ab)/den;
+  if(t<-.000001||t>1.000001||u<-.000001||u>1.000001)return null;
+  return{x:a.x+ab.x*t,y:a.y+ab.y*t,t,u};
+}
 function addNode(nodes,p){let n=nodes.find(x=>dist(x,p)<2);if(!n){n={x:p.x,y:p.y};nodes.push(n)}return n}
+function roadPointParameter(points,p){let best=Infinity,run=0,bestRun=0;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],seg=dist(a,b);const q=projectSegment(p,a,b);if(q.distance<best){best=q.distance;bestRun=run+dist(a,q.point)}run+=seg}return bestRun}
 export function roadNetwork(s){
- const nodes=[],edges=[];
- for(const r of s.roads){
-  const marks=r.points.map((p,i)=>({p,seg:i}));
-  for(let i=1;i<r.points.length;i++)for(const q of s.roads)for(let j=1;j<q.points.length;j++){if(r===q&&i===j)continue;const hit=segmentIntersection(r.points[i-1],r.points[i],q.points[j-1],q.points[j]);if(hit)marks.push({p:hit,seg:i})}
-  const unique=[];for(const m of marks){const node=addNode(nodes,m.p);if(!unique.some(x=>x.node===node))unique.push({node,seg:m.seg})}
-  unique.sort((a,b)=>{if(a.seg!==b.seg)return a.seg-b.seg;const a0=r.points[a.seg-1]||r.points[0],a1=r.points[a.seg]||a0,b0=r.points[b.seg-1]||r.points[0],b1=r.points[b.seg]||b0;const at=projectSegment(a.node,a0,a1).distance,bt=projectSegment(b.node,b0,b1).distance;return at-bt});
-  for(let i=1;i<unique.length;i++){const a=unique[i-1].node,b=unique[i].node,d=dist(a,b);if(d>1)edges.push({a,b,d,road:r})}
- }
- const adjacency=new Map(nodes.map(n=>[n,[]]));
- for(const e of edges){adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});adjacency.get(e.b).push({node:e.a,d:e.d,road:e.road})}
- return{nodes,edges,adjacency}
+  const nodes=[],edges=[];
+  for(const r of s.roads){
+    const marks=r.points.map(p=>({x:p.x,y:p.y}));
+    for(const q of s.roads){
+      for(let i=1;i<r.points.length;i++)for(let j=1;j<q.points.length;j++){
+        if(r===q&&i===j)continue;
+        const hit=segmentIntersection(r.points[i-1],r.points[i],q.points[j-1],q.points[j]);
+        if(hit)marks.push(hit);
+      }
+    }
+    const unique=[];
+    for(const p of marks){const n=addNode(nodes,p);if(!unique.some(x=>x===n))unique.push(n)}
+    unique.sort((a,b)=>roadPointParameter(r.points,a)-roadPointParameter(r.points,b));
+    for(let i=1;i<unique.length;i++){const a=unique[i-1],b=unique[i],d=dist(a,b);if(d>1)edges.push({a,b,d,road:r})}
+  }
+  const adjacency=new Map(nodes.map(n=>[n,[]]));
+  for(const e of edges){adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});adjacency.get(e.b).push({node:e.a,d:e.d,road:e.road})}
+  return{nodes,edges,adjacency};
 }
 function nearestNetworkPoint(network,p){let best=null,bd=Infinity;for(const e of network.edges){const q=projectSegment(p,e.a,e.b);if(q.distance<bd){bd=q.distance;best={edge:e,point:q.point}}}return best}
 export function routeOnRoadNetwork(s,a,b){
- if(!s.roads.length)return null;
- const network=roadNetwork(s);if(!network.edges.length)return null;
- const sa=nearestNetworkPoint(network,a),sb=nearestNetworkPoint(network,b);if(!sa||!sb)return null;
- const start={x:sa.point.x,y:sa.point.y,virtual:true},end={x:sb.point.x,y:sb.point.y,virtual:true};
- const adjacency=new Map(network.nodes.map(n=>[n,[...(network.adjacency.get(n)||[])]]));
- adjacency.set(start,[]);adjacency.set(end,[]);
- const connect=(virtual,attachment)=>{
-   for(const node of [attachment.edge.a,attachment.edge.b]){
-     const d=dist(virtual,node);
-     adjacency.get(virtual).push({node,d,road:attachment.edge.road});
-     adjacency.get(node).push({node:virtual,d,road:attachment.edge.road});
-   }
- };
- connect(start,sa);connect(end,sb);
- const queue=[{n:start,d:dist(a,start)}],best=new Map([[start,dist(a,start)]]),prev=new Map();
- while(queue.length){
-   queue.sort((x,y)=>x.d-y.d);
-   const cur=queue.shift();if(cur.d!==best.get(cur.n))continue;
-   if(cur.n===end)break;
-   for(const nx of adjacency.get(cur.n)||[]){
-     const nd=cur.d+nx.d;
-     if(nd<(best.get(nx.node)??Infinity)){best.set(nx.node,nd);prev.set(nx.node,cur.n);queue.push({n:nx.node,d:nd})}
-   }
- }
- if(!best.has(end))return null;
- const chain=[];let n=end;while(n){chain.unshift(n);n=prev.get(n)}
- const points=[{x:a.x,y:a.y}];
- for(const n2 of chain)if(!n2.virtual&&dist(points.at(-1),n2)>2)points.push({x:n2.x,y:n2.y});
- if(dist(points.at(-1),end)>2)points.push({x:end.x,y:end.y});
- if(dist(points.at(-1),b)>2)points.push({x:b.x,y:b.y});
- return{points,distance:length(points),networkDistance:best.get(end)};
+  if(!s.roads.length)return null;
+  const network=roadNetwork(s);if(!network.edges.length)return null;
+  const sa=nearestNetworkPoint(network,a),sb=nearestNetworkPoint(network,b);if(!sa||!sb)return null;
+  const start={x:sa.point.x,y:sa.point.y,virtual:true},end={x:sb.point.x,y:sb.point.y,virtual:true};
+  const adjacency=new Map(network.nodes.map(n=>[n,[...(network.adjacency.get(n)||[])]]));
+  adjacency.set(start,[]);adjacency.set(end,[]);
+  const connect=(virtual,attachment)=>{
+    const e=attachment.edge;
+    const da=dist(virtual,e.a),db=dist(virtual,e.b);
+    adjacency.get(virtual).push({node:e.a,d:da,road:e.road},{node:e.b,d:db,road:e.road});
+    adjacency.get(e.a).push({node:virtual,d:da,road:e.road});
+    adjacency.get(e.b).push({node:virtual,d:db,road:e.road});
+  };
+  connect(start,sa);connect(end,sb);
+  const queue=[{n:start,d:dist(a,start)}],best=new Map([[start,dist(a,start)]]),prev=new Map();
+  while(queue.length){queue.sort((x,y)=>x.d-y.d);const cur=queue.shift();if(cur.d!==best.get(cur.n))continue;if(cur.n===end)break;for(const nx of adjacency.get(cur.n)||[]){const nd=cur.d+nx.d;if(nd<(best.get(nx.node)??Infinity)){best.set(nx.node,nd);prev.set(nx.node,cur.n);queue.push({n:nx.node,d:nd})}}}
+  if(!best.has(end))return null;
+  const chain=[];let n=end;while(n){chain.unshift(n);n=prev.get(n)}
+  const points=[{x:a.x,y:a.y}];
+  for(const node of chain){if(!node.virtual&&dist(points.at(-1),node)>2)points.push({x:node.x,y:node.y})}
+  if(dist(points.at(-1),end)>2)points.push({x:end.x,y:end.y});
+  if(dist(points.at(-1),b)>2)points.push({x:b.x,y:b.y});
+  return{points,distance:length(points),networkDistance:best.get(end)};
 }
-
 export function roadPath(s,a,b){
- const start=snap(s,a),end=snap(s,b);if(dist(start,end)<8)return[start,end];
- const existing=routeOnRoadNetwork(s,start,end);if(existing&&existing.networkDistance<dist(start,end)*2.2)return existing.points;
- const h=[start,{x:end.x,y:start.y},end],v=[start,{x:start.x,y:end.y},end];
- const score=p=>length(p)+p.slice(1,-1).reduce((n,q)=>n+(Math.abs(q.y-riverY(q.x))<55?180:0),0);
- return score(h)<=score(v)?h:v;
+  const start=snap(s,a),end=snap(s,b);if(dist(start,end)<8)return[start,end];
+  const existing=routeOnRoadNetwork(s,start,end);
+  return existing?existing.points:null;
 }
 export function addRoad(s,points){
  const clean=points.filter((p,i)=>!i||dist(p,points[i-1])>10);if(clean.length<2)return false;
