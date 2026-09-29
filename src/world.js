@@ -57,8 +57,16 @@ function nearestNetworkPoint(network,p){let best=null,bd=Infinity;for(const e of
 export function routeOnRoadNetwork(s,a,b){
   if(!s.roads.length)return null;
   const network=roadNetwork(s);if(!network.edges.length)return null;
-  const sa=nearestNetworkPoint(network,a),sb=nearestNetworkPoint(network,b);if(!sa||!sb)return null;
-  const start={x:sa.point.x,y:sa.point.y,virtual:true},end={x:sb.point.x,y:sb.point.y,virtual:true};
+  const sa=nearestNetworkPoint(network,a),sb=nearestNetworkPoint(network,b);
+  if(!sa||!sb)return null;
+
+  // Buildings may use a short driveway to the road, but never allow a truck
+  // to "teleport" to a distant road and then travel across the map.
+  const MAX_DRIVEWAY=72;
+  if(sa.distance>MAX_DRIVEWAY||sb.distance>MAX_DRIVEWAY)return null;
+
+  const start={x:sa.point.x,y:sa.point.y,virtual:true};
+  const end={x:sb.point.x,y:sb.point.y,virtual:true};
   const adjacency=new Map(network.nodes.map(n=>[n,[...(network.adjacency.get(n)||[])]]));
   adjacency.set(start,[]);adjacency.set(end,[]);
   const connect=(virtual,attachment)=>{
@@ -69,14 +77,32 @@ export function routeOnRoadNetwork(s,a,b){
     adjacency.get(e.b).push({node:virtual,d:db,road:e.road});
   };
   connect(start,sa);connect(end,sb);
-  const queue=[{n:start,d:dist(a,start)}],best=new Map([[start,dist(a,start)]]),prev=new Map();
-  while(queue.length){queue.sort((x,y)=>x.d-y.d);const cur=queue.shift();if(cur.d!==best.get(cur.n))continue;if(cur.n===end)break;for(const nx of adjacency.get(cur.n)||[]){const nd=cur.d+nx.d;if(nd<(best.get(nx.node)??Infinity)){best.set(nx.node,nd);prev.set(nx.node,cur.n);queue.push({n:nx.node,d:nd})}}}
+
+  const queue=[{n:start,d:0}],best=new Map([[start,0]]),prev=new Map();
+  while(queue.length){
+    queue.sort((x,y)=>x.d-y.d);
+    const cur=queue.shift();
+    if(cur.d!==best.get(cur.n))continue;
+    if(cur.n===end)break;
+    for(const nx of adjacency.get(cur.n)||[]){
+      const nd=cur.d+nx.d;
+      if(nd<(best.get(nx.node)??Infinity)){
+        best.set(nx.node,nd);prev.set(nx.node,cur.n);queue.push({n:nx.node,d:nd});
+      }
+    }
+  }
   if(!best.has(end))return null;
-  const chain=[];let n=end;while(n){chain.unshift(n);n=prev.get(n)}
+
+  const chain=[];let n=end;
+  while(n){chain.unshift(n);n=prev.get(n)}
   const points=[{x:a.x,y:a.y}];
-  for(const node of chain){if(!node.virtual&&dist(points.at(-1),node)>2)points.push({x:node.x,y:node.y})}
+  if(dist(points[0],start)>2)points.push({x:start.x,y:start.y});
+  for(const node of chain){
+    if(!node.virtual&&dist(points.at(-1),node)>2)points.push({x:node.x,y:node.y});
+  }
   if(dist(points.at(-1),end)>2)points.push({x:end.x,y:end.y});
   if(dist(points.at(-1),b)>2)points.push({x:b.x,y:b.y});
+
   return{points,distance:length(points),networkDistance:best.get(end)};
 }
 export function roadPath(s,a,b){
