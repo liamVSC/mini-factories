@@ -93,27 +93,34 @@ export function upgrade(s,b,n){
 }
 
 function warehouseFor(s,building){
-  let best=null,bestD=Infinity;
+  let best=null,bestScore=Infinity;
   for(const w of s.buildings.filter(b=>b.kind==='warehouse')){
-    const d=dist(w,building);
-    if(d<bestD){bestD=d;best=w}
+    const r=route(s,building,w);
+    if(!r)continue;
+    if(r.distance<bestScore){bestScore=r.distance;best=w}
   }
   return best;
 }
-function transferToWarehouse(s,f,warehouse){
-  if(!warehouse||f.stock<=0)return false;
-  const free=Math.max(0,warehouse.max-(warehouse.storage||0));
-  if(free<=0)return false;
-  const n=Math.min(free,f.stock);
-  f.stock-=n;warehouse.storage=(warehouse.storage||0)+n;
-  warehouse.inventory=warehouse.inventory||{};
-  warehouse.inventory[f.type]=(warehouse.inventory[f.type]||0)+n;
-  return n>0;
+function warehouseCapacity(w,type){return Math.max(0,(w.max||24)-(w.storage||0));}
+function takeFromWarehouse(warehouse,type,n){
+  const have=Math.max(0,warehouse?.inventory?.[type]||0),take=Math.min(have,Math.max(0,n));
+  if(!take)return 0;
+  warehouse.inventory[type]-=take;
+  warehouse.storage=Math.max(0,(warehouse.storage||0)-take);
+  return take;
 }
-function takeFromWarehouse(warehouse,type){
-  if(!warehouse?.inventory?.[type])return false;
-  if(warehouse.inventory[type]<=0)return false;
-  warehouse.inventory[type]--;warehouse.storage=Math.max(0,(warehouse.storage||0)-1);
+function addToWarehouse(warehouse,type,n){
+  if(!warehouse||n<=0)return 0;
+  const free=warehouseCapacity(warehouse,type),take=Math.min(free,n);
+  if(!take)return 0;
+  warehouse.inventory=warehouse.inventory||{};
+  warehouse.inventory[type]=(warehouse.inventory[type]||0)+take;
+  warehouse.storage=(warehouse.storage||0)+take;
+  return take;
+}
+function dispatchTruck(s,{route,source,destination,cargo,contractId=0,longDistance=false,valuePerUnit=0,stage='delivery'}){
+  if(!route||!cargo)return false;
+  s.trucks.push({route:route.points,routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage});
   return true;
 }
 
@@ -123,116 +130,86 @@ export function updateEconomy(s,dt,flash){
       const f=spec(b.type);
       b.production+=dt*.46*b.level*f.speed*(1+b.loading*.1)*(1+(s.research?.automation||0)*.08);
       b.active=Math.min(1,b.active+dt*2.5);
-      if(b.production>=1&&b.stock<b.max){
-        const n=Math.floor(b.production);b.production-=n;b.stock=Math.min(b.max,b.stock+n);
-      }
+      if(b.production>=1&&b.stock<b.max){const n=Math.floor(b.production);b.production-=n;b.stock=Math.min(b.max,b.stock+n)}
     }else if(b.kind==='shop'){
-      b.active=Math.max(0,b.active-dt*2.2);
-      b.demand=Math.min(14,b.demand+dt*(.05+s.companyLevel*.003)*(1+b.level*.06));
+      b.active=Math.max(0,b.active-dt*2.2);b.demand=Math.min(14,b.demand+dt*(.05+s.companyLevel*.003)*(1+b.level*.06));
       b.satisfaction=Math.max(0,Math.min(100,100-b.demand*4+(b.served||0)*1.5));
       if(!b.contract&&Math.random()<dt*.012)newContract(s,b);
-      if(b.contract){
-        b.contract.expires-=dt;
-        if(b.contract.expires<=0){
-          s.reputation=Math.max(0,s.reputation-4);b.contract=null;flash('Contract expired • reputation -4');
-        }
-      }
+      if(b.contract){b.contract.expires-=dt;if(b.contract.expires<=0){s.reputation=Math.max(0,s.reputation-4);b.contract=null;flash('Contract expired • reputation -4')}}
     }
   }
-
   for(const f of s.buildings.filter(b=>b.kind==='factory')){
     const hub=warehouseFor(s,f);
-    if(hub&&f.stock>0&&Math.random()<dt*.8)transferToWarehouse(s,f,hub);
+    if(hub&&f.stock>0&&Math.random()<dt*.8){
+      const r=route(s,f,hub);
+      if(r){const cargo=Math.min(3,f.stock,warehouseCapacity(hub,f.type));if(cargo>0){f.stock-=cargo;dispatchTruck(s,{route:r,source:f,destination:hub,cargo,valuePerUnit:0,stage:'warehouse'})}}
+    }
     const shops=s.buildings.filter(b=>b.kind==='shop'&&b.need===f.type&&b.demand>0);
-    let choice=null,best=Infinity;
+    let choice=null,best=Infinity,choiceRoute=null,choiceHub=null;
     for(const shop of shops){
-      const r=route(s,f,shop);
-      if(r&&r.distance<best){best=r.distance;choice=shop;}
+      const hub2=warehouseFor(s,shop);
+      const direct=route(s,f,shop);
+      const via=hub2&&hub2!==f?route(s,hub2,shop):null;
+      const candidate=hub2&&hub2.inventory?.[f.type]>0&&via?via:direct;
+      if(candidate&&candidate.distance<best){best=candidate.distance;choice=shop;choiceRoute=candidate;choiceHub=hub2}
     }
-    const shop=choice;
-    const shopHub=shop?warehouseFor(s,shop):null;
-    const sourceHub=warehouseFor(s,f);
-    const availableFromWarehouse=(shopHub?.inventory?.[f.type]||0)>0||(sourceHub?.inventory?.[f.type]||0)>0;
-    if(!shop||(!f.stock&&!availableFromWarehouse))continue;
-
-    if(Math.random()<dt*(1.4+f.level*.35)){
-      const r=route(s,f,shop);
-      if(!r)continue;
-        const contract=shop.contract?.type===f.type?shop.contract:null;
-      if(contract){
-        const outstanding=(contract.inFlight||0);
-        if(outstanding>=contract.remaining)continue;
+    const shop=choice;if(!shop)continue;
+    if(Math.random()>=dt*(1.4+f.level*.35))continue;
+    const contract=shop.contract?.type===f.type?shop.contract:null;
+    const outstanding=contract?.inFlight||0;
+    const capacity=3;
+    const needed=Math.max(0,(contract?.remaining||capacity)-outstanding);
+    let cargo=0,source=f,routeToUse=choiceRoute,stage='delivery';
+    if(choiceHub&&choiceHub.inventory?.[f.type]>0&&routeToUse){
+      cargo=Math.min(capacity,choiceHub.inventory[f.type],Math.max(1,needed||capacity));
+      if(cargo>0){takeFromWarehouse(choiceHub,f.type,cargo);source=f;stage='delivery'}
+    }else{
+      if(!f.stock)continue;
+      const hubForShop=choiceHub&&choiceHub!==warehouseFor(s,f)?choiceHub:null;
+      if(hubForShop){
+        const toHub=route(s,f,hubForShop);
+        const toShop=route(s,hubForShop,shop);
+        if(toHub&&toShop){
+          const free=warehouseCapacity(hubForShop,f.type);
+          cargo=Math.min(capacity,f.stock,Math.max(1,needed||capacity),free);
+          if(cargo>0){f.stock-=cargo;dispatchTruck(s,{route:toHub,source:f,destination:hubForShop,cargo,stage:'warehouse'});}
+        }
       }
-
-      const warehouse=shopHub?.inventory?.[f.type]>0?shopHub:sourceHub;
-      const fromWarehouse=warehouse&&warehouse.inventory?.[f.type]>0&&!f.stock;
-      if(fromWarehouse)takeFromWarehouse(warehouse,f.type);else f.stock--;shop.demand=Math.max(0,shop.demand-1);
-      if(contract)contract.inFlight++;
-      const sp=spec(f.type);
-      const value=Math.max(1,Math.round(
-        sp.price*sp.value*
-        (1+Math.min(1.2,r.distance/650)*.45)*
-        (1+(f.level-1)*.07+f.loading*.08)*
-        (1+f.logistics*.04+(s.research?.logistics||0)*.04)
-      ));
-      s.trucks.push({
-        route:r.points,routeKey:r.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*sp.speed*(1+(f.level-1)*.08+f.loading*.04),
-        value,to:shop,source:f,contractId:contract?.id||0,longDistance:r.distance>650,wait:0
-      });
+      if(cargo===0){
+        if(!route(s,f,shop))continue;
+        cargo=Math.min(capacity,f.stock,Math.max(1,needed||capacity));
+        if(cargo>0){f.stock-=cargo;routeToUse=route(s,f,shop);}
+      }
     }
+    if(cargo<=0||!routeToUse)continue;
+    if(contract)contract.inFlight+=cargo;
+    const sp=spec(f.type);
+    const valuePerUnit=Math.max(1,Math.round(sp.price*sp.value*(1+Math.min(1.2,routeToUse.distance/650)*.45)*(1+(f.level-1)*.07+f.loading*.08)*(1+(f.logistics||0)*.04+(s.research?.logistics||0)*.04)));
+    dispatchTruck(s,{route:routeToUse,source:f,destination:shop,cargo,contractId:contract?.id||0,longDistance:routeToUse.distance>650,valuePerUnit,stage:'delivery'});
   }
 
   for(const t of s.trucks){
-    const p=pointOnRoute(t.route,t.t);
-    let blocked=false;
-    let nearestAhead=Infinity;
-    for(const o of s.trucks){
-      if(o===t||o.dead)continue;
-      const q=pointOnRoute(o.route,o.t);
-      const separation=dist(p,q);
-      if(separation<30&&o.routeKey===t.routeKey&&o.t>t.t){
-        nearestAhead=Math.min(nearestAhead,o.t-t.t);
-      }
-    }
-    if(nearestAhead<.045){
-      blocked=true;
-      t.wait=Math.min(2,t.wait+dt);
-    }else{
-      t.wait=Math.max(0,t.wait-dt*.75);
-    }
+    const p=pointOnRoute(t.route,t.t);let blocked=false,nearestAhead=Infinity;
+    for(const o of s.trucks){if(o===t||o.dead)continue;const q=pointOnRoute(o.route,o.t);if(dist(p,q)<30&&o.routeKey===t.routeKey&&o.t>t.t)nearestAhead=Math.min(nearestAhead,o.t-t.t)}
+    if(nearestAhead<.045){blocked=true;t.wait=Math.min(2,t.wait+dt)}else t.wait=Math.max(0,t.wait-dt*.75);
     if(blocked)continue;
-
-    const congestionFactor=Math.max(.65,1-(s.congestion*.18));
-    t.t+=dt*t.speed*congestionFactor;
+    t.t+=dt*t.speed*Math.max(.65,1-(s.congestion*.18));
     if(t.t>=1){
-      s.cash+=t.value;s.deliveryIncome+=t.value;s.orders++;s.xp+=Math.max(2,Math.round(t.value*.08));t.to.served=(t.to.served||0)+1;t.to.satisfaction=Math.min(100,(t.to.satisfaction||50)+4);
-      s.deliveredBy[t.source.type]=(s.deliveredBy[t.source.type]||0)+1;
-
-      if(t.contractId&&t.to.contract?.id===t.contractId){
-        const c=t.to.contract;
-        c.remaining=Math.max(0,c.remaining-1);
-        c.inFlight=Math.max(0,(c.inFlight||0)-1);
-        if(c.remaining<=0){
-          const bonus=c.urgent?Math.round(c.reward*.18):0;
-          s.cash+=c.reward+bonus;
-          s.reputation=Math.min(100,s.reputation+2);
-          if(t.longDistance)s.longContracts++;
-          t.to.contract=null;
-          flash(`Contract complete • £${c.reward+bonus}`);
-        }
+      if(t.stage==='warehouse'){
+        const accepted=addToWarehouse(t.to,t.source.type,t.cargo);
+        if(accepted<t.cargo){t.source.stock=Math.min(t.source.max,t.source.stock+(t.cargo-accepted));}
+        t.dead=true;continue;
       }
+      const units=Math.max(1,t.cargo||1);
+      s.cash+=t.value;s.deliveryIncome+=t.value;s.orders+=units;s.xp+=Math.max(2,Math.round(t.value*.08));t.to.served=(t.to.served||0)+units;t.to.satisfaction=Math.min(100,(t.to.satisfaction||50)+4*units);s.deliveredBy[t.source.type]=(s.deliveredBy[t.source.type]||0)+units;
+      if(t.contractId&&t.to.contract?.id===t.contractId){const c=t.to.contract;c.remaining=Math.max(0,c.remaining-units);c.inFlight=Math.max(0,(c.inFlight||0)-units);if(c.remaining<=0){const bonus=c.urgent?Math.round(c.reward*.18):0;s.cash+=c.reward+bonus;s.reputation=Math.min(100,s.reputation+2);if(t.longDistance)s.longContracts++;t.to.contract=null;flash('Contract complete • £'+(c.reward+bonus))}}
       t.dead=true;
     }
   }
-
   s.trucks=s.trucks.filter(t=>!t.dead);
-  while(s.xp>=s.xpToNext){s.xp-=s.xpToNext;s.companyLevel++;s.xpToNext=Math.round(100*Math.pow(1.22,s.companyLevel-1));s.roadBudget+=3;flash(`Company Level ${s.companyLevel} • +3 roads`)}
-
+  while(s.xp>=s.xpToNext){s.xp-=s.xpToNext;s.companyLevel++;s.xpToNext=Math.round(100*Math.pow(1.22,s.companyLevel-1));s.roadBudget+=3;flash('Company Level '+s.companyLevel+' • +3 roads')}
   s.congestion=Math.min(1,(s.trucks.length+s.trucks.filter(t=>t.wait>0).length*1.5)/Math.max(3,s.roads.length*2));
   const reduction=s.trucks.reduce((n,t)=>n+(t.source?.logistics||0),0)/Math.max(1,s.trucks.length);
   s.cash-=s.roads.length*dt*.055*(1+s.congestion*Math.max(.55,1-reduction*.12));
-
-  const g=s.goals[s.objective];
-  if(g&&g.done(s))s.objective=Math.min(5,s.objective+1);
-  if(s.cash<=0){s.cash=0;s.gameOver=true;}
+  const g=s.goals[s.objective];if(g&&g.done(s))s.objective=Math.min(5,s.objective+1);if(s.cash<=0){s.cash=0;s.gameOver=true}
 }
