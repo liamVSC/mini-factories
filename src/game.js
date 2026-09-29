@@ -8,6 +8,7 @@ const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');let W=0
 function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);if(s?.camera)clampCamera()}addEventListener('resize',resize);resize();clampCamera();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
 function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSaveV6',JSON.stringify(serialise(s)))}catch(e){flash('Save failed — storage unavailable')}}
+function roadResultMessage(result,path){if(result===true)return 'Road built';if(result==='cash'){const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180))*2;return 'Need £'+cost+' cash (you have £'+Math.floor(s.cash)+')'}if(result==='too-short')return 'Road is too short';if(result==='blocked')return 'Road blocked — move around the building';if(result==='duplicate')return 'Road already exists here';return 'Invalid road'}
 function flash(text){const el=document.querySelector('#tip');el.textContent=text;clearTimeout(flash.timer);flash.timer=setTimeout(()=>el.textContent='Build roads between factories and shops.',1200)}
 function reset(){localStorage.removeItem('miniFactoriesSaveV6');s=freshState();seed(s);for(const b of s.buildings.filter(b=>b.kind==='shop'))newContract(s,b);document.querySelector('#settingsMenu').style.display='none';document.querySelector('#gameOver').style.display='none';s.paused=false;hidePanel();sync();save();flash('New factory started')}
 function sync(){document.querySelector('#cash').textContent='£'+Math.floor(s.cash);document.querySelector('#orders').textContent=s.orders;document.querySelector('#companyLevel').textContent=s.companyLevel;const g=s.goals[s.objective];document.querySelector('#objective').innerHTML=g?`<b>Goal ${s.objective+1}/6</b> • ${g.text} <span>${Math.min(g.target,Math.floor(g.progress(s)))}/${g.target}</span>`:'All objectives complete';const p=document.querySelector('#panel');if(panelMode==='building'&&s.selected&&p.style.display!=='none')showPanel(s.selected);}
@@ -247,7 +248,7 @@ function finish(e){
   }
   if(drag?.armed){
     const p=worldPos(e),preview=roadPreview(s,drag.start,p),path=preview.path;
-    if(addRoad(s,path)){flash('Road built');save();roadStart=null}
+    const result=addRoad(s,path);if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,path))
     else {const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180)),cashCost=cost*2;flash('Need £'+cashCost+' cash (you have £'+Math.floor(s.cash)+')')}
   }else if(s.mode==='road'){
     const p=worldPos(e);
@@ -255,8 +256,7 @@ function finish(e){
     if(!roadStart){roadStart=snapped;flash('Start set — tap or drag to the road end')}
     else{
       const preview=roadPreview(s,roadStart,p);
-      if(addRoad(s,preview.path)){flash('Road built');save();roadStart=null}
-      else {const path=preview.path;const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180)),cashCost=cost*2;flash('Need £'+cashCost+' cash (you have £'+Math.floor(s.cash)+')')}
+      const result=addRoad(s,preview.path);if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,preview.path))
     }
   }
   drag=null;
