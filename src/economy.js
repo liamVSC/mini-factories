@@ -7,7 +7,9 @@ function touches(r,b){return r.points.some(p=>dist(p,b)<b.r+34)}
 
 function roadDistance(a,b){
   let best=Infinity;
-  for(const p of a.points)for(const q of b.points)best=Math.min(best,dist(p,q));
+  const aEnds=[a.points[0],a.points.at(-1)];
+  const bEnds=[b.points[0],b.points.at(-1)];
+  for(const p of aEnds)for(const q of bEnds)best=Math.min(best,dist(p,q));
   return best;
 }
 
@@ -50,7 +52,7 @@ export function route(s,a,b){
     for(const next of roads){
       if(next===cur.road)continue;
       const join=roadDistance(cur.road,next);
-      if(join>44)continue;
+      if(join>38)continue;
       const nd=cur.d+join+length(next.points);
       if(nd<(best.get(next)??Infinity)){
         best.set(next,nd);prev.set(next,cur.road);queue.push({road:next,d:nd});
