@@ -1,7 +1,7 @@
 import {freshState,hydrate,serialise,TYPES} from './state.js';
 import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadPreview,addRoad,eraseRoad,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
-import {render} from './render.js';
+import {render,setPreview,resizeRenderer} from './render.js';
 
 const GAME_VERSION='1.2';
 const CHANGELOG=[
@@ -20,8 +20,8 @@ const CHANGELOG=[
   ]}
 ];
 
-const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');let W=0,H=0,dpr=1;let s=load();let drag=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
-function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);if(s?.camera)clampCamera()}addEventListener('resize',resize);resize();clampCamera();
+const canvas=document.querySelector('#game');let W=0,H=0,dpr=1;let s=load();let drag=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
+function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;resizeRenderer(W,H);if(s?.camera)clampCamera()}addEventListener('resize',resize);resize();clampCamera();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
 function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSaveV6',JSON.stringify(serialise(s)))}catch(e){flash('Save failed — storage unavailable')}}
 function roadResultMessage(result,path){if(result===true)return 'Road built';if(result==='cash'){const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180))*2;return 'Need £'+cost+' cash (you have £'+Math.floor(s.cash)+')'}if(result==='too-short')return 'Select two different points or buildings';if(result==='blocked')return 'Road blocked — move around the building';if(result==='duplicate')return 'Road already exists here';return 'Invalid road'}
@@ -295,12 +295,4 @@ for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
 document.querySelector('#shop').onclick=null
 let uiTimer=0;
 function tick(dt){if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);for(const p of s.particles)p.t+=dt;s.particles=s.particles.filter(p=>p.t<1);if(Math.random()<dt*.5)save()}uiTimer-=dt;if(uiTimer<=0||s.gameOver){uiTimer=.08;sync()}if(s.gameOver){document.querySelector('#gameOver').style.display='grid';document.querySelector('#score').textContent=`${s.orders} deliveries • Company Level ${s.companyLevel}.`;save()}}
-function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);render(ctx,s,W,H);if(drag?.road&&drag.preview){
-  ctx.save();ctx.translate(s.camera.x,s.camera.y);ctx.scale(s.camera.zoom,s.camera.zoom);ctx.translate(-W/2,-H/2);
-  const roadDraw=drag.preview;
-  ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.strokeStyle='#24313a55';ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(roadDraw[0].x,roadDraw[0].y);for(let i=1;i<roadDraw.length;i++)ctx.lineTo(roadDraw[i].x,roadDraw[i].y);ctx.stroke();
-  ctx.strokeStyle='#58a6d8';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(roadDraw[0].x,roadDraw[0].y);for(let i=1;i<roadDraw.length;i++)ctx.lineTo(roadDraw[i].x,roadDraw[i].y);ctx.stroke();
-  for(const q of [drag?.previewStart,drag?.previewEnd])if(q&&(!('distance' in q)||q.distance<Infinity)){ctx.fillStyle='#fff9eb';ctx.beginPath();ctx.arc(q.x,q.y,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#247ba0';ctx.lineWidth=3;ctx.stroke()}
-  ctx.restore()
-}requestAnimationFrame(loop)}window.addEventListener('error',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.message||'unknown error')}});window.addEventListener('unhandledrejection',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.reason?.message||e.reason||'unknown error')}});sync();requestAnimationFrame(loop);
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);render(null,s,W,H,canvas);if(drag?.road&&drag.preview)setPreview(drag.preview,drag.previewStart,drag.previewEnd,!!drag.blocked);else setPreview(null);requestAnimationFrame(loop)}window.addEventListener('error',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.message||'unknown error')}});window.addEventListener('unhandledrejection',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.reason?.message||e.reason||'unknown error')}});sync();requestAnimationFrame(loop);
