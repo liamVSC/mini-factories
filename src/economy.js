@@ -103,6 +103,31 @@ export function upgrade(s,b,n){
   return false;
 }
 
+function warehouseFor(s,building){
+  let best=null,bestD=Infinity;
+  for(const w of s.buildings.filter(b=>b.kind==='warehouse')){
+    const d=dist(w,building);
+    if(d<bestD){bestD=d;best=w}
+  }
+  return best;
+}
+function transferToWarehouse(s,f,warehouse){
+  if(!warehouse||f.stock<=0)return false;
+  const free=Math.max(0,warehouse.max-(warehouse.storage||0));
+  if(free<=0)return false;
+  const n=Math.min(free,f.stock);
+  f.stock-=n;warehouse.storage=(warehouse.storage||0)+n;
+  warehouse.inventory=warehouse.inventory||{};
+  warehouse.inventory[f.type]=(warehouse.inventory[f.type]||0)+n;
+  return n>0;
+}
+function takeFromWarehouse(warehouse,type){
+  if(!warehouse?.inventory?.[type])return false;
+  if(warehouse.inventory[type]<=0)return false;
+  warehouse.inventory[type]--;warehouse.storage=Math.max(0,(warehouse.storage||0)-1);
+  return true;
+}
+
 export function updateEconomy(s,dt,flash){
   s.nextBuilding-=dt;
 
@@ -147,6 +172,8 @@ export function updateEconomy(s,dt,flash){
   }
 
   for(const f of s.buildings.filter(b=>b.kind==='factory')){
+    const hub=warehouseFor(s,f);
+    if(hub&&f.stock>0&&Math.random()<dt*.8)transferToWarehouse(s,f,hub);
     const shops=s.buildings.filter(b=>b.kind==='shop'&&b.need===f.type&&b.demand>0);
     let choice=null,best=Infinity;
     for(const shop of shops){
@@ -154,7 +181,7 @@ export function updateEconomy(s,dt,flash){
       if(r&&r.distance<best){best=r.distance;choice=shop;}
     }
     const shop=choice;
-    if(!shop||f.stock<=0)continue;
+    const hub=warehouseFor(s,shop);if(!shop||(!f.stock&&!(hub?.inventory?.[f.type]>0)))continue;
 
     if(Math.random()<dt*(1.4+f.level*.35)){
       const r=route(s,f,shop);
@@ -165,7 +192,7 @@ export function updateEconomy(s,dt,flash){
         if(outstanding>=contract.remaining)continue;
       }
 
-      f.stock--;shop.demand=Math.max(0,shop.demand-1);
+      const fromWarehouse=hub&&hub.inventory?.[f.type]>0&&!f.stock;if(fromWarehouse)takeFromWarehouse(hub,f.type);else f.stock--;shop.demand=Math.max(0,shop.demand-1);
       if(contract)contract.inFlight++;
       const sp=spec(f.type);
       const value=Math.max(1,Math.round(
