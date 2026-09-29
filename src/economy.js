@@ -174,14 +174,27 @@ export function updateEconomy(s,dt,flash){
   for(const t of s.trucks){
     const p=pointOnRoute(t.route,t.t);
     let blocked=false;
+    let nearestAhead=Infinity;
     for(const o of s.trucks){
-      if(o===t)continue;
+      if(o===t||o.dead)continue;
       const q=pointOnRoute(o.route,o.t);
-      if(dist(p,q)<28&&o.t>t.t){blocked=true;break;}
+      const separation=dist(p,q);
+      // Only react to a truck that is physically close and ahead on the same
+      // route. Crossing roads should not create artificial traffic jams.
+      if(separation<30&&o.route===t.route&&o.t>t.t){
+        nearestAhead=Math.min(nearestAhead,o.t-t.t);
+      }
     }
-    if(blocked){t.wait=Math.min(2,t.wait+dt);continue;}
+    if(nearestAhead<.045){
+      blocked=true;
+      t.wait=Math.min(2,t.wait+dt);
+    }else{
+      t.wait=Math.max(0,t.wait-dt*.75);
+    }
+    if(blocked)continue;
 
-    t.t+=dt*t.speed;
+    const congestionFactor=Math.max(.65,1-(s.congestion*.18));
+    t.t+=dt*t.speed*congestionFactor;
     if(t.t>=1){
       s.cash+=t.value;s.deliveryIncome+=t.value;s.orders++;t.to.served=(t.to.served||0)+1;t.to.satisfaction=Math.min(100,(t.to.satisfaction||50)+4);
       s.deliveredBy[t.source.type]=(s.deliveredBy[t.source.type]||0)+1;
