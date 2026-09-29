@@ -15,7 +15,5 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Run tests
-        run: node --test tests/*.test.js
-      - name: Check syntax
-        run: node --check src/game.js && node --check src/render3d.js && node --check src/render.js && node --check src/state.js && node --check src/world.js && node --check src/economy.js
+      - name: Run test suite
+        run: npm test
