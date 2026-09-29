@@ -182,3 +182,98 @@ test('company level-up does not create a road budget',()=>{
   assert.equal(s.companyLevel,2);
   assert.equal('roadBudget' in s,false);
 });
+
+
+test('factory to warehouse to shop completes without losing cargo',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const warehouse=makeBuilding({name:'Warehouse',kind:'warehouse',need:null,color:'#fff'},100,0,'warehouse-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},200,0,'shop-1');
+  factory.stock=4;
+  warehouse.max=10;
+  shop.demand=4;
+  s.buildings.push(factory,warehouse,shop);
+  s.roads.push(
+    {id:'road-1',points:[{x:0,y:0},{x:100,y:0}],bridge:false,condition:1,age:0},
+    {id:'road-2',points:[{x:100,y:0},{x:200,y:0}],bridge:false,condition:1,age:0}
+  );
+  updateEconomy(s,1.2,()=>{});
+  assert.equal(s.trucks.length,1);
+  assert.equal(s.trucks[0].stage,'warehouse');
+  assert.equal(factory.stock,1);
+  s.trucks[0].t=.999;
+  updateEconomy(s,.1,()=>{});
+  assert.equal(s.trucks.length,0);
+  assert.equal(warehouse.inventory.Food,3);
+  assert.equal(warehouse.storage,3);
+});
+
+test('warehouse delivery to a connected shop consumes stored inventory',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const warehouse=makeBuilding({name:'Warehouse',kind:'warehouse',need:null,color:'#fff'},100,0,'warehouse-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},200,0,'shop-1');
+  warehouse.inventory={Food:5};
+  warehouse.storage=5;
+  shop.demand=5;
+  s.buildings.push(factory,warehouse,shop);
+  s.roads.push(
+    {id:'road-1',points:[{x:0,y:0},{x:100,y:0}],bridge:false,condition:1,age:0},
+    {id:'road-2',points:[{x:100,y:0},{x:200,y:0}],bridge:false,condition:1,age:0}
+  );
+  updateEconomy(s,1.2,()=>{});
+  assert.equal(s.trucks.length,1);
+  assert.equal(s.trucks[0].source.id,'factory-1');
+  assert.equal(s.trucks[0].to.id,'shop-1');
+  assert.equal(s.trucks[0].cargo,3);
+  assert.equal(warehouse.inventory.Food,2);
+  assert.equal(warehouse.storage,2);
+});
+
+test('expired contract can remove the contract while a delivery is still in flight without crashing',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},100,0,'shop-1');
+  shop.contract={id:12,type:'Food',qty:2,remaining:2,reward:100,expires:.01,initial:2,urgent:false,inFlight:0};
+  const t=truck({source:factory,to:shop,cargo:2,value:40,contractId:12,t:.999});
+  s.buildings.push(factory,shop);
+  s.trucks.push(t);
+  const messages=[];
+  assert.doesNotThrow(()=>updateEconomy(s,.1,m=>messages.push(m)));
+  assert.equal(shop.contract,null);
+  assert.equal(s.trucks.length,0);
+  assert.equal(s.cash,540);
+  assert.equal(s.reputation,96);
+  assert.ok(messages.some(m=>m.includes('expired')));
+});
+
+test('multiple trucks on the same route do not corrupt each other',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},100,0,'shop-1');
+  s.buildings.push(factory,shop);
+  const sharedRoute=[{x:0,y:0},{x:100,y:0}];
+  s.trucks.push(
+    truck({id:'truck-a',route:sharedRoute,t:.40,source:factory,to:shop,value:10,cargo:1}),
+    truck({id:'truck-b',route:sharedRoute,t:.45,source:factory,to:shop,value:20,cargo:1})
+  );
+  updateEconomy(s,.1,()=>{});
+  assert.equal(s.trucks.length,2);
+  assert.ok(s.trucks.every(t=>Number.isFinite(t.t)));
+});
+
+test('routing through a road intersection produces a usable route',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},200,200,'shop-1');
+  s.buildings.push(factory,shop);
+  s.roads.push(
+    {id:'road-a',points:[{x:0,y:0},{x:200,y:0}],bridge:false,condition:1,age:0},
+    {id:'road-b',points:[{x:100,y:-100},{x:100,y:200}],bridge:false,condition:1,age:0},
+    {id:'road-c',points:[{x:100,y:200},{x:200,y:200}],bridge:false,condition:1,age:0}
+  );
+  updateEconomy(s,1.2,()=>{});
+  assert.equal(s.trucks.length,1);
+  assert.ok(s.trucks[0].route.length>=3);
+  assert.ok(s.trucks[0].route.some(p=>Math.abs(p.x-100)<1&&Math.abs(p.y-200)<1));
+});
