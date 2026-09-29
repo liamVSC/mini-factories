@@ -76,7 +76,7 @@ export function route(s,a,b){
   // can leave a building, travel off-road, and then join a road.
   const endpointAttached=(building)=>{
     if(!building)return false;
-    const maxDistance=Math.max(4,(building.r||25)+4);
+    const maxDistance=Math.max(2,(building.r||25)+2);
     return visibleRoads.some(road=>{
       for(let i=1;i<road.points.length;i++){
         if(pointSegmentDistance(building,road.points[i-1],road.points[i])<=maxDistance)return true;
@@ -173,6 +173,7 @@ function dispatchTruck(s,{route,source,destination,cargo,contractId=0,longDistan
     });
   };
   if(!attached(source)||!attached(destination))return false;
+  if(!route.points.every((p,i)=>i===0||i===route.points.length-1||s.roads.some(road=>{for(let j=1;j<road.points.length;j++)if(pointSegmentDistance(p,road.points[j-1],road.points[j])<=2.5)return true;return false;})))return false;
   s.trucks.push({route:route.points,routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage});
   return true;
 }
@@ -233,7 +234,10 @@ export function updateEconomy(s,dt,flash){
         if(toHub&&toShop){
           const free=warehouseCapacity(hubForShop,f.type);
           cargo=Math.min(capacity,f.stock,Math.max(1,needed||capacity),free);
-          if(cargo>0){f.stock-=cargo;f.dispatchTimer=0;dispatchTruck(s,{route:toHub,source:f,destination:hubForShop,cargo,stage:'warehouse'});continue;}
+          if(cargo>0){
+            const dispatched=dispatchTruck(s,{route:toHub,source:f,destination:hubForShop,cargo,stage:'warehouse'});
+            if(dispatched){f.stock-=cargo;f.dispatchTimer=0;continue;}
+          }
         }
       }
       if(cargo===0){
@@ -246,7 +250,8 @@ export function updateEconomy(s,dt,flash){
     if(contract)contract.inFlight+=cargo;
     const sp=spec(f.type);
     const valuePerUnit=Math.max(1,Math.round(sp.price*sp.value*(1+Math.min(1.2,routeToUse.distance/650)*.45)*(1+(f.level-1)*.07+f.loading*.08)*(1+(f.logistics||0)*.04+(s.research?.logistics||0)*.04)));
-    f.dispatchTimer=0;dispatchTruck(s,{route:routeToUse,source:f,destination:shop,cargo,contractId:contract?.id||0,longDistance:routeToUse.distance>650,valuePerUnit,stage:'delivery'});
+    const dispatched=dispatchTruck(s,{route:routeToUse,source:f,destination:shop,cargo,contractId:contract?.id||0,longDistance:routeToUse.distance>650,valuePerUnit,stage:'delivery'});
+  if(dispatched){f.dispatchTimer=0}else{if(contract)contract.inFlight=Math.max(0,(contract.inFlight||0)-cargo);}
   }
 
   for(const t of s.trucks){
