@@ -3,7 +3,7 @@ import {seed,nearestBuilding,nearestRoad,roadPath,roadPreview,addRoad,eraseRoad,
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render} from './render.js';
 
-const GAME_VERSION='1.1.5';
+const GAME_VERSION='1.1.6';
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');let W=0,H=0,dpr=1;let s=load();let drag=null;let roadStart=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
 function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);if(s?.camera)clampCamera()}addEventListener('resize',resize);resize();clampCamera();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
@@ -248,7 +248,7 @@ function finish(e){
   if(drag?.armed){
     const p=worldPos(e),preview=roadPreview(s,drag.start,p),path=preview.path;
     if(addRoad(s,path)){flash('Road built');save();roadStart=null}
-    else flash('Not enough road budget or cash');
+    else {const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180)),cashCost=cost*2;flash(s.roadBudget<cost?'Need '+cost+' road budget (you have '+s.roadBudget+')':'Need £'+cashCost+' cash (you have £'+Math.floor(s.cash)+')')}
   }else if(s.mode==='road'){
     const p=worldPos(e);
     const snapped=nearestRoad(s,p)||nearestBuilding(s,p)||p;
@@ -256,7 +256,7 @@ function finish(e){
     else{
       const preview=roadPreview(s,roadStart,p);
       if(addRoad(s,preview.path)){flash('Road built');save();roadStart=null}
-      else flash('Not enough road budget or cash');
+      else {const path=preview.path;const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180)),cashCost=cost*2;flash(s.roadBudget<cost?'Need '+cost+' road budget (you have '+s.roadBudget+')':'Need £'+cashCost+' cash (you have £'+Math.floor(s.cash)+')')}
     }
   }
   drag=null;
