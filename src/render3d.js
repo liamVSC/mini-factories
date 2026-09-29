@@ -66,7 +66,7 @@ function makeRoad(points,bridge){
     const angle=Math.atan2(b.y-a.y,b.x-a.x);
     const span=Math.max(1,clean.reduce((sum,p,i)=>i?sum+Math.hypot(p.x-clean[i-1].x,p.y-clean[i-1].y):0,0));
     for(const side of [-1,1]){
-      const rail=box(span,1.5,.8,mat('#b58a52'));
+      const rail=box(span,1.5,.8,'#b58a52');
       rail.position.set((a.x+b.x)/2,.95,(a.y+b.y)/2);
       rail.rotation.y=-angle;
       rail.position.x+=Math.cos(angle+Math.PI/2)*side*(roadWidth/2);
@@ -221,7 +221,28 @@ function drawTrucks(s){
     truckMeshes.delete(id);
   }
 }
-export function setPreview(path,start,end,blocked=false){if(!previewGroup)return;const key=path&&path.length>=2?JSON.stringify([path,start,end,blocked]):'';if(key===previewKey)return;previewKey=key;while(previewGroup.children.length){const child=previewGroup.children[0];previewGroup.remove(child);disposeObject(child);}if(!path||path.length<2)return;const curve=new THREE.CatmullRomCurve3(path.map(p=>new THREE.Vector3(p.x,.45,p.y)),false,'catmullrom',.1);previewGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,path.length*8),2.4,8,false),mat(blocked?'#d85a52':'#58a6d8')));for(const q of [start,end])if(q){const m=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),mat(blocked?'#d85a52':'#f4e5a8'));m.position.set(q.x,.8,q.y);previewGroup.add(m);}}
+export function setPreview(path,start,end,blocked=false){
+  if(!previewGroup)return;
+  const key=path&&path.length>=2?JSON.stringify([path,start,end,blocked]):'';
+  if(key===previewKey)return;
+  previewKey=key;
+  while(previewGroup.children.length){const child=previewGroup.children[0];previewGroup.remove(child);disposeObject(child);}
+  if(!path||path.length<2)return;
+  const vertices=[],indices=[],width=5;
+  for(let i=0;i<path.length;i++){
+    const p=path[i],prev=path[Math.max(0,i-1)],next=path[Math.min(path.length-1,i)];
+    const dx=next.x-prev.x,dy=next.y-prev.y,len=Math.hypot(dx,dy)||1;
+    const nx=-dy/len,ny=dx/len,half=width/2;
+    vertices.push(p.x+nx*half,.46,p.y+ny*half,p.x-nx*half,.46,p.y-ny*half);
+  }
+  for(let i=0;i<path.length-1;i++){const a=i*2,b=a+1,c=a+2,d=a+3;indices.push(a,b,c,b,d,c);}
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  previewGroup.add(new THREE.Mesh(geometry,mat(blocked?'#d85a52':'#58a6d8')));
+  for(const q of [start,end])if(q){const m=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),mat(blocked?'#d85a52':'#f4e5a8'));m.position.set(q.x,.8,q.y);previewGroup.add(m);}
+}
 export function render(ctx,s,W,H,canvas=document.querySelector('#game')){
   init(canvas);
   resize(W,H);
