@@ -13,6 +13,15 @@ export function spawn(s,kind,forced){const pool=TYPES.filter(t=>t.kind===kind&&(
 export function seed(s){for(const t of['Steel','Food','Parts'])spawn(s,'factory',t);for(const t of['Market','Garage','Builder'])spawn(s,'shop',t)}
 export function pointOnRoute(points,t){const total=length(points);if(!total)return points[0];let want=total*Math.max(0,Math.min(1,t)),run=0;for(let i=1;i<points.length;i++){const seg=dist(points[i-1],points[i]);if(run+seg>=want){const q=(want-run)/seg;return{x:points[i-1].x+(points[i].x-points[i-1].x)*q,y:points[i-1].y+(points[i].y-points[i-1].y)*q}}run+=seg}return points.at(-1)}
 export function nearestBuilding(s,p){let best=null,bd=58;for(const b of s.buildings){const d=dist(b,p);if(d<bd){bd=d;best=b}}return best}
+export function roadBuildingTarget(s,p){
+  let best=null,bd=Infinity;
+  for(const b of s.buildings||[]){
+    const hit=Math.max(58,(b.r||25)+38);
+    const d=dist(b,p);
+    if(d<=hit&&d<bd){bd=d;best=b}
+  }
+  return best;
+}
 function projectOnPolyline(points,p){let best=null,run=0;for(let i=1;i<points.length;i++){const q=projectSegment(p,points[i-1],points[i]);if(!best||q.distance<best.distance)best={...q,segment:i-1,along:run+dist(points[i-1],q.point)};run+=dist(points[i-1],points[i])}return best}
 export function nearestRoad(s,p){let best=null;for(const road of s.roads||[]){if(!road?.points||road.points.length<2)continue;const q=projectOnPolyline(road.points,p);if(q&&(!best||q.distance<best.distance))best={x:q.point.x,y:q.point.y,road,distance:q.distance,segment:q.segment,along:q.along}}return best&&best.distance<=46?best:null}
 function buildingConnectionPoint(building,target){const dx=target.x-building.x,dy=target.y-building.y;const len=Math.hypot(dx,dy)||1;const radius=Math.max(26,(building.r||25)+9);return{x:building.x+dx/len*radius,y:building.y+dy/len*radius,building,distance:0}}
@@ -38,7 +47,7 @@ function normalizeRoadEndpoint(s,p){
 function roadTarget(s,p){
   if(p?.building&&Number.isFinite(p.building.x))return buildingConnectionPoint(p.building,p);
   if(p?.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))return{x:p.x,y:p.y,road:p.road,distance:0};
-  const b=nearestBuilding(s,p);
+  const b=roadBuildingTarget(s,p);
   if(b&&dist(b,p)<=96)return buildingConnectionPoint(b,p);
   const r=nearestRoad(s,p);
   if(r&&r.distance<=64)return{x:r.x,y:r.y,road:r.road,distance:r.distance};
@@ -52,18 +61,16 @@ function cleanRoadPoints(points){
   }
   return out;
 }
-function roadPathBlocked(s,points){
+function roadPathBlocked(s,points,endpointBuildings={}){
   if(!points||points.length<2)return true;
-  const lastIndex=points.length-1;
-  const startBuilding=nearestBuilding(s,points[0]);
-  const endBuilding=nearestBuilding(s,points[lastIndex]);
+  const startBuilding=endpointBuildings.start||roadBuildingTarget(s,points[0]);
+  const endBuilding=endpointBuildings.end||roadBuildingTarget(s,points[points.length-1]);
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i];
     for(const building of s.buildings||[]){
-      const clearance=(building.r||25)+9;
-      // Endpoint buildings are intentionally allowed to touch their road.
-      // Do not let the opposite endpoint building block the first/last segment.
-      if((i===1&&building===startBuilding)||(i===lastIndex&&building===endBuilding))continue;
+      const clearance=(building.r||25)+12;
+      // A road is allowed to terminate at its endpoint buildings.
+      if((i===1&&building===startBuilding)||(i===points.length-1&&building===endBuilding))continue;
       if(pointSegmentDistance(building,a,b)<clearance)return true;
     }
   }
@@ -109,7 +116,7 @@ export function roadPreview(s,a,b){
       path,start:sa,end:eb,
       snappedStart:true,snappedEnd:true,
       connectsBuilding:true,connectsRoad:false,
-      blocked:roadPathBlocked(s,path)
+      blocked:roadPathBlocked(s,path,{start:startBuilding,end:endBuilding})
     };
   }
   const candidates=candidateRoadPaths(start,end).map(simplifyRoad);
@@ -126,19 +133,17 @@ export function roadPreview(s,a,b){
     blocked:roadPathBlocked(s,path)
   };
 }
-export function addRoad(s,points){
+export function addRoad(s,points,meta={}){
   const clean=simplifyRoad(points);
   if(clean.length<2)return'invalid';
   const roadLength=length(clean);
   if(!Number.isFinite(roadLength))return'too-short';
-  // A valid connection between two distinct buildings should never be rejected
-  // because the touch point itself was too close to the building edge.
   if(roadLength<1){
-    const first=clean[0],last=clean[clean.length-1];
-    const a=nearestBuilding(s,first),b=nearestBuilding(s,last);
+    const a=meta.startBuilding||roadBuildingTarget(s,clean[0]);
+    const b=meta.endBuilding||roadBuildingTarget(s,clean[clean.length-1]);
     if(!a||!b||a===b)return'too-short';
   }
-  if(roadPathBlocked(s,clean))return'blocked';
+  if(roadPathBlocked(s,clean,{start:meta.startBuilding,end:meta.endBuilding}))return'blocked';
   const cost=Math.max(1,Math.ceil(roadLength/180))*2;
   if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';
   if((s.roads||[]).some(r=>roadDistance(r,clean)<12&&Math.abs(length(r.points)-roadLength)<24))return'duplicate';
