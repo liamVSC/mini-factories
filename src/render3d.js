@@ -32,7 +32,7 @@ function makeRoad(points,bridge){
     }
     for(let i=0;i<clean.length-1;i++){
       const a=i*2,b=a+1,c=a+2,d=a+3;
-      indices.push(a,b,c,b,d,c);
+      indices.push(a,c,b,b,c,d);
     }
     const geometry=new THREE.BufferGeometry();
     geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
