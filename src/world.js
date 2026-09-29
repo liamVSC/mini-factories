@@ -201,13 +201,16 @@ function shortestRoadPath(network,a,b){
 
 export function roadAttachment(s,building){
   if(!building)return null;
+  const limit=Math.max(34,(building.r||25)+12);
   let best=null;
   for(const road of s.roads||[]){
-    const q=projectOnPolyline(road.points,building);
-    if(!q)continue;
-    const limit=Math.max(30,(building.r||25)+11);
-    if(q.distance<=limit&&(!best||q.distance<best.distance)){
-      best={road,point:{x:q.point.x,y:q.point.y},distance:q.distance};
+    if(!road?.points||road.points.length<2)continue;
+    const endpoints=[road.points[0],road.points[road.points.length-1]];
+    for(const point of endpoints){
+      const distance=dist(building,point);
+      if(distance<=limit&&(!best||distance<best.distance)){
+        best={road,point:{x:point.x,y:point.y},distance};
+      }
     }
   }
   return best;
@@ -216,10 +219,19 @@ export function roadAttachment(s,building){
 export function routeOnRoadNetwork(s,a,b){
   const network=roadNetwork(s);
   if(!network.edges.length)return null;
-  const sa=nearestNetworkPoint(network,a),sb=nearestNetworkPoint(network,b);
+
+  const resolveEndpoint=(value)=>{
+    const attachment=roadAttachment(s,value);
+    if(attachment){
+      return {point:attachment.point,distance:0,attachment};
+    }
+    const hit=nearestNetworkPoint(network,value);
+    if(!hit)return null;
+    return hit;
+  };
+
+  const sa=resolveEndpoint(a),sb=resolveEndpoint(b);
   if(!sa||!sb)return null;
-  const maxAttach=42;
-  if(sa.distance>maxAttach||sb.distance>maxAttach)return null;
 
   const start=addNode([],sa.point),end=addNode([],sb.point);
   const adjacency=new Map(network.nodes.map(n=>[n,[...(network.adjacency.get(n)||[])]]));
@@ -228,11 +240,33 @@ export function routeOnRoadNetwork(s,a,b){
   const connect=(virtual,hit)=>{
     const e=hit.edge;
     const da=dist(virtual,e.a),db=dist(virtual,e.b);
-    adjacency.get(virtual).push({node:e.a,d:da,road:e.road},{node:e.b,d:db,road:e.road});
+    adjacency.get(virtual).push(
+      {node:e.a,d:da,road:e.road},
+      {node:e.b,d:db,road:e.road}
+    );
     adjacency.get(e.a).push({node:virtual,d:da,road:e.road});
     adjacency.get(e.b).push({node:virtual,d:db,road:e.road});
   };
-  connect(start,sa);connect(end,sb);
+
+  if(sa.attachment){
+    const node=addNode(network.nodes,sa.point);
+    adjacency.set(start,[...(network.adjacency.get(node)||[])]);
+    for(const nx of network.adjacency.get(node)||[]){
+      adjacency.get(nx.node).push({node:start,d:nx.d,road:nx.road});
+    }
+  }else{
+    connect(start,sa);
+  }
+
+  if(sb.attachment){
+    const node=addNode(network.nodes,sb.point);
+    adjacency.set(end,[...(network.adjacency.get(node)||[])]);
+    for(const nx of network.adjacency.get(node)||[]){
+      adjacency.get(nx.node).push({node:end,d:nx.d,road:nx.road});
+    }
+  }else{
+    connect(end,sb);
+  }
 
   const result=shortestRoadPath({adjacency},start,end);
   if(!result||result.path.length<2)return null;
