@@ -1,5 +1,5 @@
 import {TYPES} from './state.js';
-import {dist,length,pointOnRoute,routeOnRoadNetwork} from './world.js';
+import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment} from './world.js';
 
 export function spec(type){return TYPES.find(t=>t.name===type)||TYPES[0]}
 
@@ -74,17 +74,7 @@ export function route(s,a,b){
   // Trucks may only use routes whose endpoints are physically attached
   // to a real road. Do not allow the old "driveway" behaviour where a truck
   // can leave a building, travel off-road, and then join a road.
-  const endpointAttached=(building)=>{
-    if(!building)return false;
-    const maxDistance=Math.max(2,(building.r||25)+2);
-    return visibleRoads.some(road=>{
-      for(let i=1;i<road.points.length;i++){
-        if(pointSegmentDistance(building,road.points[i-1],road.points[i])<=maxDistance)return true;
-      }
-      return false;
-    });
-  };
-  if(!endpointAttached(a)||!endpointAttached(b))return null;
+  if(!roadAttachment(s,a)||!roadAttachment(s,b))return null;
   for(let i=1;i<r.points.length-1;i++){
     if(!pointNearRoad(r.points[i]))return null;
   }
@@ -162,17 +152,7 @@ function dispatchTruck(s,{route,source,destination,cargo,contractId=0,longDistan
   if(!route||!cargo)return false;
   // Final hard gate: a truck cannot even be spawned unless both buildings
   // have a road physically attached.
-  const attached=(building)=>{
-    if(!building||!s.roads?.length)return false;
-    const maxDistance=Math.max(2,(building.r||25)+2);
-    return s.roads.some(road=>{
-      for(let i=1;i<road.points.length;i++){
-        if(pointSegmentDistance(building,road.points[i-1],road.points[i])<=maxDistance)return true;
-      }
-      return false;
-    });
-  };
-  if(!attached(source)||!attached(destination))return false;
+  if(!roadAttachment(s,source)||!roadAttachment(s,destination))return false;
   if(!route.points.every((p,i)=>i===0||i===route.points.length-1||s.roads.some(road=>{for(let j=1;j<road.points.length;j++)if(pointSegmentDistance(p,road.points[j-1],road.points[j])<=2.5)return true;return false;})))return false;
   s.trucks.push({route:route.points,routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage});
   return true;
