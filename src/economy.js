@@ -142,13 +142,25 @@ export function updateEconomy(s,dt,flash){
     f.dispatchTimer=(f.dispatchTimer||0)+dt;
     if(f.dispatchTimer<Math.max(.65,1.15-f.level*.12))continue;
     const shops=s.buildings.filter(b=>b.kind==='shop'&&b.need===f.type&&b.demand>0);
-    let choice=null,best=Infinity,choiceRoute=null,choiceHub=null;
+    let choice=null,best=Infinity,choiceRoute=null,choiceHub=null,choicePriority=-Infinity;
     for(const shop of shops){
       const hub2=warehouseFor(s,shop);
       const direct=route(s,f,shop);
       const via=hub2&&hub2.inventory?.[f.type]>0?route(s,hub2,shop):null;
       const candidate=via||direct;
-      if(candidate&&candidate.distance<best){best=candidate.distance;choice=shop;choiceRoute=candidate;choiceHub=hub2}
+      if(!candidate)continue;
+
+      // Prioritise real shortages/contracts over ordinary demand.
+      // A factory should not send scarce goods to an arbitrary nearby shop
+      // while another connected shop has an outstanding contract.
+      const contract=shop.contract?.type===f.type?shop.contract:null;
+      const contractNeed=contract?Math.max(0,contract.remaining-(contract.inFlight||0)):0;
+      const shortage=Math.max(0,shop.demand||0);
+      const priority=(contractNeed>0?100000:0)+(contract?.urgent?25000:0)+shortage*100;
+
+      if(priority>choicePriority||(priority===choicePriority&&candidate.distance<best)){
+        choicePriority=priority;best=candidate.distance;choice=shop;choiceRoute=candidate;choiceHub=hub2;
+      }
     }
     const shop=choice;if(!shop){f.dispatchTimer=0;continue;}
     const contract=shop.contract?.type===f.type?shop.contract:null;
