@@ -164,7 +164,7 @@ function dispatchTruck(s,{route,source,destination,cargo,contractId=0,longDistan
   // have a road physically attached.
   const attached=(building)=>{
     if(!building||!s.roads?.length)return false;
-    const maxDistance=Math.max(4,(building.r||25)+4);
+    const maxDistance=Math.max(2,(building.r||25)+2);
     return s.roads.some(road=>{
       for(let i=1;i<road.points.length;i++){
         if(pointSegmentDistance(building,road.points[i-1],road.points[i])<=maxDistance)return true;
