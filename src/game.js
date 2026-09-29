@@ -3,14 +3,14 @@ import {seed,nearestBuilding,nearestRoad,roadPath,roadPreview,addRoad,eraseRoad,
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render} from './render.js';
 
-const GAME_VERSION='1.1.7';
+const GAME_VERSION='1.1.8';
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');let W=0,H=0,dpr=1;let s=load();let drag=null;let roadStart=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
 function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);if(s?.camera)clampCamera()}addEventListener('resize',resize);resize();clampCamera();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
 function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSaveV6',JSON.stringify(serialise(s)))}catch(e){flash('Save failed — storage unavailable')}}
 function flash(text){const el=document.querySelector('#tip');el.textContent=text;clearTimeout(flash.timer);flash.timer=setTimeout(()=>el.textContent='Build roads between factories and shops.',1200)}
 function reset(){localStorage.removeItem('miniFactoriesSaveV6');s=freshState();seed(s);for(const b of s.buildings.filter(b=>b.kind==='shop'))newContract(s,b);document.querySelector('#settingsMenu').style.display='none';document.querySelector('#gameOver').style.display='none';s.paused=false;hidePanel();sync();save();flash('New factory started')}
-function sync(){document.querySelector('#cash').textContent='£'+Math.floor(s.cash);document.querySelector('#orders').textContent=s.orders;document.querySelector('#companyLevel').textContent=s.companyLevel;document.querySelector('#roads').textContent=s.roadBudget;const g=s.goals[s.objective];document.querySelector('#objective').innerHTML=g?`<b>Goal ${s.objective+1}/6</b> • ${g.text} <span>${Math.min(g.target,Math.floor(g.progress(s)))}/${g.target}</span>`:'All objectives complete';const p=document.querySelector('#panel');if(panelMode==='building'&&s.selected&&p.style.display!=='none')showPanel(s.selected);}
+function sync(){document.querySelector('#cash').textContent='£'+Math.floor(s.cash);document.querySelector('#orders').textContent=s.orders;document.querySelector('#companyLevel').textContent=s.companyLevel;const g=s.goals[s.objective];document.querySelector('#objective').innerHTML=g?`<b>Goal ${s.objective+1}/6</b> • ${g.text} <span>${Math.min(g.target,Math.floor(g.progress(s)))}/${g.target}</span>`:'All objectives complete';const p=document.querySelector('#panel');if(panelMode==='building'&&s.selected&&p.style.display!=='none')showPanel(s.selected);}
 function clearDynamicBuildButtons(){
   document.querySelectorAll('#panel button[id^="build"]').forEach(el=>el.style.display='none');
 }
@@ -96,7 +96,7 @@ function showCompany(){
   const items=[
     ['u1','🏭 Production','Factories: '+s.buildings.filter(b=>b.kind==='factory').length],
     ['u2','🏪 Retail','Shops: '+s.buildings.filter(b=>b.kind==='shop').length],
-    ['u3','🚚 Network','Roads: '+s.roads.length+' • Budget: '+s.roadBudget],
+    ['u3','🚚 Network','Roads: '+s.roads.length],
     ['u4','📈 Performance','£'+Math.floor(s.deliveryIncome)+' delivery income • '+s.orders+' deliveries']
   ];
   for(let i=1;i<=4;i++){
@@ -248,7 +248,7 @@ function finish(e){
   if(drag?.armed){
     const p=worldPos(e),preview=roadPreview(s,drag.start,p),path=preview.path;
     if(addRoad(s,path)){flash('Road built');save();roadStart=null}
-    else {const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180)),cashCost=cost*2;flash(s.roadBudget<cost?'Road budget short by '+(cost-s.roadBudget)+' • £'+(cost-s.roadBudget)*2+' bought automatically':'Need £'+cashCost+' cash (you have £'+Math.floor(s.cash)+')')}
+    else {const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180)),cashCost=cost*2;flash('Need £'+cashCost+' cash (you have £'+Math.floor(s.cash)+')')}
   }else if(s.mode==='road'){
     const p=worldPos(e);
     const snapped=nearestRoad(s,p)||nearestBuilding(s,p)||p;
@@ -256,7 +256,7 @@ function finish(e){
     else{
       const preview=roadPreview(s,roadStart,p);
       if(addRoad(s,preview.path)){flash('Road built');save();roadStart=null}
-      else {const path=preview.path;const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180)),cashCost=cost*2;flash(s.roadBudget<cost?'Need '+cost+' road budget (you have '+s.roadBudget+')':'Need £'+cashCost+' cash (you have £'+Math.floor(s.cash)+')')}
+      else {const path=preview.path;const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180)),cashCost=cost*2;flash('Need £'+cashCost+' cash (you have £'+Math.floor(s.cash)+')')}
     }
   }
   drag=null;
