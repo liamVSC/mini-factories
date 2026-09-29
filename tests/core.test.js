@@ -330,3 +330,36 @@ test('repeated road creation and removal leaves the road list bounded',()=>{
   }
   assert.equal(s.roads.length,0);
 });
+
+
+test('economy remains finite during a sustained multi-truck simulation',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},240,0,'shop-1');
+  s.buildings.push(factory,shop);
+  s.roads.push({id:'road-1',points:[{x:0,y:0},{x:240,y:0}],bridge:false,condition:1,age:0});
+  factory.stock=4;
+  for(let i=0;i<80;i++){
+    s.trucks.push({
+      id:'stress-'+i,
+      route:[{x:0,y:0},{x:240,y:0}],
+      routeKey:'stress-route',
+      t:(i%20)/25,
+      speed:.085,
+      value:10,
+      cargo:1,
+      to:shop,
+      source:factory,
+      contractId:0,
+      longDistance:false,
+      wait:0,
+      stage:'delivery'
+    });
+  }
+  for(let i=0;i<120;i++)updateEconomy(s,.05,()=>{});
+  assert.ok(Number.isFinite(s.cash));
+  assert.ok(Number.isFinite(s.congestion));
+  assert.ok(Number.isFinite(s.xp));
+  assert.ok(s.trucks.every(t=>Number.isFinite(t.t)));
+  assert.ok(s.trucks.length<=80);
+});
