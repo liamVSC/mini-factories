@@ -121,14 +121,18 @@ export function updateEconomy(s,dt,flash){
   for(const b of s.buildings){
     if(b.kind==='factory'){
       const f=spec(b.type);
-      b.production+=dt*.52*b.level*f.speed*(1+b.loading*.08);
+      // Production scales with upgrades, but returns stay controlled so
+      // upgrades remain useful without making the economy explode.
+      b.production+=dt*.46*b.level*f.speed*(1+b.loading*.1);
       b.active=Math.min(1,b.active+dt*2.5);
       if(b.production>=1&&b.stock<b.max){
         const n=Math.floor(b.production);b.production-=n;b.stock=Math.min(b.max,b.stock+n);
       }
     }else{
       b.active=Math.max(0,b.active-dt*2.2);
-      b.demand=Math.min(14,b.demand+dt*(.05+s.week*.003)*(1+b.level*.08));
+      // Demand grows gradually with the week, with shop upgrades giving
+      // a modest extra pull rather than an immediate spike.
+      b.demand=Math.min(14,b.demand+dt*(.045+s.week*.0025)*(1+b.level*.06));
       b.satisfaction=Math.max(0,Math.min(100,100-b.demand*4+(b.served||0)*1.5));
       b.sales=(b.sales||0)+dt*(b.served||0)*.2;
       if(!b.contract&&Math.random()<dt*.012)newContract(s,b);
@@ -163,7 +167,12 @@ export function updateEconomy(s,dt,flash){
       f.stock--;shop.demand=Math.max(0,shop.demand-1);
       if(contract)contract.inFlight++;
       const sp=spec(f.type);
-      const value=Math.round(sp.price*sp.value*(1+Math.min(1.2,r.distance/650)*.45)*(1+(f.level-1)*.08+f.loading*.1)*(1+f.logistics*.05));
+      const value=Math.max(1,Math.round(
+        sp.price*sp.value*
+        (1+Math.min(1.2,r.distance/650)*.45)*
+        (1+(f.level-1)*.07+f.loading*.08)*
+        (1+f.logistics*.04)
+      ));
       s.trucks.push({
         route:r.points,t:0,speed:.085*sp.speed*(1+(f.level-1)*.08+f.loading*.04),
         value,to:shop,source:f,contractId:contract?.id||0,longDistance:r.distance>650,wait:0
