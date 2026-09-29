@@ -201,10 +201,10 @@ export function updateEconomy(s,dt,flash){
     const outstanding=contract?.inFlight||0;
     const capacity=3;
     const needed=Math.max(0,(contract?.remaining||capacity)-outstanding);
-    let cargo=0,source=f,routeToUse=choiceRoute,stage='delivery';
+    let cargo=0,source=f,routeToUse=choiceRoute,stage='delivery',fromWarehouse=false;
     if(choiceHub&&choiceHub.inventory?.[f.type]>0&&routeToUse){
       cargo=Math.min(capacity,choiceHub.inventory[f.type],Math.max(1,needed||capacity));
-      if(cargo>0){source=f;stage='delivery'}
+      if(cargo>0){source=f;stage='delivery';fromWarehouse=true}
     }else{
       if(!f.stock)continue;
       const hubForShop=choiceHub||null;
@@ -234,7 +234,7 @@ export function updateEconomy(s,dt,flash){
     const valuePerUnit=Math.max(1,Math.round(valueBase));
     const dispatched=dispatchTruck(s,{route:routeToUse,source:f,destination:shop,cargo,contractId:contract?.id||0,longDistance:routeToUse.distance>650,valuePerUnit,stage:'delivery'});
     if(!dispatched)continue;
-    if(choiceHub&&choiceHub.inventory?.[f.type]>0&&source===f&&routeToUse===choiceRoute){
+    if(fromWarehouse){
       takeFromWarehouse(choiceHub,f.type,cargo);
     }else{
       f.stock=Math.max(0,f.stock-cargo);
