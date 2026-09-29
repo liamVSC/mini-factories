@@ -27,6 +27,9 @@ function showPanel(b){
   clearDynamicBuildButtons();
   clearButtonActions();
   p.style.display='block';
+  p.classList.toggle('shop-panel',b.kind==='shop');
+  p.classList.toggle('factory-panel',b.kind==='factory');
+  p.classList.toggle('warehouse-panel',b.kind==='warehouse');
   document.querySelector('#objective').style.display='none';
   const t=TYPES.find(x=>x.name===b.type);
   document.querySelector('#name').textContent=b.type;
