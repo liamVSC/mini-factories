@@ -18,7 +18,14 @@ export function snapRoadPoint(s,p,max=42){let best=null,bd=max;for(const r of s.
 export function roadPreview(s,a,b){
  const start=snapRoadPoint(s,a)||{x:a.x,y:a.y,distance:Infinity};
  const end=snapRoadPoint(s,b)||{x:b.x,y:b.y,distance:Infinity};
- const path=roadPath(s,start,end);
+
+ // Construction is allowed to create a NEW road. It must not depend on the
+ // existing delivery network being connected already; otherwise there is no
+ // way to build the first road or extend a disconnected network.
+ const path=[
+   {x:start.x,y:start.y},
+   {x:end.x,y:end.y}
+ ];
  return {path,start,end,snappedStart:start.distance<Infinity,snappedEnd:end.distance<Infinity};
 }
 export function snap(s,p){return nearestBuilding(s,p)||nearestRoad(s,p)||p}
