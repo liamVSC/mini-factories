@@ -67,48 +67,100 @@ export function render(ctx,s,W,H){
 }
 
 function drawBuilding(ctx,b,selected){
-  const factory=b.kind==='factory',warehouse=b.kind==='warehouse',w=factory?58:warehouse?68:54,h=factory?52:warehouse?54:48;
+  const factory=b.kind==='factory',warehouse=b.kind==='warehouse',w=factory?72:warehouse?84:64,h=factory?58:warehouse?60:52;
   ctx.save();ctx.translate(b.x,b.y);
-  ctx.fillStyle='rgba(43,54,42,.22)';ctx.beginPath();ctx.ellipse(0,12,w*.72,12,0,0,Math.PI*2);ctx.fill();
 
-  // lot
-  ctx.fillStyle=factory?'#aeb89d':warehouse?'#b8b5a0':'#d7c99f';ctx.fillRect(-w/2-6,-h/2-6,w+12,h+12);
-  ctx.strokeStyle='rgba(70,76,62,.3)';ctx.lineWidth=1;ctx.strokeRect(-w/2-6,-h/2-6,w+12,h+12);
+  // Ground shadow and paved plot.
+  ctx.fillStyle='rgba(32,40,34,.20)';
+  ctx.beginPath();ctx.ellipse(3,18,w*.72,13,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=factory?'#8e9587':warehouse?'#97958b':'#b6aa8c';
+  ctx.fillRect(-w/2-9,-h/2-9,w+18,h+18);
+  ctx.fillStyle='rgba(255,255,255,.22)';ctx.fillRect(-w/2-7,-h/2-7,w+14,3);
 
-  ctx.fillStyle=factory?'#e7e0cb':warehouse?'#ddd7c2':'#f1e6c6';ctx.fillRect(-w/2,-h/2,w,h);
-  ctx.strokeStyle=b.color;ctx.lineWidth=3;ctx.strokeRect(-w/2,-h/2,w,h);
+  // Building shell with a darker foundation and roof.
+  ctx.fillStyle=factory?'#d3d8d0':warehouse?'#c9c8c0':'#ded8c8';
+  ctx.fillRect(-w/2,-h/2,w,h);
+  ctx.fillStyle='rgba(40,48,48,.18)';ctx.fillRect(-w/2,h/2-6,w,6);
+  ctx.strokeStyle='rgba(46,57,56,.45)';ctx.lineWidth=1.5;ctx.strokeRect(-w/2,-h/2,w,h);
+
+  // Roof.
+  ctx.fillStyle=factory?'#59646a':warehouse?'#5d625f':'#6c655c';
+  ctx.beginPath();ctx.moveTo(-w/2-3,-h/2);ctx.lineTo(0,-h/2-13);ctx.lineTo(w/2+3,-h/2);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.16)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(-w*.42,-h/2-2);ctx.lineTo(0,-h/2-10);ctx.lineTo(w*.42,-h/2-2);ctx.stroke();
 
   if(factory){
-    ctx.fillStyle='#66717a';ctx.fillRect(-w*.34,-h*.18,w*.68,h*.48);
-    ctx.fillStyle='#dce8e7';for(let i=-1;i<=1;i++)ctx.fillRect(i*w*.17-5,-h*.11,10,h*.22);
-    ctx.fillStyle='#7b8790';ctx.fillRect(w*.19,-h*.45,9,h*.27);
-    ctx.fillStyle='#9ca8aa';ctx.beginPath();ctx.arc(w*.235,-h*.48,8,0,Math.PI*2);ctx.fill();
-    if(b.active>0){ctx.fillStyle='#f3b33d';ctx.globalAlpha=.8+.2*Math.sin(b.pulse);ctx.beginPath();ctx.arc(w*.29,-h*.37,5+2*Math.sin(b.pulse),0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}
+    // Industrial cladding and windows.
+    ctx.fillStyle='#778187';ctx.fillRect(-w*.38,-h*.13,w*.76,h*.50);
+    for(let i=0;i<4;i++){
+      ctx.fillStyle=i%2?'#b9d0d1':'#8fa8aa';
+      ctx.fillRect(-w*.32+i*w*.21,-h*.04,w*.13,h*.20);
+    }
+    // Roller door.
+    ctx.fillStyle='#4b5559';ctx.fillRect(-w*.18,h*.05,w*.36,h*.30);
+    ctx.strokeStyle='#849095';ctx.lineWidth=1;
+    for(let y=h*.10;y<h*.34;y+=5){ctx.beginPath();ctx.moveTo(-w*.18,y);ctx.lineTo(w*.18,y);ctx.stroke()}
+    // Smokestack and exhaust.
+    ctx.fillStyle='#68737a';ctx.fillRect(w*.22,-h*.62,9,h*.38);
+    ctx.fillStyle='#879197';ctx.fillRect(w*.18,-h*.67,17,5);
+    ctx.fillStyle='rgba(224,231,225,.28)';
+    ctx.beginPath();ctx.arc(w*.265,-h*.75,6+Math.sin(b.pulse||0)*1.5,0,Math.PI*2);ctx.fill();
+    // Active machinery glow.
+    if(b.active>0){
+      ctx.fillStyle='#f2a93b';ctx.globalAlpha=.75+.25*Math.sin(b.pulse||0);
+      ctx.fillRect(w*.31,-h*.20,7,7);ctx.globalAlpha=1;
+    }
+    // Exterior tanks.
+    ctx.fillStyle='#9ba5a6';ctx.fillRect(-w*.43,-h*.10,7,h*.40);
+    ctx.fillStyle='#c4ccca';ctx.beginPath();ctx.arc(-w*.395,-h*.10,3.5,0,Math.PI*2);ctx.fill();
   }else if(warehouse){
-    ctx.fillStyle='#b9b09b';ctx.fillRect(-w*.34,-h*.18,w*.68,h*.5);
-    ctx.fillStyle=b.color;ctx.fillRect(-w*.18,-h*.02,w*.36,h*.11);
-    ctx.fillStyle='#f5ead0';ctx.fillRect(-w*.08,-h*.30,w*.16,h*.2);
-    ctx.fillStyle='#7a766b';ctx.fillRect(-w*.28,h*.12,w*.16,h*.2);ctx.fillRect(w*.12,h*.12,w*.16,h*.2);
+    // Large logistics warehouse: loading bays, dock roof and parked pallets.
+    ctx.fillStyle='#a9adb0';ctx.fillRect(-w*.42,-h*.16,w*.84,h*.53);
+    ctx.fillStyle='#747d80';ctx.fillRect(-w*.45,-h*.23,w*.90,6);
+    for(let i=-1;i<=1;i++){
+      ctx.fillStyle='#495358';ctx.fillRect(i*w*.20-9,h*.03,18,h*.27);
+      ctx.fillStyle='#aab5b6';ctx.fillRect(i*w*.20-6,h*.08,12,h*.04);
+    }
+    ctx.fillStyle='#d9c27a';ctx.fillRect(-w*.30,-h*.34,w*.18,6);ctx.fillRect(w*.12,-h*.34,w*.18,6);
+    ctx.fillStyle='#7a7d78';ctx.fillRect(-w*.43,h*.29,w*.18,5);ctx.fillRect(w*.25,h*.29,w*.18,5);
   }else{
-    ctx.fillStyle='#d4a45c';ctx.fillRect(-w*.34,-h*.18,w*.68,h*.5);
-    ctx.fillStyle='#fff4d6';ctx.fillRect(-w*.23,-h*.08,w*.46,h*.25);
-    ctx.fillStyle=b.color;ctx.fillRect(-w*.37,-h*.33,w*.74,7);
-    ctx.fillStyle='#7e6b57';ctx.fillRect(-w*.08,h*.12,w*.16,h*.2);
-    if(b.contract){ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,11+2*Math.sin(b.pulse),0,Math.PI*2);ctx.stroke()}
+    // Retail storefront with awning, glass frontage and side entrance.
+    ctx.fillStyle='#b78350';ctx.fillRect(-w*.43,-h*.05,w*.86,h*.43);
+    ctx.fillStyle='#dbe7e2';ctx.fillRect(-w*.34,-h*.01,w*.48,h*.28);
+    ctx.fillStyle='rgba(70,84,86,.28)';ctx.fillRect(-w*.30,h*.03,w*.19,h*.20);
+    ctx.fillStyle='rgba(70,84,86,.45)';ctx.fillRect(-w*.08,h*.03,w*.18,h*.20);
+    ctx.fillStyle=b.color;ctx.fillRect(-w*.43,-h*.20,w*.86,9);
+    // Awning stripes.
+    for(let i=0;i<6;i++){ctx.fillStyle=i%2?'rgba(255,255,255,.68)':'rgba(255,255,255,.22)';ctx.fillRect(-w*.43+i*w*.143,-h*.20,w*.071,9)}
+    ctx.fillStyle='#6e6255';ctx.fillRect(w*.27,h*.01,8,h*.30);
+    ctx.fillStyle='#f2df9a';ctx.fillRect(w*.31,h*.08,2,4);
+    // Rooftop HVAC.
+    ctx.fillStyle='#8c9694';ctx.fillRect(w*.20,-h*.50,15,10);
+    ctx.fillStyle='#c3cbca';ctx.fillRect(w*.23,-h*.55,9,5);
+    if(b.contract){
+      ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,13+2*Math.sin(b.pulse||0),0,Math.PI*2);ctx.stroke();
+    }
   }
 
-  if(selected){ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.setLineDash([6,4]);ctx.beginPath();ctx.arc(0,0,Math.max(w,h)/2+12,0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}
+  // Parking/loading marks make the lot read as a developed site.
+  ctx.strokeStyle='rgba(238,226,184,.58)';ctx.lineWidth=1;
+  for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(i*14,h/2+1);ctx.lineTo(i*14+7,h/2+9);ctx.stroke()}
 
-  ctx.fillStyle='rgba(35,45,43,.78)';ctx.fillRect(-30,-h/2-12,60,6);
+  if(selected){
+    ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.setLineDash([6,4]);
+    ctx.beginPath();ctx.arc(0,0,Math.max(w,h)/2+15,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+  }
+
+  // Live stock/demand bar and compact label.
+  ctx.fillStyle='rgba(35,45,43,.82)';ctx.fillRect(-34,-h/2-22,68,6);
   const ratio=factory?b.stock/Math.max(1,b.max):warehouse?b.storage/Math.max(1,b.max):Math.min(1,b.demand/8);
-  ctx.fillStyle=b.color;ctx.fillRect(-30,-h/2-12,60*Math.max(0,Math.min(1,ratio)),6);
-  ctx.fillStyle='#29352f';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText(b.type,0,h/2+16);
-  if(factory){ctx.font='10px system-ui';ctx.fillStyle='#59665d';ctx.fillText('Lv '+b.level,0,h/2+29)}
-  else if(warehouse){ctx.font='10px system-ui';ctx.fillStyle='#59665d';ctx.fillText((b.storage||0)+' / '+b.max+' stored',0,h/2+29)}
-  else if(b.contract){ctx.font='10px system-ui';ctx.fillStyle='#8b6b24';ctx.fillText('JOB '+b.contract.remaining+'/'+b.contract.qty,0,h/2+29)}
+  ctx.fillStyle=b.color;ctx.fillRect(-34,-h/2-22,68*Math.max(0,Math.min(1,ratio)),6);
+  ctx.fillStyle='#29352f';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText(b.type,0,h/2+17);
+  if(factory){ctx.font='10px system-ui';ctx.fillStyle='#59665d';ctx.fillText('Lv '+b.level,0,h/2+30)}
+  else if(warehouse){ctx.font='10px system-ui';ctx.fillStyle='#59665d';ctx.fillText((b.storage||0)+' / '+b.max+' stored',0,h/2+30)}
+  else if(b.contract){ctx.font='10px system-ui';ctx.fillStyle='#8b6b24';ctx.fillText('JOB '+b.contract.remaining+'/'+b.contract.qty,0,h/2+30)}
   ctx.restore();
 }
-
 function road(ctx,pts,color,width){
   ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.stroke();
 }
