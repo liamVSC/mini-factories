@@ -221,7 +221,7 @@ export function updateEconomy(s,dt,flash){
     // A truck is only allowed to move while every route segment is backed by
     // a real road and both endpoints remain physically attached to roads.
     const routeIsRoadBound=(truck)=>{
-      if(!truck?.route?.points||truck.route.points.length<2||!s.roads?.length)return false;
+      if(!Array.isArray(truck?.route)||truck.route.length<2||!s.roads?.length)return false;
       const near=(p,max=30)=>{
         for(const r of s.roads){
           for(let i=1;i<r.points.length;i++){
@@ -234,8 +234,8 @@ export function updateEconomy(s,dt,flash){
         }
         return false;
       };
-      if(!near(truck.route.points[0])||!near(truck.route.points.at(-1)))return false;
-      for(let i=1;i<truck.route.points.length-1;i++)if(!near(truck.route.points[i],4))return false;
+      if(!near(truck.route[0])||!near(truck.route.at(-1)))return false;
+      for(let i=1;i<truck.route.length-1;i++)if(!near(truck.route[i],4))return false;
       return true;
     };
     if(!routeIsRoadBound(t)){
