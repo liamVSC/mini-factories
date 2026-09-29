@@ -1,7 +1,7 @@
 import {freshState,hydrate,serialise,TYPES} from './state.js';
 import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadPreview,addRoad,eraseRoad,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
-import {render,setPreview,resizeRenderer} from './render.js';
+import {render,setPreview,resizeRenderer,controlCamera,cameraPointFromScreen} from './render.js';
 
 const GAME_VERSION='1.3';
 const CHANGELOG=[
@@ -190,15 +190,17 @@ function clampCamera(){
     s.camera.y=Math.max(minCam,Math.min(maxCam,s.camera.y));
   }
 }
-function panBy(dx,dy){s.camera.x+=dx;s.camera.y+=dy;clampCamera()}
+function panBy(dx,dy){s.camera.x+=dx;s.camera.y+=dy;clampCamera();controlCamera(-dx/s.camera.zoom,-dy/s.camera.zoom)}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 function toggleMode(m){s.mode=s.mode===m?'select':m;drag=null;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase')}
 function setZoomAt(screen,z){
   const before=worldFromScreen(screen);
-  s.camera.zoom=Math.max(.55,Math.min(2,z));
+  s.camera.zoom=Math.max(.55,Math.min(2.4,z));
   s.camera.x=screen.x-(before.x-W/2)*s.camera.zoom;
   s.camera.y=screen.y-(before.y-H/2)*s.camera.zoom;
   clampCamera();
+  const after=cameraPointFromScreen(screen.x,screen.y,W,H);
+  controlCamera(before.x-after.x,before.y-after.z);
 }
 canvas.addEventListener('pointerdown',e=>{
   try{canvas.setPointerCapture?.(e.pointerId)}catch{}
