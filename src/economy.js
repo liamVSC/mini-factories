@@ -49,7 +49,35 @@ function oriented(points,from,to){
   return out;
 }
 
-export function route(s,a,b){return routeOnRoadNetwork(s,a,b)}
+export function route(s,a,b){
+  const r=routeOnRoadNetwork(s,a,b);
+  if(!r||!Array.isArray(r.points)||r.points.length<2)return null;
+
+  // A route is valid only when every network segment used by the truck
+  // corresponds to an actual saved road segment. This prevents stale/virtual
+  // routing points from becoming invisible roads.
+  const visibleRoads=s.roads.filter(x=>x&&Array.isArray(x.points)&&x.points.length>=2);
+  if(!visibleRoads.length)return null;
+  const pointNearRoad=(p)=>{
+    for(const road of visibleRoads){
+      for(let i=1;i<road.points.length;i++){
+        const a=road.points[i-1],b=road.points[i];
+        const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;
+        if(!l)continue;
+        const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));
+        const q={x:a.x+dx*t,y:a.y+dy*t};
+        if(dist(p,q)<=2.5)return true;
+      }
+    }
+    return false;
+  };
+  // Ignore the two building access points; every intermediate route point
+  // must sit on an actual rendered road.
+  for(let i=1;i<r.points.length-1;i++){
+    if(!pointNearRoad(r.points[i]))return null;
+  }
+  return r;
+}
 
 export function newContract(s,shop){
   if(shop.contract)return;
