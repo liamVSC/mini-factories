@@ -110,14 +110,16 @@ export function updateEconomy(s,dt,flash){
   for(const b of s.buildings){
     if(b.kind==='factory'){
       const f=spec(b.type);
-      b.production+=dt*.52*b.level*f.speed;
+      b.production+=dt*.52*b.level*f.speed*(1+b.loading*.08);
       b.active=Math.min(1,b.active+dt*2.5);
       if(b.production>=1&&b.stock<b.max){
         const n=Math.floor(b.production);b.production-=n;b.stock=Math.min(b.max,b.stock+n);
       }
     }else{
       b.active=Math.max(0,b.active-dt*2.2);
-      b.demand=Math.min(14,b.demand+dt*(.05+s.week*.003));
+      b.demand=Math.min(14,b.demand+dt*(.05+s.week*.003)*(1+b.level*.08));
+      b.satisfaction=Math.max(0,Math.min(100,100-b.demand*4+(b.served||0)*1.5));
+      b.sales=(b.sales||0)+dt*(b.served||0)*.2;
       if(!b.contract&&Math.random()<dt*.012)newContract(s,b);
       if(b.contract){
         b.contract.expires-=dt;
@@ -167,7 +169,7 @@ export function updateEconomy(s,dt,flash){
 
     t.t+=dt*t.speed;
     if(t.t>=1){
-      s.cash+=t.value;s.deliveryIncome+=t.value;s.orders++;
+      s.cash+=t.value;s.deliveryIncome+=t.value;s.orders++;t.to.served=(t.to.served||0)+1;t.to.satisfaction=Math.min(100,(t.to.satisfaction||50)+4);
       s.deliveredBy[t.source.type]=(s.deliveredBy[t.source.type]||0)+1;t.to.served++;
 
       if(t.contractId&&t.to.contract?.id===t.contractId){
