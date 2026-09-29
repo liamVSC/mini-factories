@@ -257,6 +257,12 @@ function finish(e){
 }
 canvas.addEventListener('pointerup',finish);
 canvas.addEventListener('pointercancel',e=>{
+  // Treat a cancelled single-pointer road gesture like pointerup so a
+  // browser gesture interruption cannot silently discard a valid road.
+  if(drag?.road&&!pinch){
+    finish(e);
+    return;
+  }
   pointers.delete(e.pointerId);
   try{canvas.releasePointerCapture?.(e.pointerId)}catch{}
   pinch=null;pinchCenter=null;drag=null;
