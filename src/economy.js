@@ -1,5 +1,5 @@
 import {TYPES} from './state.js';
-import {dist,length,pointOnRoute,spawn} from './world.js';
+import {dist,length,pointOnRoute} from './world.js';
 
 export function spec(type){return TYPES.find(t=>t.name===type)||TYPES[0]}
 
@@ -129,25 +129,6 @@ function takeFromWarehouse(warehouse,type){
 }
 
 export function updateEconomy(s,dt,flash){
-  s.nextBuilding-=dt;
-
-  if(s.nextBuilding<=0){
-    s.nextBuilding=Math.max(12,22-s.companyLevel*.8);
-    if(s.buildings.length<10+(s.research?.industry||0)*2){
-      const shops=s.buildings.filter(b=>b.kind==='shop');
-      const fs=s.buildings.filter(b=>b.kind==='factory');
-      const missingShop=fs.find(f=>!shops.some(sh=>sh.need===f.type));
-      const missingFactory=shops.find(sh=>!fs.some(f=>f.type===sh.need));
-      if(missingShop)spawn(s,'shop',missingShop.type);
-      else if(missingFactory)spawn(s,'factory',missingFactory.need);
-      else{
-        const pool=Math.random()<.5?shops:fs;
-        const target=pool[Math.floor(Math.random()*pool.length)];
-        if(target)spawn(s,target.kind==='shop'?'factory':'shop',target.kind==='shop'?target.need:target.type);
-      }
-    }
-  }
-
   for(const b of s.buildings){
     if(b.kind==='factory'){
       const f=spec(b.type);
