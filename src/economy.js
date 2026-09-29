@@ -3,6 +3,7 @@ import {dist,length,pointOnRoute} from './world.js';
 
 export function spec(type){return TYPES.find(t=>t.name===type)||TYPES[0]}
 
+function nearestPointOnRoad(road,p){let best=null,bd=Infinity;for(let i=1;i<road.points.length;i++){const a=road.points[i-1],b=road.points[i],q={x:a.x,y:a.y};const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)continue;const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));q.x=a.x+dx*t;q.y=a.y+dy*t;const d=dist(p,q);if(d<bd){bd=d;best=q}}return best}
 function pointSegmentDistance(p,a,b){
   const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
   if(!len2)return dist(p,a);
@@ -56,8 +57,8 @@ export function route(s,a,b){
   if(!start.length||!end.length)return null;
 
   const endSet=new Set(end);
-  const queue=start.map(r=>({road:r,d:dist(a,r.points[0])}));
-  const best=new Map(start.map(r=>[r,dist(a,r.points[0])]));
+  const queue=start.map(r=>({road:r,d:dist(a,nearestPointOnRoad(r,a))}));
+  const best=new Map(start.map(r=>[r,dist(a,nearestPointOnRoad(r,a))]));
   const prev=new Map();
 
   while(queue.length){
