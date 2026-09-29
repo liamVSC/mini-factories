@@ -229,7 +229,7 @@ export function updateEconomy(s,dt,flash){
     if(cargo<=0||!routeToUse)continue;
     if(contract)contract.inFlight+=cargo;
     const sp=spec(f.type);
-    const valuePerUnit=Math.max(1,Math.round(sp.price*sp.value*(1+Math.min(1.2,routeToUse.distance/650)*.45)*(1+(f.level-1)*.07+f.loading*.08)*(1+(f.logistics||0)*.04+(s.research?.logistics||0)*.04)));
+    const valueBase=sp.price*sp.value*(1+Math.min(1.2,routeToUse.distance/650)*.45)*(1+(f.level-1)*.07+f.loading*.08)*(1+(f.logistics||0)*.04+(s.research?.logistics||0)*.04);if(!Number.isFinite(valueBase))continue;const valuePerUnit=Math.max(1,Math.round(valueBase));
     const dispatched=dispatchTruck(s,{route:routeToUse,source:f,destination:shop,cargo,contractId:contract?.id||0,longDistance:routeToUse.distance>650,valuePerUnit,stage:'delivery'});
   if(dispatched){f.dispatchTimer=0}else{if(contract)contract.inFlight=Math.max(0,(contract.inFlight||0)-cargo);}
   }
