@@ -3,6 +3,7 @@ import {seed,nearestBuilding,nearestRoad,roadPath,roadPreview,addRoad,eraseRoad,
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render} from './render.js';
 
+const GAME_VERSION='1.0.0';
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');let W=0,H=0,dpr=1;let s=load();let drag=null;let roadStart=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
 function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);if(s?.camera)clampCamera()}addEventListener('resize',resize);resize();clampCamera();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
@@ -256,7 +257,8 @@ function finish(e){
   drag=null;
 }
 canvas.addEventListener('pointerup',finish);canvas.addEventListener('pointercancel',finish);
-for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['pause',()=>{s.paused=!s.paused;document.querySelector('#pauseMenu').style.display=s.paused?'grid':'none';document.querySelector('#pause').textContent=s.paused?'▶ Resume':'Ⅱ Pause'}],['resume',()=>{s.paused=false;document.querySelector('#pauseMenu').style.display='none';document.querySelector('#pause').textContent='Ⅱ Pause'}],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
+document.querySelector('#gameVersion').textContent='v'+GAME_VERSION;
+for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['settings',()=>{document.querySelector('#settingsMenu').style.display='grid';s.paused=true}],['settingsClose',()=>{document.querySelector('#settingsMenu').style.display='none';s.paused=false}],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['pause',()=>{s.paused=!s.paused;document.querySelector('#pauseMenu').style.display=s.paused?'grid':'none';document.querySelector('#pause').textContent=s.paused?'▶ Resume':'Ⅱ Pause'}],['resume',()=>{s.paused=false;document.querySelector('#pauseMenu').style.display='none';document.querySelector('#pause').textContent='Ⅱ Pause'}],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
 for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
 document.querySelector('#shop').onclick=null
 let uiTimer=0;
