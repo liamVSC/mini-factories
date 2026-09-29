@@ -104,13 +104,93 @@ function showResearch(){
 function hidePanel(){panelMode='none';s.selected=null;s.buildMode=null;if(s.mode==='build')s.mode='select';document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
 function worldPos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left-s.camera.x)/s.camera.zoom+W/2,y:(e.clientY-r.top-s.camera.y)/s.camera.zoom+H/2}}
 function worldFromScreen(p){return{x:(p.x-s.camera.x)/s.camera.zoom+W/2,y:(p.y-s.camera.y)/s.camera.zoom+H/2}}
-function clampCamera(){const margin=180;const worldW=W/s.camera.zoom,worldH=H/s.camera.zoom;const minX=W/2-(worldW-margin),maxX=W/2+(worldW-margin),minY=H/2-(worldH-margin),maxY=H/2+(worldH-margin);s.camera.x=Math.max(Math.min(s.camera.x,maxX),minX);s.camera.y=Math.max(Math.min(s.camera.y,maxY),minY)}
+function clampCamera(){
+  const margin=180;
+  const worldW=W/s.camera.zoom,worldH=H/s.camera.zoom;
+  const minX=W/2-(worldW-margin),maxX=W/2+(worldW-margin);
+  const minY=H/2-(worldH-margin),maxY=H/2+(worldH-margin);
+  s.camera.x=Math.max(Math.min(s.camera.x,maxX),minX);
+  s.camera.y=Math.max(Math.min(s.camera.y,maxY),minY);
+}
 function panBy(dx,dy){s.camera.x+=dx;s.camera.y+=dy;clampCamera()}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 function toggleMode(m){s.mode=s.mode===m?'select':m;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase')}
-canvas.addEventListener('pointerdown',e=>{try{canvas.setPointerCapture?.(e.pointerId)}catch{}pointers.set(e.pointerId,screenPos(e));if(pointers.size===2){const a=[...pointers.values()][0],b=[...pointers.values()][1];pinch={d:Math.hypot(b.x-a.x,b.y-a.y),z:s.camera.zoom,cx:s.camera.x,cy:s.camera.y};pinchCenter={x:(a.x+b.x)/2,y:(a.y+b.y)/2};drag=null;return}const p=worldPos(e);if(s.mode==='build'){if(s.buildMode&&placeBuilding(s,s.buildMode,p.x,p.y)){s.buildMode=null;s.mode='select';save();sync();flash('Building constructed');}else flash('Too close to another building or river');return}if(s.mode==='erase'){eraseRoad(s,p);save();return}if(s.mode==='select'){s.selected=nearestBuilding(s,p);if(s.selected)showPanel(s.selected);else hidePanel();if(!s.selected)drag={pan:true,last:screenPos(e)};return}const start=nearestRoad(s,p)||nearestBuilding(s,p)||p;drag={start,building:nearestBuilding(s,start),armed:false};canvas.setPointerCapture?.(e.pointerId)});
-canvas.addEventListener('pointermove',e=>{if(pointers.has(e.pointerId))pointers.set(e.pointerId,screenPos(e));if(pinch&&pointers.size>=2){const a=[...pointers.values()][0],b=[...pointers.values()][1],d=Math.max(30,Math.hypot(b.x-a.x,b.y-a.y)),center={x:(a.x+b.x)/2,y:(a.y+b.y)/2};const z=Math.max(.55,Math.min(2,pinch.z*d/pinch.d));const anchor=worldFromScreen(pinchCenter);s.camera.zoom=z;const anchored=worldFromScreen(pinchCenter);s.camera.x+=(anchored.x-anchor.x)*s.camera.zoom;s.camera.y+=(anchored.y-anchor.y)*s.camera.zoom;panBy(center.x-pinchCenter.x,center.y-pinchCenter.y);pinchCenter=center;return}if(drag?.pan&&s.mode==='select'){const q=screenPos(e);panBy(q.x-drag.last.x,q.y-drag.last.y);drag.last=q;return}if(!drag||s.mode!=='road')return;const p=worldPos(e);if(dist(drag.start,p)>8){drag.armed=true;drag.preview=roadPath(s,drag.start,p)}});
-function finish(e){pointers.delete(e.pointerId);try{canvas.releasePointerCapture?.(e.pointerId)}catch{}if(pinch&&pointers.size<2){pinch=null;pinchCenter=null;drag=null;return}if(drag?.armed){const p=worldPos(e),path=roadPath(s,drag.start,p);if(addRoad(s,path)){flash('Road built');save()}else flash('Not enough road budget or cash')}drag=null}
+function setZoomAt(screen,z){
+  const before=worldFromScreen(screen);
+  s.camera.zoom=Math.max(.55,Math.min(2,z));
+  s.camera.x=screen.x-(before.x-W/2)*s.camera.zoom;
+  s.camera.y=screen.y-(before.y-H/2)*s.camera.zoom;
+  clampCamera();
+}
+canvas.addEventListener('pointerdown',e=>{
+  try{canvas.setPointerCapture?.(e.pointerId)}catch{}
+  const sp=screenPos(e);
+  pointers.set(e.pointerId,sp);
+  if(pointers.size===2){
+    const [a,b]=[...pointers.values()];
+    pinch={d:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),z:s.camera.zoom};
+    pinchCenter={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    drag=null;
+    return;
+  }
+  const p=worldPos(e);
+  if(s.mode==='build'){
+    if(s.buildMode&&placeBuilding(s,s.buildMode,p.x,p.y)){s.buildMode=null;s.mode='select';save();sync();flash('Building constructed')}
+    else flash('Too close to another building or river');
+    return;
+  }
+  if(s.mode==='erase'){eraseRoad(s,p);save();return}
+  if(s.mode==='select'){
+    const hit=nearestBuilding(s,p);
+    drag={pan:true,last:sp,start:sp,moved:false,hit};
+    return;
+  }
+  const start=nearestRoad(s,p)||nearestBuilding(s,p)||p;
+  drag={start,building:nearestBuilding(s,start),armed:false};
+});
+canvas.addEventListener('pointermove',e=>{
+  const sp=screenPos(e);
+  if(pointers.has(e.pointerId))pointers.set(e.pointerId,sp);
+  if(pinch&&pointers.size>=2){
+    const [a,b]=[...pointers.values()];
+    const center={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    const d=Math.max(30,Math.hypot(b.x-a.x,b.y-a.y));
+    const ratio=d/pinch.d;
+    setZoomAt(pinchCenter,pinch.z*ratio);
+    panBy(center.x-pinchCenter.x,center.y-pinchCenter.y);
+    pinch={d,z:s.camera.zoom};
+    pinchCenter=center;
+    return;
+  }
+  if(drag?.pan&&s.mode==='select'){
+    const dx=sp.x-drag.last.x,dy=sp.y-drag.last.y;
+    if(Math.hypot(sp.x-drag.start.x,sp.y-drag.start.y)>6)drag.moved=true;
+    if(drag.moved)panBy(dx,dy);
+    drag.last=sp;
+    return;
+  }
+  if(!drag||s.mode!=='road')return;
+  const p=worldPos(e);
+  if(dist(drag.start,p)>8){drag.armed=true;drag.preview=roadPath(s,drag.start,p)}
+});
+function finish(e){
+  const sp=screenPos(e);
+  pointers.delete(e.pointerId);
+  try{canvas.releasePointerCapture?.(e.pointerId)}catch{}
+  if(pinch&&pointers.size<2){pinch=null;pinchCenter=null;drag=null;return}
+  if(drag?.pan&&s.mode==='select'){
+    if(!drag.moved){
+      if(drag.hit)showPanel(drag.hit);else hidePanel();
+    }
+    drag=null;
+    return;
+  }
+  if(drag?.armed){
+    const p=worldPos(e),path=roadPath(s,drag.start,p);
+    if(addRoad(s,path)){flash('Road built');save()}else flash('Not enough road budget or cash');
+  }
+  drag=null;
+}
 canvas.addEventListener('pointerup',finish);canvas.addEventListener('pointercancel',finish);
 for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['pause',()=>{s.paused=!s.paused;document.querySelector('#pauseMenu').style.display=s.paused?'grid':'none';document.querySelector('#pause').textContent=s.paused?'▶ Resume':'Ⅱ Pause'}],['resume',()=>{s.paused=false;document.querySelector('#pauseMenu').style.display='none';document.querySelector('#pause').textContent='Ⅱ Pause'}],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
 for(let i=1;i<=4;i++)document.querySelector('#u'+i).addEventListener('click',()=>{if(s.selected&&upgrade(s,s.selected,i)){save();sync();showPanel(s.selected)}});document.querySelector('#shop').addEventListener('click',()=>{if(s.selected&&upgrade(s,s.selected,1)){save();sync();showPanel(s.selected)}});
