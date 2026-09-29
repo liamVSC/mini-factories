@@ -13,13 +13,30 @@ function touches(r,b){
   for(let i=1;i<r.points.length;i++)if(pointSegmentDistance(b,r.points[i-1],r.points[i])<b.r+34)return true;
   return false;
 }
+function segmentDistance(a,b,c,d){
+  const cross=(u,v)=>u.x*v.y-u.y*v.x;
+  const ab={x:b.x-a.x,y:b.y-a.y};
+  const cd={x:d.x-c.x,y:d.y-c.y};
+  const ac={x:c.x-a.x,y:c.y-a.y};
+  const den=cross(ab,cd);
+  if(Math.abs(den)>1e-9){
+    const t=cross(ac,cd)/den;
+    const u=cross(ac,ab)/den;
+    if(t>=0&&t<=1&&u>=0&&u<=1)return 0;
+  }
+  return Math.min(
+    pointSegmentDistance(a,c,d),
+    pointSegmentDistance(b,c,d),
+    pointSegmentDistance(c,a,b),
+    pointSegmentDistance(d,a,b)
+  );
+}
 function roadDistance(a,b){
   let best=Infinity;
-  for(let i=1;i<a.points.length;i++)for(let j=1;j<b.points.length;j++){
-    best=Math.min(best,pointSegmentDistance(a.points[i-1],b.points[j-1],b.points[j]));
-    best=Math.min(best,pointSegmentDistance(a.points[i],b.points[j-1],b.points[j]));
-    best=Math.min(best,pointSegmentDistance(b.points[j-1],a.points[i-1],a.points[i]));
-    best=Math.min(best,pointSegmentDistance(b.points[j],a.points[i-1],a.points[i]));
+  for(let i=1;i<a.points.length;i++){
+    for(let j=1;j<b.points.length;j++){
+      best=Math.min(best,segmentDistance(a.points[i-1],a.points[i],b.points[j-1],b.points[j]));
+    }
   }
   return best;
 }
