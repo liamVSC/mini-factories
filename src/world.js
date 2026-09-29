@@ -5,50 +5,32 @@ export const riverY=x=>420+Math.sin(x*.002)*35;
 export function district(x,y){if(Math.abs(y-riverY(x))<170)return'Riverside';if(x<0&&y<180)return'Industrial';if(x>0&&y>0)return'Market Quarter';return'West End'}
 export function spawn(s,kind,forced){
   const pool=TYPES.filter(t=>t.kind===kind&&(!forced||t.name===forced));
-  const type=pool[0];
+  const type=pool[Math.floor(Math.random()*pool.length)];
   if(!type)return null;
 
-  // Keep the economy readable: each factory is placed near its matching shop
-  // instead of dropping unrelated buildings at arbitrary map positions.
-  const pairs=[
-    {factory:'Steel',shop:'Builder',fx:-300,fy:-190,sx:-100,sy:-190},
-    {factory:'Food',shop:'Market',fx:260,fy:-190,sx:460,sy:-190},
-    {factory:'Parts',shop:'Garage',fx:-300,fy:90,sx:-100,sy:90}
-  ];
+  // Buildings should feel organically/randomly placed, while still respecting
+  // spacing and the river so the map remains playable.
+  let x=0,y=0,ok=false;
+  const count=s.buildings.length;
+  const minRadius=count<6?170:280;
+  const maxRadius=count<6?430:Math.min(760,430+s.week*22);
 
-  if(s.buildings.length<6){
-    const pair=pairs.find(p=>p[kind==='factory'?'factory':'shop']===type.name);
-    if(pair){
-      const x=kind==='factory'?pair.fx:pair.sx;
-      const y=kind==='factory'?pair.fy:pair.sy;
-      const b=makeBuilding(type,x,y,crypto.randomUUID());
-      b.district=district(x,y);
-      s.buildings.push(b);
-      return b;
-    }
+  for(let n=0;n<300&&!ok;n++){
+    const angle=Math.random()*Math.PI*2;
+    const radius=minRadius+Math.random()*(maxRadius-minRadius);
+    x=Math.cos(angle)*radius+(Math.random()-.5)*90;
+    y=Math.sin(angle)*radius+(Math.random()-.5)*90;
+
+    // Keep buildings out of the river itself, but allow them on either side.
+    const river=riverY(x);
+    if(Math.abs(y-river)<105)y += y<river ? -120 : 120;
+
+    ok=s.buildings.every(b=>dist(b,{x,y})>145);
   }
 
-  // New growth attaches to the existing matching production chain.
-  const anchor=s.buildings.find(b=>b.type===(kind==='factory'?type.need:type.name)) ||
-               s.buildings.find(b=>b.kind!==(kind==='factory'?'factory':'shop'));
-  if(!anchor)return null;
-
-  const candidates=[
-    {x:anchor.x+200,y:anchor.y},
-    {x:anchor.x-200,y:anchor.y},
-    {x:anchor.x,y:anchor.y+180},
-    {x:anchor.x,y:anchor.y-180},
-    {x:anchor.x+150,y:anchor.y+150},
-    {x:anchor.x-150,y:anchor.y-150}
-  ];
-
-  const spot=candidates
-    .filter(p=>Math.abs(p.y-riverY(p.x))>=105)
-    .find(p=>s.buildings.every(b=>dist(b,p)>145));
-
-  if(!spot)return null;
-  const b=makeBuilding(type,spot.x,spot.y,crypto.randomUUID());
-  b.district=district(spot.x,spot.y);
+  if(!ok)return null;
+  const b=makeBuilding(type,x,y,crypto.randomUUID());
+  b.district=district(x,y);
   s.buildings.push(b);
   return b;
 }
