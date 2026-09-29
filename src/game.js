@@ -1,5 +1,5 @@
 import {freshState,hydrate,serialise,TYPES} from './state.js';
-import {seed,nearestBuilding,nearestRoad,roadPreview,addRoad,eraseRoad,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
+import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadPreview,addRoad,eraseRoad,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render} from './render.js';
 
@@ -196,8 +196,8 @@ canvas.addEventListener('pointerdown',e=>{
     return;
   }
   if(s.mode==='road'){
-    const target=nearestRoad(s,p)||nearestBuilding(s,p)||p;
-    drag={road:true,start:target,preview:null,moved:false,last:sp};
+    const target=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
+    drag={road:true,start:target,preview:null,moved:false,last:sp,startedFromTap:false};
     return;
   }
 });
@@ -224,9 +224,9 @@ canvas.addEventListener('pointermove',e=>{
   }
   if(!drag?.road||s.mode!=='road')return;
   const p=worldPos(e);
-  if(Math.hypot(sp.x-drag.last.x,sp.y-drag.last.y)>2)drag.moved=true;
+  if(Math.hypot(sp.x-drag.start.x,sp.y-drag.start.y)>8)drag.moved=true;
   if(drag.moved){
-    const endTarget=nearestRoad(s,p)||nearestBuilding(s,p)||p;
+    const endTarget=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
     const preview=roadPreview(s,roadStart||drag.start,endTarget);
     drag.preview=preview.path;
     drag.previewStart=preview.start;
@@ -249,20 +249,30 @@ function finish(e){
   if(drag?.road&&s.mode==='road'){
     const p=worldPos(e);
     if(!drag.moved){
-      const target=nearestRoad(s,p)||nearestBuilding(s,p)||p;
+      const target=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
       if(!roadStart){
         roadStart=target;
         flash(target?.type?'Start set — tap the next building':'Start set — tap the next point');
       }else{
-        const endTarget=nearestRoad(s,p)||nearestBuilding(s,p)||p;
+        const endTarget=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
         const preview=roadPreview(s,roadStart,endTarget);
-        const result=addRoad(s,preview.path);
+        const result=addRoad(s,preview.path,{startBuilding:preview.start?.building,endBuilding:preview.end?.building});
         if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,preview.path));
       }
     }else{
-      const endTarget=nearestRoad(s,p)||nearestBuilding(s,p)||p;
-      const preview=roadPreview(s,roadStart||drag.start,endTarget);
-      const result=addRoad(s,preview.path);
+      const endTarget=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
+      // A drag that starts a road should first establish its start point.
+      // It must not accidentally spend cash on a one-gesture road before a
+      // deliberate endpoint has been selected.
+      if(!roadStart){
+        roadStart=drag.start;
+        const preview=roadPreview(s,roadStart,endTarget);
+        flash('Start set — release on the next building or point');
+      }else{
+        const preview=roadPreview(s,roadStart,endTarget);
+        const result=addRoad(s,preview.path,{startBuilding:preview.start?.building,endBuilding:preview.end?.building});
+        if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,preview.path));
+      }
       if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,preview.path));
     }
   }
@@ -286,6 +296,6 @@ function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);rend
   ctx.lineCap='round';ctx.lineJoin='round';
   ctx.strokeStyle='#24313a55';ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(roadDraw[0].x,roadDraw[0].y);for(let i=1;i<roadDraw.length;i++)ctx.lineTo(roadDraw[i].x,roadDraw[i].y);ctx.stroke();
   ctx.strokeStyle='#58a6d8';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(roadDraw[0].x,roadDraw[0].y);for(let i=1;i<roadDraw.length;i++)ctx.lineTo(roadDraw[i].x,roadDraw[i].y);ctx.stroke();
-  for(const q of [drag?.previewStart||roadStart,drag?.previewEnd])if(q&&q.distance<Infinity){ctx.fillStyle='#fff9eb';ctx.beginPath();ctx.arc(q.x,q.y,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#247ba0';ctx.lineWidth=3;ctx.stroke()}
+  for(const q of [drag?.previewStart||roadStart,drag?.previewEnd])if(q&&(!('distance' in q)||q.distance<Infinity)){ctx.fillStyle='#fff9eb';ctx.beginPath();ctx.arc(q.x,q.y,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#247ba0';ctx.lineWidth=3;ctx.stroke()}
   ctx.restore()
 }requestAnimationFrame(loop)}window.addEventListener('error',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.message||'unknown error')}});window.addEventListener('unhandledrejection',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.reason?.message||e.reason||'unknown error')}});sync();requestAnimationFrame(loop);
