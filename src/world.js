@@ -54,7 +54,50 @@ export function roadAttachment(s,building){
   }
   return best;
 }
-export function routeOnRoadNetwork(s,a,b){const network=roadNetwork(s);if(!network.edges.length)return null;const resolveEndpoint=value=>{const attachment=roadAttachment(s,value);if(attachment)return{point:attachment.point,distance:0,attachment};const hit=nearestNetworkPoint(network,value);return hit||null},sa=resolveEndpoint(a),sb=resolveEndpoint(b);if(!sa||!sb)return null;const start=addNode([],sa.point),end=addNode([],sb.point),adjacency=new Map(network.nodes.map(n=>[n,[...(network.adjacency.get(n)||[])]]));adjacency.set(start,[]);adjacency.set(end,[]);const connect=(virtual,hit)=>{const e=hit.edge,da=dist(virtual,e.a),db=dist(virtual,e.b);adjacency.get(virtual).push({node:e.a,d:da,road:e.road},{node:e.b,d:db,road:e.road});adjacency.get(e.a).push({node:virtual,d:da,road:e.road});adjacency.get(e.b).push({node:virtual,d:db,road:e.road})};if(sa.attachment){const node=addNode(network.nodes,sa.point);adjacency.set(start,[...(network.adjacency.get(node)||[])]);for(const nx of network.adjacency.get(node)||[])adjacency.get(nx.node).push({node:start,d:nx.d,road:nx.road})}else connect(start,sa);if(sb.attachment){const node=addNode(network.nodes,sb.point);adjacency.set(end,[...(network.adjacency.get(node)||[])]);for(const nx of network.adjacency.get(node)||[])adjacency.get(nx.node).push({node:end,d:nx.d,road:nx.road})}else connect(end,sb);const result=shortestRoadPath({adjacency},start,end);if(!result||result.path.length<2)return null;return{points:result.path.map(p=>({x:p.x,y:p.y})),distance:result.distance,networkDistance:result.distance,start:{x:sa.point.x,y:sa.point.y},end:{x:sb.point.x,y:sb.point.y}}}
+export function routeOnRoadNetwork(s,a,b){
+  const network=roadNetwork(s);
+  if(!network.edges.length)return null;
+
+  const resolveEndpoint=value=>{
+    const attachment=roadAttachment(s,value);
+    const target=attachment?.point||value;
+    const hit=nearestNetworkPoint(network,target);
+    if(!hit)return null;
+    return {point:hit.point,distance:attachment?.distance||hit.distance,attachment,hit};
+  };
+
+  const sa=resolveEndpoint(a),sb=resolveEndpoint(b);
+  if(!sa||!sb)return null;
+
+  const start={x:sa.point.x,y:sa.point.y};
+  const end={x:sb.point.x,y:sb.point.y};
+  const adjacency=new Map(network.nodes.map(n=>[n,[...(network.adjacency.get(n)||[])]]));
+  const connect=(virtual,hit)=>{
+    const e=hit.edge;
+    const da=dist(virtual,e.a),db=dist(virtual,e.b);
+    adjacency.set(virtual,[]);
+    adjacency.get(virtual).push(
+      {node:e.a,d:da,road:e.road},
+      {node:e.b,d:db,road:e.road}
+    );
+    adjacency.get(e.a).push({node:virtual,d:da,road:e.road});
+    adjacency.get(e.b).push({node:virtual,d:db,road:e.road});
+  };
+
+  connect(start,sa.hit);
+  connect(end,sb.hit);
+
+  const result=shortestRoadPath({adjacency},start,end);
+  if(!result||result.path.length<2)return null;
+
+  return{
+    points:result.path.map(p=>({x:p.x,y:p.y})),
+    distance:result.distance,
+    networkDistance:result.distance,
+    start:{x:sa.point.x,y:sa.point.y},
+    end:{x:sb.point.x,y:sb.point.y}
+  };
+}
 export function roadPath(s,a,b){const start=snap(s,a),end=snap(s,b);if(dist(start,end)<8)return[start,end];const existing=routeOnRoadNetwork(s,start,end);return existing?existing.points:null}
 function roadDistance(a,b){const ap=a?.points||a,bp=b?.points||b;if(!Array.isArray(ap)||!Array.isArray(bp)||ap.length<2||bp.length<2)return Infinity;let best=Infinity;for(let i=1;i<ap.length;i++){const pa=ap[i-1],pb=ap[i];for(let j=1;j<bp.length;j++){const pc=bp[j-1],pd=bp[j];best=Math.min(best,projectSegment(pa,pc,pd).distance,projectSegment(pb,pc,pd).distance,projectSegment(pc,pa,pb).distance,projectSegment(pd,pa,pb).distance)}}return best}
 function pointSegmentDistance(p,a,b){return projectSegment(p,a,b).distance}
