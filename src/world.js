@@ -22,7 +22,7 @@ export function spawn(s,kind,forced){
   let x=0,y=0,ok=false;
   const count=s.buildings.length;
   const minRadius=count<6?170:280;
-  const maxRadius=count<6?430:Math.min(760,430+s.week*22);
+  const maxRadius=count<6?430:Math.min(760,430+s.companyLevel*22);
 
   for(let n=0;n<300&&!ok;n++){
     const angle=Math.random()*Math.PI*2;
