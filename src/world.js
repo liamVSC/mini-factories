@@ -37,15 +37,36 @@ export function routeOnRoadNetwork(s,a,b){
  if(!s.roads.length)return null;
  const network=roadNetwork(s);if(!network.edges.length)return null;
  const sa=nearestNetworkPoint(network,a),sb=nearestNetworkPoint(network,b);if(!sa||!sb)return null;
- const attach=(p,side)=>{const e=side.edge;const d1=dist(p,e.a),d2=dist(p,e.b);return d1<=d2?e.a:e.b};
- const start=attach(a,sa),end=attach(b,sb);
+ const start={x:sa.point.x,y:sa.point.y,virtual:true},end={x:sb.point.x,y:sb.point.y,virtual:true};
+ const adjacency=new Map(network.nodes.map(n=>[n,[...(network.adjacency.get(n)||[])]]));
+ adjacency.set(start,[]);adjacency.set(end,[]);
+ const connect=(virtual,attachment)=>{
+   for(const node of [attachment.edge.a,attachment.edge.b]){
+     const d=dist(virtual,node);
+     adjacency.get(virtual).push({node,d,road:attachment.edge.road});
+     adjacency.get(node).push({node:virtual,d,road:attachment.edge.road});
+   }
+ };
+ connect(start,sa);connect(end,sb);
  const queue=[{n:start,d:dist(a,start)}],best=new Map([[start,dist(a,start)]]),prev=new Map();
- while(queue.length){queue.sort((x,y)=>x.d-y.d);const cur=queue.shift();if(cur.d!==best.get(cur.n))continue;if(cur.n===end)break;for(const nx of network.adjacency.get(cur.n)||[]){const nd=cur.d+nx.d;if(nd<(best.get(nx.node)??Infinity)){best.set(nx.node,nd);prev.set(nx.node,cur.n);queue.push({n:nx.node,d:nd})}}}
+ while(queue.length){
+   queue.sort((x,y)=>x.d-y.d);
+   const cur=queue.shift();if(cur.d!==best.get(cur.n))continue;
+   if(cur.n===end)break;
+   for(const nx of adjacency.get(cur.n)||[]){
+     const nd=cur.d+nx.d;
+     if(nd<(best.get(nx.node)??Infinity)){best.set(nx.node,nd);prev.set(nx.node,cur.n);queue.push({n:nx.node,d:nd})}
+   }
+ }
  if(!best.has(end))return null;
  const chain=[];let n=end;while(n){chain.unshift(n);n=prev.get(n)}
- const points=[{x:a.x,y:a.y}];if(dist(points.at(-1),start)>2)points.push({x:start.x,y:start.y});for(const n2 of chain)if(dist(points.at(-1),n2)>2)points.push({x:n2.x,y:n2.y});if(dist(points.at(-1),b)>2)points.push({x:b.x,y:b.y});
+ const points=[{x:a.x,y:a.y}];
+ for(const n2 of chain)if(!n2.virtual&&dist(points.at(-1),n2)>2)points.push({x:n2.x,y:n2.y});
+ if(dist(points.at(-1),end)>2)points.push({x:end.x,y:end.y});
+ if(dist(points.at(-1),b)>2)points.push({x:b.x,y:b.y});
  return{points,distance:length(points),networkDistance:best.get(end)};
 }
+
 export function roadPath(s,a,b){
  const start=snap(s,a),end=snap(s,b);if(dist(start,end)<8)return[start,end];
  const existing=routeOnRoadNetwork(s,start,end);if(existing&&existing.networkDistance<dist(start,end)*2.2)return existing.points;
