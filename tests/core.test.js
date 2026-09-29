@@ -266,6 +266,7 @@ test('routing through a road intersection produces a usable route',()=>{
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
   const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},200,200,'shop-1');
+  factory.stock=4;
   s.buildings.push(factory,shop);
   s.roads.push(
     {id:'road-a',points:[{x:0,y:0},{x:200,y:0}],bridge:false,condition:1,age:0},
