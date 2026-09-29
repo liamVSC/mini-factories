@@ -15,6 +15,8 @@ export function buildingUnlock(t,s){
 }
 export function canBuild(s,type){
   const reason=buildingUnlock(type,s); if(reason)return reason;
+  const cap=10+(s.research?.industry||0)*2;
+  if(s.buildings.length>=cap)return 'Company building capacity reached ('+cap+')';
   if(s.cash<buildingCost(s,type))return 'Costs £'+buildingCost(s,type);
   return null;
 }
