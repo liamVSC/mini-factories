@@ -261,17 +261,13 @@ function finish(e){
       }
     }else{
       const endTarget=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
-      // A drag that starts a road should first establish its start point.
-      // It must not accidentally spend cash on a one-gesture road before a
-      // deliberate endpoint has been selected.
-      if(!roadStart){
-        roadStart=drag.start;
-        const preview=roadPreview(s,roadStart,endTarget);
-        flash('Start set — release on the next building or point');
+      const startTarget=roadStart||drag.start;
+      const preview=roadPreview(s,startTarget,endTarget);
+      const result=addRoad(s,preview.path,{startBuilding:preview.start?.building,endBuilding:preview.end?.building});
+      if(result===true){
+        flash('Road built');save();roadStart=null;
       }else{
-        const preview=roadPreview(s,roadStart,endTarget);
-        const result=addRoad(s,preview.path,{startBuilding:preview.start?.building,endBuilding:preview.end?.building});
-        if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,preview.path));
+        flash(roadResultMessage(result,preview.path));
       }
       if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,preview.path));
     }
