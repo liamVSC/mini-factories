@@ -225,6 +225,30 @@ export function updateEconomy(s,dt,flash){
   }
 
   for(const t of s.trucks){
+    // A truck is only allowed to move while every route segment is backed by
+    // a real road and both endpoints remain physically attached to roads.
+    const routeIsRoadBound=(truck)=>{
+      if(!truck?.route?.points||truck.route.points.length<2||!s.roads?.length)return false;
+      const near=(p,max=30)=>{
+        for(const r of s.roads){
+          for(let i=1;i<r.points.length;i++){
+            const a=r.points[i-1],b=r.points[i],dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;
+            if(!l)continue;
+            const q=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));
+            const x=a.x+dx*q,y=a.y+dy*q;
+            if(Math.hypot(p.x-x,p.y-y)<=max)return true;
+          }
+        }
+        return false;
+      };
+      if(!near(truck.route.points[0])||!near(truck.route.points.at(-1)))return false;
+      for(let i=1;i<truck.route.points.length-1;i++)if(!near(truck.route.points[i],4))return false;
+      return true;
+    };
+    if(!routeIsRoadBound(t)){
+      t.dead=true;
+      continue;
+    }
     const p=pointOnRoute(t.route,t.t);let blocked=false,nearestAhead=Infinity;
     for(const o of s.trucks){if(o===t||o.dead)continue;const q=pointOnRoute(o.route,o.t);if(dist(p,q)<30&&o.routeKey===t.routeKey&&o.t>t.t)nearestAhead=Math.min(nearestAhead,o.t-t.t)}
     if(nearestAhead<.045){blocked=true;t.wait=Math.min(2,t.wait+dt)}else t.wait=Math.max(0,t.wait-dt*.75);
