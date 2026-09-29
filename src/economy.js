@@ -3,13 +3,24 @@ import {dist,length,pointOnRoute} from './world.js';
 
 export function spec(type){return TYPES.find(t=>t.name===type)||TYPES[0]}
 
-function touches(r,b){return r.points.some(p=>dist(p,b)<b.r+34)}
-
+function pointSegmentDistance(p,a,b){
+  const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
+  if(!len2)return dist(p,a);
+  const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len2));
+  return dist(p,{x:a.x+dx*t,y:a.y+dy*t});
+}
+function touches(r,b){
+  for(let i=1;i<r.points.length;i++)if(pointSegmentDistance(b,r.points[i-1],r.points[i])<b.r+34)return true;
+  return false;
+}
 function roadDistance(a,b){
   let best=Infinity;
-  const aEnds=[a.points[0],a.points.at(-1)];
-  const bEnds=[b.points[0],b.points.at(-1)];
-  for(const p of aEnds)for(const q of bEnds)best=Math.min(best,dist(p,q));
+  for(let i=1;i<a.points.length;i++)for(let j=1;j<b.points.length;j++){
+    best=Math.min(best,pointSegmentDistance(a.points[i-1],b.points[j-1],b.points[j]));
+    best=Math.min(best,pointSegmentDistance(a.points[i],b.points[j-1],b.points[j]));
+    best=Math.min(best,pointSegmentDistance(b.points[j-1],a.points[i-1],a.points[i]));
+    best=Math.min(best,pointSegmentDistance(b.points[j],a.points[i-1],a.points[i]));
+  }
   return best;
 }
 
@@ -141,7 +152,6 @@ export function updateEconomy(s,dt,flash){
       b.active=Math.max(0,b.active-dt*2.2);
       b.demand=Math.min(14,b.demand+dt*(.05+s.companyLevel*.003)*(1+b.level*.06));
       b.satisfaction=Math.max(0,Math.min(100,100-b.demand*4+(b.served||0)*1.5));
-      b.sales=(b.sales||0)+dt*(b.served||0)*.2;
       if(!b.contract&&Math.random()<dt*.012)newContract(s,b);
       if(b.contract){
         b.contract.expires-=dt;
