@@ -170,7 +170,7 @@ export function updateEconomy(s,dt,flash){
     t.t+=dt*t.speed;
     if(t.t>=1){
       s.cash+=t.value;s.deliveryIncome+=t.value;s.orders++;t.to.served=(t.to.served||0)+1;t.to.satisfaction=Math.min(100,(t.to.satisfaction||50)+4);
-      s.deliveredBy[t.source.type]=(s.deliveredBy[t.source.type]||0)+1;t.to.served++;
+      s.deliveredBy[t.source.type]=(s.deliveredBy[t.source.type]||0)+1;
 
       if(t.contractId&&t.to.contract?.id===t.contractId){
         const c=t.to.contract;
