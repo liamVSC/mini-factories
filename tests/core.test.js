@@ -5,7 +5,7 @@ globalThis.innerWidth=1280;
 globalThis.innerHeight=720;
 
 const {freshState,makeBuilding,hydrate,serialise}=await import('../src/state.js');
-const {pointOnRoute,length}=await import('../src/world.js');
+const {pointOnRoute,length,addRoad,eraseRoad,routeOnRoadNetwork}=await import('../src/world.js');
 const {updateEconomy}=await import('../src/economy.js');
 
 const route=[{x:0,y:0},{x:100,y:0}];
@@ -276,4 +276,57 @@ test('routing through a road intersection produces a usable route',()=>{
   assert.equal(s.trucks.length,1);
   assert.ok(s.trucks[0].route.length>=3);
   assert.ok(s.trucks[0].route.some(p=>Math.abs(p.x-100)<1&&Math.abs(p.y-200)<1));
+});
+
+
+test('disconnected buildings cannot be routed together',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},300,0,'shop-1');
+  s.buildings.push(factory,shop);
+  s.roads.push({id:'road-1',points:[{x:0,y:0},{x:80,y:0}],bridge:false,condition:1,age:0});
+  assert.equal(routeOnRoadNetwork(s,factory,shop),null);
+});
+
+test('erasing a connecting road removes the route and prevents new dispatches',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},100,0,'shop-1');
+  s.buildings.push(factory,shop);
+  s.roads.push({id:'road-1',points:[{x:0,y:0},{x:100,y:0}],bridge:false,condition:1,age:0});
+  assert.ok(routeOnRoadNetwork(s,factory,shop));
+  assert.equal(eraseRoad(s,{x:50,y:0}),true);
+  assert.equal(s.roads.length,0);
+  assert.equal(routeOnRoadNetwork(s,factory,shop),null);
+  factory.stock=4;
+  shop.demand=4;
+  updateEconomy(s,2,()=>{});
+  assert.equal(s.trucks.length,0);
+});
+
+test('road construction rejects a duplicate road without charging twice',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},100,0,'shop-1');
+  s.buildings.push(factory,shop);
+  const before=s.cash;
+  assert.equal(addRoad(s,[{x:0,y:0},{x:100,y:0}],{startBuilding:factory,endBuilding:shop}),true);
+  const afterFirst=s.cash;
+  assert.equal(addRoad(s,[{x:0,y:0},{x:100,y:0}],{startBuilding:factory,endBuilding:shop}),'duplicate');
+  assert.equal(s.cash,afterFirst);
+  assert.ok(afterFirst<before);
+});
+
+test('repeated road creation and removal leaves the road list bounded',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},180,0,'shop-1');
+  s.buildings.push(factory,shop);
+  for(let i=0;i<50;i++){
+    assert.equal(addRoad(s,[{x:0,y:0},{x:180,y:0}],{startBuilding:factory,endBuilding:shop}),true);
+    assert.equal(s.roads.length,1);
+    assert.equal(eraseRoad(s,{x:90,y:0}),true);
+    assert.equal(s.roads.length,0);
+  }
+  assert.equal(s.roads.length,0);
 });
