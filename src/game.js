@@ -227,7 +227,7 @@ canvas.addEventListener('pointermove',e=>{
   if(Math.hypot(sp.x-drag.last.x,sp.y-drag.last.y)>2)drag.moved=true;
   if(drag.moved){
     const endTarget=nearestRoad(s,p)||nearestBuilding(s,p)||p;
-    const preview=roadPreview(s,drag.start,endTarget);
+    const preview=roadPreview(s,roadStart||drag.start,endTarget);
     drag.preview=preview.path;
     drag.previewStart=preview.start;
     drag.previewEnd=preview.end;
@@ -261,7 +261,7 @@ function finish(e){
       }
     }else{
       const endTarget=nearestRoad(s,p)||nearestBuilding(s,p)||p;
-      const preview=roadPreview(s,drag.start,endTarget);
+      const preview=roadPreview(s,roadStart||drag.start,endTarget);
       const result=addRoad(s,preview.path);
       if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,preview.path));
     }
