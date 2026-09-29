@@ -1,6 +1,6 @@
 import {TYPES,makeBuilding} from './state.js';
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export const length=pts=>pts.reduce((n,p,i)=>i?n+dist(pts[i-1],p):0,0);
+export const length=pts=>pts.reduce((n,p,i)=>i?n+dist(pts[i-1],p):0);
 function projectSegment(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)return{point:{x:a.x,y:a.y},distance:dist(p,a)};const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));const point={x:a.x+dx*t,y:a.y+dy*t};return{point,distance:dist(p,point)}}
 function nearestPointOnRoad(road,p){let best=null,bd=Infinity;for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(q.distance<bd){bd=q.distance;best=q.point}}return best}
 export const riverY=x=>420+Math.sin(x*.002)*35;
@@ -15,9 +15,10 @@ export function pointOnRoute(points,t){const total=length(points);if(!total)retu
 export function nearestBuilding(s,p){let best=null,bd=42;for(const b of s.buildings){const d=dist(b,p);if(d<bd){bd=d;best=b}}return best}
 function projectOnPolyline(points,p){let best=null,run=0;for(let i=1;i<points.length;i++){const q=projectSegment(p,points[i-1],points[i]);if(!best||q.distance<best.distance)best={...q,segment:i-1,along:run+dist(points[i-1],q.point)};run+=dist(points[i-1],points[i])}return best}
 export function nearestRoad(s,p){let best=null;for(const road of s.roads||[]){if(!road?.points||road.points.length<2)continue;const q=projectOnPolyline(road.points,p);if(q&&(!best||q.distance<best.distance))best={x:q.point.x,y:q.point.y,road,distance:q.distance,segment:q.segment,along:q.along}}return best&&best.distance<=34?best:null}
-function buildingConnectionPoint(building,target){const dx=target.x-building.x,dy=target.y-building.y;const len=Math.hypot(dx,dy)||1;const radius=Math.max(26,Math.max(building.r||25,25)+9);return{x:building.x+dx/len*radius,y:building.y+dy/len*radius,building}}
+function buildingConnectionPoint(building,target){const dx=target.x-building.x,dy=target.y-building.y;const len=Math.hypot(dx,dy)||1;const radius=Math.max(26,(building.r||25)+9);return{x:building.x+dx/len*radius,y:building.y+dy/len*radius,building}}
+function resolveRoadEndpoint(s,value){if(value?.building&&Number.isFinite(value.building.x))return buildingConnectionPoint(value.building,value);const building=nearestBuilding(s,value);if(building&&dist(building,value)<=48)return buildingConnectionPoint(building,value);const road=snapRoadPoint(s,value,42);return road||{x:value.x,y:value.y,distance:Infinity}}
 export function snapRoadPoint(s,p,max=42){const q=nearestRoad(s,p);if(!q||q.distance>max)return null;return{x:q.x,y:q.y,road:q.road,distance:q.distance}}
-export function roadPreview(s,a,b){const resolve=p=>{const road=snapRoadPoint(s,p,42);if(road)return road;const building=nearestBuilding(s,p);if(building&&dist(building,p)<=48)return{...buildingConnectionPoint(building,p),distance:dist(building,p),building};return{x:p.x,y:p.y,distance:Infinity}};const start=resolve(a),end=resolve(b);return{path:[{x:start.x,y:start.y},{x:end.x,y:end.y}],start,end,snappedStart:Number.isFinite(start.distance),snappedEnd:Number.isFinite(end.distance),connectsBuilding:!!start.building||!!end.building,connectsRoad:!!start.road||!!end.road}}
+export function roadPreview(s,a,b){const start=resolveRoadEndpoint(s,a),end=resolveRoadEndpoint(s,b);return{path:[{x:start.x,y:start.y},{x:end.x,y:end.y}],start,end,snappedStart:Number.isFinite(start.distance),snappedEnd:Number.isFinite(end.distance),connectsBuilding:!!start.building||!!end.building,connectsRoad:!!start.road||!!end.road}}
 export function snap(s,p){const b=nearestBuilding(s,p);if(b)return b;const r=nearestRoad(s,p);return r||p}
 function segmentIntersection(a,b,c,d){const ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y},cross=(u,v)=>u.x*v.y-u.y*v.x,den=cross(ab,cd),ac={x:c.x-a.x,y:c.y-a.y};if(Math.abs(den)<1e-9)return null;const t=cross(ac,cd)/den,u=cross(ac,ab)/den;if(t<-.000001||t>1.000001||u<-.000001||u>1.000001)return null;return{x:a.x+ab.x*t,y:a.y+ab.y*t,t,u}}
 function addNode(nodes,p){let n=nodes.find(x=>dist(x,p)<2.5);if(!n){n={x:p.x,y:p.y};nodes.push(n)}return n}
