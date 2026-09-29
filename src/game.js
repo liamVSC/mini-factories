@@ -261,7 +261,12 @@ function finish(e){
   }
   drag=null;
 }
-canvas.addEventListener('pointerup',finish);canvas.addEventListener('pointercancel',finish);
+canvas.addEventListener('pointerup',finish);
+canvas.addEventListener('pointercancel',e=>{
+  pointers.delete(e.pointerId);
+  try{canvas.releasePointerCapture?.(e.pointerId)}catch{}
+  pinch=null;pinchCenter=null;drag=null;
+});
 document.querySelector('#gameVersion').textContent='v'+GAME_VERSION;
 for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['settings',()=>{document.querySelector('#settingsMenu').style.display='grid';s.paused=true}],['settingsClose',()=>{document.querySelector('#settingsMenu').style.display='none';s.paused=false}],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
 for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
