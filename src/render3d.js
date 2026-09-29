@@ -53,7 +53,7 @@ function makeRoad(points,bridge){
       for(let along=0;along<len;along+=30){
         const end=Math.min(along+18,len),t1=along/len,t2=end/len;
         const x1=a.x+dx*t1,y1=a.y+dy*t1,x2=a.x+dx*t2,y2=a.y+dy*t2;
-        const dash=box(Math.max(.1,end-along),.12,1,dashMaterial);
+        const dash=new THREE.Mesh(new THREE.BoxGeometry(Math.max(.1,end-along),.12,1),dashMaterial);
         dash.position.set((x1+x2)/2,.12,(y1+y2)/2);
         dash.rotation.y=-Math.atan2(y2-y1,x2-x1);
         markings.add(dash);
@@ -64,7 +64,7 @@ function makeRoad(points,bridge){
     buildStrip(roadWidth,.04,mat('#755638'));
     const a=clean[0],b=clean.at(-1);
     const angle=Math.atan2(b.y-a.y,b.x-a.x);
-    const span=Math.max(1,length(clean));
+    const span=Math.max(1,clean.reduce((sum,p,i)=>i?sum+Math.hypot(p.x-clean[i-1].x,p.y-clean[i-1].y):0,0));
     for(const side of [-1,1]){
       const rail=box(span,1.5,.8,mat('#b58a52'));
       rail.position.set((a.x+b.x)/2,.95,(a.y+b.y)/2);
