@@ -218,37 +218,11 @@ export function updateEconomy(s,dt,flash){
   }
 
   for(const t of s.trucks){
-    // A truck is only allowed to move while every route segment is backed by
-    // a real road and both endpoints remain physically attached to roads.
-    const routeIsRoadBound=(truck)=>{
-      if(!Array.isArray(truck?.route)||truck.route.length<2||!s.roads?.length)return false;
-      const near=(p,max=30)=>{
-        for(const r of s.roads){
-          for(let i=1;i<r.points.length;i++){
-            const a=r.points[i-1],b=r.points[i],dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;
-            if(!l)continue;
-            const q=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));
-            const x=a.x+dx*q,y=a.y+dy*q;
-            if(Math.hypot(p.x-x,p.y-y)<=max)return true;
-          }
-        }
-        return false;
-      };
-      if(!near(truck.route[0])||!near(truck.route.at(-1)))return false;
-      for(let i=1;i<truck.route.length-1;i++)if(!near(truck.route[i],4))return false;
-      return true;
-    };
-    if(!routeIsRoadBound(t)){
-      // Never silently delete cargo/contracts if a road is removed or data is stale.
-      if(t.stage==='warehouse'&&t.to){
-        const returned=Math.max(0,Number(t.cargo)||0);
-        t.source.stock=Math.min(t.source.max||Infinity,(t.source.stock||0)+returned);
-      }else if(t.contractId&&t.to?.contract?.id===t.contractId){
-        t.to.contract.inFlight=Math.max(0,(t.to.contract.inFlight||0)-(Number(t.cargo)||0));
-        t.source.stock=Math.min(t.source.max||Infinity,(t.source.stock||0)+(Number(t.cargo)||0));
-      }else{
-        t.source.stock=Math.min(t.source.max||Infinity,(t.source.stock||0)+(Number(t.cargo)||0));
-      }
+    // Routes are validated when the truck is dispatched. Do not re-project
+    // route graph nodes back onto road geometry every tick: routed paths can
+    // legitimately contain graph/intersection points that are not exact road
+    // polyline vertices. Only discard malformed persisted truck data.
+    if(!Array.isArray(t.route)||t.route.length<2||!Number.isFinite(t.t)){
       t.dead=true;
       continue;
     }
