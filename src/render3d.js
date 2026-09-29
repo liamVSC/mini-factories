@@ -59,44 +59,41 @@ function updateCamera(s,W,H){
   desired.distance=Math.max(320,Math.min(980,Math.max(W,H)*1.05))/zoom;
   if(!cameraReady){desired.x=home.x;desired.z=home.z;target={...desired,yaw:0,pitch:.82};cameraReady=true;}
   const ease=1-Math.pow(.001,1/60);for(const k of ['x','z','distance','yaw','pitch'])target[k]=THREE.MathUtils.lerp(target[k],desired[k],ease);
-  const aspect=Math.max(.1,W/H),half=Math.max(150,target.distance*.55);if(!camera3d)camera3d=new THREE.OrthographicCamera(-half*aspect,half*aspect,half,-half,.1,3000);camera3d.left=-half*aspect;camera3d.right=half*aspect;camera3d.top=half;camera3d.bottom=-half;
-  const cp=Math.cos(target.pitch);camera3d.position.set(target.x+Math.sin(target.yaw)*target.distance*cp,Math.sin(target.pitch)*target.distance,target.z+Math.cos(target.yaw)*target.distance*cp);camera3d.lookAt(target.x,0,target.z);camera3d.updateProjectionMatrix();
+  const aspect=Math.max(.1,W/H),half=Math.max(150,target.distance*.55);if(!camera3d)camera3d=new THREE.OrthographicCamera(-half*aspect,half*aspect,half,-half,.1,3000);applyCameraTransform(W,H);
 }
 export function resetCamera(){desired.x=home.x;desired.z=home.z;desired.yaw=0;desired.pitch=.82;desired.distance=620;target={...desired};}
 export function focusCamera(x,z){desired.x=Number(x)||home.x;desired.z=Number(z)||home.z;}
 export function controlCamera(dx,dy,distanceDelta=0,yawDelta=0,pitchDelta=0){desired.x+=dx;desired.z+=dy;desired.distance=Math.max(280,Math.min(1100,desired.distance+distanceDelta));desired.yaw+=yawDelta;desired.pitch=Math.max(.52,Math.min(1.18,desired.pitch+pitchDelta));}
-export function screenToWorld(x,y,W,H){const p=cameraPointFromScreen(x,y,W,H);return{x:p.x,y:p.z};}
-export function worldToScreen(x,z,W,H){if(!camera3d)return{x:W/2,y:H/2};const v=new THREE.Vector3(Number(x)||0,0,Number(z)||0);v.project(camera3d);return{x:(v.x+1)*.5*W,y:(1-v.y)*.5*H};}
-export function panScreen(dx,dy,W,H){if(!camera3d)return;const a=cameraPointFromScreen(W*.5,H*.5,W,H);const b=cameraPointFromScreen(W*.5-dx,H*.5-dy,W,H);desired.x+=a.x-b.x;desired.z+=a.z-b.z;}
-export function zoomAtScreen(x,y,nextZoom,W,H){if(!camera3d)return;const before=cameraPointFromScreen(x,y,W,H);const clamped=Math.max(.55,Math.min(2.4,nextZoom));const oldDistance=desired.distance;desired.distance=Math.max(320,Math.min(980,Math.max(W,H)*1.05))/clamped;const cp=Math.cos(desired.pitch);const pos=new THREE.Vector3(desired.x+Math.sin(desired.yaw)*desired.distance*cp,Math.sin(desired.pitch)*desired.distance,desired.z+Math.cos(desired.yaw)*desired.distance*cp);const saved=camera3d.position.clone();const savedTarget={x:target.x,z:target.z};target.x=desired.x;target.z=desired.z;target.distance=desired.distance;camera3d.position.copy(pos);camera3d.lookAt(desired.x,0,desired.z);camera3d.updateProjectionMatrix();const after=cameraPointFromScreen(x,y,W,H);desired.x+=before.x-after.x;desired.z+=before.z-after.z;target.x=savedTarget.x;target.z=savedTarget.z;target.distance=oldDistance;camera3d.position.copy(saved);return clamped;}
+export function screenToWorld(x,y,W=viewport.width,H=viewport.height){const p=cameraPointFromScreen(x,y,W,H);return{x:p.x,y:p.z};}
+export function worldToScreen(x,z,W=viewport.width,H=viewport.height){if(!camera3d)return{x:W/2,y:H/2,visible:false};const p=new THREE.Vector3(Number(x)||0,0,Number(z)||0).project(camera3d);return{x:(p.x+1)*.5*W,y:(1-p.y)*.5*H,visible:p.z>=-1&&p.z<=1};}
+export function panScreen(dx,dy,W=viewport.width,H=viewport.height){if(!camera3d)return {x:0,z:0};const a=cameraPointFromScreen(W/2,H/2,W,H),b=cameraPointFromScreen(W/2-dx,H/2-dy,W,H);const mx=b.x-a.x,mz=b.z-a.z;controlCamera(mx,mz);return{x:mx,z:mz};}
+export function zoomAtScreen(x,y,nextZoom,W=viewport.width,H=viewport.height){
+  if(!camera3d)return Math.max(.55,Math.min(2.4,nextZoom));
+  const zoom=Math.max(.55,Math.min(2.4,Number(nextZoom)||1));
+  const before=cameraPointFromScreen(x,y,W,H);
+  desired.distance=Math.max(320,Math.min(980,Math.max(W,H)*1.05))/zoom;
+  target.x=desired.x;target.z=desired.z;target.distance=desired.distance;target.yaw=desired.yaw;target.pitch=desired.pitch;
+  applyCameraTransform(W,H);
+  const after=cameraPointFromScreen(x,y,W,H);
+  const dx=before.x-after.x,dz=before.z-after.z;
+  desired.x+=dx;desired.z+=dz;target.x+=dx;target.z+=dz;
+  applyCameraTransform(W,H);
+  return zoom;
+}
+function applyCameraTransform(W,H){
+  if(!camera3d)return;
+  const aspect=Math.max(.1,W/H),half=Math.max(150,target.distance*.55);
+  camera3d.left=-half*aspect;camera3d.right=half*aspect;camera3d.top=half;camera3d.bottom=-half;
+  const cp=Math.cos(target.pitch);
+  camera3d.position.set(target.x+Math.sin(target.yaw)*target.distance*cp,Math.sin(target.pitch)*target.distance,target.z+Math.cos(target.yaw)*target.distance*cp);
+  camera3d.lookAt(target.x,0,target.z);camera3d.updateProjectionMatrix();camera3d.updateMatrixWorld();
+}
 export function cameraPointFromScreen(x,y,W=viewport.width,H=viewport.height){
   if(!camera3d)return{x:home.x,z:home.z};
-  const ndc=new THREE.Vector3((x/W)*2-1,-(y/H)*2+1,0);
-  ndc.unproject(camera3d);
+  const ndc=new THREE.Vector3((x/W)*2-1,-(y/H)*2+1,0).unproject(camera3d);
   const dir=ndc.sub(camera3d.position).normalize();
   const t=-camera3d.position.y/dir.y;
   return{x:camera3d.position.x+dir.x*t,z:camera3d.position.z+dir.z*t};
-}
-export function screenToWorld(x,y,W=viewport.width,H=viewport.height){return cameraPointFromScreen(x,y,W,H);}
-export function worldToScreen(x,z,W=viewport.width,H=viewport.height){
-  if(!camera3d)return{x:W/2,y:H/2,visible:false};
-  const p=new THREE.Vector3(x,0,z).project(camera3d);
-  return{x:(p.x+1)*.5*W,y:(1-p.y)*.5*H,visible:p.z>=-1&&p.z<=1};
-}
-export function panScreen(dx,dy,W=viewport.width,H=viewport.height){
-  const a=cameraPointFromScreen(W/2,H/2,W,H),b=cameraPointFromScreen(W/2-dx,H/2-dy,W,H);
-  controlCamera(b.x-a.x,b.z-a.z);
-  return{x:b.x-a.x,z:b.z-a.z};
-}
-export function zoomAtScreen(x,y,zoomFactor,W=viewport.width,H=viewport.height){
-  const before=cameraPointFromScreen(x,y,W,H);
-  const current=Math.max(.55,Math.min(2.4,Number(desired.zoom)||Math.max(.55,Math.min(2.4,620/Math.max(1,desired.distance)))));
-  const next=Math.max(.55,Math.min(2.4,current*zoomFactor));
-  desired.distance=Math.max(280,Math.min(1100,Math.max(W,H)*1.05/next));
-  updateCamera({camera:{zoom:next}},W,H);
-  const after=cameraPointFromScreen(x,y,W,H);
-  controlCamera(before.x-after.x,before.z-after.z);
-  return next;
 }
 function drawTrucks(s){for(const [id,g] of [...meshes].filter(([k])=>String(k).startsWith('truck:'))){scene.remove(g);meshes.delete(id);}for(const t of s.trucks||[]){if(!t.route?.length)continue;const i=Math.min(t.route.length-1,Math.floor(t.t*(t.route.length-1))),p=t.route[i],q=t.route[Math.min(t.route.length-1,i+1)],g=new THREE.Group();const body=box(14,6,25,t.longDistance?'#8755c7':'#d79234');body.position.y=5;g.add(body);const cab=box(12,7,9,'#d9b75e');cab.position.set(0,6,8);g.add(cab);const wm=mat('#202729');for(const x of [-7,7])for(const z of [-7,7]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(2.7,2.7,1.8,12),wm);wh.rotation.z=Math.PI/2;wh.position.set(x,2.7,z);g.add(wh);}g.position.set(p.x,0,p.y);g.lookAt(q.x,0,q.y);scene.add(g);meshes.set('truck:'+t.id,g);}}
 export function setPreview(path,start,end,blocked=false){if(!previewGroup)return;while(previewGroup.children.length)previewGroup.remove(previewGroup.children[0]);if(!path||path.length<2)return;const curve=new THREE.CatmullRomCurve3(path.map(p=>new THREE.Vector3(p.x,.45,p.y)),false,'catmullrom',.1);previewGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,path.length*8),2.4,8,false),mat(blocked?'#d85a52':'#58a6d8')));for(const q of [start,end])if(q){const m=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),mat(blocked?'#d85a52':'#f4e5a8'));m.position.set(q.x,.8,q.y);previewGroup.add(m);}}
