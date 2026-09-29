@@ -2,11 +2,15 @@ export const TYPES=[
  {name:'Steel',kind:'factory',need:null,color:'#8bd5ff',price:24,speed:.84,value:1.08,qty:1.25},
  {name:'Food',kind:'factory',need:null,color:'#a7e66f',price:18,speed:1.28,value:.96,qty:.85},
  {name:'Parts',kind:'factory',need:null,color:'#c5a7ff',price:30,speed:.72,value:1.25,qty:1},
+ {name:'Plastics',kind:'factory',need:null,color:'#f6a6ff',price:38,speed:.62,value:1.42,qty:1.1,unlock:'industry',unlockLevel:1},
+ {name:'Glass',kind:'factory',need:null,color:'#7ee7e7',price:44,speed:.55,value:1.55,qty:.95,unlock:'industry',unlockLevel:2},
  {name:'Market',kind:'shop',need:'Food',color:'#ffd166',icon:'M',role:'Food retailer',desc:'Sells food to local customers.'},
  {name:'Garage',kind:'shop',need:'Parts',color:'#ff8f8f',icon:'G',role:'Vehicle service',desc:'Consumes parts for repairs.'},
- {name:'Builder',kind:'shop',need:'Steel',color:'#f4a261',icon:'B',role:'Construction supply',desc:'Consumes steel for building jobs.'}
+ {name:'Builder',kind:'shop',need:'Steel',color:'#f4a261',icon:'B',role:'Construction supply',desc:'Consumes steel for building jobs.'},
+ {name:'Electronics',kind:'shop',need:'Plastics',color:'#d6a8ff',icon:'E',role:'Electronics retailer',desc:'Consumes plastics for electronics demand.',unlock:'industry',unlockLevel:1},
+ {name:'Furniture',kind:'shop',need:'Glass',color:'#90d9b4',icon:'F',role:'Furniture retailer',desc:'Consumes glass for furniture demand.',unlock:'industry',unlockLevel:2}
 ];
-export function freshState(){return{cash:500,orders:0,companyLevel:1,xp:0,xpToNext:100,roadBudget:10,reputation:100,roads:[],buildings:[],trucks:[],particles:[],selected:null,mode:'select',paused:false,gameOver:false,nextBuilding:20,congestion:0,objective:0,goals:goalList(),deliveryIncome:0,deliveredBy:{},longContracts:0,contractId:1,research:{automation:0,logistics:0,industry:0},camera:{x:innerWidth/2,y:innerHeight/2,zoom:1}}}
+export function unlocked(t,s){return !t.unlock||(s.research?.[t.unlock]||0)>=t.unlockLevel}\nexport function freshState(){return{cash:500,orders:0,companyLevel:1,xp:0,xpToNext:100,roadBudget:10,reputation:100,roads:[],buildings:[],trucks:[],particles:[],selected:null,mode:'select',paused:false,gameOver:false,nextBuilding:20,congestion:0,objective:0,goals:goalList(),deliveryIncome:0,deliveredBy:{},longContracts:0,contractId:1,research:{automation:0,logistics:0,industry:0},camera:{x:innerWidth/2,y:innerHeight/2,zoom:1}}}
 export function goalList(){return[
  {text:'Deliver 10 Food orders',target:10,progress:s=>s.deliveredBy.Food||0,done:s=>(s.deliveredBy.Food||0)>=10},
  {text:'Earn £1,000 from deliveries',target:1000,progress:s=>s.deliveryIncome,done:s=>s.deliveryIncome>=1000},
