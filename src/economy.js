@@ -172,7 +172,10 @@ export function updateEconomy(s,dt,flash){
       if(r&&r.distance<best){best=r.distance;choice=shop;}
     }
     const shop=choice;
-    const hub=warehouseFor(s,shop);if(!shop||(!f.stock&&!(hub?.inventory?.[f.type]>0)))continue;
+    const shopHub=shop?warehouseFor(s,shop):null;
+    const sourceHub=warehouseFor(s,f);
+    const availableFromWarehouse=(shopHub?.inventory?.[f.type]||0)>0||(sourceHub?.inventory?.[f.type]||0)>0;
+    if(!shop||(!f.stock&&!availableFromWarehouse))continue;
 
     if(Math.random()<dt*(1.4+f.level*.35)){
       const r=route(s,f,shop);
@@ -183,7 +186,9 @@ export function updateEconomy(s,dt,flash){
         if(outstanding>=contract.remaining)continue;
       }
 
-      const fromWarehouse=hub&&hub.inventory?.[f.type]>0&&!f.stock;if(fromWarehouse)takeFromWarehouse(hub,f.type);else f.stock--;shop.demand=Math.max(0,shop.demand-1);
+      const warehouse=shopHub?.inventory?.[f.type]>0?shopHub:sourceHub;
+      const fromWarehouse=warehouse&&warehouse.inventory?.[f.type]>0&&!f.stock;
+      if(fromWarehouse)takeFromWarehouse(warehouse,f.type);else f.stock--;shop.demand=Math.max(0,shop.demand-1);
       if(contract)contract.inFlight++;
       const sp=spec(f.type);
       const value=Math.max(1,Math.round(
