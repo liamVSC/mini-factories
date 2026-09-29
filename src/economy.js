@@ -111,10 +111,12 @@ export function updateEconomy(s,dt,flash){
     if(b.kind==='factory'){
       const f=spec(b.type);
       b.production+=dt*.52*b.level*f.speed;
+      b.active=Math.min(1,b.active+dt*2.5);
       if(b.production>=1&&b.stock<b.max){
         const n=Math.floor(b.production);b.production-=n;b.stock=Math.min(b.max,b.stock+n);
       }
     }else{
+      b.active=Math.max(0,b.active-dt*2.2);
       b.demand=Math.min(14,b.demand+dt*(.05+s.week*.003));
       if(!b.contract&&Math.random()<dt*.012)newContract(s,b);
       if(b.contract){
