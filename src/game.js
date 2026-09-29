@@ -10,7 +10,38 @@ function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSave
 function flash(text){const el=document.querySelector('#tip');el.textContent=text;clearTimeout(flash.timer);flash.timer=setTimeout(()=>el.textContent='Build roads between factories and shops.',1200)}
 function reset(){localStorage.removeItem('miniFactoriesSaveV4');s=freshState();seed(s);for(const b of s.buildings.filter(b=>b.kind==='shop'))newContract(s,b);document.querySelector('#pauseMenu').style.display='none';document.querySelector('#gameOver').style.display='none';s.paused=false;document.querySelector('#pause').textContent='Ⅱ Pause';hidePanel();sync();flash('New factory started')}
 function sync(){document.querySelector('#cash').textContent='£'+Math.floor(s.cash);document.querySelector('#orders').textContent=s.orders;document.querySelector('#week').textContent=s.week;document.querySelector('#roads').textContent=s.roadBudget;const g=s.goals[s.objective];document.querySelector('#objective').innerHTML=g?`<b>Goal ${s.objective+1}/6</b> • ${g.text} <span>${Math.min(g.target,Math.floor(g.progress(s)))}/${g.target}</span>`:'All objectives complete';const p=document.querySelector('#panel');if(s.selected&&p.style.display!=='none')showPanel(s.selected);}
-function showPanel(b){const p=document.querySelector('#panel');p.style.display='block';document.querySelector('#objective').style.display='none';const t=TYPES.find(x=>x.name===b.type);document.querySelector('#name').textContent=b.type;document.querySelector('#type').textContent=t?.role||(b.kind==='factory'?'Factory':'Shop');document.querySelector('#info').innerHTML=b.kind==='factory'?'<b>'+b.stock+'/'+b.max+'</b> stock • Lv '+b.level+'<br><small>'+(t?.desc||'')+'</small>':'<b>'+Math.ceil(b.demand)+'</b> demand • '+(b.contract?(b.contract.remaining+'/'+b.contract.qty+' on current job'):'waiting for a job')+'<br><small>'+(t?.desc||'')+'</small>';for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.style.display=b.kind==='factory'?'block':'none';el.disabled=i===1?b.level>=3:i===2?b.max>=14:i===3?b.loading>=2:b.logistics>=2}document.querySelector('#shop').style.display=b.kind==='shop'?'block':'none';}
+function showPanel(b){
+  const p=document.querySelector('#panel');
+  p.style.display='block';
+  document.querySelector('#objective').style.display='none';
+  const t=TYPES.find(x=>x.name===b.type);
+  document.querySelector('#name').textContent=b.type;
+  document.querySelector('#type').textContent=t?.role||(b.kind==='factory'?'Factory':'Shop');
+  document.querySelector('#info').innerHTML=b.kind==='factory'
+    ? '<b>'+b.stock+'/'+b.max+'</b> stock • Lv '+b.level+'<br><small>'+(t?.desc||'Produces '+b.type+' for delivery.')+'</small>'
+    : '<b>'+Math.ceil(b.demand)+'</b> demand • '+(b.contract?(b.contract.remaining+'/'+b.contract.qty+' on current job'):'waiting for a job')+'<br><small>'+(t?.desc||'Consumes '+b.need+' for local demand.')+'</small>';
+
+  for(let i=1;i<=4;i++){
+    const el=document.querySelector('#u'+i);
+    el.style.display=b.kind==='factory'?'block':'none';
+    const price=i===1?120*b.level:i===2?180+(b.max-4)/2*70:i===3?220*(b.loading+1):300*(b.logistics+1);
+    const labels=[
+      ['⚡ Faster machines','Increase production speed.'],
+      ['📦 Bigger storage','Increase maximum stock.'],
+      ['🚚 Loading bay','Faster dispatch and higher delivery value.'],
+      ['🧭 Logistics','Reduce congestion impact.']
+    ][i-1];
+    el.innerHTML=labels[0]+' <span>£'+Math.round(price)+'</span><small>'+labels[1]+'</small>';
+    el.disabled=i===1?b.level>=3:i===2?b.max>=14:i===3?b.loading>=2:b.logistics>=2;
+  }
+
+  const shop=document.querySelector('#shop');
+  shop.style.display=b.kind==='shop'?'block':'none';
+  if(b.kind==='shop'){
+    shop.innerHTML='🏪 Upgrade shop <span>£'+(220*b.level)+'</span><small>Increase capacity and customer demand.</small>';
+    shop.disabled=b.level>=3;
+  }
+}
 function hidePanel(){s.selected=null;document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
 function worldPos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left-s.camera.x)/s.camera.zoom+W/2,y:(e.clientY-r.top-s.camera.y)/s.camera.zoom+H/2}}
 function worldFromScreen(p){return{x:(p.x-s.camera.x)/s.camera.zoom+W/2,y:(p.y-s.camera.y)/s.camera.zoom+H/2}}
