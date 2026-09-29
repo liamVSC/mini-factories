@@ -11,15 +11,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
       - name: Run tests
-        run: npm test
+        run: node --test tests/*.test.js
+      - name: Check syntax
+        run: node --check src/game.js && node --check src/render3d.js && node --check src/render.js && node --check src/state.js && node --check src/world.js && node --check src/economy.js
