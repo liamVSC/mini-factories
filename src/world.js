@@ -139,13 +139,16 @@ export function routeOnRoadNetwork(s,a,b){
 
   const chain=[];let n=end;
   while(n){chain.unshift(n);n=prev.get(n)}
-  const points=[{x:a.x,y:a.y}];
-  if(dist(points[0],start)>2)points.push({x:start.x,y:start.y});
+  // The truck route itself must be entirely on the physical road network.
+  // Buildings only determine the road attachment; trucks must never animate
+  // from a building centre across an invisible driveway.
+  const points=[];
+  if(!points.length||dist(points.at(-1),start)>2)points.push({x:start.x,y:start.y});
   for(const node of chain){
     if(!node.virtual&&dist(points.at(-1),node)>2)points.push({x:node.x,y:node.y});
   }
   if(dist(points.at(-1),end)>2)points.push({x:end.x,y:end.y});
-  if(dist(points.at(-1),b)>2)points.push({x:b.x,y:b.y});
+  if(points.length<2)return null;
 
   return{points,distance:length(points),networkDistance:best.get(end)};
 }
