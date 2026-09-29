@@ -1,5 +1,5 @@
 import {freshState,hydrate,serialise,TYPES} from './state.js';
-import {seed,nearestBuilding,nearestRoad,roadPath,addRoad,eraseRoad,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
+import {seed,nearestBuilding,nearestRoad,roadPath,roadPreview,addRoad,eraseRoad,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render} from './render.js';
 
@@ -213,7 +213,15 @@ canvas.addEventListener('pointermove',e=>{
   }
   if(!drag||s.mode!=='road')return;
   const p=worldPos(e);
-  if(dist(drag.start,p)>8){drag.armed=true;drag.preview=roadPath(s,drag.start,p)}
+  if(dist(drag.start,p)>8){
+    drag.armed=true;
+    const preview=roadPreview(s,drag.start,p);
+    drag.preview=preview.path;
+    drag.previewStart=preview.start;
+    drag.previewEnd=preview.end;
+    drag.snappedStart=preview.snappedStart;
+    drag.snappedEnd=preview.snappedEnd;
+  }
 });
 function finish(e){
   const sp=screenPos(e);
@@ -228,7 +236,7 @@ function finish(e){
     return;
   }
   if(drag?.armed){
-    const p=worldPos(e),path=roadPath(s,drag.start,p);
+    const p=worldPos(e),preview=roadPreview(s,drag.start,p),path=preview.path;
     if(addRoad(s,path)){flash('Road built');save()}else flash('Not enough road budget or cash');
   }
   drag=null;
@@ -239,4 +247,11 @@ for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
 document.querySelector('#shop').onclick=null
 let uiTimer=0;
 function tick(dt){if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);for(const p of s.particles)p.t+=dt;s.particles=s.particles.filter(p=>p.t<1);if(Math.random()<dt*.5)save()}uiTimer-=dt;if(uiTimer<=0||s.gameOver){uiTimer=.08;sync()}if(s.gameOver){document.querySelector('#gameOver').style.display='grid';document.querySelector('#score').textContent=`${s.orders} deliveries • Company Level ${s.companyLevel}.`;save()}}
-function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);render(ctx,s,W,H);if(drag?.armed){const p=drag.preview;if(p){ctx.save();ctx.translate(s.camera.x,s.camera.y);ctx.scale(s.camera.zoom,s.camera.zoom);ctx.translate(-W/2,-H/2);ctx.strokeStyle='#8bd5ff99';ctx.lineWidth=6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(p[0].x,p[0].y);for(let i=1;i<p.length;i++)ctx.lineTo(p[i].x,p[i].y);ctx.stroke();ctx.restore()}}requestAnimationFrame(loop)}window.addEventListener('error',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.message||'unknown error')}});window.addEventListener('unhandledrejection',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.reason?.message||e.reason||'unknown error')}});sync();requestAnimationFrame(loop);
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);render(ctx,s,W,H);if(drag?.armed&&drag.preview){
+  ctx.save();ctx.translate(s.camera.x,s.camera.y);ctx.scale(s.camera.zoom,s.camera.zoom);ctx.translate(-W/2,-H/2);
+  ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.strokeStyle='#24313a55';ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(drag.preview[0].x,drag.preview[0].y);for(let i=1;i<drag.preview.length;i++)ctx.lineTo(drag.preview[i].x,drag.preview[i].y);ctx.stroke();
+  ctx.strokeStyle=drag.snappedStart||drag.snappedEnd?'#58a6d8':'#8bd5ff99';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(drag.preview[0].x,drag.preview[0].y);for(let i=1;i<drag.preview.length;i++)ctx.lineTo(drag.preview[i].x,drag.preview[i].y);ctx.stroke();
+  for(const q of [drag.previewStart,drag.previewEnd])if(q&&q.distance<Infinity){ctx.fillStyle='#fff9eb';ctx.beginPath();ctx.arc(q.x,q.y,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#247ba0';ctx.lineWidth=3;ctx.stroke()}
+  ctx.restore()
+}requestAnimationFrame(loop)}window.addEventListener('error',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.message||'unknown error')}});window.addEventListener('unhandledrejection',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.reason?.message||e.reason||'unknown error')}});sync();requestAnimationFrame(loop);
