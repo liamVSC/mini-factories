@@ -152,10 +152,13 @@ export function updateEconomy(s,dt,flash){
     if(Math.random()<dt*(1.4+f.level*.35)){
       const r=route(s,f,shop);
       if(!r)continue;
-      const contract=shop.contract?.type===f.type?shop.contract:null;
-      if(contract&&contract.inFlight>=contract.remaining)continue;
+        const contract=shop.contract?.type===f.type?shop.contract:null;
+      if(contract){
+        const outstanding=(contract.inFlight||0);
+        if(outstanding>=contract.remaining)continue;
+      }
 
-      f.stock--;shop.demand--;
+      f.stock--;shop.demand=Math.max(0,shop.demand-1);
       if(contract)contract.inFlight++;
       const sp=spec(f.type);
       const value=Math.round(sp.price*sp.value*(1+Math.min(1.2,r.distance/650)*.45)*(1+(f.level-1)*.08+f.loading*.1)*(1+f.logistics*.05));
@@ -183,12 +186,15 @@ export function updateEconomy(s,dt,flash){
 
       if(t.contractId&&t.to.contract?.id===t.contractId){
         const c=t.to.contract;
-        c.remaining--;c.inFlight=Math.max(0,(c.inFlight||0)-1);
+        c.remaining=Math.max(0,c.remaining-1);
+        c.inFlight=Math.max(0,(c.inFlight||0)-1);
         if(c.remaining<=0){
           const bonus=c.urgent?Math.round(c.reward*.18):0;
-          s.cash+=c.reward+bonus;s.reputation=Math.min(100,s.reputation+2);
+          s.cash+=c.reward+bonus;
+          s.reputation=Math.min(100,s.reputation+2);
           if(t.longDistance)s.longContracts++;
-          t.to.contract=null;flash(`Contract complete • £${c.reward+bonus}`);
+          t.to.contract=null;
+          flash(`Contract complete • £${c.reward+bonus}`);
         }
       }
       t.dead=true;
