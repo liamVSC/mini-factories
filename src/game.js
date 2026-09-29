@@ -10,9 +10,21 @@ function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSave
 function flash(text){const el=document.querySelector('#tip');el.textContent=text;clearTimeout(flash.timer);flash.timer=setTimeout(()=>el.textContent='Build roads between factories and shops.',1200)}
 function reset(){localStorage.removeItem('miniFactoriesSaveV6');s=freshState();seed(s);for(const b of s.buildings.filter(b=>b.kind==='shop'))newContract(s,b);document.querySelector('#pauseMenu').style.display='none';document.querySelector('#gameOver').style.display='none';s.paused=false;document.querySelector('#pause').textContent='Ⅱ Pause';hidePanel();sync();flash('New factory started')}
 function sync(){document.querySelector('#cash').textContent='£'+Math.floor(s.cash);document.querySelector('#orders').textContent=s.orders;document.querySelector('#companyLevel').textContent=s.companyLevel;document.querySelector('#roads').textContent=s.roadBudget;const g=s.goals[s.objective];document.querySelector('#objective').innerHTML=g?`<b>Goal ${s.objective+1}/6</b> • ${g.text} <span>${Math.min(g.target,Math.floor(g.progress(s)))}/${g.target}</span>`:'All objectives complete';const p=document.querySelector('#panel');if(panelMode==='building'&&s.selected&&p.style.display!=='none')showPanel(s.selected);}
+function clearDynamicBuildButtons(){
+  document.querySelectorAll('#panel button[id^="build"]').forEach(el=>el.style.display='none');
+}
+function clearButtonActions(){
+  for(let i=1;i<=4;i++){
+    const el=document.querySelector('#u'+i);
+    el.onclick=null;
+  }
+  document.querySelector('#shop').onclick=null;
+}
 function showPanel(b){
   panelMode='building';
   const p=document.querySelector('#panel');
+  clearDynamicBuildButtons();
+  clearButtonActions();
   p.style.display='block';
   document.querySelector('#objective').style.display='none';
   const t=TYPES.find(x=>x.name===b.type);
@@ -47,6 +59,8 @@ function showPanel(b){
 }
 function showBuild(){
   panelMode='build';s.selected=null;
+  clearDynamicBuildButtons();
+  clearButtonActions();
   const p=document.querySelector('#panel');p.style.display='block';document.querySelector('#objective').style.display='none';
   document.querySelector('#name').textContent='Build';document.querySelector('#type').textContent='Construction';
   document.querySelector('#info').innerHTML='<b>Cash £'+Math.floor(s.cash)+'</b> • Choose a building';
@@ -59,6 +73,8 @@ function showBuild(){
 function startBuild(t){const reason=canBuild(s,t);if(reason){flash(reason);return}hidePanel();s.buildMode=t;s.mode='build';document.querySelector('#road').classList.remove('active');document.querySelector('#erase').classList.remove('active');flash('Tap an empty area to place '+t.name)}
 function showCompany(){
   panelMode='company';s.selected=null;
+  clearDynamicBuildButtons();
+  clearButtonActions();
   const p=document.querySelector('#panel');
   p.style.display='block';
   document.querySelector('#objective').style.display='none';
@@ -81,6 +97,8 @@ function showCompany(){
 }
 function showResearch(){
   panelMode='research';s.selected=null;
+  clearDynamicBuildButtons();
+  clearButtonActions();
   const p=document.querySelector('#panel');
   p.style.display='block';
   document.querySelector('#objective').style.display='none';
