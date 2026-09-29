@@ -53,6 +53,55 @@ export function pointOnRoute(points,t){const total=length(points);if(!total)retu
 export function nearestBuilding(s,p){let best=null,bd=38;for(const b of s.buildings){const d=dist(b,p);if(d<bd){bd=d;best=b}}return best}
 export function nearestRoad(s,p){let best=null,bd=24;for(const r of s.roads)for(let i=1;i<r.points.length;i++){const a=r.points[i-1],b=r.points[i],dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)continue;let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/l;t=Math.max(0,Math.min(1,t));const q={x:a.x+dx*t,y:a.y+dy*t},d=dist(p,q);if(d<bd){bd=d;best=q}}return best}
 export function snap(s,p){return nearestBuilding(s,p)||nearestRoad(s,p)||p}
-export function roadPath(s,a,b){const end=snap(s,b);if(Math.abs(end.x-a.x)<8||Math.abs(end.y-a.y)<8)return[a,end];return Math.abs(end.x-a.x)>=Math.abs(end.y-a.y)?[a,{x:end.x,y:a.y},end]:[a,{x:a.x,y:end.y},end]}
-export function addRoad(s,points){const clean=points.filter((p,i)=>!i||dist(p,points[i-1])>10);if(clean.length<2)return false;const cost=Math.max(1,Math.ceil(length(clean)/55));const cashCost=cost*2;if(s.roadBudget<cost||s.cash<cashCost)return false;s.roadBudget-=cost;s.cash-=cashCost;s.roads.push({id:crypto.randomUUID(),points:clean,age:0,bridge:clean.some((p,i)=>i&&Math.abs(p.y-riverY(p.x))<45)});return true}
+export function roadPath(s,a,b){
+  const start=snap(s,a);
+  const end=snap(s,b);
+  if(dist(start,end)<8)return[start,end];
+
+  // Use a simple Manhattan bend, but prefer the orientation that avoids
+  // unnecessary backtracking and keeps the path compact.
+  const horizontalFirst=[
+    start,
+    {x:end.x,y:start.y},
+    end
+  ];
+  const verticalFirst=[
+    start,
+    {x:start.x,y:end.y},
+    end
+  ];
+  const score=p=>length(p)+p.slice(1,-1).reduce((n,q)=>n+(Math.abs(q.y-riverY(q.x))<55?180:0),0);
+  return score(horizontalFirst)<=score(verticalFirst)?horizontalFirst:verticalFirst;
+}
+
+export function addRoad(s,points){
+  const clean=points.filter((p,i)=>!i||dist(p,points[i-1])>10);
+  if(clean.length<2)return false;
+  const roadLength=length(clean);
+  if(roadLength<18)return false;
+  const cost=Math.max(1,Math.ceil(roadLength/55));
+  const cashCost=cost*2;
+  if(s.roadBudget<cost||s.cash<cashCost)return false;
+
+  // Don't create a duplicate/near-duplicate road.
+  if(s.roads.some(r=>roadDistance(r,clean)<12&&Math.abs(length(r.points)-roadLength)<25))return false;
+
+  s.roadBudget-=cost;
+  s.cash-=cashCost;
+  s.roads.push({
+    id:crypto.randomUUID(),
+    points:clean,
+    age:0,
+    bridge:clean.some((p,i)=>i&&Math.abs(p.y-riverY(p.x))<45)
+  });
+  return true;
+}
+
+function roadDistance(r,points){
+  let best=Infinity;
+  for(const a of [r.points[0],r.points.at(-1)])
+    for(const b of [points[0],points.at(-1)])
+      best=Math.min(best,dist(a,b));
+  return best;
+}
 export function eraseRoad(s,p){let hit=null,bd=14;for(const r of s.roads)for(let i=1;i<r.points.length;i++){const a=r.points[i-1],b=r.points[i],dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)continue;let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/l;t=Math.max(0,Math.min(1,t));const d=dist(p,{x:a.x+dx*t,y:a.y+dy*t});if(d<bd){bd=d;hit=r}}if(!hit)return false;s.roads=s.roads.filter(r=>r!==hit);return true}
