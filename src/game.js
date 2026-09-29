@@ -183,7 +183,7 @@ canvas.addEventListener('pointerdown',e=>{
   }
   if(s.mode==='erase'){eraseRoad(s,p);save();return}
   if(s.mode==='road'&&roadStart){
-    drag={start:roadStart,armed:true,preview:roadPreview(s,roadStart,p).path};
+    drag={start:roadStart,armed:false};
     return;
   }
   if(s.mode==='select'){
