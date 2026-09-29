@@ -135,6 +135,14 @@ function updateCamera(s,W,H){
   camera3d.lookAt(target.x,0,target.z);
   camera3d.updateProjectionMatrix();
 }
+export function resetCamera(){
+  const next={x:0,z:0,yaw:0,pitch:.82,distance:620};
+  desired={...next};
+  if(cameraReady)target={...target};
+}
+export function focusCamera(x,z){
+  desired.x=x;desired.z=z;
+}
 export function controlCamera(dx,dy,distanceDelta=0,yawDelta=0,pitchDelta=0){
   desired.x+=dx;
   desired.z+=dy;
