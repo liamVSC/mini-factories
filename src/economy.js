@@ -94,7 +94,6 @@ export function updateEconomy(s,dt,flash){
   if(s.nextBuilding<=0){
     s.nextBuilding=Math.max(12,22-s.companyLevel*.8);
     if(s.buildings.length<10){
-      // Keep growth random, but prioritise completing missing production chains.
       const shops=s.buildings.filter(b=>b.kind==='shop');
       const fs=s.buildings.filter(b=>b.kind==='factory');
       const missingShop=fs.find(f=>!shops.some(sh=>sh.need===f.type));
@@ -112,8 +111,6 @@ export function updateEconomy(s,dt,flash){
   for(const b of s.buildings){
     if(b.kind==='factory'){
       const f=spec(b.type);
-      // Production scales with upgrades, but returns stay controlled so
-      // upgrades remain useful without making the economy explode.
       b.production+=dt*.46*b.level*f.speed*(1+b.loading*.1);
       b.active=Math.min(1,b.active+dt*2.5);
       if(b.production>=1&&b.stock<b.max){
@@ -121,8 +118,6 @@ export function updateEconomy(s,dt,flash){
       }
     }else{
       b.active=Math.max(0,b.active-dt*2.2);
-      // Demand grows gradually with the week, with shop upgrades giving
-      // a modest extra pull rather than an immediate spike.
       b.demand=Math.min(14,b.demand+dt*(.05+s.companyLevel*.003)*(1+b.level*.06));
       b.satisfaction=Math.max(0,Math.min(100,100-b.demand*4+(b.served||0)*1.5));
       b.sales=(b.sales||0)+dt*(b.served||0)*.2;
@@ -179,8 +174,6 @@ export function updateEconomy(s,dt,flash){
       if(o===t||o.dead)continue;
       const q=pointOnRoute(o.route,o.t);
       const separation=dist(p,q);
-      // Only react to a truck that is physically close and ahead on the same
-      // route. Crossing roads should not create artificial traffic jams.
       if(separation<30&&o.route===t.route&&o.t>t.t){
         nearestAhead=Math.min(nearestAhead,o.t-t.t);
       }
