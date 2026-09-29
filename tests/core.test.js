@@ -123,3 +123,62 @@ test('completed contract delivery clears in-flight cargo and pays the contract r
   assert.equal(s.deliveryIncome,50);
   assert.equal(s.reputation,100);
 });
+
+
+test('serialise and hydrate preserve persistent progression while clearing transient runtime state',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Parts',kind:'factory',need:null,color:'#fff'},120,80,'factory-1');
+  factory.level=3;
+  factory.max=10;
+  factory.stock=7;
+  factory.loading=2;
+  const shop=makeBuilding({name:'Garage',kind:'shop',need:'Parts',color:'#fff'},260,80,'shop-1');
+  shop.level=2;
+  shop.demand=6;
+  shop.served=11;
+  shop.contract={id:9,type:'Parts',qty:3,remaining:3,reward:240,expires:40,initial:3,urgent:true,inFlight:0};
+  s.buildings.push(factory,shop);
+  s.roads=[{id:'road-1',points:[{x:120,y:80},{x:260,y:80}],bridge:false,condition:.8,age:12}];
+  s.cash=4321;
+  s.orders=27;
+  s.companyLevel=4;
+  s.xp=73;
+  s.xpToNext=162;
+  s.reputation=88;
+  s.objective=3;
+  s.deliveryIncome=1940;
+  s.deliveredBy={Food:12,Parts:7};
+  s.longContracts=2;
+  s.contractId=10;
+  s.research={automation:2,logistics:1,industry:3};
+  s.renderVersion=17;
+  s.trucks=[{id:'runtime-truck',route:route,t:.5}];
+  s.particles=[{x:1,y:2}];
+  const loaded=hydrate(serialise(s));
+  assert.ok(loaded);
+  for(const key of ['cash','orders','companyLevel','xp','xpToNext','reputation','objective','deliveryIncome','longContracts','contractId','renderVersion']){
+    assert.deepEqual(loaded[key],s[key]);
+  }
+  assert.deepEqual(loaded.research,s.research);
+  assert.deepEqual(loaded.deliveredBy,s.deliveredBy);
+  assert.equal(loaded.buildings.length,2);
+  assert.equal(loaded.buildings[0].level,3);
+  assert.equal(loaded.buildings[0].stock,7);
+  assert.equal(loaded.buildings[1].contract.reward,240);
+  assert.equal(loaded.roads.length,1);
+  assert.deepEqual(loaded.trucks,[]);
+  assert.deepEqual(loaded.particles,[]);
+});
+
+test('fresh state does not contain the removed road budget mechanic',()=>{
+  const s=freshState();
+  assert.equal('roadBudget' in s,false);
+});
+
+test('company level-up does not create a road budget',()=>{
+  const s=freshState();
+  s.xp=s.xpToNext;
+  assert.doesNotThrow(()=>updateEconomy(s,0,()=>{}));
+  assert.equal(s.companyLevel,2);
+  assert.equal('roadBudget' in s,false);
+});
