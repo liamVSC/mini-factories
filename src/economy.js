@@ -50,34 +50,9 @@ function oriented(points,from,to){
 }
 
 export function route(s,a,b){
+  if(!roadAttachment(s,a)||!roadAttachment(s,b))return null;
   const r=routeOnRoadNetwork(s,a,b);
   if(!r||!Array.isArray(r.points)||r.points.length<2)return null;
-
-  // A route is valid only when every network segment used by the truck
-  // corresponds to an actual saved road segment. This prevents stale/virtual
-  // routing points from becoming invisible roads.
-  const visibleRoads=s.roads.filter(x=>x&&Array.isArray(x.points)&&x.points.length>=2);
-  if(!visibleRoads.length)return null;
-  const pointNearRoad=(p)=>{
-    for(const road of visibleRoads){
-      for(let i=1;i<road.points.length;i++){
-        const a=road.points[i-1],b=road.points[i];
-        const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;
-        if(!l)continue;
-        const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));
-        const q={x:a.x+dx*t,y:a.y+dy*t};
-        if(dist(p,q)<=2.5)return true;
-      }
-    }
-    return false;
-  };
-  // Trucks may only use routes whose endpoints are physically attached
-  // to a real road. Do not allow the old "driveway" behaviour where a truck
-  // can leave a building, travel off-road, and then join a road.
-  if(!roadAttachment(s,a)||!roadAttachment(s,b))return null;
-  for(let i=1;i<r.points.length-1;i++){
-    if(!pointNearRoad(r.points[i]))return null;
-  }
   return r;
 }
 
@@ -150,10 +125,9 @@ function addToWarehouse(warehouse,type,n){
 }
 function dispatchTruck(s,{route,source,destination,cargo,contractId=0,longDistance=false,valuePerUnit=0,stage='delivery'}){
   if(!route||!cargo)return false;
-  // Final hard gate: a truck cannot even be spawned unless both buildings
-  // have a road physically attached.
+  // Final hard gate: both buildings must still be physically attached
+  // to the saved road network when the truck is spawned.
   if(!roadAttachment(s,source)||!roadAttachment(s,destination))return false;
-  if(!route.points.every((p,i)=>i===0||i===route.points.length-1||s.roads.some(road=>{for(let j=1;j<road.points.length;j++)if(pointSegmentDistance(p,road.points[j-1],road.points[j])<=2.5)return true;return false;})))return false;
   s.trucks.push({route:route.points,routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage});
   return true;
 }
