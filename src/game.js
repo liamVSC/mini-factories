@@ -197,7 +197,7 @@ canvas.addEventListener('pointerdown',e=>{
   }
   if(s.mode==='road'){
     const target=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
-    drag={road:true,start:target,preview:null,moved:false,last:sp,startedFromTap:false};
+    drag={road:true,start:target,startScreen:sp,preview:null,moved:false,last:sp,startedFromTap:false};
     return;
   }
 });
@@ -224,7 +224,7 @@ canvas.addEventListener('pointermove',e=>{
   }
   if(!drag?.road||s.mode!=='road')return;
   const p=worldPos(e);
-  if(Math.hypot(sp.x-drag.start.x,sp.y-drag.start.y)>8)drag.moved=true;
+  if(Math.hypot(sp.x-drag.startScreen.x,sp.y-drag.startScreen.y)>8)drag.moved=true;
   if(drag.moved){
     const endTarget=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
     const preview=roadPreview(s,roadStart||drag.start,endTarget);
@@ -269,7 +269,7 @@ function finish(e){
       }else{
         flash(roadResultMessage(result,preview.path));
       }
-      if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,preview.path));
+      if(result===true){flash('Road built');save();sync();roadStart=null}else flash(roadResultMessage(result,preview.path));
     }
   }
   drag=null;
