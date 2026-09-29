@@ -25,7 +25,7 @@ export function roadNetwork(s){
   const marks=r.points.map((p,i)=>({p,seg:i}));
   for(let i=1;i<r.points.length;i++)for(const q of s.roads)for(let j=1;j<q.points.length;j++){if(r===q&&i===j)continue;const hit=segmentIntersection(r.points[i-1],r.points[i],q.points[j-1],q.points[j]);if(hit)marks.push({p:hit,seg:i})}
   const unique=[];for(const m of marks){const node=addNode(nodes,m.p);if(!unique.some(x=>x.node===node))unique.push({node,seg:m.seg})}
-  unique.sort((a,b)=>a.seg-b.seg);
+  unique.sort((a,b)=>{if(a.seg!==b.seg)return a.seg-b.seg;const a0=r.points[a.seg-1]||r.points[0],a1=r.points[a.seg]||a0,b0=r.points[b.seg-1]||r.points[0],b1=r.points[b.seg]||b0;const at=projectSegment(a.node,a0,a1).distance,bt=projectSegment(b.node,b0,b1).distance;return at-bt});
   for(let i=1;i<unique.length;i++){const a=unique[i-1].node,b=unique[i].node,d=dist(a,b);if(d>1)edges.push({a,b,d,road:r})}
  }
  const adjacency=new Map(nodes.map(n=>[n,[]]));
