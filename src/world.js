@@ -32,12 +32,12 @@ export function roadPath(s,a,b){const start=snap(s,a),end=snap(s,b);if(dist(star
 function roadDistance(a,b){const ap=a?.points||a,bp=b?.points||b;if(!Array.isArray(ap)||!Array.isArray(bp)||ap.length<2||bp.length<2)return Infinity;let best=Infinity;for(let i=1;i<ap.length;i++){const pa=ap[i-1],pb=ap[i];for(let j=1;j<bp.length;j++){const pc=bp[j-1],pd=bp[j];best=Math.min(best,projectSegment(pa,pc,pd).distance,projectSegment(pb,pc,pd).distance,projectSegment(pc,pa,pb).distance,projectSegment(pd,pa,pb).distance)}}return best}
 function pointSegmentDistance(p,a,b){return projectSegment(p,a,b).distance}
 function normalizeRoadEndpoint(s,p){const b=nearestBuilding(s,p);if(!b||dist(b,p)>52)return p;return buildingConnectionPoint(b,p)}
-export function addRoad(s,points){if(!Array.isArray(points)||points.length<2)return false;const clean=points.filter((p,i)=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&(!i||dist(p,points[i-1])>8)).map((p,i,a)=>(i===0||i===a.length-1)?normalizeRoadEndpoint(s,p):p);if(clean.length<2)return false;const roadLength=length(clean);if(!Number.isFinite(roadLength)||roadLength<18)return false;for(let i=1;i<clean.length;i++){
+export function addRoad(s,points){if(!Array.isArray(points)||points.length<2)return 'invalid';const clean=points.filter((p,i)=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&(!i||dist(p,points[i-1])>8)).map((p,i,a)=>(i===0||i===a.length-1)?normalizeRoadEndpoint(s,p):p);if(clean.length<2)return 'invalid';const roadLength=length(clean);if(!Number.isFinite(roadLength)||roadLength<18)return 'too-short';for(let i=1;i<clean.length;i++){
   const a=clean[i-1],z=clean[i];
   for(const b of s.buildings||[]){
     const clearance=(b.r||25)+7;
     const isRoadEndpoint=(i===1&&dist(b,clean[0])<=clearance+7)||(i===clean.length-1&&dist(b,clean[clean.length-1])<=clearance+7);
-    if(pointSegmentDistance(b,a,z)<clearance&&!isRoadEndpoint)return false;
+    if(pointSegmentDistance(b,a,z)<clearance&&!isRoadEndpoint)return 'blocked';
   }
-}const cost=Math.max(1,Math.ceil(roadLength/180)),cashCost=cost*2;if(!Number.isFinite(cost)||!Number.isFinite(cashCost)||!Number.isFinite(s.cash)||s.cash<cashCost)return false;if((s.roads||[]).some(r=>roadDistance(r,clean)<10&&Math.abs(length(r.points)-roadLength)<18))return false;const bridge=clean.some((p,i)=>i&&Math.abs(p.y-riverY(p.x))<45);s.cash-=cashCost;s.roads.push({id:crypto.randomUUID(),points:clean,age:0,bridge,condition:1});return true}
+}const cost=Math.max(1,Math.ceil(roadLength/180)),cashCost=cost*2;if(!Number.isFinite(cost)||!Number.isFinite(cashCost)||!Number.isFinite(s.cash)||s.cash<cashCost)return 'cash';if((s.roads||[]).some(r=>roadDistance(r,clean)<10&&Math.abs(length(r.points)-roadLength)<18))return 'duplicate';const bridge=clean.some((p,i)=>i&&Math.abs(p.y-riverY(p.x))<45);s.cash-=cashCost;s.roads.push({id:crypto.randomUUID(),points:clean,age:0,bridge,condition:1});return true}
 export function eraseRoad(s,p){let hit=null,bd=24;for(const r of s.roads||[]){const q=projectOnPolyline(r.points,p);if(q&&q.distance<bd){bd=q.distance;hit=r}}if(!hit)return false;s.roads=s.roads.filter(r=>r!==hit);return true}
