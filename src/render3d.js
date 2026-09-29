@@ -10,6 +10,7 @@ let previewKey='';
 const meshes=new Map();
 const worldObjects=new Set();
 const truckMeshes=new Map();
+const routeMetrics=new WeakMap();
 
 function mat(color,roughness=.8,metalness=0){return new THREE.MeshStandardMaterial({color,roughness,metalness});}
 function box(w,h,d,color){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));}
@@ -102,25 +103,34 @@ export function cameraPointFromScreen(x,y,W=viewport.width,H=viewport.height){
   return{x:camera3d.position.x+dir.x*t,z:camera3d.position.z+dir.z*t};
 }
 function createTruckMesh(t){const g=new THREE.Group();const body=box(14,6,25,t.longDistance?'#8755c7':'#d79234');body.position.y=5;g.add(body);const cab=box(12,7,9,'#d9b75e');cab.position.set(0,6,8);g.add(cab);const wm=mat('#202729');for(const x of [-7,7])for(const z of [-7,7]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(2.7,2.7,1.8,12),wm);wh.rotation.z=Math.PI/2;wh.position.set(x,2.7,z);g.add(wh);}scene.add(g);return g;}
+function routeMetric(route){
+  let metric=routeMetrics.get(route);
+  if(metric&&metric.count===route.length)return metric;
+  const cumulative=[0];
+  for(let i=1;i<route.length;i++){
+    const a=route[i-1],b=route[i];
+    cumulative.push(cumulative[i-1]+Math.hypot(b.x-a.x,b.y-a.y));
+  }
+  metric={count:route.length,cumulative,total:cumulative.at(-1)||0};
+  routeMetrics.set(route,metric);
+  return metric;
+}
 function truckPoint(route,t){
   if(!Array.isArray(route)||!route.length)return null;
   if(route.length===1)return{x:route[0].x,y:route[0].y,next:route[0]};
   const clamped=Math.max(0,Math.min(1,Number(t)||0));
-  let total=0;
-  for(let i=1;i<route.length;i++)total+=Math.hypot(route[i].x-route[i-1].x,route[i].y-route[i-1].y);
-  if(!total)return{x:route[0].x,y:route[0].y,next:route[1]};
-  const wanted=total*clamped;
-  let run=0;
-  for(let i=1;i<route.length;i++){
-    const a=route[i-1],b=route[i],seg=Math.hypot(b.x-a.x,b.y-a.y);
-    if(run+seg>=wanted){
-      const q=seg?(wanted-run)/seg:0;
-      return{x:a.x+(b.x-a.x)*q,y:a.y+(b.y-a.y)*q,next:b};
-    }
-    run+=seg;
+  const metric=routeMetric(route);
+  if(!metric.total)return{x:route[0].x,y:route[0].y,next:route[1]};
+  const wanted=metric.total*clamped;
+  let lo=1,hi=route.length-1;
+  while(lo<hi){
+    const mid=(lo+hi)>>1;
+    if(metric.cumulative[mid]>=wanted)hi=mid;
+    else lo=mid+1;
   }
-  const last=route.at(-1);
-  return{x:last.x,y:last.y,next:last};
+  const i=lo,a=route[i-1],b=route[i],run=metric.cumulative[i-1],seg=metric.cumulative[i]-run;
+  const q=seg?(wanted-run)/seg:0;
+  return{x:a.x+(b.x-a.x)*q,y:a.y+(b.y-a.y)*q,next:b};
 }
 function drawTrucks(s){
   const active=new Set();
