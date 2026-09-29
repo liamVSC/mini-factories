@@ -117,7 +117,7 @@ function updateCamera(s,W,H){
   camera3d.updateProjectionMatrix();
 }
 function drawTrucks(s){
-  for(const [id,g] of [...meshes].filter(([k])=>String(k).startsWith('truck:')))scene.remove(g);
+  for(const [id,g] of [...meshes].filter(([k])=>String(k).startsWith('truck:'))){scene.remove(g);meshes.delete(id)}
   for(const t of s.trucks||[]){
     if(!t.route?.length)continue;
     const i=Math.min(t.route.length-1,Math.floor(t.t*(t.route.length-1)));
