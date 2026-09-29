@@ -5,8 +5,17 @@ export const riverY=x=>420+Math.sin(x*.002)*35;
 export function district(x,y){if(Math.abs(y-riverY(x))<170)return'Riverside';if(x<0&&y<180)return'Industrial';if(x>0&&y>0)return'Market Quarter';return'West End'}
 export function spawn(s,kind,forced){
   const pool=TYPES.filter(t=>t.kind===kind&&(!forced||t.name===forced));
-  const type=pool[Math.floor(Math.random()*pool.length)];
-  if(!type)return null;
+  if(!pool.length)return null;
+
+  // Keep placement random, but avoid repeatedly spawning the same building type.
+  // Forced spawns (used for the initial city) always honour the requested type.
+  let candidates=pool;
+  if(!forced&&pool.length>1){
+    const recent=s.buildings.slice(-2).map(b=>b.type);
+    const filtered=pool.filter(t=>!recent.includes(t.name));
+    if(filtered.length)candidates=filtered;
+  }
+  const type=candidates[Math.floor(Math.random()*candidates.length)];
 
   // Buildings should feel organically/randomly placed, while still respecting
   // spacing and the river so the map remains playable.
