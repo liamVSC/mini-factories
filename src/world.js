@@ -52,18 +52,20 @@ function cleanRoadPoints(points){
 }
 function roadPathBlocked(s,points){
   if(!points||points.length<2)return true;
+  const lastIndex=points.length-1;
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i];
     for(const building of s.buildings||[]){
       const clearance=(building.r||25)+9;
-      const nearStart=i===1&&dist(building,points[0])<=clearance+10;
-      const nearEnd=i===points.length-1&&dist(building,points[points.length-1])<=clearance+10;
-      if((nearStart||nearEnd)&&dist(building,i===1?points[0]:points[points.length-1])<clearance+12)continue;
+      const startClear=i===1&&dist(building,points[0])<=clearance+14;
+      const endClear=i===lastIndex&&dist(building,points[lastIndex])<=clearance+14;
+      if(startClear||endClear)continue;
       if(pointSegmentDistance(building,a,b)<clearance)return true;
     }
   }
   return false;
 }
+
 function simplifyRoad(points){
   const p=cleanRoadPoints(points);
   if(p.length<=2)return p;
