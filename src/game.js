@@ -4,6 +4,22 @@ import {updateEconomy,upgrade,newContract,research,researchCost} from './economy
 import {render} from './render.js';
 
 const GAME_VERSION='1.2';
+const CHANGELOG=[
+  {version:'1.2',date:'29 Sep 2026',items:[
+    'Rebuilt road routing around the physical road network.',
+    'Buildings now attach to real road segments.',
+    'Road intersections now work as proper junctions.',
+    'Fixed truck dispatch and delivery routing.',
+    'Added automated road and delivery regression tests.',
+    'Improved road drag handling on mobile.'
+  ]},
+  {version:'1.1',date:'28 Sep 2026',items:[
+    'Improved building visuals and road presentation.',
+    'Added clearer placement and erase feedback.',
+    'Improved mobile controls and compact panels.'
+  ]}
+];
+
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');let W=0,H=0,dpr=1;let s=load();let drag=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
 function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);if(s?.camera)clampCamera()}addEventListener('resize',resize);resize();clampCamera();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
@@ -11,6 +27,12 @@ function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSave
 function roadResultMessage(result,path){if(result===true)return 'Road built';if(result==='cash'){const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180))*2;return 'Need £'+cost+' cash (you have £'+Math.floor(s.cash)+')'}if(result==='too-short')return 'Select two different points or buildings';if(result==='blocked')return 'Road blocked — move around the building';if(result==='duplicate')return 'Road already exists here';return 'Invalid road'}
 function flash(text){const el=document.querySelector('#tip');el.textContent=text;clearTimeout(flash.timer);flash.timer=setTimeout(()=>el.textContent='Build roads between factories and shops.',1200)}
 function reset(){localStorage.removeItem('miniFactoriesSaveV6');s=freshState();seed(s);for(const b of s.buildings.filter(b=>b.kind==='shop'))newContract(s,b);document.querySelector('#settingsMenu').style.display='none';document.querySelector('#gameOver').style.display='none';s.paused=false;hidePanel();sync();save();flash('New factory started')}
+function renderChangeLog(){
+  const el=document.querySelector('#changeLog');
+  if(!el)return;
+  el.innerHTML=CHANGELOG.map(v=>'<section class="changelog-version"><div class="changelog-head"><b>v'+v.version+'</b><span>'+v.date+'</span></div><ul>'+v.items.map(x=>'<li>'+x+'</li>').join('')+'</ul></section>').join('');
+}
+renderChangeLog();
 function sync(){document.querySelector('#cash').textContent='£'+Math.floor(s.cash);document.querySelector('#orders').textContent=s.orders;document.querySelector('#companyLevel').textContent=s.companyLevel;const g=s.goals[s.objective];document.querySelector('#objective').innerHTML=g?`<b>Goal ${s.objective+1}/6</b> • ${g.text} <span>${Math.min(g.target,Math.floor(g.progress(s)))}/${g.target}</span>`:'All objectives complete';const p=document.querySelector('#panel');if(panelMode==='building'&&s.selected&&p.style.display!=='none')showPanel(s.selected);}
 function clearDynamicBuildButtons(){
   document.querySelectorAll('#panel button[id^="build"]').forEach(el=>el.style.display='none');
@@ -268,7 +290,7 @@ canvas.addEventListener('pointercancel',e=>{
   pinch=null;pinchCenter=null;drag=null;
 });
 document.querySelector('#gameVersion').textContent='v'+GAME_VERSION;
-for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['settings',()=>{document.querySelector('#settingsMenu').style.display='grid';s.paused=true}],['settingsClose',()=>{document.querySelector('#settingsMenu').style.display='none';s.paused=false}],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
+for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['settings',()=>{document.querySelector('#settingsMenu').style.display='grid';document.querySelector('#changeLog')?.style.removeProperty('display');s.paused=true}],['settingsClose',()=>{document.querySelector('#settingsMenu').style.display='none';s.paused=false}],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
 for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
 document.querySelector('#shop').onclick=null
 let uiTimer=0;
