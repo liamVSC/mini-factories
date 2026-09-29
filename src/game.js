@@ -267,12 +267,12 @@ for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
 document.querySelector('#shop').onclick=null
 let uiTimer=0;
 function tick(dt){if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);for(const p of s.particles)p.t+=dt;s.particles=s.particles.filter(p=>p.t<1);if(Math.random()<dt*.5)save()}uiTimer-=dt;if(uiTimer<=0||s.gameOver){uiTimer=.08;sync()}if(s.gameOver){document.querySelector('#gameOver').style.display='grid';document.querySelector('#score').textContent=`${s.orders} deliveries • Company Level ${s.companyLevel}.`;save()}}
-function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);render(ctx,s,W,H);if((drag?.road&&drag.preview)||roadStart){
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);render(ctx,s,W,H);if(drag?.road&&drag.preview){
   ctx.save();ctx.translate(s.camera.x,s.camera.y);ctx.scale(s.camera.zoom,s.camera.zoom);ctx.translate(-W/2,-H/2);
-  const roadDraw=drag?.preview||[roadStart,roadStart];
+  const roadDraw=drag.preview;
   ctx.lineCap='round';ctx.lineJoin='round';
   ctx.strokeStyle='#24313a55';ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(roadDraw[0].x,roadDraw[0].y);for(let i=1;i<roadDraw.length;i++)ctx.lineTo(roadDraw[i].x,roadDraw[i].y);ctx.stroke();
   ctx.strokeStyle='#58a6d8';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(roadDraw[0].x,roadDraw[0].y);for(let i=1;i<roadDraw.length;i++)ctx.lineTo(roadDraw[i].x,roadDraw[i].y);ctx.stroke();
-  for(const q of [drag?.previewStart||roadStart,drag?.previewEnd])if(q&&(!('distance' in q)||q.distance<Infinity)){ctx.fillStyle='#fff9eb';ctx.beginPath();ctx.arc(q.x,q.y,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#247ba0';ctx.lineWidth=3;ctx.stroke()}
+  for(const q of [drag?.previewStart,drag?.previewEnd])if(q&&(!('distance' in q)||q.distance<Infinity)){ctx.fillStyle='#fff9eb';ctx.beginPath();ctx.arc(q.x,q.y,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#247ba0';ctx.lineWidth=3;ctx.stroke()}
   ctx.restore()
 }requestAnimationFrame(loop)}window.addEventListener('error',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.message||'unknown error')}});window.addEventListener('unhandledrejection',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.reason?.message||e.reason||'unknown error')}});sync();requestAnimationFrame(loop);
