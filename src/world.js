@@ -4,7 +4,7 @@ export const length=pts=>pts.reduce((n,p,i)=>i?n+dist(pts[i-1],p):0,0);
 export const riverY=x=>420+Math.sin(x*.002)*35;
 export function district(x,y){if(Math.abs(y-riverY(x))<170)return'Riverside';if(x<0&&y<180)return'Industrial';if(x>0&&y>0)return'Market Quarter';return'West End'}
 export function spawn(s,kind,forced){
-  const pool=TYPES.filter(t=>t.kind===kind&&(!forced||t.name===forced));
+  const pool=TYPES.filter(t=>t.kind===kind&&(!forced||t.name===forced)&&(!t.unlock||(s.research?.[t.unlock]||0)>=t.unlockLevel));
   if(!pool.length)return null;
 
   // Keep placement random, but avoid repeatedly spawning the same building type.
