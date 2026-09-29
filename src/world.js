@@ -1,6 +1,13 @@
 import {TYPES,makeBuilding} from './state.js';
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export const length=pts=>pts.reduce((n,p,i)=>i?n+dist(pts[i-1],p):0,0);
+function pointSegmentDistance(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)return dist(p,a);const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));return dist(p,{x:a.x+dx*t,y:a.y+dy*t})}
+function nearestPointOnRoad(road,p){
+  let best=null,bd=Infinity;
+  for(let i=1;i<road.points.length;i++){const a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)continue;const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));const q={x:a.x+dx*t,y:a.y+dy*t};const d=dist(p,q);if(d<bd){bd=d;best=q}}
+  return best;
+}
+
 export const riverY=x=>420+Math.sin(x*.002)*35;
 export function district(x,y){if(Math.abs(y-riverY(x))<170)return'Riverside';if(x<0&&y<180)return'Industrial';if(x>0&&y>0)return'Market Quarter';return'West End'}
 export function buildingCost(s,type){
@@ -76,7 +83,7 @@ export function seed(s){
 
 export function pointOnRoute(points,t){const total=length(points);if(!total)return points[0];let want=total*Math.max(0,Math.min(1,t)),run=0;for(let i=1;i<points.length;i++){const seg=dist(points[i-1],points[i]);if(run+seg>=want){const q=(want-run)/seg;return{x:points[i-1].x+(points[i].x-points[i-1].x)*q,y:points[i-1].y+(points[i].y-points[i-1].y)*q}}run+=seg}return points.at(-1)}
 export function nearestBuilding(s,p){let best=null,bd=38;for(const b of s.buildings){const d=dist(b,p);if(d<bd){bd=d;best=b}}return best}
-export function nearestRoad(s,p){let best=null,bd=24;for(const r of s.roads)for(let i=1;i<r.points.length;i++){const a=r.points[i-1],b=r.points[i],dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)continue;let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/l;t=Math.max(0,Math.min(1,t));const q={x:a.x+dx*t,y:a.y+dy*t},d=dist(p,q);if(d<bd){bd=d;best=q}}return best}
+export function nearestRoad(s,p){let best=null,bd=24;for(const r of s.roads){const q=nearestPointOnRoad(r,p);if(!q)continue;const d=dist(p,q);if(d<bd){bd=d;best=q}}return best}
 export function snap(s,p){return nearestBuilding(s,p)||nearestRoad(s,p)||p}
 export function roadPath(s,a,b){
   const start=snap(s,a);
@@ -124,9 +131,12 @@ export function addRoad(s,points){
 
 function roadDistance(r,points){
   let best=Infinity;
-  for(const a of [r.points[0],r.points.at(-1)])
-    for(const b of [points[0],points.at(-1)])
-      best=Math.min(best,dist(a,b));
+  for(let i=1;i<r.points.length;i++)for(let j=1;j<points.length;j++){
+    best=Math.min(best,pointSegmentDistance(r.points[i-1],points[j-1],points[j]));
+    best=Math.min(best,pointSegmentDistance(r.points[i],points[j-1],points[j]));
+    best=Math.min(best,pointSegmentDistance(points[j-1],r.points[i-1],r.points[i]));
+    best=Math.min(best,pointSegmentDistance(points[j],r.points[i-1],r.points[i]));
+  }
   return best;
 }
 export function eraseRoad(s,p){let hit=null,bd=14;for(const r of s.roads)for(let i=1;i<r.points.length;i++){const a=r.points[i-1],b=r.points[i],dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)continue;let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/l;t=Math.max(0,Math.min(1,t));const d=dist(p,{x:a.x+dx*t,y:a.y+dy*t});if(d<bd){bd=d;hit=r}}if(!hit)return false;s.roads=s.roads.filter(r=>r!==hit);return true}
