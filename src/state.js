@@ -22,4 +22,28 @@ export function goalList(){return[
 ]}
 export function makeBuilding(type,x,y,id){return{id,x,y,r:25,storage:type.kind==='warehouse'?0:0,type:type.name,kind:type.kind,need:type.need||null,color:type.color,level:1,stock:0,max:type.kind==='factory'?4:type.kind==='warehouse'?24:8,production:0,demand:type.kind==='shop'?3:0,served:0,satisfaction:type.kind==='shop'?100:0,inventory:type.kind==='warehouse'?{}:null,loading:0,logistics:0,contract:null,district:'',pulse:Math.random()*6.28,active:0}}
 export function serialise(s){const d={...s};delete d.week;delete d.weekTime;delete d.version;return{version:6,...d,selected:null,trucks:[],particles:[]}}
-export function hydrate(d){if(!d||d.version<2||!Array.isArray(d.buildings)||!Array.isArray(d.roads))return null;const s=freshState();const keys=Object.keys(s);for(const k of keys)if(Object.prototype.hasOwnProperty.call(d,k)&&k!=='week'&&k!=='weekTime'&&k!=='version')s[k]=d[k];s.version=6;s.selected=null;s.trucks=[];s.particles=[];s.goals=goalList();for(const b of s.buildings){b.r??=25;b.active??=0;b.pulse??=Math.random()*6.28;if(b.kind==='warehouse'){b.storage=Math.max(0,Number(b.storage)||0);b.inventory=b.inventory&&typeof b.inventory==='object'?b.inventory:{}}}s.objective=Math.max(0,Math.min(5,Number(d.objective)||0));s.companyLevel=Math.max(1,Number(d.companyLevel)||1);s.xp=Math.max(0,Number(d.xp)||0);s.xpToNext=Math.max(100,Number(d.xpToNext)||100);s.research={...freshState().research,...(d.research||{})};s.roads=s.roads.filter(r=>r&&Array.isArray(r.points)&&r.points.length>=2&&r.points.every(p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y))).map(r=>({...r,points:r.points.map(p=>({x:Number(p.x),y:Number(p.y)})),bridge:!!r.bridge,condition:Number.isFinite(r.condition)?r.condition:1,age:Number.isFinite(r.age)?r.age:0}));s.buildMode=null;return s}
+const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
+function clampNumber(value,min,max,fallback=min){return Math.max(min,Math.min(max,finite(value,fallback)))}
+export function hydrate(d){if(!d||d.version<2||!Array.isArray(d.buildings)||!Array.isArray(d.roads))return null;const s=freshState();const keys=Object.keys(s);for(const k of keys)if(Object.prototype.hasOwnProperty.call(d,k)&&k!=='week'&&k!=='weekTime'&&k!=='version')s[k]=d[k];s.version=6;s.selected=null;s.trucks=[];s.particles=[];s.goals=goalList();
+s.cash=clampNumber(s.cash,0,Number.MAX_SAFE_INTEGER,500);
+s.orders=Math.max(0,Math.floor(finite(s.orders,0)));
+s.companyLevel=Math.max(1,Math.floor(finite(s.companyLevel,1)));
+s.xp=Math.max(0,finite(s.xp,0));
+s.xpToNext=Math.max(100,finite(s.xpToNext,100));
+s.roadBudget=Math.max(0,Math.floor(finite(s.roadBudget,10)));
+s.reputation=clampNumber(s.reputation,0,100,100);
+s.deliveryIncome=Math.max(0,finite(s.deliveryIncome,0));
+s.longContracts=Math.max(0,Math.floor(finite(s.longContracts,0)));
+s.objective=Math.max(0,Math.min(5,Math.floor(finite(d.objective,0))));
+s.research={...freshState().research,...(d.research||{})};
+for(const key of Object.keys(s.research))s.research[key]=clampNumber(s.research[key],0,3,0);
+s.buildings=s.buildings.filter(b=>b&&Number.isFinite(Number(b.x))&&Number.isFinite(Number(b.y))&&b.type&&b.kind).map(b=>{
+  b.x=finite(b.x);b.y=finite(b.y);b.r=clampNumber(b.r,20,60,25);b.level=Math.max(1,Math.floor(finite(b.level,1)));
+  b.max=Math.max(1,Math.floor(finite(b.max,b.kind==='factory'?4:b.kind==='warehouse'?24:8)));
+  b.stock=Math.max(0,finite(b.stock,0));b.production=Math.max(0,finite(b.production,0));b.demand=Math.max(0,finite(b.demand,0));
+  b.served=Math.max(0,finite(b.served,0));b.satisfaction=clampNumber(b.satisfaction,0,100,b.kind==='shop'?100:0);
+  b.loading=Math.max(0,Math.floor(finite(b.loading,0)));b.logistics=Math.max(0,Math.floor(finite(b.logistics,0)));
+  b.active=clampNumber(b.active,0,1,0);b.pulse=finite(b.pulse,Math.random()*6.28);
+  if(b.kind==='warehouse'){b.storage=Math.max(0,finite(b.storage,0));b.storage=Math.min(b.storage,b.max);b.inventory=b.inventory&&typeof b.inventory==='object'?b.inventory:{}}
+  return b;
+});s.roads=s.roads.filter(r=>r&&Array.isArray(r.points)&&r.points.length>=2&&r.points.every(p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y))).map(r=>({...r,points:r.points.map(p=>({x:Number(p.x),y:Number(p.y)})),bridge:!!r.bridge,condition:Number.isFinite(r.condition)?r.condition:1,age:Number.isFinite(r.age)?r.age:0}));s.buildMode=null;return s}
