@@ -204,10 +204,10 @@ export function updateEconomy(s,dt,flash){
     let cargo=0,source=f,routeToUse=choiceRoute,stage='delivery';
     if(choiceHub&&choiceHub.inventory?.[f.type]>0&&routeToUse){
       cargo=Math.min(capacity,choiceHub.inventory[f.type],Math.max(1,needed||capacity));
-      if(cargo>0){takeFromWarehouse(choiceHub,f.type,cargo);source=f;stage='delivery'}
+      if(cargo>0){source=f;stage='delivery'}
     }else{
       if(!f.stock)continue;
-      const hubForShop=choiceHub&&choiceHub!==warehouseFor(s,f)?choiceHub:null;
+      const hubForShop=choiceHub||null;
       if(hubForShop){
         const toHub=route(s,f,hubForShop);
         const toShop=route(s,hubForShop,shop);
@@ -221,17 +221,26 @@ export function updateEconomy(s,dt,flash){
         }
       }
       if(cargo===0){
-        if(!route(s,f,shop))continue;
+        const directRoute=route(s,f,shop);
+        if(!directRoute)continue;
         cargo=Math.min(capacity,f.stock,Math.max(1,needed||capacity));
-        if(cargo>0){f.stock-=cargo;routeToUse=route(s,f,shop);}
+        if(cargo>0){routeToUse=directRoute;}
       }
     }
     if(cargo<=0||!routeToUse)continue;
-    if(contract)contract.inFlight+=cargo;
     const sp=spec(f.type);
-    const valueBase=sp.price*sp.value*(1+Math.min(1.2,routeToUse.distance/650)*.45)*(1+(f.level-1)*.07+f.loading*.08)*(1+(f.logistics||0)*.04+(s.research?.logistics||0)*.04);if(!Number.isFinite(valueBase))continue;const valuePerUnit=Math.max(1,Math.round(valueBase));
+    const valueBase=sp.price*sp.value*(1+Math.min(1.2,routeToUse.distance/650)*.45)*(1+(f.level-1)*.07+f.loading*.08)*(1+(f.logistics||0)*.04+(s.research?.logistics||0)*.04);
+    if(!Number.isFinite(valueBase))continue;
+    const valuePerUnit=Math.max(1,Math.round(valueBase));
     const dispatched=dispatchTruck(s,{route:routeToUse,source:f,destination:shop,cargo,contractId:contract?.id||0,longDistance:routeToUse.distance>650,valuePerUnit,stage:'delivery'});
-  if(dispatched){f.dispatchTimer=0}else{if(contract)contract.inFlight=Math.max(0,(contract.inFlight||0)-cargo);}
+    if(!dispatched)continue;
+    if(choiceHub&&choiceHub.inventory?.[f.type]>0&&source===f&&routeToUse===choiceRoute){
+      takeFromWarehouse(choiceHub,f.type,cargo);
+    }else{
+      f.stock=Math.max(0,f.stock-cargo);
+    }
+    if(contract)contract.inFlight+=cargo;
+    f.dispatchTimer=0;
   }
 
   for(const t of s.trucks){
@@ -256,6 +265,16 @@ export function updateEconomy(s,dt,flash){
       return true;
     };
     if(!routeIsRoadBound(t)){
+      // Never silently delete cargo/contracts if a road is removed or data is stale.
+      if(t.stage==='warehouse'&&t.to){
+        const returned=Math.max(0,Number(t.cargo)||0);
+        t.source.stock=Math.min(t.source.max||Infinity,(t.source.stock||0)+returned);
+      }else if(t.contractId&&t.to?.contract?.id===t.contractId){
+        t.to.contract.inFlight=Math.max(0,(t.to.contract.inFlight||0)-(Number(t.cargo)||0));
+        t.source.stock=Math.min(t.source.max||Infinity,(t.source.stock||0)+(Number(t.cargo)||0));
+      }else{
+        t.source.stock=Math.min(t.source.max||Infinity,(t.source.stock||0)+(Number(t.cargo)||0));
+      }
       t.dead=true;
       continue;
     }
