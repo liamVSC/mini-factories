@@ -3,7 +3,7 @@ import {seed,nearestBuilding,nearestRoad,roadPath,roadPreview,addRoad,eraseRoad,
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render} from './render.js';
 
-const GAME_VERSION='1.1.11';
+const GAME_VERSION='1.2.0';
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');let W=0,H=0,dpr=1;let s=load();let drag=null;let roadStart=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
 function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);if(s?.camera)clampCamera()}addEventListener('resize',resize);resize();clampCamera();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
@@ -180,6 +180,7 @@ canvas.addEventListener('pointerdown',e=>{
     pinch={d:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),z:s.camera.zoom};
     pinchCenter={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
     drag=null;
+    roadStart=null;
     return;
   }
   const p=worldPos(e);
@@ -189,17 +190,16 @@ canvas.addEventListener('pointerdown',e=>{
     return;
   }
   if(s.mode==='erase'){eraseRoad(s,p);save();return}
-  if(s.mode==='road'&&roadStart){
-    drag={start:roadStart,armed:false};
-    return;
-  }
   if(s.mode==='select'){
     const hit=nearestBuilding(s,p);
     drag={pan:true,last:sp,start:sp,moved:false,hit};
     return;
   }
-  const start=nearestRoad(s,p)||nearestBuilding(s,p)||p;
-  drag={start,building:nearestBuilding(s,start),armed:false};
+  if(s.mode==='road'){
+    const target=nearestRoad(s,p)||nearestBuilding(s,p)||p;
+    drag={road:true,start:target,preview:null,moved:false,last:sp};
+    return;
+  }
 });
 canvas.addEventListener('pointermove',e=>{
   const sp=screenPos(e);
@@ -222,20 +222,19 @@ canvas.addEventListener('pointermove',e=>{
     drag.last=sp;
     return;
   }
-  if(!drag||s.mode!=='road')return;
+  if(!drag?.road||s.mode!=='road')return;
   const p=worldPos(e);
-  if(dist(drag.start,p)>8){
-    drag.armed=true;
+  if(Math.hypot(sp.x-drag.last.x,sp.y-drag.last.y)>2)drag.moved=true;
+  if(drag.moved){
     const preview=roadPreview(s,drag.start,p);
     drag.preview=preview.path;
     drag.previewStart=preview.start;
     drag.previewEnd=preview.end;
-    drag.snappedStart=preview.snappedStart;
-    drag.snappedEnd=preview.snappedEnd;
+    drag.blocked=preview.blocked;
   }
+  drag.last=sp;
 });
 function finish(e){
-  const sp=screenPos(e);
   pointers.delete(e.pointerId);
   try{canvas.releasePointerCapture?.(e.pointerId)}catch{}
   if(pinch&&pointers.size<2){pinch=null;pinchCenter=null;drag=null;return}
@@ -246,16 +245,22 @@ function finish(e){
     drag=null;
     return;
   }
-  if(drag?.armed){
-    const p=worldPos(e),preview=roadPreview(s,drag.start,p),path=preview.path;
-    const result=addRoad(s,path);if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,path))
-  }else if(s.mode==='road'){
+  if(drag?.road&&s.mode==='road'){
     const p=worldPos(e);
-    const snapped=nearestRoad(s,p)||nearestBuilding(s,p)||p;
-    if(!roadStart){roadStart=snapped;flash('Start set — tap or drag to the road end')}
-    else{
-      const preview=roadPreview(s,roadStart,p);
-      const result=addRoad(s,preview.path);if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,preview.path))
+    if(!drag.moved){
+      const target=nearestRoad(s,p)||nearestBuilding(s,p)||p;
+      if(!roadStart){
+        roadStart=target;
+        flash('Start set — drag to the next building');
+      }else{
+        const preview=roadPreview(s,roadStart,p);
+        const result=addRoad(s,preview.path);
+        if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,preview.path));
+      }
+    }else{
+      const preview=roadPreview(s,drag.start,p);
+      const result=addRoad(s,preview.path);
+      if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,preview.path));
     }
   }
   drag=null;
