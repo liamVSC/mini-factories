@@ -1,6 +1,6 @@
 import {TYPES,makeBuilding} from './state.js';
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export const length=pts=>pts.reduce((n,p,i)=>i?n+dist(pts[i-1],p):0);
+export const length=pts=>pts.reduce((n,p,i)=>i?n+dist(pts[i-1],p):0,0);
 function projectSegment(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)return{point:{x:a.x,y:a.y},distance:dist(p,a)};const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));const point={x:a.x+dx*t,y:a.y+dy*t};return{point,distance:dist(p,point)}}
 function nearestPointOnRoad(road,p){let best=null,bd=Infinity;for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(q.distance<bd){bd=q.distance;best=q.point}}return best}
 export const riverY=x=>420+Math.sin(x*.002)*35;
