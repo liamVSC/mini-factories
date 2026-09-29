@@ -70,6 +70,21 @@ export function newContract(s,shop){
   shop.contract={id:s.contractId++,type:shop.need,qty,remaining:qty,reward,expires:65+shop.level*10,initial:qty,urgent:Math.random()>.72,inFlight:0};
 }
 
+export function researchCost(s,type){
+  const level=s.research?.[type]||0;
+  return Math.round(180*Math.pow(1.65,level));
+}
+
+export function research(s,type){
+  if(!s.research||!(type in s.research))return false;
+  const level=s.research[type];
+  const cost=researchCost(s,type);
+  if(s.cash<cost||level>=3)return false;
+  s.cash-=cost;
+  s.research[type]=level+1;
+  return true;
+}
+
 export function upgrade(s,b,n){
   if(b.kind==='factory'){
     const price=n===1?120*b.level:n===2?180+(b.max-4)/2*70:n===3?220*(b.loading+1):300*(b.logistics+1);
@@ -93,7 +108,7 @@ export function updateEconomy(s,dt,flash){
 
   if(s.nextBuilding<=0){
     s.nextBuilding=Math.max(12,22-s.companyLevel*.8);
-    if(s.buildings.length<10){
+    if(s.buildings.length<10+(s.research?.industry||0)*2){
       const shops=s.buildings.filter(b=>b.kind==='shop');
       const fs=s.buildings.filter(b=>b.kind==='factory');
       const missingShop=fs.find(f=>!shops.some(sh=>sh.need===f.type));
@@ -111,7 +126,7 @@ export function updateEconomy(s,dt,flash){
   for(const b of s.buildings){
     if(b.kind==='factory'){
       const f=spec(b.type);
-      b.production+=dt*.46*b.level*f.speed*(1+b.loading*.1);
+      b.production+=dt*.46*b.level*f.speed*(1+b.loading*.1)*(1+(s.research?.automation||0)*.08);
       b.active=Math.min(1,b.active+dt*2.5);
       if(b.production>=1&&b.stock<b.max){
         const n=Math.floor(b.production);b.production-=n;b.stock=Math.min(b.max,b.stock+n);
@@ -157,7 +172,7 @@ export function updateEconomy(s,dt,flash){
         sp.price*sp.value*
         (1+Math.min(1.2,r.distance/650)*.45)*
         (1+(f.level-1)*.07+f.loading*.08)*
-        (1+f.logistics*.04)
+        (1+f.logistics*.04+(s.research?.logistics||0)*.04)
       ));
       s.trucks.push({
         route:r.points,t:0,speed:.085*sp.speed*(1+(f.level-1)*.08+f.loading*.04),
