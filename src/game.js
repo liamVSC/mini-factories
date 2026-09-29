@@ -1,6 +1,6 @@
 import {freshState,hydrate,serialise,TYPES} from './state.js';
 import {seed,spawn,nearestBuilding,nearestRoad,roadPath,addRoad,eraseRoad,dist} from './world.js';
-import {updateEconomy,upgrade,newContract} from './economy.js';
+import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render} from './render.js';
 
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');let W=0,H=0,dpr=1;let s=load();let drag=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;
@@ -40,6 +40,27 @@ function showPanel(b){
   if(b.kind==='shop'){
     shop.innerHTML='🏪 Upgrade shop <span>£'+(220*b.level)+'</span><small>Increase capacity and customer demand.</small>';
     shop.disabled=b.level>=3;
+  }
+}
+function showResearch(){
+  const p=document.querySelector('#panel');
+  p.style.display='block';
+  document.querySelector('#objective').style.display='none';
+  document.querySelector('#name').textContent='Research';
+  document.querySelector('#type').textContent='Company development';
+  document.querySelector('#info').innerHTML='<b>Level '+s.companyLevel+'</b> • XP '+Math.floor(s.xp)+'/'+s.xpToNext;
+  document.querySelector('#shop').style.display='none';
+  const data=[
+    ['u1','automation','⚡ Automation','Faster factory production.'],
+    ['u2','logistics','🚚 Logistics','Higher delivery value.'],
+    ['u3','industry','🏭 Industry','Increase maximum city size.']
+  ];
+  for(let i=0;i<4;i++)document.querySelector('#u'+(i+1)).style.display=i<3?'block':'none';
+  for(const [id,key,label,desc] of data){
+    const el=document.querySelector('#'+id),level=s.research[key]||0;
+    el.innerHTML=label+' <span>£'+researchCost(s,key)+'</span><small>Lv '+level+'/3 • '+desc+'</small>';
+    el.disabled=level>=3||s.cash<researchCost(s,key);
+    el.onclick=()=>{if(research(s,key)){save();sync();showResearch()}};
   }
 }
 function hidePanel(){s.selected=null;document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
