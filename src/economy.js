@@ -100,10 +100,19 @@ export function updateEconomy(s,dt,flash){
 
   if(s.nextBuilding<=0){
     s.nextBuilding=Math.max(14,24-s.week*.35);
-    if(s.buildings.length<16){
-      const shops=s.buildings.filter(b=>b.kind==='shop'),fs=s.buildings.filter(b=>b.kind==='factory');
-      const target=Math.random()<.5?shops[Math.floor(Math.random()*shops.length)]:fs[Math.floor(Math.random()*fs.length)];
-      if(target)spawn(s,target.kind==='shop'?'factory':'shop',target.kind==='shop'?target.need:target.type);
+    if(s.buildings.length<10){
+      // Keep growth random, but prioritise completing missing production chains.
+      const shops=s.buildings.filter(b=>b.kind==='shop');
+      const fs=s.buildings.filter(b=>b.kind==='factory');
+      const missingShop=fs.find(f=>!shops.some(sh=>sh.need===f.type));
+      const missingFactory=shops.find(sh=>!fs.some(f=>f.type===sh.need));
+      if(missingShop)spawn(s,'shop',missingShop.type);
+      else if(missingFactory)spawn(s,'factory',missingFactory.need);
+      else{
+        const pool=Math.random()<.5?shops:fs;
+        const target=pool[Math.floor(Math.random()*pool.length)];
+        if(target)spawn(s,target.kind==='shop'?'factory':'shop',target.kind==='shop'?target.need:target.type);
+      }
     }
   }
 
