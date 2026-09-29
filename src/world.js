@@ -154,6 +154,17 @@ export function roadPath(s,a,b){
   const existing=routeOnRoadNetwork(s,start,end);
   return existing?existing.points:null;
 }
+function roadDistance(a,b){
+  let best=Infinity;
+  for(let i=1;i<a.points.length;i++){
+    const pa=a.points[i-1],pb=a.points[i];
+    for(let j=1;j<b.length;j++){
+      const pc=b[j-1],pd=b[j];
+      best=Math.min(best,projectSegment(pa,pc,pd).distance,projectSegment(pb,pc,pd).distance,projectSegment(pc,pa,pb).distance,projectSegment(pd,pa,pb).distance);
+    }
+  }
+  return best;
+}
 export function addRoad(s,points){
  if(!Array.isArray(points)||points.length<2)return false;
  const clean=points.filter((p,i)=>!i||dist(p,points[i-1])>10);if(clean.length<2)return false;
