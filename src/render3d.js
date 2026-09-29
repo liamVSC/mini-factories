@@ -5,6 +5,7 @@ let target={x:0,z:0,yaw:0,pitch:.82,distance:620};
 let desired={...target};
 let home={x:0,z:0};
 let cameraReady=false;
+let viewport={width:1,height:1};
 const meshes=new Map();
 
 function mat(color,roughness=.8,metalness=0){return new THREE.MeshStandardMaterial({color,roughness,metalness});}
@@ -41,7 +42,12 @@ function init(canvas){
   const water=box(2600,.7,78,'#5f9db3');water.position.set(0,.1,0);scene.add(water);
   resize(canvas.clientWidth||innerWidth,canvas.clientHeight||innerHeight);
 }
-function resize(w,h){if(!renderer)return;renderer.setSize(Math.max(1,w),Math.max(1,h),false);if(camera3d)camera3d.updateProjectionMatrix();}
+function resize(w,h){
+  if(!renderer)return;
+  viewport.width=Math.max(1,w);viewport.height=Math.max(1,h);
+  renderer.setSize(viewport.width,viewport.height,false);
+  if(camera3d)camera3d.updateProjectionMatrix();
+}
 function syncWorld(s){
   if(!scene)return;clearDynamic();
   const pts=[];for(const b of s.buildings||[]){addBuilding(b);if(Number.isFinite(b.x)&&Number.isFinite(b.y))pts.push({x:b.x,z:b.y});}
@@ -59,7 +65,35 @@ function updateCamera(s,W,H){
 export function resetCamera(){desired.x=home.x;desired.z=home.z;desired.yaw=0;desired.pitch=.82;desired.distance=620;target={...desired};}
 export function focusCamera(x,z){desired.x=Number(x)||home.x;desired.z=Number(z)||home.z;}
 export function controlCamera(dx,dy,distanceDelta=0,yawDelta=0,pitchDelta=0){desired.x+=dx;desired.z+=dy;desired.distance=Math.max(280,Math.min(1100,desired.distance+distanceDelta));desired.yaw+=yawDelta;desired.pitch=Math.max(.52,Math.min(1.18,desired.pitch+pitchDelta));}
-export function cameraPointFromScreen(x,y,W,H){if(!camera3d)return{x:home.x,z:home.z};const ndc=new THREE.Vector3((x/W)*2-1,-(y/H)*2+1,0);ndc.unproject(camera3d);const dir=ndc.sub(camera3d.position).normalize();const t=-camera3d.position.y/dir.y;return{x:camera3d.position.x+dir.x*t,z:camera3d.position.z+dir.z*t};}
+export function cameraPointFromScreen(x,y,W=viewport.width,H=viewport.height){
+  if(!camera3d)return{x:home.x,z:home.z};
+  const ndc=new THREE.Vector3((x/W)*2-1,-(y/H)*2+1,0);
+  ndc.unproject(camera3d);
+  const dir=ndc.sub(camera3d.position).normalize();
+  const t=-camera3d.position.y/dir.y;
+  return{x:camera3d.position.x+dir.x*t,z:camera3d.position.z+dir.z*t};
+}
+export function screenToWorld(x,y,W=viewport.width,H=viewport.height){return cameraPointFromScreen(x,y,W,H);}
+export function worldToScreen(x,z,W=viewport.width,H=viewport.height){
+  if(!camera3d)return{x:W/2,y:H/2,visible:false};
+  const p=new THREE.Vector3(x,0,z).project(camera3d);
+  return{x:(p.x+1)*.5*W,y:(1-p.y)*.5*H,visible:p.z>=-1&&p.z<=1};
+}
+export function panScreen(dx,dy,W=viewport.width,H=viewport.height){
+  const a=cameraPointFromScreen(W/2,H/2,W,H),b=cameraPointFromScreen(W/2-dx,H/2-dy,W,H);
+  controlCamera(b.x-a.x,b.z-a.z);
+  return{x:b.x-a.x,z:b.z-a.z};
+}
+export function zoomAtScreen(x,y,zoomFactor,W=viewport.width,H=viewport.height){
+  const before=cameraPointFromScreen(x,y,W,H);
+  const current=Math.max(.55,Math.min(2.4,Number(desired.zoom)||Math.max(.55,Math.min(2.4,620/Math.max(1,desired.distance)))));
+  const next=Math.max(.55,Math.min(2.4,current*zoomFactor));
+  desired.distance=Math.max(280,Math.min(1100,Math.max(W,H)*1.05/next));
+  updateCamera({camera:{zoom:next}},W,H);
+  const after=cameraPointFromScreen(x,y,W,H);
+  controlCamera(before.x-after.x,before.z-after.z);
+  return next;
+}
 function drawTrucks(s){for(const [id,g] of [...meshes].filter(([k])=>String(k).startsWith('truck:'))){scene.remove(g);meshes.delete(id);}for(const t of s.trucks||[]){if(!t.route?.length)continue;const i=Math.min(t.route.length-1,Math.floor(t.t*(t.route.length-1))),p=t.route[i],q=t.route[Math.min(t.route.length-1,i+1)],g=new THREE.Group();const body=box(14,6,25,t.longDistance?'#8755c7':'#d79234');body.position.y=5;g.add(body);const cab=box(12,7,9,'#d9b75e');cab.position.set(0,6,8);g.add(cab);const wm=mat('#202729');for(const x of [-7,7])for(const z of [-7,7]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(2.7,2.7,1.8,12),wm);wh.rotation.z=Math.PI/2;wh.position.set(x,2.7,z);g.add(wh);}g.position.set(p.x,0,p.y);g.lookAt(q.x,0,q.y);scene.add(g);meshes.set('truck:'+t.id,g);}}
 export function setPreview(path,start,end,blocked=false){if(!previewGroup)return;while(previewGroup.children.length)previewGroup.remove(previewGroup.children[0]);if(!path||path.length<2)return;const curve=new THREE.CatmullRomCurve3(path.map(p=>new THREE.Vector3(p.x,.45,p.y)),false,'catmullrom',.1);previewGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,path.length*8),2.4,8,false),mat(blocked?'#d85a52':'#58a6d8')));for(const q of [start,end])if(q){const m=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),mat(blocked?'#d85a52':'#f4e5a8'));m.position.set(q.x,.8,q.y);previewGroup.add(m);}}
 export function render(ctx,s,W,H,canvas=document.querySelector('#game')){init(canvas);resize(W,H);const sig=worldSignature(s);if(render.lastSignature!==sig){syncWorld(s);render.lastSignature=sig;}for(const b of s.buildings||[])updateBuilding(b,s.selected===b);updateCamera(s,W,H);drawTrucks(s);renderer.render(scene,camera3d);}
