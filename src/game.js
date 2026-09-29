@@ -69,7 +69,7 @@ function showBuild(){
   panelMode='build';s.selected=null;
   clearDynamicBuildButtons();
   clearButtonActions();
-  const p=document.querySelector('#panel');p.style.display='block';document.querySelector('#objective').style.display='none';
+  const p=document.querySelector('#panel');p.classList.remove('shop-panel','factory-panel','warehouse-panel','research-panel','company-panel');p.classList.add('build-panel');p.style.display='block';document.querySelector('#objective').style.display='none';
   document.querySelector('#name').textContent='Build';document.querySelector('#type').textContent='Construction';
   document.querySelector('#info').innerHTML='<b>Cash £'+Math.floor(s.cash)+'</b> • Choose a building';
   document.querySelector('#shop').style.display='none';
@@ -84,6 +84,7 @@ function showCompany(){
   clearDynamicBuildButtons();
   clearButtonActions();
   const p=document.querySelector('#panel');
+  p.classList.remove('shop-panel','factory-panel','warehouse-panel','research-panel','build-panel');p.classList.add('company-panel');
   p.style.display='block';
   document.querySelector('#objective').style.display='none';
   document.querySelector('#name').textContent='Company';
@@ -108,6 +109,7 @@ function showResearch(){
   clearDynamicBuildButtons();
   clearButtonActions();
   const p=document.querySelector('#panel');
+  p.classList.remove('shop-panel','factory-panel','warehouse-panel','company-panel','build-panel');p.classList.add('research-panel');
   p.style.display='block';
   document.querySelector('#objective').style.display='none';
   document.querySelector('#name').textContent='Research';
@@ -127,7 +129,7 @@ function showResearch(){
     el.onclick=()=>{if(research(s,key)){save();sync();showResearch()}};
   }
 }
-function hidePanel(){panelMode='none';s.selected=null;s.buildMode=null;if(s.mode==='build')s.mode='select';document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
+function hidePanel(){const p=document.querySelector('#panel');p.classList.remove('shop-panel','factory-panel','warehouse-panel','research-panel','company-panel','build-panel');panelMode='none';s.selected=null;s.buildMode=null;if(s.mode==='build')s.mode='select';document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
 function worldPos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left-s.camera.x)/s.camera.zoom+W/2,y:(e.clientY-r.top-s.camera.y)/s.camera.zoom+H/2}}
 function worldFromScreen(p){return{x:(p.x-s.camera.x)/s.camera.zoom+W/2,y:(p.y-s.camera.y)/s.camera.zoom+H/2}}
 function worldBounds(){
