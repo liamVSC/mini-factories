@@ -86,7 +86,7 @@ test('completed delivery updates cash, orders, income and shop service',()=>{
   s.trucks.push(t);
   updateEconomy(s,.1,()=>{});
   assert.equal(s.trucks.length,0);
-  assert.equal(s.cash,600);
+  assert.equal(s.cash,550);
   assert.equal(s.orders,2);
   assert.equal(s.deliveryIncome,50);
   assert.equal(s.deliveredBy.Food,2);
