@@ -55,13 +55,15 @@ function cleanRoadPoints(points){
 function roadPathBlocked(s,points){
   if(!points||points.length<2)return true;
   const lastIndex=points.length-1;
+  const startBuilding=nearestBuilding(s,points[0]);
+  const endBuilding=nearestBuilding(s,points[lastIndex]);
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i];
     for(const building of s.buildings||[]){
       const clearance=(building.r||25)+9;
-      const startClear=i===1&&dist(building,points[0])<=clearance+14;
-      const endClear=i===lastIndex&&dist(building,points[lastIndex])<=clearance+14;
-      if(startClear||endClear)continue;
+      // Endpoint buildings are intentionally allowed to touch their road.
+      // Do not let the opposite endpoint building block the first/last segment.
+      if((i===1&&building===startBuilding)||(i===lastIndex&&building===endBuilding))continue;
       if(pointSegmentDistance(building,a,b)<clearance)return true;
     }
   }
