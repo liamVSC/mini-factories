@@ -89,19 +89,10 @@ export function upgrade(s,b,n){
 }
 
 export function updateEconomy(s,dt,flash){
-  s.weekTime+=dt;s.nextBuilding-=dt;
-
-  if(s.weekTime>=32){
-    s.week++;s.weekTime=0;s.roadBudget+=5;s.cash+=35+s.week*4;
-    for(const b of s.buildings)if(b.kind==='shop'){
-      b.demand=Math.min(14,b.demand+1+Math.random()*2);
-      if(!b.contract)newContract(s,b);
-    }
-    flash(`Week ${s.week} • +5 roads • £${35+s.week*4}`);
-  }
+  s.nextBuilding-=dt;
 
   if(s.nextBuilding<=0){
-    s.nextBuilding=Math.max(14,24-s.week*.35);
+    s.nextBuilding=Math.max(12,22-s.companyLevel*.8);
     if(s.buildings.length<10){
       // Keep growth random, but prioritise completing missing production chains.
       const shops=s.buildings.filter(b=>b.kind==='shop');
@@ -132,7 +123,7 @@ export function updateEconomy(s,dt,flash){
       b.active=Math.max(0,b.active-dt*2.2);
       // Demand grows gradually with the week, with shop upgrades giving
       // a modest extra pull rather than an immediate spike.
-      b.demand=Math.min(14,b.demand+dt*(.045+s.week*.0025)*(1+b.level*.06));
+      b.demand=Math.min(14,b.demand+dt*(.05+s.companyLevel*.003)*(1+b.level*.06));
       b.satisfaction=Math.max(0,Math.min(100,100-b.demand*4+(b.served||0)*1.5));
       b.sales=(b.sales||0)+dt*(b.served||0)*.2;
       if(!b.contract&&Math.random()<dt*.012)newContract(s,b);
@@ -205,7 +196,7 @@ export function updateEconomy(s,dt,flash){
     const congestionFactor=Math.max(.65,1-(s.congestion*.18));
     t.t+=dt*t.speed*congestionFactor;
     if(t.t>=1){
-      s.cash+=t.value;s.deliveryIncome+=t.value;s.orders++;t.to.served=(t.to.served||0)+1;t.to.satisfaction=Math.min(100,(t.to.satisfaction||50)+4);
+      s.cash+=t.value;s.deliveryIncome+=t.value;s.orders++;s.xp+=Math.max(2,Math.round(t.value*.08));t.to.served=(t.to.served||0)+1;t.to.satisfaction=Math.min(100,(t.to.satisfaction||50)+4);
       s.deliveredBy[t.source.type]=(s.deliveredBy[t.source.type]||0)+1;
 
       if(t.contractId&&t.to.contract?.id===t.contractId){
@@ -226,6 +217,8 @@ export function updateEconomy(s,dt,flash){
   }
 
   s.trucks=s.trucks.filter(t=>!t.dead);
+  while(s.xp>=s.xpToNext){s.xp-=s.xpToNext;s.companyLevel++;s.xpToNext=Math.round(100*Math.pow(1.22,s.companyLevel-1));s.roadBudget+=3;flash(`Company Level ${s.companyLevel} • +3 roads`)}
+
   s.congestion=Math.min(1,(s.trucks.length+s.trucks.filter(t=>t.wait>0).length*1.5)/Math.max(3,s.roads.length*2));
   const reduction=s.trucks.reduce((n,t)=>n+(t.source?.logistics||0),0)/Math.max(1,s.trucks.length);
   s.cash-=s.roads.length*dt*.055*(1+s.congestion*Math.max(.55,1-reduction*.12));
