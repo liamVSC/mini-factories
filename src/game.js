@@ -3,8 +3,15 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadPreview,addRoad,
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer} from './render.js';
 
-const GAME_VERSION='1.2';
+const GAME_VERSION='1.3';
 const CHANGELOG=[
+  {version:'1.3',date:'29 Sep 2026',items:[
+    'Rebuilt the map renderer as a real-time 3D scene.',
+    'Added 3D factories, warehouses, shops and trucks.',
+    'Added 3D roads, bridges, lighting and depth.',
+    'Added a 3D road construction preview.',
+    'Kept the existing logistics and economy systems intact.'
+  ]},
   {version:'1.2',date:'29 Sep 2026',items:[
     'Rebuilt road routing around the physical road network.',
     'Buildings now attach to real road segments.',
