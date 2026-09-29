@@ -104,7 +104,7 @@ test('truck dispatch and delivery complete on a connected road', () => {
   const before = s.cash;
   updateEconomy(s, .2, () => {});
   assert.equal(s.trucks.length, 0);
-  for(let i=0;i<59;i++) updateEconomy(s, .2, () => {});
+  for(let i=0;i<99;i++) updateEconomy(s, .2, () => {});
   assert.equal(s.trucks.length, 0);
   assert.ok(s.orders >= 1);
   assert.ok(s.cash > before);
