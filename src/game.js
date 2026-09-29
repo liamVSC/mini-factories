@@ -38,6 +38,7 @@ function showPanel(b){
 
   for(let i=1;i<=4;i++){
     const el=document.querySelector('#u'+i);
+    el.onclick=null;
     el.style.display=b.kind==='factory'?'block':'none';
     const price=i===1?120*b.level:i===2?180+(b.max-4)/2*70:i===3?220*(b.loading+1):300*(b.logistics+1);
     const labels=[
@@ -48,13 +49,16 @@ function showPanel(b){
     ][i-1];
     el.innerHTML=labels[0]+' <span>£'+Math.round(price)+'</span><small>'+labels[1]+'</small>';
     el.disabled=i===1?b.level>=3:i===2?b.max>=14:i===3?b.loading>=2:b.logistics>=2;
+    el.onclick=()=>{if(!el.disabled&&upgrade(s,b,i)){save();sync();showPanel(b)}};
   }
 
   const shop=document.querySelector('#shop');
   shop.style.display=b.kind==='shop'?'block':'none';
+  shop.onclick=null;
   if(b.kind==='shop'){
     shop.innerHTML='🏪 Upgrade shop <span>£'+(220*b.level)+'</span><small>Increase capacity and customer demand.</small>';
     shop.disabled=b.level>=3;
+    shop.onclick=()=>{if(!shop.disabled&&upgrade(s,b,1)){save();sync();showPanel(b)}};
   }
 }
 function showBuild(){
@@ -231,7 +235,8 @@ function finish(e){
 }
 canvas.addEventListener('pointerup',finish);canvas.addEventListener('pointercancel',finish);
 for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['pause',()=>{s.paused=!s.paused;document.querySelector('#pauseMenu').style.display=s.paused?'grid':'none';document.querySelector('#pause').textContent=s.paused?'▶ Resume':'Ⅱ Pause'}],['resume',()=>{s.paused=false;document.querySelector('#pauseMenu').style.display='none';document.querySelector('#pause').textContent='Ⅱ Pause'}],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
-for(let i=1;i<=4;i++)document.querySelector('#u'+i).addEventListener('click',()=>{if(s.selected&&upgrade(s,s.selected,i)){save();sync();showPanel(s.selected)}});document.querySelector('#shop').addEventListener('click',()=>{if(s.selected&&upgrade(s,s.selected,1)){save();sync();showPanel(s.selected)}});
+for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
+document.querySelector('#shop').onclick=null
 let uiTimer=0;
 function tick(dt){if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);for(const p of s.particles)p.t+=dt;s.particles=s.particles.filter(p=>p.t<1);if(Math.random()<dt*.5)save()}uiTimer-=dt;if(uiTimer<=0||s.gameOver){uiTimer=.08;sync()}if(s.gameOver){document.querySelector('#gameOver').style.display='grid';document.querySelector('#score').textContent=`${s.orders} deliveries • Company Level ${s.companyLevel}.`;save()}}
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);render(ctx,s,W,H);if(drag?.armed){const p=drag.preview;if(p){ctx.save();ctx.translate(s.camera.x,s.camera.y);ctx.scale(s.camera.zoom,s.camera.zoom);ctx.translate(-W/2,-H/2);ctx.strokeStyle='#8bd5ff99';ctx.lineWidth=6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(p[0].x,p[0].y);for(let i=1;i<p.length;i++)ctx.lineTo(p[i].x,p[i].y);ctx.stroke();ctx.restore()}}requestAnimationFrame(loop)}window.addEventListener('error',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.message||'unknown error')}});window.addEventListener('unhandledrejection',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.reason?.message||e.reason||'unknown error')}});sync();requestAnimationFrame(loop);
