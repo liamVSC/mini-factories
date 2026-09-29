@@ -3,7 +3,7 @@ import {seed,nearestBuilding,nearestRoad,roadPath,roadPreview,addRoad,eraseRoad,
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render} from './render.js';
 
-const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');let W=0,H=0,dpr=1;let s=load();let drag=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
+const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');let W=0,H=0,dpr=1;let s=load();let drag=null;let roadStart=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
 function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);if(s?.camera)clampCamera()}addEventListener('resize',resize);resize();clampCamera();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
 function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSaveV6',JSON.stringify(serialise(s)))}catch{}}
@@ -156,7 +156,7 @@ function clampCamera(){
 }
 function panBy(dx,dy){s.camera.x+=dx;s.camera.y+=dy;clampCamera()}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-function toggleMode(m){s.mode=s.mode===m?'select':m;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase')}
+function toggleMode(m){s.mode=s.mode===m?'select':m;roadStart=null;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase')}
 function setZoomAt(screen,z){
   const before=worldFromScreen(screen);
   s.camera.zoom=Math.max(.55,Math.min(2,z));
@@ -182,6 +182,10 @@ canvas.addEventListener('pointerdown',e=>{
     return;
   }
   if(s.mode==='erase'){eraseRoad(s,p);save();return}
+  if(s.mode==='road'&&roadStart){
+    drag={start:roadStart,armed:true,preview:roadPreview(s,roadStart,p).path};
+    return;
+  }
   if(s.mode==='select'){
     const hit=nearestBuilding(s,p);
     drag={pan:true,last:sp,start:sp,moved:false,hit};
@@ -237,7 +241,17 @@ function finish(e){
   }
   if(drag?.armed){
     const p=worldPos(e),preview=roadPreview(s,drag.start,p),path=preview.path;
-    if(addRoad(s,path)){flash('Road built');save()}else flash('Not enough road budget or cash');
+    if(addRoad(s,path)){flash('Road built');save();roadStart=null}
+    else flash('Not enough road budget or cash');
+  }else if(s.mode==='road'){
+    const p=worldPos(e);
+    const snapped=nearestRoad(s,p)||nearestBuilding(s,p)||p;
+    if(!roadStart){roadStart=snapped;flash('Start set — tap or drag to the road end')}
+    else{
+      const preview=roadPreview(s,roadStart,p);
+      if(addRoad(s,preview.path)){flash('Road built');save();roadStart=null}
+      else flash('Not enough road budget or cash');
+    }
   }
   drag=null;
 }
@@ -247,11 +261,12 @@ for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
 document.querySelector('#shop').onclick=null
 let uiTimer=0;
 function tick(dt){if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);for(const p of s.particles)p.t+=dt;s.particles=s.particles.filter(p=>p.t<1);if(Math.random()<dt*.5)save()}uiTimer-=dt;if(uiTimer<=0||s.gameOver){uiTimer=.08;sync()}if(s.gameOver){document.querySelector('#gameOver').style.display='grid';document.querySelector('#score').textContent=`${s.orders} deliveries • Company Level ${s.companyLevel}.`;save()}}
-function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);render(ctx,s,W,H);if(drag?.armed&&drag.preview){
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);render(ctx,s,W,H);if((drag?.armed&&drag.preview)||roadStart){
   ctx.save();ctx.translate(s.camera.x,s.camera.y);ctx.scale(s.camera.zoom,s.camera.zoom);ctx.translate(-W/2,-H/2);
+  const roadDraw=drag?.preview||[roadStart,roadStart];
   ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.strokeStyle='#24313a55';ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(drag.preview[0].x,drag.preview[0].y);for(let i=1;i<drag.preview.length;i++)ctx.lineTo(drag.preview[i].x,drag.preview[i].y);ctx.stroke();
-  ctx.strokeStyle=drag.snappedStart||drag.snappedEnd?'#58a6d8':'#8bd5ff99';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(drag.preview[0].x,drag.preview[0].y);for(let i=1;i<drag.preview.length;i++)ctx.lineTo(drag.preview[i].x,drag.preview[i].y);ctx.stroke();
-  for(const q of [drag.previewStart,drag.previewEnd])if(q&&q.distance<Infinity){ctx.fillStyle='#fff9eb';ctx.beginPath();ctx.arc(q.x,q.y,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#247ba0';ctx.lineWidth=3;ctx.stroke()}
+  ctx.strokeStyle='#24313a55';ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(roadDraw[0].x,roadDraw[0].y);for(let i=1;i<roadDraw.length;i++)ctx.lineTo(roadDraw[i].x,roadDraw[i].y);ctx.stroke();
+  ctx.strokeStyle='#58a6d8';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(roadDraw[0].x,roadDraw[0].y);for(let i=1;i<roadDraw.length;i++)ctx.lineTo(roadDraw[i].x,roadDraw[i].y);ctx.stroke();
+  for(const q of [drag?.previewStart||roadStart,drag?.previewEnd])if(q&&q.distance<Infinity){ctx.fillStyle='#fff9eb';ctx.beginPath();ctx.arc(q.x,q.y,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#247ba0';ctx.lineWidth=3;ctx.stroke()}
   ctx.restore()
 }requestAnimationFrame(loop)}window.addEventListener('error',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.message||'unknown error')}});window.addEventListener('unhandledrejection',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.reason?.message||e.reason||'unknown error')}});sync();requestAnimationFrame(loop);
