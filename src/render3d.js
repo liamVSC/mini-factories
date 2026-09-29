@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 
-let renderer=null,scene=null,camera3d=null,root=null;
+let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null;
 const meshes=new Map();
 
 function mat(color,roughness=.8,metalness=0){
@@ -56,6 +56,7 @@ function addBuilding(b){
   const shadow=box(w*.94,.5,d*.94,'#6e766d');shadow.position.y=.25;shadow.material.transparent=true;shadow.material.opacity=.22;g.add(shadow);
   g.position.set(b.x,0,b.y);
   g.userData.building=b;
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true});
   scene.add(g);
   meshes.set(b.id,g);
 }
@@ -79,6 +80,8 @@ function init(canvas){
   scene.background=new THREE.Color('#aebd91');
   root=new THREE.Group();
   scene.add(root);
+  previewGroup=new THREE.Group();
+  scene.add(previewGroup);
   const hemi=new THREE.HemisphereLight('#f7f2df','#68745e',2.1);scene.add(hemi);
   const sun=new THREE.DirectionalLight('#fff1cf',3.2);
   sun.position.set(-240,320,180);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
@@ -131,7 +134,16 @@ function drawTrucks(s){
     scene.add(g);meshes.set('truck:'+t.id,g);
   }
 }
-export function render(ctx,s,W,H,canvas){
+export function setPreview(path,start,end,blocked=false){
+  if(!previewGroup)return;
+  while(previewGroup.children.length)previewGroup.remove(previewGroup.children[0]);
+  if(!path||path.length<2)return;
+  const curve=new THREE.CatmullRomCurve3(path.map(p=>new THREE.Vector3(p.x,.45,p.y)),false,'catmullrom',.1);
+  const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,path.length*8),2.4,8,false),mat(blocked?'#d85a52':'#58a6d8'));
+  previewGroup.add(tube);
+  for(const q of [start,end])if(q){const m=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),mat(blocked?'#d85a52':'#f4e5a8'));m.position.set(q.x,.8,q.y);previewGroup.add(m)}
+}
+export function render(ctx,s,W,H,canvas=document.querySelector('#game')){
   init(canvas);
   resize(W,H);
   if(!render.lastSignature||render.lastSignature!==worldSignature(s)){
