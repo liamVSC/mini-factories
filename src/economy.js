@@ -71,8 +71,20 @@ export function route(s,a,b){
     }
     return false;
   };
-  // Ignore the two building access points; every intermediate route point
-  // must sit on an actual rendered road.
+  // Trucks may only use routes whose endpoints are physically attached
+  // to a real road. Do not allow the old "driveway" behaviour where a truck
+  // can leave a building, travel off-road, and then join a road.
+  const endpointAttached=(building)=>{
+    if(!building)return false;
+    const maxDistance=Math.max(4,(building.r||25)+4);
+    return visibleRoads.some(road=>{
+      for(let i=1;i<road.points.length;i++){
+        if(pointSegmentDistance(building,road.points[i-1],road.points[i])<=maxDistance)return true;
+      }
+      return false;
+    });
+  };
+  if(!endpointAttached(a)||!endpointAttached(b))return null;
   for(let i=1;i<r.points.length-1;i++){
     if(!pointNearRoad(r.points[i]))return null;
   }
@@ -148,6 +160,19 @@ function addToWarehouse(warehouse,type,n){
 }
 function dispatchTruck(s,{route,source,destination,cargo,contractId=0,longDistance=false,valuePerUnit=0,stage='delivery'}){
   if(!route||!cargo)return false;
+  // Final hard gate: a truck cannot even be spawned unless both buildings
+  // have a road physically attached.
+  const attached=(building)=>{
+    if(!building||!s.roads?.length)return false;
+    const maxDistance=Math.max(4,(building.r||25)+4);
+    return s.roads.some(road=>{
+      for(let i=1;i<road.points.length;i++){
+        if(pointSegmentDistance(building,road.points[i-1],road.points[i])<=maxDistance)return true;
+      }
+      return false;
+    });
+  };
+  if(!attached(source)||!attached(destination))return false;
   s.trucks.push({route:route.points,routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage});
   return true;
 }
