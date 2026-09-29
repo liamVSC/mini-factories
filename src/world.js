@@ -13,7 +13,14 @@ export function spawn(s,kind,forced){const pool=TYPES.filter(t=>t.kind===kind&&(
 export function seed(s){for(const t of['Steel','Food','Parts'])spawn(s,'factory',t);for(const t of['Market','Garage','Builder'])spawn(s,'shop',t)}
 export function pointOnRoute(points,t){const total=length(points);if(!total)return points[0];let want=total*Math.max(0,Math.min(1,t)),run=0;for(let i=1;i<points.length;i++){const seg=dist(points[i-1],points[i]);if(run+seg>=want){const q=(want-run)/seg;return{x:points[i-1].x+(points[i].x-points[i-1].x)*q,y:points[i-1].y+(points[i].y-points[i-1].y)*q}}run+=seg}return points.at(-1)}
 export function nearestBuilding(s,p){let best=null,bd=38;for(const b of s.buildings){const d=dist(b,p);if(d<bd){bd=d;best=b}}return best}
-export function nearestRoad(s,p){let best=null,bd=24;for(const r of s.roads){const q=nearestPointOnRoad(r,p);if(!q)continue;const d=dist(p,q);if(d<bd){bd=d;best=q}}return best}
+export function nearestRoad(s,p){let best=null,bd=28;for(const r of s.roads){const q=nearestPointOnRoad(r,p);if(!q)continue;const d=dist(p,q);if(d<bd){bd=d;best=q}}return best}
+export function snapRoadPoint(s,p,max=42){let best=null,bd=max;for(const r of s.roads){for(let i=1;i<r.points.length;i++){const q=projectSegment(p,r.points[i-1],r.points[i]);if(q.distance<bd){bd=q.distance;best={x:q.point.x,y:q.point.y,road:r,distance:q.distance}}}}return best}
+export function roadPreview(s,a,b){
+ const start=snapRoadPoint(s,a)||{x:a.x,y:a.y,distance:Infinity};
+ const end=snapRoadPoint(s,b)||{x:b.x,y:b.y,distance:Infinity};
+ const path=roadPath(s,start,end);
+ return {path,start,end,snappedStart:start.distance<Infinity,snappedEnd:end.distance<Infinity};
+}
 export function snap(s,p){return nearestBuilding(s,p)||nearestRoad(s,p)||p}
 function segmentIntersection(a,b,c,d){const ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y},cross=(u,v)=>u.x*v.y-u.y*v.x,den=cross(ab,cd),ac={x:c.x-a.x,y:c.y-a.y};if(Math.abs(den)<1e-9)return null;const t=cross(ac,cd)/den,u=cross(ac,ab)/den;if(t<-.000001||t>1.000001||u<-.000001||u>1.000001)return null;return{x:a.x+ab.x*t,y:a.y+ab.y*t}}
 function segmentDistance(a,b,c,d){const hit=segmentIntersection(a,b,c,d);if(hit)return 0;return Math.min(projectSegment(a,c,d).distance,projectSegment(b,c,d).distance,projectSegment(c,a,b).distance,projectSegment(d,a,b).distance)}
