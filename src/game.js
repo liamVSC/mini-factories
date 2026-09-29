@@ -122,13 +122,33 @@ function showResearch(){
 function hidePanel(){panelMode='none';s.selected=null;s.buildMode=null;if(s.mode==='build')s.mode='select';document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
 function worldPos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left-s.camera.x)/s.camera.zoom+W/2,y:(e.clientY-r.top-s.camera.y)/s.camera.zoom+H/2}}
 function worldFromScreen(p){return{x:(p.x-s.camera.x)/s.camera.zoom+W/2,y:(p.y-s.camera.y)/s.camera.zoom+H/2}}
+function worldBounds(){
+  const pad=260;
+  const points=[];
+  for(const b of s.buildings)points.push({x:b.x,y:b.y});
+  for(const r of s.roads)for(const p of r.points)points.push({x:p.x,y:p.y});
+  if(!points.length)return {minX:-500,maxX:500,minY:-500,maxY:500};
+  let minX=points[0].x,maxX=points[0].x,minY=points[0].y,maxY=points[0].y;
+  for(const p of points){minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y)}
+  return {minX:minX-pad,maxX:maxX+pad,minY:minY-pad,maxY:maxY+pad};
+}
 function clampCamera(){
-  const margin=180;
-  const worldW=W/s.camera.zoom,worldH=H/s.camera.zoom;
-  const minX=W/2-(worldW-margin),maxX=W/2+(worldW-margin);
-  const minY=H/2-(worldH-margin),maxY=H/2+(worldH-margin);
-  s.camera.x=Math.max(Math.min(s.camera.x,maxX),minX);
-  s.camera.y=Math.max(Math.min(s.camera.y,maxY),minY);
+  const b=worldBounds();
+  const halfW=W/(2*s.camera.zoom),halfH=H/(2*s.camera.zoom);
+  const centerX=(b.minX+b.maxX)/2,centerY=(b.minY+b.maxY)/2;
+  const spanX=b.maxX-b.minX,spanY=b.maxY-b.minY;
+  if(spanX<=halfW*2)s.camera.x=W/2-(centerX-W/2)*s.camera.zoom;
+  else{
+    const minCam=W/2-(b.maxX-halfW)*s.camera.zoom;
+    const maxCam=W/2-(b.minX+halfW)*s.camera.zoom;
+    s.camera.x=Math.max(minCam,Math.min(maxCam,s.camera.x));
+  }
+  if(spanY<=halfH*2)s.camera.y=H/2-(centerY-H/2)*s.camera.zoom;
+  else{
+    const minCam=H/2-(b.maxY-halfH)*s.camera.zoom;
+    const maxCam=H/2-(b.minY+halfH)*s.camera.zoom;
+    s.camera.y=Math.max(minCam,Math.min(maxCam,s.camera.y));
+  }
 }
 function panBy(dx,dy){s.camera.x+=dx;s.camera.y+=dy;clampCamera()}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
