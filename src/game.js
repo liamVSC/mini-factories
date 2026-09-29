@@ -27,7 +27,7 @@ const CHANGELOG=[
   ]}
 ];
 
-const canvas=document.querySelector('#game');let W=0,H=0,dpr=1;let s=load();let drag=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
+const canvas=document.querySelector('#game');let W=0,H=0,dpr=1;let s=load();let drag=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let pinchAngle=0;let panelMode='none';
 function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;resizeRenderer(W,H);if(s?.camera)clampCamera()}addEventListener('resize',resize);resize();clampCamera();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
 function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSaveV6',JSON.stringify(serialise(s)))}catch(e){flash('Save failed — storage unavailable')}}
@@ -210,6 +210,7 @@ canvas.addEventListener('pointerdown',e=>{
     const [a,b]=[...pointers.values()];
     pinch={d:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),z:s.camera.zoom};
     pinchCenter={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    pinchAngle=Math.atan2(b.y-a.y,b.x-a.x);
     drag=null;
     return;
   }
@@ -241,7 +242,13 @@ canvas.addEventListener('pointermove',e=>{
     const ratio=d/pinch.d;
     setZoomAt(pinchCenter,pinch.z*ratio);
     panBy(center.x-pinchCenter.x,center.y-pinchCenter.y);
+    const angle=Math.atan2(b.y-a.y,b.x-a.x);
+    let da=angle-pinchAngle;
+    while(da>Math.PI)da-=Math.PI*2;
+    while(da<-Math.PI)da+=Math.PI*2;
+    controlCamera(0,0,0,-da,0);
     pinch={d,z:s.camera.zoom};
+    pinchAngle=angle;
     pinchCenter=center;
     return;
   }
@@ -268,7 +275,7 @@ canvas.addEventListener('pointermove',e=>{
 function finish(e){
   pointers.delete(e.pointerId);
   try{canvas.releasePointerCapture?.(e.pointerId)}catch{}
-  if(pinch&&pointers.size<2){pinch=null;pinchCenter=null;drag=null;return}
+  if(pinch&&pointers.size<2){pinch=null;pinchCenter=null;pinchAngle=0;drag=null;return}
   if(drag?.pan&&s.mode==='select'){
     if(!drag.moved){
       if(drag.hit)showPanel(drag.hit);else hidePanel();
@@ -296,8 +303,13 @@ canvas.addEventListener('pointercancel',e=>{
   }
   pointers.delete(e.pointerId);
   try{canvas.releasePointerCapture?.(e.pointerId)}catch{}
-  pinch=null;pinchCenter=null;drag=null;
+  pinch=null;pinchCenter=null;pinchAngle=0;drag=null;
 });
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const sp=screenPos(e);
+  setZoomAt(sp,s.camera.zoom*Math.exp(-e.deltaY*.0012));
+},{passive:false});
 document.querySelector('#gameVersion').textContent='v'+GAME_VERSION;
 for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['settings',()=>{document.querySelector('#settingsMenu').style.display='grid';document.querySelector('#changeLog')?.style.removeProperty('display');s.paused=true}],['settingsClose',()=>{document.querySelector('#settingsMenu').style.display='none';s.paused=false}],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
 for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
