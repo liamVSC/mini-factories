@@ -172,7 +172,7 @@ export function updateEconomy(s,dt,flash){
         if(toHub&&toShop){
           const free=warehouseCapacity(hubForShop,f.type);
           cargo=Math.min(capacity,f.stock,Math.max(1,needed||capacity),free);
-          if(cargo>0){f.stock-=cargo;dispatchTruck(s,{route:toHub,source:f,destination:hubForShop,cargo,stage:'warehouse'});}
+          if(cargo>0){f.stock-=cargo;dispatchTruck(s,{route:toHub,source:f,destination:hubForShop,cargo,stage:'warehouse'});continue;}
         }
       }
       if(cargo===0){
