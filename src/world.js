@@ -155,6 +155,15 @@ function cleanRoadPoints(points){
   }
   return out;
 }
+function segmentNearRiver(a,b,threshold=45){
+  const span=Math.max(1,dist(a,b));
+  const samples=Math.max(3,Math.ceil(span/24));
+  for(let i=0;i<=samples;i++){
+    const t=i/samples,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+    if(Math.abs(y-riverY(x))<threshold)return true;
+  }
+  return false;
+}
 function roadPathBlocked(s,points,endpointBuildings={}){
   if(!points||points.length<2)return true;
   const startBuilding=endpointBuildings.start||roadBuildingTarget(s,points[0]);
@@ -241,7 +250,7 @@ export function addRoad(s,points,meta={}){
   const cost=Math.max(1,Math.ceil(roadLength/180))*2;
   if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';
   if((s.roads||[]).some(r=>roadDistance(r,clean)<12&&Math.abs(length(r.points)-roadLength)<24))return'duplicate';
-  const bridge=clean.some((p,i)=>i&&Math.abs(p.y-riverY(p.x))<45);
+  const bridge=clean.some((p,i)=>i?segmentNearRiver(clean[i-1],p):false);
   s.cash-=cost;
   s.roads.push({id:newId(),points:clean,age:0,bridge,condition:1});
   return true;
