@@ -7,6 +7,8 @@ let home={x:0,z:0};
 let cameraReady=false;
 let viewport={width:1,height:1};
 const meshes=new Map();
+const worldObjects=new Set();
+const truckMeshes=new Map();
 
 function mat(color,roughness=.8,metalness=0){return new THREE.MeshStandardMaterial({color,roughness,metalness});}
 function box(w,h,d,color){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));}
@@ -27,10 +29,12 @@ function addBuilding(b){
   if(factory){for(let i=-2;i<=2;i++){const win=box(8,6,.7,'#6f9ba5');win.position.set(i*13,h*.55,d/2+.5);g.add(win);}const door=box(20,10,.8,'#354247');door.position.set(0,5,d/2+.5);g.add(door);const chimney=box(9,32,9,'#667176');chimney.position.set(w*.28,32,d*.15);g.add(chimney);const cap=box(12,2,12,'#7f898d');cap.position.set(w*.28,48,d*.15);g.add(cap);const tank=new THREE.Mesh(new THREE.CylinderGeometry(7,7,18,16),mat('#7f898b'));tank.position.set(-w*.27,9,d*.1);g.add(tank);}
   else if(warehouse){for(let i=-2;i<=2;i++){const door=box(14,9,.8,'#465156');door.position.set(i*17,5,d/2+.5);g.add(door);}const sign=box(52,5,.8,'#d9b95f');sign.position.set(0,h*.72,d/2+.6);g.add(sign);}
   else{const glass=box(w*.58,7,.7,'#8ba9aa');glass.position.set(-4,6,d/2+.5);g.add(glass);const door=box(9,9,.8,'#536466');door.position.set(w*.30,5,d/2+.5);g.add(door);const awning=box(w*.9,2.2,5,b.color||'#d58f65');awning.position.set(0,h*.67,d/2+2.2);g.add(awning);}
-  g.position.set(Number(b.x)||0,0,Number(b.y)||0);g.userData.building=b;g.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(g);meshes.set(b.id,g);
+  g.position.set(Number(b.x)||0,0,Number(b.y)||0);g.userData.building=b;g.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(g);meshes.set(b.id,g);worldObjects.add(g);
 }
 function updateBuilding(b,selected){const g=meshes.get(b.id);if(!g)return;g.position.set(Number(b.x)||0,0,Number(b.y)||0);g.scale.setScalar(selected?1.035:1);}
-function clearDynamic(){for(const g of meshes.values())scene.remove(g);meshes.clear();}
+function disposeMaterial(material){if(Array.isArray(material))material.forEach(disposeMaterial);else material?.dispose?.()}
+function disposeObject(g){g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)disposeMaterial(o.material);});}
+function clearDynamic(){for(const g of worldObjects){scene.remove(g);disposeObject(g);}worldObjects.clear();meshes.clear();for(const g of truckMeshes.values()){scene.remove(g);disposeObject(g);}truckMeshes.clear();}
 function init(canvas){
   if(renderer)return;
   renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
@@ -51,7 +55,7 @@ function resize(w,h){
 function syncWorld(s){
   if(!scene)return;clearDynamic();
   const pts=[];for(const b of s.buildings||[]){addBuilding(b);if(Number.isFinite(b.x)&&Number.isFinite(b.y))pts.push({x:b.x,z:b.y});}
-  for(const r of s.roads||[]){scene.add(makeRoad(r.points,!!r.bridge));for(const p of r.points||[])if(Number.isFinite(p.x)&&Number.isFinite(p.y))pts.push({x:p.x,z:p.y});}
+  for(const r of s.roads||[]){const g=makeRoad(r.points,!!r.bridge);scene.add(g);worldObjects.add(g);for(const p of r.points||[])if(Number.isFinite(p.x)&&Number.isFinite(p.y))pts.push({x:p.x,z:p.y});}
   if(pts.length){home={x:pts.reduce((n,p)=>n+p.x,0)/pts.length,z:pts.reduce((n,p)=>n+p.z,0)/pts.length};if(!cameraReady){desired.x=home.x;desired.z=home.z;target.x=home.x;target.z=home.z;}}
 }
 function updateCamera(s,W,H){
@@ -95,8 +99,8 @@ export function cameraPointFromScreen(x,y,W=viewport.width,H=viewport.height){
   const t=-camera3d.position.y/dir.y;
   return{x:camera3d.position.x+dir.x*t,z:camera3d.position.z+dir.z*t};
 }
-function drawTrucks(s){for(const [id,g] of [...meshes].filter(([k])=>String(k).startsWith('truck:'))){scene.remove(g);meshes.delete(id);}for(const t of s.trucks||[]){if(!t.route?.length)continue;const i=Math.min(t.route.length-1,Math.floor(t.t*(t.route.length-1))),p=t.route[i],q=t.route[Math.min(t.route.length-1,i+1)],g=new THREE.Group();const body=box(14,6,25,t.longDistance?'#8755c7':'#d79234');body.position.y=5;g.add(body);const cab=box(12,7,9,'#d9b75e');cab.position.set(0,6,8);g.add(cab);const wm=mat('#202729');for(const x of [-7,7])for(const z of [-7,7]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(2.7,2.7,1.8,12),wm);wh.rotation.z=Math.PI/2;wh.position.set(x,2.7,z);g.add(wh);}g.position.set(p.x,0,p.y);g.lookAt(q.x,0,q.y);scene.add(g);meshes.set('truck:'+t.id,g);}}
-export function setPreview(path,start,end,blocked=false){if(!previewGroup)return;while(previewGroup.children.length)previewGroup.remove(previewGroup.children[0]);if(!path||path.length<2)return;const curve=new THREE.CatmullRomCurve3(path.map(p=>new THREE.Vector3(p.x,.45,p.y)),false,'catmullrom',.1);previewGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,path.length*8),2.4,8,false),mat(blocked?'#d85a52':'#58a6d8')));for(const q of [start,end])if(q){const m=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),mat(blocked?'#d85a52':'#f4e5a8'));m.position.set(q.x,.8,q.y);previewGroup.add(m);}}
-export function render(ctx,s,W,H,canvas=document.querySelector('#game')){init(canvas);resize(W,H);const sig=worldSignature(s);if(render.lastSignature!==sig){syncWorld(s);render.lastSignature=sig;}for(const b of s.buildings||[])updateBuilding(b,s.selected===b);updateCamera(s,W,H);drawTrucks(s);renderer.render(scene,camera3d);}
-function worldSignature(s){return JSON.stringify([(s.roads||[]).map(r=>[r.id,r.bridge,r.points]),(s.buildings||[]).map(b=>[b.id,b.x,b.y,b.kind,b.type,b.color])]);}
+function createTruckMesh(t){const g=new THREE.Group();const body=box(14,6,25,t.longDistance?'#8755c7':'#d79234');body.position.y=5;g.add(body);const cab=box(12,7,9,'#d9b75e');cab.position.set(0,6,8);g.add(cab);const wm=mat('#202729');for(const x of [-7,7])for(const z of [-7,7]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(2.7,2.7,1.8,12),wm);wh.rotation.z=Math.PI/2;wh.position.set(x,2.7,z);g.add(wh);}scene.add(g);return g;}
+function drawTrucks(s){const active=new Set();for(const t of s.trucks||[]){if(!t.route?.length||!t.id)continue;active.add(t.id);let g=truckMeshes.get(t.id);if(!g){g=createTruckMesh(t);truckMeshes.set(t.id,g);}const i=Math.min(t.route.length-1,Math.floor(t.t*(t.route.length-1))),p=t.route[i],q=t.route[Math.min(t.route.length-1,i+1)];g.position.set(p.x,0,p.y);g.lookAt(q.x,0,q.y);}for(const [id,g] of truckMeshes){if(active.has(id))continue;scene.remove(g);disposeObject(g);truckMeshes.delete(id);}}
+export function setPreview(path,start,end,blocked=false){if(!previewGroup)return;while(previewGroup.children.length){const child=previewGroup.children[0];previewGroup.remove(child);disposeObject(child);}if(!path||path.length<2)return;const curve=new THREE.CatmullRomCurve3(path.map(p=>new THREE.Vector3(p.x,.45,p.y)),false,'catmullrom',.1);previewGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,path.length*8),2.4,8,false),mat(blocked?'#d85a52':'#58a6d8')));for(const q of [start,end])if(q){const m=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),mat(blocked?'#d85a52':'#f4e5a8'));m.position.set(q.x,.8,q.y);previewGroup.add(m);}}
+export function render(ctx,s,W,H,canvas=document.querySelector('#game')){init(canvas);resize(W,H);if(render.lastWorldVersion!==s.renderVersion){syncWorld(s);render.lastWorldVersion=s.renderVersion;}for(const b of s.buildings||[])updateBuilding(b,s.selected===b);updateCamera(s,W,H);drawTrucks(s);renderer.render(scene,camera3d);}
 export function resizeRenderer(W,H){resize(W,H)}
