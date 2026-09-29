@@ -36,10 +36,12 @@ function normalizeRoadEndpoint(s,p){
   return buildingConnectionPoint(b,p)
 }
 function roadTarget(s,p){
+  if(p?.building&&Number.isFinite(p.building.x))return buildingConnectionPoint(p.building,p);
+  if(p?.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))return{x:p.x,y:p.y,road:p.road,distance:0};
   const b=nearestBuilding(s,p);
-  if(b&&dist(b,p)<=88)return buildingConnectionPoint(b,p);
+  if(b&&dist(b,p)<=96)return buildingConnectionPoint(b,p);
   const r=nearestRoad(s,p);
-  if(r&&r.distance<=58)return{x:r.x,y:r.y,road:r.road,distance:r.distance};
+  if(r&&r.distance<=64)return{x:r.x,y:r.y,road:r.road,distance:r.distance};
   return{x:p.x,y:p.y,distance:Infinity};
 }
 function cleanRoadPoints(points){
