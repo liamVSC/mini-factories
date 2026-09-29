@@ -1,5 +1,5 @@
 import {freshState,hydrate,serialise,TYPES} from './state.js';
-import {seed,nearestBuilding,nearestRoad,roadPath,roadPreview,addRoad,eraseRoad,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
+import {seed,nearestBuilding,nearestRoad,roadPreview,addRoad,eraseRoad,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render} from './render.js';
 
