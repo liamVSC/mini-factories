@@ -1,7 +1,7 @@
 import {freshState,hydrate,serialise,TYPES} from './state.js';
 import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadPreview,addRoad,eraseRoad,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
-import {render,setPreview,resizeRenderer,controlCamera,cameraPointFromScreen,resetCamera} from './render.js';
+import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
 const GAME_VERSION='1.3';
 const CHANGELOG=[
@@ -28,7 +28,7 @@ const CHANGELOG=[
 ];
 
 const canvas=document.querySelector('#game');let W=0,H=0,dpr=1;let s=load();let drag=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let pinchAngle=0;let panelMode='none';
-function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;resizeRenderer(W,H);if(s?.camera)clampCamera()}addEventListener('resize',resize);resize();clampCamera();
+function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;resizeRenderer(W,H);if(s?.camera){}}addEventListener('resize',resize);resize();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
 function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSaveV6',JSON.stringify(serialise(s)))}catch(e){flash('Save failed — storage unavailable')}}
 function roadResultMessage(result,path){if(result===true)return 'Road built';if(result==='cash'){const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180))*2;return 'Need £'+cost+' cash (you have £'+Math.floor(s.cash)+')'}if(result==='too-short')return 'Select two different points or buildings';if(result==='blocked')return 'Road blocked — move around the building';if(result==='duplicate')return 'Road already exists here';return 'Invalid road'}
@@ -160,47 +160,14 @@ function showResearch(){
   }
 }
 function hidePanel(){const p=document.querySelector('#panel');p.classList.remove('shop-panel','factory-panel','warehouse-panel','research-panel','company-panel','build-panel');panelMode='none';s.selected=null;s.buildMode=null;if(s.mode==='build')s.mode='select';document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
-function worldPos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left-s.camera.x)/s.camera.zoom+W/2,y:(e.clientY-r.top-s.camera.y)/s.camera.zoom+H/2}}
-function worldFromScreen(p){return{x:(p.x-s.camera.x)/s.camera.zoom+W/2,y:(p.y-s.camera.y)/s.camera.zoom+H/2}}
-function worldBounds(){
-  const pad=260;
-  const points=[];
-  for(const b of s.buildings)points.push({x:b.x,y:b.y});
-  for(const r of s.roads)for(const p of r.points)points.push({x:p.x,y:p.y});
-  if(!points.length)return {minX:-500,maxX:500,minY:-500,maxY:500};
-  let minX=points[0].x,maxX=points[0].x,minY=points[0].y,maxY=points[0].y;
-  for(const p of points){minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y)}
-  return {minX:minX-pad,maxX:maxX+pad,minY:minY-pad,maxY:maxY+pad};
-}
-function clampCamera(){
-  const b=worldBounds();
-  const halfW=W/(2*s.camera.zoom),halfH=H/(2*s.camera.zoom);
-  const centerX=(b.minX+b.maxX)/2,centerY=(b.minY+b.maxY)/2;
-  const spanX=b.maxX-b.minX,spanY=b.maxY-b.minY;
-  if(spanX<=halfW*2)s.camera.x=W/2-(centerX-W/2)*s.camera.zoom;
-  else{
-    const minCam=W/2-(b.maxX-halfW)*s.camera.zoom;
-    const maxCam=W/2-(b.minX+halfW)*s.camera.zoom;
-    s.camera.x=Math.max(minCam,Math.min(maxCam,s.camera.x));
-  }
-  if(spanY<=halfH*2)s.camera.y=H/2-(centerY-H/2)*s.camera.zoom;
-  else{
-    const minCam=H/2-(b.maxY-halfH)*s.camera.zoom;
-    const maxCam=H/2-(b.minY+halfH)*s.camera.zoom;
-    s.camera.y=Math.max(minCam,Math.min(maxCam,s.camera.y));
-  }
-}
-function panBy(dx,dy){s.camera.x+=dx;s.camera.y+=dy;clampCamera();controlCamera(-dx/s.camera.zoom,-dy/s.camera.zoom)}
+function worldPos(e){const sp=screenPos(e);return screenToWorld(sp.x,sp.y,W,H)}
+function worldFromScreen(p){return screenToWorld(p.x,p.y,W,H)}
+function panBy(dx,dy){panScreen(dx,dy,W,H)}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 function toggleMode(m){s.mode=s.mode===m?'select':m;drag=null;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase')}
 function setZoomAt(screen,z){
-  const before=worldFromScreen(screen);
   s.camera.zoom=Math.max(.55,Math.min(2.4,z));
-  s.camera.x=screen.x-(before.x-W/2)*s.camera.zoom;
-  s.camera.y=screen.y-(before.y-H/2)*s.camera.zoom;
-  clampCamera();
-  const after=cameraPointFromScreen(screen.x,screen.y,W,H);
-  controlCamera(before.x-after.x,before.y-after.z);
+  zoomAtScreen(screen.x,screen.y,s.camera.zoom,W,H);
 }
 canvas.addEventListener('pointerdown',e=>{
   try{canvas.setPointerCapture?.(e.pointerId)}catch{}
@@ -311,7 +278,7 @@ canvas.addEventListener('wheel',e=>{
   setZoomAt(sp,s.camera.zoom*Math.exp(-e.deltaY*.0012));
 },{passive:false});
 document.querySelector('#gameVersion').textContent='v'+GAME_VERSION;
-for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['cameraHome',()=>{s.camera={x:W/2,y:H/2,zoom:1};resetCamera();clampCamera();flash('Camera reset') }],['settings',()=>{document.querySelector('#settingsMenu').style.display='grid';document.querySelector('#changeLog')?.style.removeProperty('display');s.paused=true}],['settingsClose',()=>{document.querySelector('#settingsMenu').style.display='none';s.paused=false}],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['newgame',reset],['again',reset],['cameraHome',()=>{resetCamera();s.camera.x=0;s.camera.y=0;s.camera.zoom=1;clampCamera();flash('Camera reset')}]])document.querySelector('#'+id)?.addEventListener('click',fn);
+for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['cameraHome',()=>{s.camera.zoom=1;resetCamera();flash('Camera reset') }],['settings',()=>{document.querySelector('#settingsMenu').style.display='grid';document.querySelector('#changeLog')?.style.removeProperty('display');s.paused=true}],['settingsClose',()=>{document.querySelector('#settingsMenu').style.display='none';s.paused=false}],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['newgame',reset],['again',reset],['cameraHome',()=>{s.camera.zoom=1;resetCamera();flash('Camera reset')}]])document.querySelector('#'+id)?.addEventListener('click',fn);
 for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
 document.querySelector('#shop').onclick=null
 let uiTimer=0;
