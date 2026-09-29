@@ -65,6 +65,10 @@ function updateCamera(s,W,H){
 export function resetCamera(){desired.x=home.x;desired.z=home.z;desired.yaw=0;desired.pitch=.82;desired.distance=620;target={...desired};}
 export function focusCamera(x,z){desired.x=Number(x)||home.x;desired.z=Number(z)||home.z;}
 export function controlCamera(dx,dy,distanceDelta=0,yawDelta=0,pitchDelta=0){desired.x+=dx;desired.z+=dy;desired.distance=Math.max(280,Math.min(1100,desired.distance+distanceDelta));desired.yaw+=yawDelta;desired.pitch=Math.max(.52,Math.min(1.18,desired.pitch+pitchDelta));}
+export function screenToWorld(x,y,W,H){return cameraPointFromScreen(x,y,W,H);}
+export function worldToScreen(x,z,W,H){if(!camera3d)return{x:W/2,y:H/2};const v=new THREE.Vector3(Number(x)||0,0,Number(z)||0);v.project(camera3d);return{x:(v.x+1)*.5*W,y:(1-v.y)*.5*H};}
+export function panScreen(dx,dy,W,H){if(!camera3d)return;const a=cameraPointFromScreen(W*.5,H*.5,W,H);const b=cameraPointFromScreen(W*.5-dx,H*.5-dy,W,H);desired.x+=a.x-b.x;desired.z+=a.z-b.z;}
+export function zoomAtScreen(x,y,nextZoom,W,H){if(!camera3d)return;const before=cameraPointFromScreen(x,y,W,H);const clamped=Math.max(.55,Math.min(2.4,nextZoom));const oldDistance=desired.distance;desired.distance=Math.max(320,Math.min(980,Math.max(W,H)*1.05))/clamped;const cp=Math.cos(desired.pitch);const pos=new THREE.Vector3(desired.x+Math.sin(desired.yaw)*desired.distance*cp,Math.sin(desired.pitch)*desired.distance,desired.z+Math.cos(desired.yaw)*desired.distance*cp);const saved=camera3d.position.clone();const savedTarget={x:target.x,z:target.z};target.x=desired.x;target.z=desired.z;target.distance=desired.distance;camera3d.position.copy(pos);camera3d.lookAt(desired.x,0,desired.z);camera3d.updateProjectionMatrix();const after=cameraPointFromScreen(x,y,W,H);desired.x+=before.x-after.x;desired.z+=before.z-after.z;target.x=savedTarget.x;target.z=savedTarget.z;target.distance=oldDistance;camera3d.position.copy(saved);return clamped;}
 export function cameraPointFromScreen(x,y,W=viewport.width,H=viewport.height){
   if(!camera3d)return{x:home.x,z:home.z};
   const ndc=new THREE.Vector3((x/W)*2-1,-(y/H)*2+1,0);
