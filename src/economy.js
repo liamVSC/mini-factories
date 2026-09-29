@@ -216,7 +216,7 @@ export function updateEconomy(s,dt,flash){
         (1+f.logistics*.04+(s.research?.logistics||0)*.04)
       ));
       s.trucks.push({
-        route:r.points,t:0,speed:.085*sp.speed*(1+(f.level-1)*.08+f.loading*.04),
+        route:r.points,routeKey:r.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*sp.speed*(1+(f.level-1)*.08+f.loading*.04),
         value,to:shop,source:f,contractId:contract?.id||0,longDistance:r.distance>650,wait:0
       });
     }
@@ -230,7 +230,7 @@ export function updateEconomy(s,dt,flash){
       if(o===t||o.dead)continue;
       const q=pointOnRoute(o.route,o.t);
       const separation=dist(p,q);
-      if(separation<30&&o.route===t.route&&o.t>t.t){
+      if(separation<30&&o.routeKey===t.routeKey&&o.t>t.t){
         nearestAhead=Math.min(nearestAhead,o.t-t.t);
       }
     }
