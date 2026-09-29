@@ -35,24 +35,61 @@ function addNode(nodes,p){let n=nodes.find(x=>dist(x,p)<2);if(!n){n={x:p.x,y:p.y
 function roadPointParameter(points,p){let best=Infinity,run=0,bestRun=0;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],seg=dist(a,b);const q=projectSegment(p,a,b);if(q.distance<best){best=q.distance;bestRun=run+dist(a,q.point)}run+=seg}return bestRun}
 export function roadNetwork(s){
   const nodes=[],edges=[];
-  for(const r of s.roads){
-    const marks=r.points.map(p=>({x:p.x,y:p.y}));
-    for(const q of s.roads){
-      for(let i=1;i<r.points.length;i++)for(let j=1;j<q.points.length;j++){
-        if(r===q&&i===j)continue;
-        const hit=segmentIntersection(r.points[i-1],r.points[i],q.points[j-1],q.points[j]);
-        if(hit)marks.push(hit);
+  const valid=s.roads.filter(r=>r&&Array.isArray(r.points)&&r.points.length>=2);
+  const marks=new Map();
+
+  // Each saved road is a rendered polyline. Keep graph edges tied to its
+  // actual consecutive segments so routing can never cut across a bend.
+  for(const r of valid){
+    const segments=r.points.slice(1).map(()=>[]);
+    marks.set(r,segments);
+    for(let i=1;i<r.points.length;i++){
+      segments[i-1].push(addNode(nodes,r.points[i-1]));
+      segments[i-1].push(addNode(nodes,r.points[i]));
+    }
+  }
+
+  // Add every real intersection to both participating road segments.
+  for(let ri=0;ri<valid.length;ri++){
+    const r=valid[ri];
+    for(let qi=ri;qi<valid.length;qi++){
+      const q=valid[qi];
+      for(let i=1;i<r.points.length;i++){
+        const a=r.points[i-1],b=r.points[i];
+        const jStart=r===q?i:1;
+        for(let j=jStart;j<q.points.length;j++){
+          if(r===q&&i===j)continue;
+          const c=q.points[j-1],d=q.points[j];
+          const hit=segmentIntersection(a,b,c,d);
+          if(!hit)continue;
+          const n=addNode(nodes,hit);
+          marks.get(r)[i-1].push(n);
+          marks.get(q)[j-1].push(n);
+        }
       }
     }
-    const unique=[];
-    for(const p of marks){const n=addNode(nodes,p);if(!unique.some(x=>x===n))unique.push(n)}
-    unique.sort((a,b)=>roadPointParameter(r.points,a)-roadPointParameter(r.points,b));
-    for(let i=1;i<unique.length;i++){const a=unique[i-1],b=unique[i],d=dist(a,b);if(d>1)edges.push({a,b,d,road:r})}
   }
+
+  for(const r of valid){
+    const segments=marks.get(r);
+    for(let i=0;i<segments.length;i++){
+      const a=r.points[i],b=r.points[i+1],list=[...new Set(segments[i])];
+      list.sort((u,v)=>roadPointParameter([a,b],u)-roadPointParameter([a,b],v));
+      for(let j=1;j<list.length;j++){
+        const u=list[j-1],v=list[j],d=dist(u,v);
+        if(d>1)edges.push({a:u,b:v,d,road:r});
+      }
+    }
+  }
+
   const adjacency=new Map(nodes.map(n=>[n,[]]));
-  for(const e of edges){adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});adjacency.get(e.b).push({node:e.a,d:e.d,road:e.road})}
+  for(const e of edges){
+    adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});
+    adjacency.get(e.b).push({node:e.a,d:e.d,road:e.road});
+  }
   return{nodes,edges,adjacency};
 }
+
 function nearestNetworkPoint(network,p){let best=null,bd=Infinity;for(const e of network.edges){const q=projectSegment(p,e.a,e.b);if(q.distance<bd){bd=q.distance;best={edge:e,point:q.point}}}return best}
 export function routeOnRoadNetwork(s,a,b){
   if(!s.roads.length)return null;
