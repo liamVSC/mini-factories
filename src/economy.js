@@ -1,95 +1,9 @@
 import {TYPES} from './state.js';
-import {dist,length,pointOnRoute} from './world.js';
+import {dist,length,pointOnRoute,routeOnRoadNetwork} from './world.js';
 
 export function spec(type){return TYPES.find(t=>t.name===type)||TYPES[0]}
 
-function nearestPointOnRoad(road,p){let best=null,bd=Infinity;for(let i=1;i<road.points.length;i++){const a=road.points[i-1],b=road.points[i],q={x:a.x,y:a.y};const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)continue;const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));q.x=a.x+dx*t;q.y=a.y+dy*t;const d=dist(p,q);if(d<bd){bd=d;best=q}}return best}
-function pointSegmentDistance(p,a,b){
-  const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
-  if(!len2)return dist(p,a);
-  const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len2));
-  return dist(p,{x:a.x+dx*t,y:a.y+dy*t});
-}
-function touches(r,b){
-  for(let i=1;i<r.points.length;i++)if(pointSegmentDistance(b,r.points[i-1],r.points[i])<b.r+34)return true;
-  return false;
-}
-function segmentDistance(a,b,c,d){
-  const cross=(u,v)=>u.x*v.y-u.y*v.x;
-  const ab={x:b.x-a.x,y:b.y-a.y};
-  const cd={x:d.x-c.x,y:d.y-c.y};
-  const ac={x:c.x-a.x,y:c.y-a.y};
-  const den=cross(ab,cd);
-  if(Math.abs(den)>1e-9){
-    const t=cross(ac,cd)/den;
-    const u=cross(ac,ab)/den;
-    if(t>=0&&t<=1&&u>=0&&u<=1)return 0;
-  }
-  return Math.min(
-    pointSegmentDistance(a,c,d),
-    pointSegmentDistance(b,c,d),
-    pointSegmentDistance(c,a,b),
-    pointSegmentDistance(d,a,b)
-  );
-}
-function roadDistance(a,b){
-  let best=Infinity;
-  for(let i=1;i<a.points.length;i++){
-    for(let j=1;j<b.points.length;j++){
-      best=Math.min(best,segmentDistance(a.points[i-1],a.points[i],b.points[j-1],b.points[j]));
-    }
-  }
-  return best;
-}
-
-function oriented(points,from,to){
-  const a=dist(points[0],from),b=dist(points.at(-1),from);
-  const out=a<=b?[...points]:[...points].reverse();
-  if(dist(out.at(-1),to)>dist(out[0],to))out.reverse();
-  return out;
-}
-
-export function route(s,a,b){
-  const roads=s.roads;
-  if(!roads.length)return null;
-  const start=roads.filter(r=>touches(r,a));
-  const end=roads.filter(r=>touches(r,b));
-  if(!start.length||!end.length)return null;
-
-  const endSet=new Set(end);
-  const queue=start.map(r=>({road:r,d:dist(a,nearestPointOnRoad(r,a))}));
-  const best=new Map(start.map(r=>[r,dist(a,nearestPointOnRoad(r,a))]));
-  const prev=new Map();
-
-  while(queue.length){
-    queue.sort((x,y)=>x.d-y.d);
-    const cur=queue.shift();
-    if(cur.d!==best.get(cur.road))continue;
-    if(endSet.has(cur.road)){
-      const chain=[];let r=cur.road;
-      while(r){chain.unshift(r);r=prev.get(r)}
-      let points=[{x:a.x,y:a.y}],from=a;
-      for(const road of chain){
-        const next=oriented(road.points,from,b);
-        if(dist(points.at(-1),next[0])>2)points.push(next[0]);
-        for(let i=1;i<next.length;i++)points.push(next[i]);
-        from=next.at(-1);
-      }
-      if(dist(points.at(-1),b)>2)points.push({x:b.x,y:b.y});
-      return {points,distance:length(points)};
-    }
-    for(const next of roads){
-      if(next===cur.road)continue;
-      const join=roadDistance(cur.road,next);
-      if(join>38)continue;
-      const nd=cur.d+join+length(next.points);
-      if(nd<(best.get(next)??Infinity)){
-        best.set(next,nd);prev.set(next,cur.road);queue.push({road:next,d:nd});
-      }
-    }
-  }
-  return null;
-}
+export function route(s,a,b){return routeOnRoadNetwork(s,a,b)}
 
 export function newContract(s,shop){
   if(shop.contract)return;
