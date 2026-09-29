@@ -1,1 +1,1 @@
-export {render,setPreview,resizeRenderer} from './render3d.js';
+export {render,setPreview,resizeRenderer,controlCamera,cameraPointFromScreen,resetCamera,focusCamera} from './render3d.js';
