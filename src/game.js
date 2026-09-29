@@ -27,8 +27,8 @@ const CHANGELOG=[
   ]}
 ];
 
-const canvas=document.querySelector('#game');let W=0,H=0,dpr=1;let s=load();let drag=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let pinchAngle=0;let panelMode='none';
-function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;resizeRenderer(W,H);if(s?.camera){}}addEventListener('resize',resize);resize();
+const canvas=document.querySelector('#game');let W=0,H=0;let s=load();let drag=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let pinchAngle=0;let panelMode='none';
+function resize(){W=innerWidth;H=innerHeight;resizeRenderer(W,H)}addEventListener('resize',resize);resize();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
 function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSaveV6',JSON.stringify(serialise(s)))}catch(e){flash('Save failed — storage unavailable')}}
 function roadResultMessage(result,path){if(result===true)return 'Road built';if(result==='cash'){const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180))*2;return 'Need £'+cost+' cash (you have £'+Math.floor(s.cash)+')'}if(result==='too-short')return 'Select two different points or buildings';if(result==='blocked')return 'Road blocked — move around the building';if(result==='duplicate')return 'Road already exists here';return 'Invalid road'}
@@ -161,7 +161,6 @@ function showResearch(){
 }
 function hidePanel(){const p=document.querySelector('#panel');p.classList.remove('shop-panel','factory-panel','warehouse-panel','research-panel','company-panel','build-panel');panelMode='none';s.selected=null;s.buildMode=null;if(s.mode==='build')s.mode='select';document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
 function worldPos(e){const sp=screenPos(e);return screenToWorld(sp.x,sp.y,W,H)}
-function worldFromScreen(p){return screenToWorld(p.x,p.y,W,H)}
 function panBy(dx,dy){panScreen(dx,dy,W,H)}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 function toggleMode(m){s.mode=s.mode===m?'select':m;drag=null;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase')}
@@ -278,7 +277,7 @@ canvas.addEventListener('wheel',e=>{
   setZoomAt(sp,s.camera.zoom*Math.exp(-e.deltaY*.0012));
 },{passive:false});
 document.querySelector('#gameVersion').textContent='v'+GAME_VERSION;
-for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['cameraHome',()=>{s.camera.zoom=1;resetCamera();flash('Camera reset') }],['settings',()=>{document.querySelector('#settingsMenu').style.display='grid';document.querySelector('#changeLog')?.style.removeProperty('display');s.paused=true}],['settingsClose',()=>{document.querySelector('#settingsMenu').style.display='none';s.paused=false}],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['newgame',reset],['again',reset],['cameraHome',()=>{s.camera.zoom=1;resetCamera();flash('Camera reset')}]])document.querySelector('#'+id)?.addEventListener('click',fn);
+for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],["cameraHome",()=>{s.camera.zoom=1;resetCamera();flash('Camera reset')}],['settings',()=>{document.querySelector('#settingsMenu').style.display='grid';document.querySelector('#changeLog')?.style.removeProperty('display');s.paused=true}],['settingsClose',()=>{document.querySelector('#settingsMenu').style.display='none';s.paused=false}],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
 for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
 document.querySelector('#shop').onclick=null
 let uiTimer=0;
