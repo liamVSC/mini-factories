@@ -32,7 +32,7 @@ export function render(ctx,s,W,H){
     if(r.bridge){road(ctx,r.points,'#b8864c',8);roadDashed(ctx,r.points,'#ead7a0',2,12)}
   }
 
-  // Trucks with shadows, cab, cargo and wheels
+\n  // Junctions are rendered above the road surface so intersections read as real nodes.\n  const junctions=new Map();\n  for(const r of s.roads)for(let i=1;i<r.points.length;i++)for(const q of s.roads)for(let j=1;j<q.points.length;j++){\n    if(r===q&&i===j)continue;\n    const a=r.points[i-1],b=r.points[i],c=q.points[j-1],d=q.points[j];\n    const ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y},cross=(u,v)=>u.x*v.y-u.y*v.x,den=cross(ab,cd);\n    if(Math.abs(den)<1e-9)continue;\n    const ac={x:c.x-a.x,y:c.y-a.y},t=cross(ac,cd)/den,u=cross(ac,ab)/den;\n    if(t>=0&&t<=1&&u>=0&&u<=1){const p={x:a.x+ab.x*t,y:a.y+ab.y*t},key=Math.round(p.x)+','+Math.round(p.y);junctions.set(key,p)}\n  }\n  for(const p of junctions.values()){ctx.fillStyle='#454b4d';ctx.beginPath();ctx.arc(p.x,p.y,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d7bd72';ctx.beginPath();ctx.arc(p.x,p.y,2.2,0,Math.PI*2);ctx.fill()}\n\n  // Trucks with shadows, cab, cargo and wheels
   for(const t of s.trucks){
     const p=pointOnRoute(t.route,t.t),q=pointOnRoute(t.route,Math.min(1,t.t+.012));
     const ang=Math.atan2(q.y-p.y,q.x-p.x);
