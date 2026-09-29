@@ -148,7 +148,7 @@ export function updateEconomy(s,dt,flash){
       if(b.production>=1&&b.stock<b.max){
         const n=Math.floor(b.production);b.production-=n;b.stock=Math.min(b.max,b.stock+n);
       }
-    }else{
+    }else if(b.kind==='shop'){
       b.active=Math.max(0,b.active-dt*2.2);
       b.demand=Math.min(14,b.demand+dt*(.05+s.companyLevel*.003)*(1+b.level*.06));
       b.satisfaction=Math.max(0,Math.min(100,100-b.demand*4+(b.served||0)*1.5));
