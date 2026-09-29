@@ -22,73 +22,55 @@ function makeRoad(points,bridge){
   if(clean.length<2)return group;
 
   const roadWidth=bridge?15:18;
-  const surfaceY=bridge?.04:.02;
-  const edgeWidth=.9;
-  const markWidth=.8;
-
-  // Build a flat strip from the road centre line. Keeping this as indexed
-  // quads avoids the heavy cylindrical geometry previously used for roads.
-  const vertices=[],indices=[];
-  const addStrip=(width,y,material)=>{
-    const half=width/2;
-    const base=vertices.length/3;
+  const buildStrip=(width,y,material)=>{
+    const half=width/2,vertices=[],indices=[];
     for(let i=0;i<clean.length;i++){
-      const p=clean[i];
-      const prev=clean[Math.max(0,i-1)],next=clean[Math.min(clean.length-1,i+1)];
-      let dx=next.x-prev.x,dy=next.y-prev.y,len=Math.hypot(dx,dy)||1;
+      const p=clean[i],prev=clean[Math.max(0,i-1)],next=clean[Math.min(clean.length-1,i+1)];
+      const dx=next.x-prev.x,dy=next.y-prev.y,len=Math.hypot(dx,dy)||1;
       const nx=-dy/len,ny=dx/len;
       vertices.push(p.x+nx*half,y,p.y+ny*half,p.x-nx*half,y,p.y-ny*half);
     }
     for(let i=0;i<clean.length-1;i++){
-      const a=base+i*2,b=a+1,c=a+2,d=a+3;
+      const a=i*2,b=a+1,c=a+2,d=a+3;
       indices.push(a,b,c,b,d,c);
     }
     const geometry=new THREE.BufferGeometry();
-    geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices.slice(base*3),3));
-    geometry.setIndex(indices.slice(-((clean.length-1)*6)));
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    geometry.setIndex(indices);
     geometry.computeVertexNormals();
     group.add(new THREE.Mesh(geometry,material));
   };
 
-  // Asphalt.
-  addStrip(roadWidth,surfaceY,mat(bridge?'#755638':'#3f4648'));
-
   if(!bridge){
-    // Narrow edge strips provide definition without turning the road into
-    // rounded geometry.
-    const edgeMaterial=mat('#62696a');
-    addStrip(roadWidth+edgeWidth*2,.025,edgeMaterial);
+    buildStrip(roadWidth+1.8,.018,mat('#62696a'));
+    buildStrip(roadWidth,.035,mat('#3f4648'));
 
-    // Centre marking, split into short dashes along the road centre line.
-    const markingGroup=new THREE.Group();
+    const markings=new THREE.Group();
     const dashMaterial=mat('#d9c56d');
     for(let i=0;i<clean.length-1;i++){
-      const a=clean[i],b=clean[i+1];
-      const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+      const a=clean[i],b=clean[i+1],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
       if(len<1)continue;
-      const dashLen=Math.min(18,len);
-      const gap=12;
-      for(let along=0;along<len;along+=dashLen+gap){
-        const end=Math.min(along+dashLen,len);
-        if(end<=along)continue;
-        const t1=along/len,t2=end/len;
+      for(let along=0;along<len;along+=30){
+        const end=Math.min(along+18,len),t1=along/len,t2=end/len;
         const x1=a.x+dx*t1,y1=a.y+dy*t1,x2=a.x+dx*t2,y2=a.y+dy*t2;
-        const mx=(x1+x2)/2,my=(y1+y2)/2;
-        const dash=box(Math.max(.1,end-along),markWidth,.9,'#d9c56d');
-        dash.position.set(mx,.09,my);
+        const dash=box(Math.max(.1,end-along),.12,1,dashMaterial);
+        dash.position.set((x1+x2)/2,.12,(y1+y2)/2);
         dash.rotation.y=-Math.atan2(y2-y1,x2-x1);
-        markingGroup.add(dash);
+        markings.add(dash);
       }
     }
-    group.add(markingGroup);
+    group.add(markings);
   }else{
-    // Bridges get simple side rails rather than cylindrical road geometry.
-    const railMaterial=mat('#b58a52');
+    buildStrip(roadWidth,.04,mat('#755638'));
+    const a=clean[0],b=clean.at(-1);
+    const angle=Math.atan2(b.y-a.y,b.x-a.x);
+    const span=Math.max(1,length(clean));
     for(const side of [-1,1]){
-      const rail=box(Math.max(1,length(clean)),1.5,.8,'#b58a52');
-      const a=clean[0],b=clean.at(-1);
+      const rail=box(span,1.5,.8,mat('#b58a52'));
       rail.position.set((a.x+b.x)/2,.95,(a.y+b.y)/2);
-      rail.rotation.y=-Math.atan2(b.y-a.y,b.x-a.x);
+      rail.rotation.y=-angle;
+      rail.position.x+=Math.cos(angle+Math.PI/2)*side*(roadWidth/2);
+      rail.position.z+=Math.sin(angle+Math.PI/2)*side*(roadWidth/2);
       group.add(rail);
     }
   }
