@@ -1,0 +1,144 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+globalThis.innerWidth = 390;
+globalThis.innerHeight = 844;
+
+const {freshState, makeBuilding, TYPES} = await import('../src/state.js');
+const {
+  addRoad,
+  eraseRoad,
+  roadAttachment,
+  routeOnRoadNetwork,
+  roadNetwork
+} = await import('../src/world.js');
+const {route, updateEconomy} = await import('../src/economy.js');
+
+function road(points) {
+  return {id: crypto.randomUUID(), points, age:0, bridge:false, condition:1};
+}
+
+function baseState() {
+  const s = freshState();
+  s.cash = 10000;
+  s.roads = [];
+  s.buildings = [];
+  return s;
+}
+
+function building(typeName, x, y) {
+  const type = TYPES.find(t => t.name === typeName);
+  return makeBuilding(type, x, y, crypto.randomUUID());
+}
+
+test('building attaches to the nearest physical road segment', () => {
+  const s = baseState();
+  const f = building('Food', 0, 0);
+  s.buildings.push(f);
+  s.roads.push(road([{x:35,y:0},{x:150,y:0}]));
+
+  const a = roadAttachment(s, f);
+  assert.ok(a);
+  assert.equal(a.road, s.roads[0]);
+  assert.ok(Math.abs(a.point.x - 35) < 1e-9);
+  assert.ok(Math.abs(a.point.y) < 1e-9);
+});
+
+test('factory to shop route follows the saved road geometry', () => {
+  const s = baseState();
+  const f = building('Food', 0, 0);
+  const shop = building('Market', 220, 0);
+  s.buildings.push(f, shop);
+  s.roads.push(road([{x:35,y:0},{x:185,y:0}]));
+
+  const r = route(s, f, shop);
+  assert.ok(r);
+  assert.ok(r.distance > 0);
+  assert.deepEqual(r.points[0], {x:35,y:0});
+  assert.deepEqual(r.points.at(-1), {x:185,y:0});
+  for (const p of r.points) assert.equal(p.y, 0);
+});
+
+test('crossing roads create a real intersection and permit routing across it', () => {
+  const s = baseState();
+  const f = building('Food', -120, 0);
+  const shop = building('Market', 0, 120);
+  s.buildings.push(f, shop);
+  s.roads.push(
+    road([{x:-85,y:0},{x:85,y:0}]),
+    road([{x:0,y:85},{x:0,y:-85}])
+  );
+
+  const network = roadNetwork(s);
+  assert.ok(network.nodes.some(n => Math.abs(n.x) < 1e-9 && Math.abs(n.y) < 1e-9));
+
+  const r = route(s, f, shop);
+  assert.ok(r);
+  assert.ok(r.points.some(p => Math.abs(p.x) < 1e-9 && Math.abs(p.y) < 1e-9));
+});
+
+test('road endpoints may connect through an intersection without off-road routing', () => {
+  const s = baseState();
+  const f = building('Food', -120, 0);
+  const shop = building('Market', 120, 0);
+  s.buildings.push(f, shop);
+  s.roads.push(
+    road([{x:-85,y:0},{x:0,y:0}]),
+    road([{x:0,y:0},{x:85,y:0}])
+  );
+  const r = routeOnRoadNetwork(s, f, shop);
+  assert.ok(r);
+  assert.ok(r.distance >= 170);
+});
+
+test('truck dispatch and delivery complete on a connected road', () => {
+  const s = baseState();
+  const f = building('Food', 0, 0);
+  const shop = building('Market', 220, 0);
+  f.stock = 3;
+  f.dispatchTimer = 2;
+  shop.demand = 3;
+  s.buildings.push(f, shop);
+  s.roads.push(road([{x:35,y:0},{x:185,y:0}]));
+
+  const before = s.cash;
+  updateEconomy(s, 20, () => {});
+
+  assert.equal(s.trucks.length, 0);
+  assert.ok(s.orders >= 1);
+  assert.ok(s.cash > before);
+  assert.ok(shop.served >= 1);
+});
+
+test('deleting a road invalidates the route', () => {
+  const s = baseState();
+  const f = building('Food', 0, 0);
+  const shop = building('Market', 220, 0);
+  s.buildings.push(f, shop);
+  s.roads.push(road([{x:35,y:0},{x:185,y:0}]));
+
+  assert.ok(route(s, f, shop));
+  assert.equal(eraseRoad(s, {x:100,y:0}), true);
+  assert.equal(route(s, f, shop), null);
+});
+
+test('insufficient cash rejects a road before mutating the network', () => {
+  const s = baseState();
+  s.cash = 1;
+  const before = s.roads.length;
+  const result = addRoad(s, [{x:0,y:0},{x:1000,y:0}]);
+  assert.equal(result, 'cash');
+  assert.equal(s.roads.length, before);
+  assert.equal(s.cash, 1);
+});
+
+test('duplicate roads are rejected without charging twice', () => {
+  const s = baseState();
+  const first = addRoad(s, [{x:0,y:0},{x:180,y:0}]);
+  assert.equal(first, true);
+  const cashAfterFirst = s.cash;
+  const second = addRoad(s, [{x:0,y:0},{x:180,y:0}]);
+  assert.equal(second, 'duplicate');
+  assert.equal(s.roads.length, 1);
+  assert.equal(s.cash, cashAfterFirst);
+});
