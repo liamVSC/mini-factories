@@ -111,6 +111,7 @@ export function roadPath(s,a,b){
   return existing?existing.points:null;
 }
 export function addRoad(s,points){
+ if(!Array.isArray(points)||points.length<2)return false;
  const clean=points.filter((p,i)=>!i||dist(p,points[i-1])>10);if(clean.length<2)return false;
  const roadLength=length(clean);if(roadLength<18)return false;
  const cost=Math.max(1,Math.ceil(roadLength/55)),cashCost=cost*2;if(s.roadBudget<cost||s.cash<cashCost)return false;
