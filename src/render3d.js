@@ -1,6 +1,9 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 
 let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null;
+let target={x:0,z:0,yaw:0,pitch:.82,distance:620};
+let desired={...target};
+let cameraReady=false;
 const meshes=new Map();
 
 function mat(color,roughness=.8,metalness=0){
@@ -73,7 +76,8 @@ function clearDynamic(){
 function init(canvas){
   if(renderer)return;
   renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
-  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.6));
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   scene=new THREE.Scene();
@@ -104,17 +108,47 @@ function syncWorld(s){
   for(const b of s.buildings||[])addBuilding(b);
 }
 function updateCamera(s,W,H){
-  const zoom=Math.max(.55,Math.min(2,s.camera.zoom||1));
+  const zoom=Math.max(.55,Math.min(2.4,s.camera.zoom||1));
   const cx=W/2+(W/2-s.camera.x)/zoom;
   const cz=H/2+(H/2-s.camera.y)/zoom;
-  const span=Math.max(180,H/zoom);
-  if(!camera3d){
-    camera3d=new THREE.OrthographicCamera(-W/2,W/2,H/2,-H/2,.1,2500);
-  }
-  camera3d.left=-span*W/H/2;camera3d.right=span*W/H/2;camera3d.top=span/2;camera3d.bottom=-span/2;
-  camera3d.position.set(cx+260,360,cz+300);
-  camera3d.lookAt(cx,0,cz);
+  const baseDistance=Math.max(320,Math.min(980,Math.max(W,H)*1.05));
+  const targetDistance=baseDistance/zoom;
+  desired.distance=targetDistance;
+  desired.x=cx; desired.z=cz;
+  if(!cameraReady){target={...desired};cameraReady=true}
+  const ease=1-Math.pow(.001,1/60);
+  target.x=THREE.MathUtils.lerp(target.x,desired.x,ease);
+  target.z=THREE.MathUtils.lerp(target.z,desired.z,ease);
+  target.distance=THREE.MathUtils.lerp(target.distance,desired.distance,ease);
+  target.yaw=THREE.MathUtils.lerp(target.yaw,desired.yaw,ease);
+  target.pitch=THREE.MathUtils.lerp(target.pitch,desired.pitch,ease);
+  const aspect=Math.max(.1,W/H);
+  const half=Math.max(150,target.distance*.55);
+  if(!camera3d)camera3d=new THREE.OrthographicCamera(-half*aspect,half*aspect,half,-half,.1,3000);
+  camera3d.left=-half*aspect;camera3d.right=half*aspect;camera3d.top=half;camera3d.bottom=-half;
+  const cp=Math.cos(target.pitch),sp=Math.sin(target.pitch);
+  camera3d.position.set(
+    target.x+Math.sin(target.yaw)*target.distance*cp,
+    Math.sin(target.pitch)*target.distance,
+    target.z+Math.cos(target.yaw)*target.distance*cp
+  );
+  camera3d.lookAt(target.x,0,target.z);
   camera3d.updateProjectionMatrix();
+}
+export function controlCamera(dx,dy,distanceDelta=0,yawDelta=0,pitchDelta=0){
+  desired.x+=dx;
+  desired.z+=dy;
+  desired.distance=Math.max(280,Math.min(1100,desired.distance+distanceDelta));
+  desired.yaw+=yawDelta;
+  desired.pitch=Math.max(.52,Math.min(1.18,desired.pitch+pitchDelta));
+}
+export function cameraPointFromScreen(x,y,W,H){
+  if(!camera3d)return{x:W/2,z:H/2};
+  const ndc=new THREE.Vector3((x/W)*2-1,-(y/H)*2+1,0);
+  ndc.unproject(camera3d);
+  const dir=ndc.sub(camera3d.position).normalize();
+  const t=-camera3d.position.y/dir.y;
+  return{x:camera3d.position.x+dir.x*t,z:camera3d.position.z+dir.z*t};
 }
 function drawTrucks(s){
   for(const [id,g] of [...meshes].filter(([k])=>String(k).startsWith('truck:'))){scene.remove(g);meshes.delete(id)}
