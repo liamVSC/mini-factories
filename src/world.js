@@ -91,6 +91,25 @@ function candidateRoadPaths(start,end){
 }
 export function roadPreview(s,a,b){
   const start=roadTarget(s,a),end=roadTarget(s,b);
+  // If two different buildings were selected, always connect their actual
+  // connection points. This prevents tap coordinates from collapsing to the
+  // same snapped point on mobile.
+  const startBuilding=start?.building;
+  const endBuilding=end?.building;
+  if(startBuilding&&endBuilding&&startBuilding!==endBuilding){
+    const sa=buildingConnectionPoint(startBuilding,endBuilding);
+    const eb=buildingConnectionPoint(endBuilding,startBuilding);
+    const direct=[sa,eb];
+    const candidates=candidateRoadPaths(sa,eb).map(simplifyRoad);
+    const clear=candidates.filter(path=>!roadPathBlocked(s,path));
+    const path=(clear.length?clear:[direct]).sort((x,y)=>length(x)-length(y))[0];
+    return{
+      path,start:sa,end:eb,
+      snappedStart:true,snappedEnd:true,
+      connectsBuilding:true,connectsRoad:false,
+      blocked:roadPathBlocked(s,path)
+    };
+  }
   const candidates=candidateRoadPaths(start,end).map(simplifyRoad);
   const clear=candidates.filter(path=>!roadPathBlocked(s,path));
   const path=(clear.length?clear:candidates).sort((x,y)=>length(x)-length(y))[0]||[start,end];
@@ -109,7 +128,14 @@ export function addRoad(s,points){
   const clean=simplifyRoad(points);
   if(clean.length<2)return'invalid';
   const roadLength=length(clean);
-  if(!Number.isFinite(roadLength)||roadLength<1)return'too-short';
+  if(!Number.isFinite(roadLength))return'too-short';
+  // A valid connection between two distinct buildings should never be rejected
+  // because the touch point itself was too close to the building edge.
+  if(roadLength<1){
+    const first=clean[0],last=clean[clean.length-1];
+    const a=nearestBuilding(s,first),b=nearestBuilding(s,last);
+    if(!a||!b||a===b)return'too-short';
+  }
   if(roadPathBlocked(s,clean))return'blocked';
   const cost=Math.max(1,Math.ceil(roadLength/180))*2;
   if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';
