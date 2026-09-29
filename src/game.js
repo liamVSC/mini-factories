@@ -311,7 +311,7 @@ canvas.addEventListener('wheel',e=>{
   setZoomAt(sp,s.camera.zoom*Math.exp(-e.deltaY*.0012));
 },{passive:false});
 document.querySelector('#gameVersion').textContent='v'+GAME_VERSION;
-for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['settings',()=>{document.querySelector('#settingsMenu').style.display='grid';document.querySelector('#changeLog')?.style.removeProperty('display');s.paused=true}],['settingsClose',()=>{document.querySelector('#settingsMenu').style.display='none';s.paused=false}],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['newgame',reset],['again',reset],['cameraHome',()=>{resetCamera();s.camera.x=0;s.camera.y=0;s.camera.zoom=1;clampCamera();flash('Camera reset')}]])document.querySelector('#'+id)?.addEventListener('click',fn);
+for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['cameraHome',()=>{s.camera={x:W/2,y:H/2,zoom:1};resetCamera();clampCamera();flash('Camera reset') }],['settings',()=>{document.querySelector('#settingsMenu').style.display='grid';document.querySelector('#changeLog')?.style.removeProperty('display');s.paused=true}],['settingsClose',()=>{document.querySelector('#settingsMenu').style.display='none';s.paused=false}],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['newgame',reset],['again',reset],['cameraHome',()=>{resetCamera();s.camera.x=0;s.camera.y=0;s.camera.zoom=1;clampCamera();flash('Camera reset')}]])document.querySelector('#'+id)?.addEventListener('click',fn);
 for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
 document.querySelector('#shop').onclick=null
 let uiTimer=0;
