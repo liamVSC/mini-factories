@@ -109,8 +109,8 @@ function syncWorld(s){
 }
 function updateCamera(s,W,H){
   const zoom=Math.max(.55,Math.min(2.4,s.camera.zoom||1));
-  const cx=W/2+(W/2-s.camera.x)/zoom;
-  const cz=H/2+(H/2-s.camera.y)/zoom;
+  const cx=(W/2-s.camera.x)/zoom;
+  const cz=(H/2-s.camera.y)/zoom;
   const baseDistance=Math.max(320,Math.min(980,Math.max(W,H)*1.05));
   const targetDistance=baseDistance/zoom;
   desired.distance=targetDistance;
@@ -138,7 +138,7 @@ function updateCamera(s,W,H){
 export function resetCamera(){
   const next={x:0,z:0,yaw:0,pitch:.82,distance:620};
   desired={...next};
-  if(cameraReady)target={...target};
+  if(cameraReady)target={...next};
 }
 export function focusCamera(x,z){
   desired.x=x;desired.z=z;
