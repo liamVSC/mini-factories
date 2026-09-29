@@ -42,6 +42,27 @@ function showPanel(b){
     shop.disabled=b.level>=3;
   }
 }
+function showCompany(){
+  const p=document.querySelector('#panel');
+  p.style.display='block';
+  document.querySelector('#objective').style.display='none';
+  document.querySelector('#name').textContent='Company';
+  document.querySelector('#type').textContent='Expansion';
+  const unlocked=s.buildings.length;
+  const cap=10+(s.research?.industry||0)*2;
+  document.querySelector('#info').innerHTML='<b>'+unlocked+'/'+cap+'</b> buildings • Level '+s.companyLevel+'<br><small>Research Industry to expand your maximum company size.</small>';
+  document.querySelector('#shop').style.display='none';
+  const items=[
+    ['u1','🏭 Production','Factories: '+s.buildings.filter(b=>b.kind==='factory').length],
+    ['u2','🏪 Retail','Shops: '+s.buildings.filter(b=>b.kind==='shop').length],
+    ['u3','🚚 Network','Roads: '+s.roads.length+' • Budget: '+s.roadBudget],
+    ['u4','📈 Performance','£'+Math.floor(s.deliveryIncome)+' delivery income • '+s.orders+' deliveries']
+  ];
+  for(let i=1;i<=4;i++){
+    const el=document.querySelector('#u'+i),item=items[i-1];
+    el.style.display='block';el.disabled=true;el.innerHTML=item[1]+'<small>'+item[2]+'</small>';
+  }
+}
 function showResearch(){
   const p=document.querySelector('#panel');
   p.style.display='block';
@@ -75,7 +96,7 @@ canvas.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,screenPos(e))
 canvas.addEventListener('pointermove',e=>{if(pointers.has(e.pointerId))pointers.set(e.pointerId,screenPos(e));if(pinch&&pointers.size>=2){const a=[...pointers.values()][0],b=[...pointers.values()][1],d=Math.max(30,Math.hypot(b.x-a.x,b.y-a.y)),center={x:(a.x+b.x)/2,y:(a.y+b.y)/2};const z=Math.max(.55,Math.min(2,pinch.z*d/pinch.d));const anchor=worldFromScreen(pinchCenter);s.camera.zoom=z;const anchored=worldFromScreen(pinchCenter);s.camera.x+=(anchored.x-anchor.x)*s.camera.zoom;s.camera.y+=(anchored.y-anchor.y)*s.camera.zoom;panBy(center.x-pinchCenter.x,center.y-pinchCenter.y);pinchCenter=center;return}if(drag?.pan&&s.mode==='select'){const q=screenPos(e);panBy(q.x-drag.last.x,q.y-drag.last.y);drag.last=q;return}if(!drag||s.mode!=='road')return;const p=worldPos(e);if(dist(drag.start,p)>8){drag.armed=true;drag.preview=roadPath(s,drag.start,p)}});
 function finish(e){pointers.delete(e.pointerId);if(pinch&&pointers.size<2){pinch=null;pinchCenter=null;drag=null;return}if(drag?.armed){const p=worldPos(e),path=roadPath(s,drag.start,p);if(addRoad(s,path)){flash('Road built');save()}else flash('Not enough road budget or cash')}drag=null}
 canvas.addEventListener('pointerup',finish);canvas.addEventListener('pointercancel',finish);
-for(const [id,fn] of [['research',()=>showResearch()],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['pause',()=>{s.paused=!s.paused;document.querySelector('#pauseMenu').style.display=s.paused?'grid':'none';document.querySelector('#pause').textContent=s.paused?'▶ Resume':'Ⅱ Pause'}],['resume',()=>{s.paused=false;document.querySelector('#pauseMenu').style.display='none';document.querySelector('#pause').textContent='Ⅱ Pause'}],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
+for(const [id,fn] of [['research',()=>showResearch()],['company',()=>showCompany()],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['pause',()=>{s.paused=!s.paused;document.querySelector('#pauseMenu').style.display=s.paused?'grid':'none';document.querySelector('#pause').textContent=s.paused?'▶ Resume':'Ⅱ Pause'}],['resume',()=>{s.paused=false;document.querySelector('#pauseMenu').style.display='none';document.querySelector('#pause').textContent='Ⅱ Pause'}],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
 for(let i=1;i<=4;i++)document.querySelector('#u'+i).addEventListener('click',()=>{if(s.selected&&upgrade(s,s.selected,i)){save();sync();showPanel(s.selected)}});document.querySelector('#shop').addEventListener('click',()=>{if(s.selected&&upgrade(s,s.selected,1)){save();sync();showPanel(s.selected)}});
 let uiTimer=0;
 function tick(dt){if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);for(const p of s.particles)p.t+=dt;s.particles=s.particles.filter(p=>p.t<1);if(Math.random()<dt*.5)save()}uiTimer-=dt;if(uiTimer<=0||s.gameOver){uiTimer=.08;sync()}if(s.gameOver){document.querySelector('#gameOver').style.display='grid';document.querySelector('#score').textContent=`${s.orders} deliveries • Company Level ${s.companyLevel}.`;save()}}
