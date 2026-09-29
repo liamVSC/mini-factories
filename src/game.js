@@ -1,5 +1,5 @@
 import {freshState,hydrate,serialise,TYPES} from './state.js';
-import {seed,spawn,nearestBuilding,nearestRoad,roadPath,addRoad,eraseRoad,dist} from './world.js';
+import {seed,spawn,nearestBuilding,nearestRoad,roadPath,addRoad,eraseRoad,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render} from './render.js';
 
@@ -42,6 +42,17 @@ function showPanel(b){
     shop.disabled=b.level>=3;
   }
 }
+function showBuild(){
+  const p=document.querySelector('#panel');p.style.display='block';document.querySelector('#objective').style.display='none';
+  document.querySelector('#name').textContent='Build';document.querySelector('#type').textContent='Construction';
+  document.querySelector('#info').innerHTML='<b>Cash £'+Math.floor(s.cash)+'</b> • Choose a building';
+  document.querySelector('#shop').style.display='none';
+  const available=TYPES.filter(t=>!t.unlock||(s.research?.[t.unlock]||0)>=t.unlockLevel);
+  const items=[...available];
+  for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);const t=items[i-1];el.style.display=t?'block':'none';if(!t)continue;const reason=buildingUnlock(t,s);const cost=buildingCost(s,t);el.innerHTML='🏗️ '+t.name+' <span>£'+cost+'</span><small>'+ (reason||t.role||'Build production')+'</small>';el.disabled=!!reason||s.cash<cost;el.onclick=()=>startBuild(t);}
+  if(items.length>4){for(let i=5;i<=items.length;i++){const id='build'+i;let el=document.querySelector('#'+id);if(!el){el=document.createElement('button');el.id=id;el.className='upgrade';p.appendChild(el)}const t=items[i-1],reason=buildingUnlock(t,s),cost=buildingCost(s,t);el.style.display='block';el.innerHTML='🏗️ '+t.name+' <span>£'+cost+'</span><small>'+ (reason||t.role||'Build production')+'</small>';el.disabled=!!reason||s.cash<cost;el.onclick=()=>startBuild(t);}}
+}
+function startBuild(t){const reason=canBuild(s,t);if(reason){flash(reason);return}s.buildMode=t;hidePanel();s.mode='build';document.querySelector('#road').classList.remove('active');document.querySelector('#erase').classList.remove('active');flash('Tap an empty area to place '+t.name)}
 function showCompany(){
   const p=document.querySelector('#panel');
   p.style.display='block';
@@ -84,7 +95,7 @@ function showResearch(){
     el.onclick=()=>{if(research(s,key)){save();sync();showResearch()}};
   }
 }
-function hidePanel(){s.selected=null;document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
+function hidePanel(){s.selected=null;s.buildMode=null;if(s.mode==='build')s.mode='select';document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
 function worldPos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left-s.camera.x)/s.camera.zoom+W/2,y:(e.clientY-r.top-s.camera.y)/s.camera.zoom+H/2}}
 function worldFromScreen(p){return{x:(p.x-s.camera.x)/s.camera.zoom+W/2,y:(p.y-s.camera.y)/s.camera.zoom+H/2}}
 function clampCamera(){const margin=180;const worldW=W/s.camera.zoom,worldH=H/s.camera.zoom;const minX=W/2-(worldW-margin),maxX=W/2+(worldW-margin),minY=H/2-(worldH-margin),maxY=H/2+(worldH-margin);s.camera.x=Math.max(Math.min(s.camera.x,maxX),minX);s.camera.y=Math.max(Math.min(s.camera.y,maxY),minY)}
@@ -92,11 +103,11 @@ function zoomAt(screenX,screenY,nextZoom){const before=worldFromScreen({x:screen
 function panBy(dx,dy){s.camera.x+=dx;s.camera.y+=dy;clampCamera()}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 function toggleMode(m){s.mode=s.mode===m?'select':m;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase')}
-canvas.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,screenPos(e));if(pointers.size===2){const a=[...pointers.values()][0],b=[...pointers.values()][1];pinch={d:Math.hypot(b.x-a.x,b.y-a.y),z:s.camera.zoom,cx:s.camera.x,cy:s.camera.y};pinchCenter={x:(a.x+b.x)/2,y:(a.y+b.y)/2};drag=null;return}const p=worldPos(e);if(s.mode==='erase'){eraseRoad(s,p);save();return}if(s.mode==='select'){s.selected=nearestBuilding(s,p);if(s.selected)showPanel(s.selected);else hidePanel();if(!s.selected)drag={pan:true,last:screenPos(e)};return}const start=nearestRoad(s,p)||nearestBuilding(s,p)||p;drag={start,building:nearestBuilding(s,start),armed:false};canvas.setPointerCapture?.(e.pointerId)});
+canvas.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,screenPos(e));if(pointers.size===2){const a=[...pointers.values()][0],b=[...pointers.values()][1];pinch={d:Math.hypot(b.x-a.x,b.y-a.y),z:s.camera.zoom,cx:s.camera.x,cy:s.camera.y};pinchCenter={x:(a.x+b.x)/2,y:(a.y+b.y)/2};drag=null;return}const p=worldPos(e);if(s.mode==='build'){if(s.buildMode&&placeBuilding(s,s.buildMode,p.x,p.y)){s.buildMode=null;s.mode='select';save();sync();flash('Building constructed');}else flash('Too close to another building or river');return}if(s.mode==='erase'){eraseRoad(s,p);save();return}if(s.mode==='select'){s.selected=nearestBuilding(s,p);if(s.selected)showPanel(s.selected);else hidePanel();if(!s.selected)drag={pan:true,last:screenPos(e)};return}const start=nearestRoad(s,p)||nearestBuilding(s,p)||p;drag={start,building:nearestBuilding(s,start),armed:false};canvas.setPointerCapture?.(e.pointerId)});
 canvas.addEventListener('pointermove',e=>{if(pointers.has(e.pointerId))pointers.set(e.pointerId,screenPos(e));if(pinch&&pointers.size>=2){const a=[...pointers.values()][0],b=[...pointers.values()][1],d=Math.max(30,Math.hypot(b.x-a.x,b.y-a.y)),center={x:(a.x+b.x)/2,y:(a.y+b.y)/2};const z=Math.max(.55,Math.min(2,pinch.z*d/pinch.d));const anchor=worldFromScreen(pinchCenter);s.camera.zoom=z;const anchored=worldFromScreen(pinchCenter);s.camera.x+=(anchored.x-anchor.x)*s.camera.zoom;s.camera.y+=(anchored.y-anchor.y)*s.camera.zoom;panBy(center.x-pinchCenter.x,center.y-pinchCenter.y);pinchCenter=center;return}if(drag?.pan&&s.mode==='select'){const q=screenPos(e);panBy(q.x-drag.last.x,q.y-drag.last.y);drag.last=q;return}if(!drag||s.mode!=='road')return;const p=worldPos(e);if(dist(drag.start,p)>8){drag.armed=true;drag.preview=roadPath(s,drag.start,p)}});
 function finish(e){pointers.delete(e.pointerId);if(pinch&&pointers.size<2){pinch=null;pinchCenter=null;drag=null;return}if(drag?.armed){const p=worldPos(e),path=roadPath(s,drag.start,p);if(addRoad(s,path)){flash('Road built');save()}else flash('Not enough road budget or cash')}drag=null}
 canvas.addEventListener('pointerup',finish);canvas.addEventListener('pointercancel',finish);
-for(const [id,fn] of [['research',()=>showResearch()],['company',()=>showCompany()],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['pause',()=>{s.paused=!s.paused;document.querySelector('#pauseMenu').style.display=s.paused?'grid':'none';document.querySelector('#pause').textContent=s.paused?'▶ Resume':'Ⅱ Pause'}],['resume',()=>{s.paused=false;document.querySelector('#pauseMenu').style.display='none';document.querySelector('#pause').textContent='Ⅱ Pause'}],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
+for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['pause',()=>{s.paused=!s.paused;document.querySelector('#pauseMenu').style.display=s.paused?'grid':'none';document.querySelector('#pause').textContent=s.paused?'▶ Resume':'Ⅱ Pause'}],['resume',()=>{s.paused=false;document.querySelector('#pauseMenu').style.display='none';document.querySelector('#pause').textContent='Ⅱ Pause'}],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
 for(let i=1;i<=4;i++)document.querySelector('#u'+i).addEventListener('click',()=>{if(s.selected&&upgrade(s,s.selected,i)){save();sync();showPanel(s.selected)}});document.querySelector('#shop').addEventListener('click',()=>{if(s.selected&&upgrade(s,s.selected,1)){save();sync();showPanel(s.selected)}});
 let uiTimer=0;
 function tick(dt){if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);for(const p of s.particles)p.t+=dt;s.particles=s.particles.filter(p=>p.t<1);if(Math.random()<dt*.5)save()}uiTimer-=dt;if(uiTimer<=0||s.gameOver){uiTimer=.08;sync()}if(s.gameOver){document.querySelector('#gameOver').style.display='grid';document.querySelector('#score').textContent=`${s.orders} deliveries • Company Level ${s.companyLevel}.`;save()}}
