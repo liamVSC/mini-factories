@@ -3,8 +3,14 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadPreview,addRoad,
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.3';
+const GAME_VERSION='1.4';
 const CHANGELOG=[
+  {version:'1.4',date:'29 Sep 2026',items:[
+    'Unified screen-to-world input around the 3D camera projection.',
+    'Improved zoom-at-cursor, pan and pinch camera behaviour.',
+    'Cleaned up camera reset, resize and input state handling.',
+    'Added syntax checks to the automated test command.'
+  ]},
   {version:'1.3',date:'29 Sep 2026',items:[
     'Rebuilt the map renderer as a real-time 3D scene.',
     'Added 3D factories, warehouses, shops and trucks.',
