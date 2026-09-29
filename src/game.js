@@ -4,7 +4,7 @@ import {updateEconomy,upgrade,newContract,research,researchCost} from './economy
 import {render} from './render.js';
 
 const GAME_VERSION='1';
-const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');let W=0,H=0,dpr=1;let s=load();let drag=null;let roadStart=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
+const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');let W=0,H=0,dpr=1;let s=load();let drag=null;let pointers=new Map();let pinch=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
 function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);if(s?.camera)clampCamera()}addEventListener('resize',resize);resize();clampCamera();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
 function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSaveV6',JSON.stringify(serialise(s)))}catch(e){flash('Save failed — storage unavailable')}}
@@ -163,7 +163,7 @@ function clampCamera(){
 }
 function panBy(dx,dy){s.camera.x+=dx;s.camera.y+=dy;clampCamera()}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-function toggleMode(m){s.mode=s.mode===m?'select':m;roadStart=null;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase')}
+function toggleMode(m){s.mode=s.mode===m?'select':m;drag=null;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase')}
 function setZoomAt(screen,z){
   const before=worldFromScreen(screen);
   s.camera.zoom=Math.max(.55,Math.min(2,z));
@@ -180,7 +180,6 @@ canvas.addEventListener('pointerdown',e=>{
     pinch={d:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),z:s.camera.zoom};
     pinchCenter={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
     drag=null;
-    roadStart=null;
     return;
   }
   const p=worldPos(e);
@@ -197,7 +196,7 @@ canvas.addEventListener('pointerdown',e=>{
   }
   if(s.mode==='road'){
     const target=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
-    drag={road:true,start:target,startScreen:sp,preview:null,moved:false,last:sp,startedFromTap:false};
+    drag={road:true,start:target,startScreen:sp,preview:null,previewStart:null,previewEnd:null,moved:false,last:sp};
     return;
   }
 });
@@ -227,7 +226,7 @@ canvas.addEventListener('pointermove',e=>{
   if(Math.hypot(sp.x-drag.startScreen.x,sp.y-drag.startScreen.y)>8)drag.moved=true;
   if(drag.moved){
     const endTarget=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
-    const preview=roadPreview(s,roadStart||drag.start,endTarget);
+    const preview=roadPreview(s,drag.start,endTarget);
     drag.preview=preview.path;
     drag.previewStart=preview.start;
     drag.previewEnd=preview.end;
@@ -247,29 +246,11 @@ function finish(e){
     return;
   }
   if(drag?.road&&s.mode==='road'){
-    const p=worldPos(e);
-    if(!drag.moved){
-      const target=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
-      if(!roadStart){
-        roadStart=target;
-        flash(target?.type?'Start set — tap the next building':'Start set — tap the next point');
-      }else{
-        const endTarget=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
-        const preview=roadPreview(s,roadStart,endTarget);
-        const result=addRoad(s,preview.path,{startBuilding:preview.start?.building,endBuilding:preview.end?.building});
-        if(result===true){flash('Road built');save();roadStart=null}else flash(roadResultMessage(result,preview.path));
-      }
-    }else{
-      const endTarget=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
-      const startTarget=roadStart||drag.start;
-      const preview=roadPreview(s,startTarget,endTarget);
-      const result=addRoad(s,preview.path,{startBuilding:preview.start?.building,endBuilding:preview.end?.building});
-      if(result===true){
-        flash('Road built');save();roadStart=null;
-      }else{
-        flash(roadResultMessage(result,preview.path));
-      }
-      if(result===true){flash('Road built');save();sync();roadStart=null}else flash(roadResultMessage(result,preview.path));
+    if(drag.moved&&drag.preview?.length>=2){
+      const result=addRoad(s,drag.preview,{startBuilding:drag.previewStart?.building,endBuilding:drag.previewEnd?.building});
+      if(result===true){flash('Road built');save();sync()}else flash(roadResultMessage(result,drag.preview));
+    }else if(!drag.moved){
+      flash('Drag from one point to another to build a road');
     }
   }
   drag=null;
