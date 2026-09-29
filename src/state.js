@@ -15,6 +15,6 @@ export function goalList(){return[
  {text:'Keep congestion below 30%',target:1,progress:s=>s.congestion<.3?1:0,done:s=>s.congestion<.3},
  {text:'Reach Week 10',target:10,progress:s=>s.week,done:s=>s.week>=10}
 ]}
-export function makeBuilding(type,x,y,id){return{id,x,y,r:25,type:type.name,kind:type.kind,need:type.need||null,color:type.color,level:1,stock:0,max:type.kind==='factory'?4:8,production:0,demand:type.kind==='shop'?3:0,served:0,loading:0,logistics:0,contract:null,district:'',pulse:Math.random()*6.28,active:0}}
+export function makeBuilding(type,x,y,id){return{id,x,y,r:25,type:type.name,kind:type.kind,need:type.need||null,color:type.color,level:1,stock:0,max:type.kind==='factory'?4:8,production:0,demand:type.kind==='shop'?3:0,served:0,satisfaction:type.kind==='shop'?100:0,sales:0,loading:0,logistics:0,contract:null,district:'',pulse:Math.random()*6.28,active:0}}
 export function serialise(s){return{version:5,...s,selected:null,trucks:[],particles:[]}}
 export function hydrate(d){if(!d||d.version<2||!Array.isArray(d.buildings)||!Array.isArray(d.roads))return null;const s=freshState();Object.assign(s,d);s.version=5;s.selected=null;s.trucks=[];s.particles=[];s.goals=goalList();for(const b of s.buildings){b.r??=25;b.active??=0;b.pulse??=Math.random()*6.28}s.objective=Math.max(0,Math.min(5,Number(d.objective)||0));return s}
