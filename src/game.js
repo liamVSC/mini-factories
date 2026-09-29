@@ -57,7 +57,7 @@ function showPanel(b){
   shop.style.display=b.kind==='shop'?'block':'none';
   shop.onclick=null;
   if(b.kind==='shop'){
-    shop.innerHTML='🏪 Upgrade shop <span>£'+(220*b.level)+'</span><small>Increase capacity and customer demand.</small>';
+    shop.innerHTML='🏪 Upgrade shop <span>£'+(220*b.level)+'</span>';
     shop.disabled=b.level>=3;
     shop.onclick=()=>{if(!shop.disabled&&upgrade(s,b,1)){save();sync();showPanel(b)}};
   }
