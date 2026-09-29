@@ -76,6 +76,28 @@ export function roadNetwork(s,extraPoints=[]){
   for(const e of edges){adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});adjacency.get(e.b).push({node:e.a,d:e.d,road:e.road});}
   return{nodes,edges,adjacency};
 }
+function shortestRoadPath(network,a,b){
+  const queue=[{node:a,d:0}],best=new Map([[a,0]]),prev=new Map();
+  while(queue.length){
+    queue.sort((x,y)=>x.d-y.d);
+    const cur=queue.shift();
+    if(cur.d!==best.get(cur.node))continue;
+    if(cur.node===b)break;
+    for(const nx of network.adjacency.get(cur.node)||[]){
+      const nd=cur.d+nx.d;
+      if(nd<(best.get(nx.node)??Infinity)){
+        best.set(nx.node,nd);
+        prev.set(nx.node,cur.node);
+        queue.push({node:nx.node,d:nd});
+      }
+    }
+  }
+  if(!best.has(b))return null;
+  const path=[];
+  let n=b;
+  while(n){path.unshift(n);n=prev.get(n)}
+  return{path,distance:best.get(b)};
+}
 export function roadAttachment(s,building){
   if(!building)return null;
   const limit=Math.max(42,(building.r||25)+18);
