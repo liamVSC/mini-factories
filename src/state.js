@@ -24,7 +24,7 @@ export function makeBuilding(type,x,y,id){return{id,x,y,r:25,storage:type.kind==
 export function serialise(s){const d={...s};delete d.week;delete d.weekTime;delete d.version;return{version:6,...d,selected:null,trucks:[],particles:[]}}
 const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
 function clampNumber(value,min,max,fallback=min){return Math.max(min,Math.min(max,finite(value,fallback)))}
-export function hydrate(d){if(!d||d.version<2||!Array.isArray(d.buildings)||!Array.isArray(d.roads))return null;const s=freshState();const keys=Object.keys(s);for(const k of keys)if(Object.prototype.hasOwnProperty.call(d,k)&&k!=='week'&&k!=='weekTime'&&k!=='version')s[k]=d[k];s.version=6;s.selected=null;s.trucks=[];s.particles=[];s.goals=goalList();
+export function hydrate(d){if(!d||d.version<2||!Array.isArray(d.buildings)||!Array.isArray(d.roads))return null;const s=freshState();const keys=Object.keys(s);for(const k of keys)if(Object.prototype.hasOwnProperty.call(d,k)&&k!=='week'&&k!=='weekTime'&&k!=='version')s[k]=d[k];s.version=6;s.renderVersion=Math.max(0,Math.floor(finite(s.renderVersion,0)));s.selected=null;s.trucks=[];s.particles=[];s.goals=goalList();
 s.cash=clampNumber(s.cash,0,Number.MAX_SAFE_INTEGER,500);
 s.orders=Math.max(0,Math.floor(finite(s.orders,0)));
 s.companyLevel=Math.max(1,Math.floor(finite(s.companyLevel,1)));
