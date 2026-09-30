@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm';
-import {riverY,isInsideWorldBounds} from './world.js';
+import {riverY,isInsideWorldBounds,WORLD_BOUNDS,WORLD_MARGIN} from './world.js';
 
 let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null,roadEditGroup=null,roadEndpointGroup=null;
 let target={x:0,z:0,yaw:0,pitch:.82,distance:620};
@@ -142,8 +142,8 @@ function updateRoadEndpointVisual(s){
   const index=endpoint?.index??preview?.index;
   const base=road.points[index];
   if(!base)return;
-  const target=preview?.point||base;
-  const invalid=!!preview?.invalid;
+  const target=preview?.point||preview?.target||base;
+  const invalid=!!preview?.invalid||!!preview?.blocked||!!preview?.duplicate;
   const material=new THREE.MeshBasicMaterial({color:invalid?'#d85a52':'#ffd45a',transparent:true,opacity:.95,depthWrite:false,side:THREE.DoubleSide});
   const ring=new THREE.Mesh(new THREE.RingGeometry(7,10,24),material);
   ring.rotation.x=-Math.PI/2;
@@ -228,6 +228,11 @@ function init(canvas){
   scene.add(new THREE.HemisphereLight('#f7f2df','#68745e',2.1));
   const sun=new THREE.DirectionalLight('#fff1cf',3.2);sun.position.set(-240,320,180);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
   const ground=box(2600,2,2600,'#b7c79d');ground.position.y=-1;ground.receiveShadow=true;scene.add(ground);
+  const edgeOffset=WORLD_MARGIN*.5,edgeDepth=.22;
+  const edgeLeft=box(edgeDepth,.12,2600-edgeOffset*2,'#6d775f');edgeLeft.position.set(WORLD_BOUNDS.minX+edgeOffset,.08,0);scene.add(edgeLeft);
+  const edgeRight=box(edgeDepth,.12,2600-edgeOffset*2,'#6d775f');edgeRight.position.set(WORLD_BOUNDS.maxX-edgeOffset,.08,0);scene.add(edgeRight);
+  const edgeTop=box(2600-edgeOffset*2,.12,edgeDepth,'#6d775f');edgeTop.position.set(0,.08,WORLD_BOUNDS.minY+edgeOffset);scene.add(edgeTop);
+  const edgeBottom=box(2600-edgeOffset*2,.12,edgeDepth,'#6d775f');edgeBottom.position.set(0,.08,WORLD_BOUNDS.maxY-edgeOffset);scene.add(edgeBottom);
   const river=new THREE.Group();
   const riverWidth=82,riverStart=-1300,riverStep=44;
   for(let x=riverStart;x<=1300;x+=riverStep){
