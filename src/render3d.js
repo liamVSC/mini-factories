@@ -472,20 +472,53 @@ export function setPreview(path,start,end,blocked=false){
   }
   if(!path||path.length<2)return;
 
-  const roadMaterial=new THREE.MeshStandardMaterial({
+  const previewSurface=new THREE.MeshStandardMaterial({
     color:blocked?'#d85a52':'#58a6d8',
     transparent:true,
-    opacity:.62,
+    opacity:.58,
     depthWrite:false,
     side:THREE.DoubleSide
   });
+  const previewShoulder=new THREE.MeshStandardMaterial({
+    color:blocked?'#b14c48':'#8ac4e2',
+    transparent:true,
+    opacity:.38,
+    depthWrite:false,
+    side:THREE.DoubleSide
+  });
+  const previewMarking=new THREE.MeshBasicMaterial({
+    color:blocked?'#ffb0a8':'#eaf7ff',
+    transparent:true,
+    opacity:.88,
+    depthWrite:false
+  });
+
   for(let i=1;i<path.length;i++){
-    const a=path[i-1],b=path[i],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
-    if(len<1)continue;
-    const mesh=new THREE.Mesh(new THREE.BoxGeometry(len,.2,18),roadMaterial);
-    mesh.position.set((a.x+b.x)/2,.78,(a.y+b.y)/2);
-    mesh.rotation.y=-Math.atan2(dy,dx);
-    previewGroup.add(mesh);
+    const a=path[i-1],b=path[i];
+    const segment=addRoadBox(previewGroup,a,b,ROAD.shoulderWidth,.15,.66,previewShoulder);
+    if(!segment)continue;
+    addRoadBox(previewGroup,a,b,ROAD.width,.14,.74,previewSurface);
+
+    const nx=-Math.sin(segment.angle),nz=Math.cos(segment.angle);
+    for(const side of [-1,1]){
+      const edge=new THREE.Mesh(new THREE.BoxGeometry(Math.max(1,segment.len-2),.1,.65),previewMarking);
+      edge.position.set(
+        (a.x+b.x)/2+nx*side*(ROAD.width/2-1.5),
+        .84,
+        (a.y+b.y)/2+nz*side*(ROAD.width/2-1.5)
+      );
+      edge.rotation.y=-segment.angle;
+      previewGroup.add(edge);
+    }
+    for(let along=10;along<segment.len-6;along+=30){
+      const dashLen=Math.min(14,segment.len-along-4);
+      if(dashLen<4)break;
+      const t=(along+dashLen/2)/segment.len;
+      const dash=new THREE.Mesh(new THREE.BoxGeometry(dashLen,.1,1),previewMarking);
+      dash.position.set(a.x+segment.dx*t,.85,a.y+segment.dy*t);
+      dash.rotation.y=-segment.angle;
+      previewGroup.add(dash);
+    }
   }
 
   const endpointMaterial=kind=>new THREE.MeshBasicMaterial({
@@ -502,14 +535,14 @@ export function setPreview(path,start,end,blocked=false){
       endpointMaterial(kind)
     );
     ring.rotation.x=-Math.PI/2;
-    ring.position.set(q.x,1.08,q.y);
+    ring.position.set(q.x,1.12,q.y);
     previewGroup.add(ring);
     const core=new THREE.Mesh(
       new THREE.CircleGeometry(kind==='building'?3.5:3,16),
       endpointMaterial(kind)
     );
     core.rotation.x=-Math.PI/2;
-    core.position.set(q.x,1.10,q.y);
+    core.position.set(q.x,1.14,q.y);
     previewGroup.add(core);
   }
   for(let i=1;i<path.length-1;i++){
@@ -520,10 +553,11 @@ export function setPreview(path,start,end,blocked=false){
       endpointMaterial('grid')
     );
     turn.rotation.x=-Math.PI/2;
-    turn.position.set(q.x,1.04,q.y);
+    turn.position.set(q.x,1.10,q.y);
     previewGroup.add(turn);
   }
 }
+
 export function render(ctx,s,W,H,canvas=document.querySelector('#game')){
   init(canvas);
   resize(W,H);
