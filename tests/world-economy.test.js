@@ -392,3 +392,28 @@ test('moving a road endpoint onto another road creates a routable junction', () 
   assert.ok(routed);
   assert.ok(routed.points.some(p=>Math.abs(p.x)<1e-9&&Math.abs(p.y)<1e-9));
 });
+
+
+test('moving a road endpoint invalidates trucks using the old geometry', () => {
+  const s = baseState();
+  const f = building('Food',-120,0);
+  const shop = building('Market',120,0);
+  s.buildings.push(f,shop);
+  const r = road([{x:-85,y:0},{x:85,y:0}]);
+  s.roads.push(r);
+  const routed = routeOnRoadNetwork(s,f,shop);
+  assert.ok(routed);
+  const truck = {id:'endpoint-edit-truck',route:routed.points,t:.4,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10};
+  s.trucks.push(truck);
+  assert.ok(editRoadEndpoint(s,r.id,1,{x:85,y:120}));
+  assert.equal(truck.routeInvalidated,true);
+});
+
+test('moving a road endpoint across the river recalculates bridge state', () => {
+  const s = baseState();
+  const r = road([{x:-100,y:300},{x:100,y:300}]);
+  s.roads.push(r);
+  assert.equal(r.bridge,false);
+  assert.ok(editRoadEndpoint(s,r.id,1,{x:100,y:500}));
+  assert.equal(s.roads[0].bridge,true);
+});
