@@ -10,6 +10,9 @@ const {
   eraseRoad,
   editRoadSegment,
   roadSegmentAtPoint,
+  roadEndpointAtPoint,
+  roadEndpointPreview,
+  editRoadEndpoint,
   roadAttachment,
   routeOnRoadNetwork,
   roadNetwork
@@ -327,4 +330,66 @@ test('interactive road editing removes one segment without deleting the branches
   assert.ok(result);
   assert.equal(s.roads.length,1);
   assert.deepEqual(s.roads[0].points,[{x:-120,y:0},{x:0,y:0}]);
+});
+
+
+test('road endpoint hit-testing identifies the nearest editable endpoint', () => {
+  const s = baseState();
+  const r = road([{x:0,y:0},{x:120,y:0},{x:120,y:80}]);
+  s.roads.push(r);
+  const hit = roadEndpointAtPoint(s,{x:2,y:3});
+  assert.ok(hit);
+  assert.equal(hit.roadId,r.id);
+  assert.equal(hit.index,0);
+  assert.deepEqual(hit.point,{x:0,y:0});
+});
+
+test('road endpoint preview snaps to another road segment', () => {
+  const s = baseState();
+  const moving = road([{x:0,y:0},{x:80,y:0}]);
+  const target = road([{x:140,y:-80},{x:140,y:80}]);
+  s.roads.push(moving,target);
+  const preview = roadEndpointPreview(s,moving,1,{x:138,y:4});
+  assert.ok(preview);
+  assert.ok(!preview.blocked);
+  assert.ok(Math.abs(preview.target.x-140)<1e-9);
+  assert.ok(Math.abs(preview.target.y-4)<1e-9);
+  assert.equal(preview.target.road,target);
+});
+
+test('moving a road endpoint commits atomically and preserves the road id', () => {
+  const s = baseState();
+  const r = road([{x:0,y:0},{x:100,y:0}]);
+  s.roads.push(r);
+  const result = editRoadEndpoint(s,r.id,1,{x:160,y:0});
+  assert.ok(result);
+  assert.equal(s.roads.length,1);
+  assert.equal(s.roads[0].id,r.id);
+  assert.deepEqual(s.roads[0].points,[{x:0,y:0},{x:156,y:0}]);
+});
+
+test('invalid road endpoint moves leave the network unchanged', () => {
+  const s = baseState();
+  const obstacle = building('Food',80,0);
+  s.buildings.push(obstacle);
+  const r = road([{x:0,y:0},{x:30,y:0}]);
+  s.roads.push(r);
+  const before = JSON.stringify(s.roads);
+  assert.equal(editRoadEndpoint(s,r.id,1,{x:80,y:0}),false);
+  assert.equal(JSON.stringify(s.roads),before);
+});
+
+test('moving a road endpoint onto another road creates a routable junction', () => {
+  const s = baseState();
+  const f = building('Food',-120,0);
+  const shop = building('Market',120,100);
+  s.buildings.push(f,shop);
+  const main = road([{x:-85,y:0},{x:85,y:0}]);
+  const branch = road([{x:0,80},{x:0,150}]);
+  s.roads.push(main,branch);
+  const result = editRoadEndpoint(s,branch.id,0,{x:0,y:3});
+  assert.ok(result);
+  const routed = routeOnRoadNetwork(s,f,shop);
+  assert.ok(routed);
+  assert.ok(routed.points.some(p=>Math.abs(p.x)<1e-9&&Math.abs(p.y)<1e-9));
 });
