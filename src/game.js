@@ -3,8 +3,9 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPrevi
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.20';
+const GAME_VERSION='1.0.21';
 const CHANGELOG=[
+  {version:'1.0.21',date:'30 Sep 2026',items:['Fixed road-to-building connection geometry so road endpoints terminate on the actual rectangular building footprint instead of an oversized circular radius.','Improved road attachment tolerance so existing roads reliably connect to factory, shop and warehouse facades.']},
   {version:'1.0.20',date:'30 Sep 2026',items:['Fixed road deletion to execute immediately on touch/click instead of waiting for pointer-up.','Road deletion now uses the exact road hit detected on pointer-down, preventing mobile pointer-capture timing from cancelling the delete.']},
   {version:'1.0.19',date:'30 Sep 2026',items:['Fixed road deletion so tapping a road removes the whole road instead of leaving fragments.','Removed road splitting from the editor and simplified mobile road deletion to a single tap.']},
   {version:'1.0.18',date:'30 Sep 2026',items:['Fixed startup failure caused by invalid JavaScript escape syntax in the game source.','Kept renderer startup signalling while removing the malformed source sequence.']},
