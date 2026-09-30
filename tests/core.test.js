@@ -5,7 +5,7 @@ globalThis.innerWidth=1280;
 globalThis.innerHeight=720;
 
 const {freshState,makeBuilding,hydrate,serialise}=await import('../src/state.js');
-const {pointOnRoute,length,dist,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget}=await import('../src/world.js');
+const {pointOnRoute,length,dist,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget,roadEndpointPreview,editRoadEndpoint,roadNetwork,WORLD_BOUNDS,WORLD_MARGIN}=await import('../src/world.js');
 const {updateEconomy}=await import('../src/economy.js');
 
 const route=[{x:0,y:0},{x:100,y:0}];
@@ -560,6 +560,61 @@ test('road snapping stays stable at building edges and road intersections',()=>{
   assert.equal(preview.start.road.id,'road-a');
   assert.ok(preview.path.length>=2);
   assert.equal(preview.blocked,false);
+});
+
+test('road targeting snaps cleanly to all four world edges',()=>{
+  const s=freshState();
+  const minX=WORLD_BOUNDS.minX+WORLD_MARGIN,maxX=WORLD_BOUNDS.maxX-WORLD_MARGIN;
+  const minY=WORLD_BOUNDS.minY+WORLD_MARGIN,maxY=WORLD_BOUNDS.maxY-WORLD_MARGIN;
+  const left=roadTarget(s,{x:WORLD_BOUNDS.minX+8,y:120});
+  const right=roadTarget(s,{x:WORLD_BOUNDS.maxX-8,y:-120});
+  const top=roadTarget(s,{x:320,y:WORLD_BOUNDS.minY+8});
+  const bottom=roadTarget(s,{x:-320,y:WORLD_BOUNDS.maxY-8});
+  assert.equal(left.edgeSnapped,true);
+  assert.equal(right.edgeSnapped,true);
+  assert.equal(top.edgeSnapped,true);
+  assert.equal(bottom.edgeSnapped,true);
+  assert.equal(left.x,minX);
+  assert.equal(right.x,maxX);
+  assert.equal(top.y,minY);
+  assert.equal(bottom.y,maxY);
+});
+
+test('road endpoint dragging snaps to every world edge',()=>{
+  const s=freshState();
+  const road={id:'edge-road',points:[{x:-900,y:0},{x:-600,y:0}],bridge:false,condition:1,age:0};
+  s.roads.push(road);
+  const targets=[
+    {p:{x:WORLD_BOUNDS.minX+6,y:0},expected:{x:WORLD_BOUNDS.minX+WORLD_MARGIN,y:0}},
+    {p:{x:WORLD_BOUNDS.maxX-6,y:0},expected:{x:WORLD_BOUNDS.maxX-WORLD_MARGIN,y:0}},
+    {p:{x:0,y:WORLD_BOUNDS.minY+6},expected:{x:0,y:WORLD_BOUNDS.minY+WORLD_MARGIN}},
+    {p:{x:0,y:WORLD_BOUNDS.maxY-6},expected:{x:0,y:WORLD_BOUNDS.maxY-WORLD_MARGIN}}
+  ];
+  for(const {p,expected} of targets){
+    const preview=roadEndpointPreview(s,road,0,p);
+    assert.ok(preview);
+    assert.equal(preview.edgeSnapped,true);
+    assert.equal(preview.blocked,false);
+    assert.ok(Math.abs(preview.target.x-expected.x)<1e-9);
+    assert.ok(Math.abs(preview.target.y-expected.y)<1e-9);
+  }
+  const result=editRoadEndpoint(s,road.id,0,targets[0].p);
+  assert.ok(result);
+  assert.equal(result.point.x,WORLD_BOUNDS.minX+WORLD_MARGIN);
+});
+
+test('junctions remain routable when created close to the world edge',()=>{
+  const s=freshState();
+  s.roads.push(
+    {id:'edge-horizontal',points:[{x:1180,y:0},{x:WORLD_BOUNDS.maxX-WORLD_MARGIN,y:0}],bridge:false,condition:1,age:0},
+    {id:'edge-vertical',points:[{x:1240,y:-120},{x:1240,y:120}],bridge:false,condition:1,age:0}
+  );
+  const network=roadNetwork(s);
+  assert.ok(network.junctions.some(p=>Math.abs(p.x-1240)<1e-9&&Math.abs(p.y)<1e-9));
+  const snapped=roadTarget(s,{x:1241,y:3});
+  assert.ok(snapped.road);
+  assert.ok(Math.abs(snapped.x-1240)<2);
+  assert.ok(Math.abs(snapped.y)<2);
 });
 
 test('road preview snaps to buildings, roads and the placement grid',()=>{
