@@ -233,7 +233,7 @@ function routeBendPenalty(path){
 }
 
 function chooseRoadPath(s,start,end,endpointBuildings={}){
-  const candidates=candidateRoadPaths(start,end,(s.buildings||[]).filter(b=>b!==startBuilding&&b!==endBuilding)).map(simplifyRoad);
+  const candidates=candidateRoadPaths(start,end,(s.buildings||[]).filter(b=>b!==endpointBuildings.start&&b!==endpointBuildings.end)).map(simplifyRoad);
   const clear=candidates.filter(path=>!roadPathBlocked(s,path,endpointBuildings));
   if(clear.length){
     return clear.sort((a,b)=>{
