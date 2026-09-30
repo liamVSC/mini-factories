@@ -241,17 +241,20 @@ canvas.addEventListener('pointerdown',e=>{
 canvas.addEventListener('pointermove',e=>{
   const sp=screenPos(e);
   if(pointers.has(e.pointerId))pointers.set(e.pointerId,sp);
+  if(drag?.roadEndpoint&&s.mode==='erase'&&!pinch){
+    if(Math.hypot(sp.x-drag.startScreen.x,sp.y-drag.startScreen.y)>6)drag.moved=true;
+    const wp=worldPos(e);
+    const road=(s.roads||[]).find(r=>r?.id===drag.roadId);
+    const preview=road?roadEndpointPreview(s,road,drag.index,wp):null;
+    drag.preview=preview;
+    s.roadEditEndpointPreview=preview?{roadId:preview.roadId,index:preview.index,point:preview.target}:null;
+    const tip=document.querySelector('#tip');
+    if(tip)tip.textContent=preview?(preview.blocked?'Invalid endpoint position':preview.duplicate?'Road overlaps existing pavement':'Release to move road endpoint'):'Invalid endpoint position';
+    drag.last=sp;
+    return;
+  }
   if(s.mode==='erase'&&!pinch){
     const wp=worldPos(e);
-    if(drag?.roadEndpoint){
-      const road=(s.roads||[]).find(r=>r?.id===drag.roadId);
-      const preview=road?roadEndpointPreview(s,road,drag.index,wp):null;
-      drag.preview=preview;
-      s.roadEditEndpointPreview=preview?{roadId:preview.roadId,index:preview.index,point:preview.target}:null;
-      const tip=document.querySelector('#tip');
-      if(tip)tip.textContent=preview?(preview.blocked?'Invalid endpoint position':preview.duplicate?'Road overlaps existing pavement':'Release to move road endpoint'):'Invalid endpoint position';
-      return;
-    }
     const endpoint=roadEndpointAtPoint(s,wp);
     const hit=roadSegmentAtPoint(s,wp);
     s.roadEditEndpoint=endpoint?{roadId:endpoint.roadId,index:endpoint.index,point:endpoint.point}:null;
