@@ -3,9 +3,9 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPrevi
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.11';
+const GAME_VERSION='1.0.12';
 const CHANGELOG=[
-  {version:'1.0.11',date:'30 Sep 2026',items:['Hardened mobile road and build gestures for pointer cancellation and touch interruption.','Improved responsive layouts, safe-area spacing and compact controls for small phones and landscape screens.']},
+  {version:'1.0.12',date:'30 Sep 2026',items:['Road editing now commits atomically with topology validation, junction preservation and route invalidation.','Improved 3D junction blending with curved flat turn connectors plus full-length bridge rails and supports.']},\n
   {version:'1.0.10',date:'30 Sep 2026',items:['Replaced the legacy Edit Roads interaction with a dedicated Edit Road action menu.','Added explicit Move endpoint, Remove segment and Split road buttons.','Made road editing actions clearer and more touch-friendly on mobile.']},
   {version:'1.0.9',date:'30 Sep 2026',items:['Added four-way world-edge snapping for road drawing and endpoint dragging.','Added visible world boundary guides and clearer edge endpoint feedback.','Fixed road preview wiring so live road geometry renders while drawing.','Improved boundary-adjacent junction handling and added edge regression coverage.']},  {version:'1.0.8',date:'30 Sep 2026',items:['Fixed first road segment and endpoint editing when their index is 0.','Fixed road double-tap splitting so the first tap no longer deletes the segment before the split gesture completes.','Hardened mobile camera pointer handling and prevented default canvas touch gestures from leaking to the browser.','Cleared pending road edits when switching modes, resetting the game or cancelling a pointer gesture.']},
   {version:'1.0.7',date:'30 Sep 2026',items:['Added Progressive Web App support with offline caching and install metadata.']},
