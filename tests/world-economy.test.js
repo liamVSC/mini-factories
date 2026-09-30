@@ -461,7 +461,7 @@ test('road cleanup recalculates bridge state after geometry normalization', () =
 });
 
 
-test('near-touching road endpoints are treated as one routing junction', () => {
+test('near-touching road endpoints remain connected for routing without mutating road geometry', () => {
   const s = baseState();
   const f = building('Food', -120, 0);
   const shop = building('Market', 0, 120);
@@ -470,9 +470,11 @@ test('near-touching road endpoints are treated as one routing junction', () => {
     road([{x:-85,y:0},{x:0,y:0}]),
     road([{x:4,y:0},{x:0,y:85}])
   );
+  const before = JSON.stringify(s.roads);
   const network = roadNetwork(s);
-  assert.ok(network.junctions.some(n => Math.abs(n.x-2)<1e-9 && Math.abs(n.y)<1e-9));
+  assert.ok(network.nodes.some(n => Math.abs(n.x-2)<1e-9 && Math.abs(n.y)<1e-9));
   assert.ok(routeOnRoadNetwork(s,f,shop));
+  assert.equal(JSON.stringify(s.roads), before);
 });
 
 test('endpoint-to-middle road proximity becomes a graph junction without mutating saved geometry', () => {
