@@ -368,12 +368,11 @@ test('moving a road endpoint commits atomically and preserves the road id', () =
   assert.deepEqual(s.roads[0].points,[{x:0,y:0},{x:156,y:0}]);
 });
 
-test('invalid road endpoint moves leave the network unchanged', () => {
+test('invalid overlapping road endpoint moves leave the network unchanged', () => {
   const s = baseState();
-  const obstacle = building('Food',80,0);
-  s.buildings.push(obstacle);
   const r = road([{x:0,y:0},{x:30,y:0}]);
-  s.roads.push(r);
+  const other = road([{x:60,y:0},{x:140,y:0}]);
+  s.roads.push(r,other);
   const before = JSON.stringify(s.roads);
   assert.equal(editRoadEndpoint(s,r.id,1,{x:80,y:0}),false);
   assert.equal(JSON.stringify(s.roads),before);
