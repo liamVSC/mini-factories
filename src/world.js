@@ -173,6 +173,21 @@ export function roadNetwork(s,extraPoints=[]){
     for(let j=1;j<list.length;j++){const u=list[j-1],v=list[j],d=dist(u,v);if(d>0.5)edges.push({a:u,b:v,d,road});}
   }
   for(const edge of virtualEdges)if(edge.d>.001)edges.push(edge);
+  const nodeIds=new Map(nodes.map((node,index)=>[node,index]));
+  const uniqueEdges=[];
+  const edgeKeys=new Set();
+  for(const edge of edges){
+    if(!edge?.a||!edge?.b||edge.d<=.001)continue;
+    const ai=nodeIds.get(edge.a),bi=nodeIds.get(edge.b);
+    if(ai===undefined||bi===undefined||ai===bi)continue;
+    const lo=Math.min(ai,bi),hi=Math.max(ai,bi),roadId=edge.road?.id||'road';
+    const key=lo+':'+hi+':'+roadId;
+    if(edgeKeys.has(key))continue;
+    edgeKeys.add(key);
+    uniqueEdges.push(edge);
+  }
+  edges.length=0;
+  edges.push(...uniqueEdges);
   const adjacency=new Map(nodes.map(n=>[n,[]]));
   for(const e of edges){
     adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});
