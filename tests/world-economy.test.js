@@ -8,6 +8,7 @@ const {freshState, makeBuilding, TYPES} = await import('../src/state.js');
 const {
   addRoad,
   eraseRoad,
+  editRoadSegment,
   roadAttachment,
   routeOnRoadNetwork,
   roadNetwork
