@@ -3,9 +3,9 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPrevi
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.8';
+const GAME_VERSION='1.0.9';
 const CHANGELOG=[
-  {version:'1.0.8',date:'30 Sep 2026',items:['Fixed first road segment and endpoint editing when their index is 0.','Fixed road double-tap splitting so the first tap no longer deletes the segment before the split gesture completes.','Hardened mobile camera pointer handling and prevented default canvas touch gestures from leaking to the browser.','Cleared pending road edits when switching modes, resetting the game or cancelling a pointer gesture.']},
+  {version:'1.0.9',date:'30 Sep 2026',items:['Added four-way world-edge snapping for road drawing and endpoint dragging.','Added visible world boundary guides and clearer edge endpoint feedback.','Fixed road preview wiring so live road geometry renders while drawing.','Improved boundary-adjacent junction handling and added edge regression coverage.']},  {version:'1.0.8',date:'30 Sep 2026',items:['Fixed first road segment and endpoint editing when their index is 0.','Fixed road double-tap splitting so the first tap no longer deletes the segment before the split gesture completes.','Hardened mobile camera pointer handling and prevented default canvas touch gestures from leaking to the browser.','Cleared pending road edits when switching modes, resetting the game or cancelling a pointer gesture.']},
   {version:'1.0.7',date:'30 Sep 2026',items:['Added Progressive Web App support with offline caching and install metadata.']},
   {version:'1.0.6',date:'30 Sep 2026',items:['Fixed building placement to report invalid locations instead of silently failing.','Fixed road endpoint editing and segment removal/splitting input handling.','Fixed road editing state cleanup when a pointer gesture is cancelled.']},
   {version:'1.0.5',date:'30 Sep 2026',items:['Fixed mobile camera gestures so one-finger panning, taps and two-finger pinch/pan do not fight each other.']},
