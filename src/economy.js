@@ -86,7 +86,7 @@ function rerouteTruck(s,t){
   // the replacement network instead of teleporting it onto that network.
   const join=pointOnRoute(next.points,projected.progress);
   if(!join)return false;
-  const remaining=next.points.slice(projected.segmentIndex+1);
+  const remaining=next.points.slice(projected.segmentIndex);
   const routePoints=[p,join,...remaining];
   const compact=routePoints.filter((q,i)=>i===0||dist(q,routePoints[i-1])>.01);
   t.route=compact;
