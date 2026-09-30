@@ -33,3 +33,4 @@
   #tip{left:164px;right:8px;bottom:8px;max-width:none}
   #objective{left:164px;right:8px;top:8px}
 }
+.changelog-page-box{width:min(620px,92vw);max-height:min(760px,88vh);overflow:auto;text-align:left;padding:20px}.changelog-page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.changelog-page-head h1{margin:0;color:#26353c}.changelog-page-head small{display:block;margin-top:3px;color:#81725f}.changelog-page-box .changelog-list{gap:10px}.changelog-page-box .changelog-version{padding:11px 12px}.changelog-page-box .changelog-head b{font-size:13px}.changelog-page-box .changelog-version li{font-size:11px;line-height:1.4}@media(max-width:700px){.changelog-page-box{width:calc(100% - 20px);max-height:calc(100% - 24px);padding:14px}.changelog-page-head h1{font-size:21px}.changelog-page-box .changelog-version{padding:9px}.changelog-page-box .changelog-version li{font-size:10px;line-height:1.35}}
