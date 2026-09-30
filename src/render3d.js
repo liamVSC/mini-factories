@@ -1,7 +1,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm';
 import {riverY} from './world.js';
 
-let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null,roadEditGroup=null;
+let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null,roadEditGroup=null,roadEndpointGroup=null;
 let target={x:0,z:0,yaw:0,pitch:.82,distance:620};
 let desired={...target};
 let home={x:0,z:0};
@@ -132,9 +132,10 @@ function updateBuilding(b,selected){
   if(g.scale.x!==scale)g.scale.setScalar(scale);
 }
 function updateRoadEndpointVisual(s){
+  if(!roadEndpointGroup)return;
+  while(roadEndpointGroup.children.length){const child=roadEndpointGroup.children[0];roadEndpointGroup.remove(child);disposeObject(child);}
   const endpoint=s.roadEditEndpoint;
   const preview=s.roadEditEndpointPreview;
-  if(!roadEditGroup)return;
   if(!endpoint&&!preview)return;
   const road=(s.roads||[]).find(x=>x?.id===(endpoint?.roadId||preview?.roadId));
   if(!road?.points)return;
@@ -147,13 +148,13 @@ function updateRoadEndpointVisual(s){
   const ring=new THREE.Mesh(new THREE.RingGeometry(7,10,24),material);
   ring.rotation.x=-Math.PI/2;
   ring.position.set(target.x,1.2,target.y);
-  roadEditGroup.add(ring);
+  roadEndpointGroup.add(ring);
   if(preview&&Math.hypot(target.x-base.x,target.y-base.y)>1){
     const dx=target.x-base.x,dy=target.y-base.y,len=Math.hypot(dx,dy);
     const line=new THREE.Mesh(new THREE.BoxGeometry(len,.18,4),material);
     line.position.set((base.x+target.x)/2,1.1,(base.y+target.y)/2);
     line.rotation.y=-Math.atan2(dy,dx);
-    roadEditGroup.add(line);
+    roadEndpointGroup.add(line);
   }
 }
 function updateRoadEditVisual(s){
@@ -223,7 +224,7 @@ function init(canvas){
   if(renderer)return;
   renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio||1,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-  scene=new THREE.Scene();scene.background=new THREE.Color('#9eaf88');root=new THREE.Group();scene.add(root);previewGroup=new THREE.Group();scene.add(previewGroup);roadEditGroup=new THREE.Group();scene.add(roadEditGroup);
+  scene=new THREE.Scene();scene.background=new THREE.Color('#9eaf88');root=new THREE.Group();scene.add(root);previewGroup=new THREE.Group();scene.add(previewGroup);roadEditGroup=new THREE.Group();scene.add(roadEditGroup);roadEndpointGroup=new THREE.Group();scene.add(roadEndpointGroup);
   scene.add(new THREE.HemisphereLight('#f7f2df','#68745e',2.1));
   const sun=new THREE.DirectionalLight('#fff1cf',3.2);sun.position.set(-240,320,180);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
   const ground=box(2600,2,2600,'#b7c79d');ground.position.y=-1;ground.receiveShadow=true;scene.add(ground);
