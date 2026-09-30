@@ -421,7 +421,8 @@ export function updateEconomy(s,dt,flash){
     }
     const p=pointOnRoute(t.route,t.t);let blocked=false,nearestAhead=Infinity;
     for(const o of s.trucks){if(o===t||o.dead)continue;const q=pointOnRoute(o.route,o.t);if(dist(p,q)<30&&o.routeKey===t.routeKey&&o.t>t.t)nearestAhead=Math.min(nearestAhead,o.t-t.t)}
-    const trafficNetwork=roadNetwork(s);\n    const trafficBlocked=trafficConflict(s,t,trafficNetwork);
+    const trafficNetwork=roadNetwork(s);
+    const trafficBlocked=trafficConflict(s,t,trafficNetwork);
     if(nearestAhead<.045||trafficBlocked){blocked=true;t.wait=Math.min(2,t.wait+dt)}else t.wait=Math.max(0,t.wait-dt*.75);
     if(blocked)continue;
     t.t+=dt*t.speed*Math.max(.65,1-(s.congestion*.18));
