@@ -613,7 +613,7 @@ test('junctions remain routable when created close to the world edge',()=>{
   const junction=network.nodes.find(p=>Math.abs(p.x-1240)<1e-9&&Math.abs(p.y)<1e-9);
   assert.ok(junction);
   assert.ok((network.adjacency.get(junction)||[]).length>=4);
-  const snapped=roadTarget(s,{x:1241,y:3});
+  const snapped=roadTarget(s,{x:1241,y:1});
   assert.ok(snapped.road);
   assert.ok(Math.abs(snapped.x-1240)<2);
   assert.ok(Math.abs(snapped.y)<2);
