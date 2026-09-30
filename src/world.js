@@ -226,11 +226,14 @@ export function roadPreview(s,a,b){
     const candidates=candidateRoadPaths(sa,eb).map(simplifyRoad);
     const clear=candidates.filter(path=>!roadPathBlocked(s,path));
     const path=(clear.length?clear:[direct]).sort((x,y)=>length(x)-length(y))[0];
+    const roadLength=length(path);
     return{
       path,start:sa,end:eb,
       snappedStart:true,snappedEnd:true,
       connectsBuilding:true,connectsRoad:false,
-      blocked:roadPathBlocked(s,path,{start:startBuilding,end:endBuilding})
+      blocked:roadPathBlocked(s,path,{start:startBuilding,end:endBuilding}),
+      length:roadLength,
+      cost:Math.max(1,Math.ceil(roadLength/180))*2
     };
   }
   const candidates=candidateRoadPaths(start,end).map(simplifyRoad);
