@@ -428,6 +428,8 @@ canvas.addEventListener('pointerup',e=>{
 });
 canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);drag=null;pinch=null;cameraGesture=null;lastRoadSegmentTap=null;s.roadEditEndpointPreview=null;s.roadEditSelection=null;setPreview(null)});
 canvas.addEventListener('wheel',e=>{e.preventDefault();const sp=screenPos(e);setZoomAt(sp,s.camera.zoom*(e.deltaY>0?.9:1.1))},{passive:false});
+['gesturestart','gesturechange','gestureend'].forEach(type=>document.addEventListener(type,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
 function roadPathSafe(s,a,b){try{const preview=roadPreview(s,a,b);return preview?.path||[a,b]}catch{return[a,b]}}
 function tick(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);s.congestion=Math.min(1,(s.trucks.length/12)*.72+(s.roads.length/18)*.28);if(s.objective<s.goals.length&&s.goals[s.objective].done(s))s.objective=Math.min(s.goals.length,s.objective+1);if(s.cash<0)s.gameOver=true;save();sync()}render(s,W,H);requestAnimationFrame(tick)}
 
