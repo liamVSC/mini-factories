@@ -73,6 +73,60 @@ export function route(s,a,b){
   return r;
 }
 
+function segmentHit(a,b,c,d){
+  const ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y};
+  const cross=(u,v)=>u.x*v.y-u.y*v.x;
+  const den=cross(ab,cd);
+  if(Math.abs(den)<1e-8)return null;
+  const ac={x:c.x-a.x,y:c.y-a.y};
+  const ta=cross(ac,cd)/den,tc=cross(ac,ab)/den;
+  if(ta<0||ta>1||tc<0||tc>1)return null;
+  return{x:a.x+ab.x*ta,y:a.y+ab.y*ta,ta,tc};
+}
+function routeDistanceToPoint(route,t,p){
+  const total=length(route),target=total*Math.max(0,Math.min(1,t));
+  let run=0,best=Infinity;
+  for(let i=1;i<route.length;i++){
+    const a=route[i-1],b=route[i],seg=dist(a,b);
+    if(!seg)continue;
+    const q=Math.max(0,Math.min(1,(target-run)/seg));
+    best=Math.min(best,dist({x:a.x+(b.x-a.x)*q,y:a.y+(b.y-a.y)*q},p));
+    run+=seg;
+  }
+  return best;
+}
+function trafficConflict(s,t){
+  if(t.wait>0)return false;
+  const p=pointOnRoute(t.route,t.t);
+  for(const o of s.trucks||[]){
+    if(o===t||o.dead||o.wait>0||!Array.isArray(o.route)||o.route.length<2)continue;
+    const q=pointOnRoute(o.route,o.t);
+    // Normal following: the truck behind yields to the truck ahead.
+    if(dist(p,q)<30){
+      if(o.routeKey===t.routeKey&&o.t>t.t)return true;
+      // Different route polylines can still overlap at a junction.
+      if(o.routeKey!==t.routeKey&&dist(p,q)<18&&o.id<t.id)return true;
+    }
+    // Detect a genuine crossing ahead. The lower deterministic priority yields
+    // so two trucks cannot enter the same junction at once.
+    for(let i=1;i<t.route.length;i++){
+      const a=i===1?p:t.route[i-1],b=t.route[i];
+      for(let j=1;j<o.route.length;j++){
+        const c=j===1?q:o.route[j-1],d=o.route[j];
+        const hit=segmentHit(a,b,c,d);
+        if(!hit)continue;
+        const td=dist(p,hit),od=dist(q,hit);
+        if(td>58||od>58)continue;
+        if(td<7&&od<7){
+          if(o.id<t.id)return true;
+          continue;
+        }
+        if(o.id<t.id)return true;
+      }
+    }
+  }
+  return false;
+}
 function rerouteTruck(s,t){
   if(!t?.source||!t?.to)return false;
   const p=pointOnRoute(t.route,t.t);
@@ -286,7 +340,8 @@ export function updateEconomy(s,dt,flash){
     }
     const p=pointOnRoute(t.route,t.t);let blocked=false,nearestAhead=Infinity;
     for(const o of s.trucks){if(o===t||o.dead)continue;const q=pointOnRoute(o.route,o.t);if(dist(p,q)<30&&o.routeKey===t.routeKey&&o.t>t.t)nearestAhead=Math.min(nearestAhead,o.t-t.t)}
-    if(nearestAhead<.045){blocked=true;t.wait=Math.min(2,t.wait+dt)}else t.wait=Math.max(0,t.wait-dt*.75);
+    const trafficBlocked=trafficConflict(s,t);
+    if(nearestAhead<.045||trafficBlocked){blocked=true;t.wait=Math.min(2,t.wait+dt)}else t.wait=Math.max(0,t.wait-dt*.75);
     if(blocked)continue;
     t.t+=dt*t.speed*Math.max(.65,1-(s.congestion*.18));
     if(t.t>=1){
