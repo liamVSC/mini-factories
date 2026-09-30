@@ -3,8 +3,9 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPrevi
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.14';
+const GAME_VERSION='1.0.15';
 const CHANGELOG=[
+  {version:'1.0.15',date:'30 Sep 2026',items:['Added lane-aware road traffic metrics with per-segment vehicle capacity and congestion.','Truck speed now responds to local road congestion and road condition instead of only global traffic.','Road traffic state tracks active load, capacity and assigned lane for each road segment.']},
   {version:'1.0.14',date:'30 Sep 2026',items:['Road junction rendering now consumes the same canonical topology used by routing and editing.','3-way, 4-way and near-touching junction visuals now share one connectivity model.']},
   {version:'1.0.13',date:'30 Sep 2026',items:['Added canonical road topology metadata for junction, boundary and three-way/four-way connectivity.','Improved boundary road end visuals with edge lines and reflective posts.','Added regression coverage for junction topology and road splitting.']},
   {version:'1.0.12',date:'30 Sep 2026',items:['Road editing now commits atomically with topology validation, junction preservation and route invalidation.','Improved 3D junction blending with curved flat turn connectors plus full-length bridge rails and supports.']},\n
