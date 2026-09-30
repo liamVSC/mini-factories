@@ -1,5 +1,5 @@
 import {freshState,hydrate,serialise,TYPES} from './state.js';
-import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPreview,addRoad,eraseRoad,editRoadSegment,roadSegmentAtPoint,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
+import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPreview,addRoad,eraseRoad,editRoadSegment,roadSegmentAtPoint,roadEndpointAtPoint,roadEndpointPreview,editRoadEndpoint,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
@@ -189,7 +189,7 @@ function hidePanel(){const p=document.querySelector('#panel');p.classList.remove
 function worldPos(e){const sp=screenPos(e);return screenToWorld(sp.x,sp.y,W,H)}
 function panBy(dx,dy){panScreen(dx,dy,W,H)}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-function toggleMode(m){s.mode=s.mode===m?'select':m;drag=null;s.roadEditHover=null;s.roadEditSelection=null;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase');document.querySelector('#tip').textContent=s.mode==='erase'?'Hover a road segment • tap to remove • double-tap to split':'Build roads between factories and shops.'}
+function toggleMode(m){s.mode=s.mode===m?'select':m;drag=null;s.roadEditHover=null;s.roadEditSelection=null;s.roadEditEndpoint=null;s.roadEditEndpointPreview=null;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase');document.querySelector('#tip').textContent=s.mode==='erase'?'Hover a road segment • tap to remove • double-tap to split':'Build roads between factories and shops.'}
 function setZoomAt(screen,z){
   s.camera.zoom=Math.max(.55,Math.min(2.4,z));
   zoomAtScreen(screen.x,screen.y,s.camera.zoom,W,H);
@@ -212,7 +212,21 @@ canvas.addEventListener('pointerdown',e=>{
     else flash('Too close to another building or river');
     return;
   }
-  if(s.mode==='erase'){const hit=roadSegmentAtPoint(s,p);if(!hit)return;s.roadEditSelection={roadId:hit.roadId,segment:hit.segment,point:hit.point};const action=e.detail>=2?'split':'delete';const result=editRoadSegment(s,p,action);if(result){s.roadEditSelection=null;s.roadEditHover=null;markWorldDirty();save();flash(action==='split'?'Road segment split':'Road segment removed')}return}
+  if(s.mode==='erase'){
+    const endpoint=roadEndpointAtPoint(s,p);
+    if(endpoint){
+      s.roadEditEndpoint={roadId:endpoint.roadId,index:endpoint.index,point:endpoint.point};
+      drag={roadEndpoint:true,roadId:endpoint.roadId,index:endpoint.index,startScreen:sp,moved:false,preview:null,last:sp};
+      return;
+    }
+    const hit=roadSegmentAtPoint(s,p);
+    if(!hit)return;
+    s.roadEditSelection={roadId:hit.roadId,segment:hit.segment,point:hit.point};
+    const action=e.detail>=2?'split':'delete';
+    const result=editRoadSegment(s,p,action);
+    if(result){s.roadEditSelection=null;s.roadEditHover=null;markWorldDirty();save();flash(action==='split'?'Road segment split':'Road segment removed')}
+    return;
+  }
   if(s.mode==='select'){
     const hit=nearestBuilding(s,p);
     drag={pan:true,last:sp,start:sp,moved:false,hit};
@@ -226,7 +240,23 @@ canvas.addEventListener('pointerdown',e=>{
 });
 canvas.addEventListener('pointermove',e=>{
   const sp=screenPos(e);
-  if(pointers.has(e.pointerId))pointers.set(e.pointerId,sp);if(s.mode==='erase'&&!pinch){const hit=roadSegmentAtPoint(s,worldPos(e));s.roadEditHover=hit?{roadId:hit.roadId,segment:hit.segment,point:hit.point}:null;}
+  if(pointers.has(e.pointerId))pointers.set(e.pointerId,sp);
+  if(s.mode==='erase'&&!pinch){
+    const wp=worldPos(e);
+    if(drag?.roadEndpoint){
+      const road=(s.roads||[]).find(r=>r?.id===drag.roadId);
+      const preview=road?roadEndpointPreview(s,road,drag.index,wp):null;
+      drag.preview=preview;
+      s.roadEditEndpointPreview=preview?{roadId:preview.roadId,index:preview.index,point:preview.target}:null;
+      const tip=document.querySelector('#tip');
+      if(tip)tip.textContent=preview?(preview.blocked?'Invalid endpoint position':preview.duplicate?'Road overlaps existing pavement':'Release to move road endpoint'):'Invalid endpoint position';
+      return;
+    }
+    const endpoint=roadEndpointAtPoint(s,wp);
+    const hit=roadSegmentAtPoint(s,wp);
+    s.roadEditEndpoint=endpoint?{roadId:endpoint.roadId,index:endpoint.index,point:endpoint.point}:null;
+    s.roadEditHover=hit?{roadId:hit.roadId,segment:hit.segment,point:hit.point}:null;
+  }
   if(pinch&&pointers.size>=2){
     const [a,b]=[...pointers.values()];
     const center={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
@@ -253,6 +283,11 @@ canvas.addEventListener('pointermove',e=>{
   }
   if(!drag?.road||s.mode!=='road')return;
   const p=worldPos(e);
+  if(drag?.roadEndpoint){
+    if(Math.hypot(sp.x-drag.startScreen.x,sp.y-drag.startScreen.y)>6)drag.moved=true;
+    drag.last=sp;
+    return;
+  }
   if(Math.hypot(sp.x-drag.startScreen.x,sp.y-drag.startScreen.y)>8)drag.moved=true;
   if(drag.moved){
     const endTarget=roadTarget(s,p)||p;
@@ -268,8 +303,20 @@ canvas.addEventListener('pointermove',e=>{
   drag.last=sp;
 });
 function finish(e){
-  pointers.delete(e.pointerId);if(s.mode==='erase'&&!pointers.size)s.roadEditHover=null;
+  pointers.delete(e.pointerId);
+  if(s.mode==='erase'&&!pointers.size){s.roadEditHover=null;s.roadEditEndpointPreview=null;}
   try{canvas.releasePointerCapture?.(e.pointerId)}catch{}
+  if(drag?.roadEndpoint&&s.mode==='erase'){
+    const preview=drag.preview;
+    if(drag.moved&&preview&&!preview.blocked&&!preview.duplicate){
+      const result=editRoadEndpoint(s,drag.roadId,drag.index,preview.target);
+      if(result){markWorldDirty();save();sync();flash('Road endpoint moved')}else flash('Endpoint move rejected');
+    }else if(drag.moved){
+      flash('Invalid endpoint position');
+    }
+    s.roadEditEndpoint=null;s.roadEditEndpointPreview=null;drag=null;
+    return;
+  }
   if(pinch&&pointers.size<2){pinch=null;pinchCenter=null;pinchAngle=0;drag=null;return}
   if(drag?.pan&&s.mode==='select'){
     if(!drag.moved){
