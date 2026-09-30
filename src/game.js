@@ -3,14 +3,16 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPrevi
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.17';
+const GAME_VERSION='1.0.18';
 const CHANGELOG=[
+  {version:'1.0.18',date:'30 Sep 2026',items:['Fixed startup failure caused by invalid JavaScript escape syntax in the game source.','Kept renderer startup signalling while removing the malformed source sequence.']},
   {version:'1.0.17',date:'30 Sep 2026',items:['Hardened startup so the loading screen waits for the actual 3D renderer instead of probing WebGL first.','Added a renderer-ready signal so the map cannot be hidden before the game has drawn its first frame.']},
   {version:'1.0.16',date:'30 Sep 2026',items:['Hardened traffic dispatch so saturated roads stop spawning unnecessary trucks.','Preserved multi-road junction classification for near-touching and endpoint-to-road connections.']},
   {version:'1.0.15',date:'30 Sep 2026',items:['Added lane-aware road traffic metrics with per-segment vehicle capacity and congestion.','Truck speed now responds to local road congestion and road condition instead of only global traffic.','Road traffic state tracks active load, capacity and assigned lane for each road segment.']},
   {version:'1.0.14',date:'30 Sep 2026',items:['Road junction rendering now consumes the same canonical topology used by routing and editing.','3-way, 4-way and near-touching junction visuals now share one connectivity model.']},
   {version:'1.0.13',date:'30 Sep 2026',items:['Added canonical road topology metadata for junction, boundary and three-way/four-way connectivity.','Improved boundary road end visuals with edge lines and reflective posts.','Added regression coverage for junction topology and road splitting.']},
-  {version:'1.0.12',date:'30 Sep 2026',items:['Road editing now commits atomically with topology validation, junction preservation and route invalidation.','Improved 3D junction blending with curved flat turn connectors plus full-length bridge rails and supports.']},\n
+  {version:'1.0.12',date:'30 Sep 2026',items:['Road editing now commits atomically with topology validation, junction preservation and route invalidation.','Improved 3D junction blending with curved flat turn connectors plus full-length bridge rails and supports.']},
+
   {version:'1.0.10',date:'30 Sep 2026',items:['Replaced the legacy Edit Roads interaction with a dedicated Edit Road action menu.','Added explicit Move endpoint, Remove segment and Split road buttons.','Made road editing actions clearer and more touch-friendly on mobile.']},
   {version:'1.0.9',date:'30 Sep 2026',items:['Added four-way world-edge snapping for road drawing and endpoint dragging.','Added visible world boundary guides and clearer edge endpoint feedback.','Fixed road preview wiring so live road geometry renders while drawing.','Improved boundary-adjacent junction handling and added edge regression coverage.']},  {version:'1.0.8',date:'30 Sep 2026',items:['Fixed first road segment and endpoint editing when their index is 0.','Fixed road double-tap splitting so the first tap no longer deletes the segment before the split gesture completes.','Hardened mobile camera pointer handling and prevented default canvas touch gestures from leaking to the browser.','Cleared pending road edits when switching modes, resetting the game or cancelling a pointer gesture.']},
   {version:'1.0.7',date:'30 Sep 2026',items:['Added Progressive Web App support with offline caching and install metadata.']},
