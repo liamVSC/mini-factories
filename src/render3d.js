@@ -205,6 +205,32 @@ function addBridgeSupports(group,points){
     }
   }
 }
+function addBoundaryRoadEnd(group,p,width,y){
+  const minX=WORLD_BOUNDS.minX+WORLD_MARGIN,maxX=WORLD_BOUNDS.maxX-WORLD_MARGIN;
+  const minY=WORLD_BOUNDS.minY+WORLD_MARGIN,maxY=WORLD_BOUNDS.maxY-WORLD_MARGIN;
+  const nearX=Math.abs(p.x-minX)<2||Math.abs(p.x-maxX)<2;
+  const nearY=Math.abs(p.y-minY)<2||Math.abs(p.y-maxY)<2;
+  if(!nearX&&!nearY)return;
+  const lineMaterial=roadMaterials.edge;
+  const line=new THREE.Mesh(new THREE.BoxGeometry(width+.8,.12,1.2),lineMaterial);
+  if(nearY){
+    line.position.set(p.x,y+.06,p.y);
+    line.rotation.y=0;
+  }else{
+    line.position.set(p.x,y+.06,p.y);
+    line.rotation.y=Math.PI/2;
+  }
+  group.add(line);
+  // Small reflective posts make the playable boundary legible without adding
+  // heavy geometry to the mobile scene.
+  for(const side of [-1,1]){
+    const post=new THREE.Mesh(new THREE.BoxGeometry(1.4,7,1.4),roadMaterials.edge);
+    if(nearY)post.position.set(p.x+side*Math.min(7,width*.35),y+3.5,p.y);
+    else post.position.set(p.x,y+3.5,p.y+side*Math.min(7,width*.35));
+    group.add(post);
+  }
+}
+
 function makeRoad(points,bridge){
   if(!Array.isArray(points)||points.length<2)return new THREE.Group();
   const group=new THREE.Group();
@@ -230,6 +256,10 @@ function makeRoad(points,bridge){
   const capRadius=(bridge?width:shoulder)/2;
   addRoadEndCap(group,clean[0],capRadius,bridge?roadMaterials.bridgeDeck:roadMaterials.shoulder,bridge?ROAD.bridgeY:ROAD.shoulderY);
   addRoadEndCap(group,clean.at(-1),capRadius,bridge?roadMaterials.bridgeDeck:roadMaterials.shoulder,bridge?ROAD.bridgeY:ROAD.shoulderY);
+  if(!bridge){
+    addBoundaryRoadEnd(group,clean[0],width,ROAD.shoulderY);
+    addBoundaryRoadEnd(group,clean.at(-1),width,ROAD.shoulderY);
+  }
   return group;
 }
 
