@@ -50,11 +50,41 @@ function oriented(points,from,to){
   return out;
 }
 
+function projectRouteProgress(points,p){
+  if(!Array.isArray(points)||points.length<2)return null;
+  let total=length(points),run=0,best=null;
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i];
+    const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
+    if(!len2)continue;
+    const u=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len2));
+    const q={x:a.x+dx*u,y:a.y+dy*u};
+    const d=dist(p,q);
+    if(!best||d<best.distance)best={distance:d,progress:(run+Math.sqrt(len2)*u)/total};
+    run+=Math.sqrt(len2);
+  }
+  return best;
+}
+
 export function route(s,a,b){
   if(!roadAttachment(s,a)||!roadAttachment(s,b))return null;
   const r=routeOnRoadNetwork(s,a,b);
   if(!r||!Array.isArray(r.points)||r.points.length<2)return null;
   return r;
+}
+
+function rerouteTruck(s,t){
+  if(!t?.source||!t?.to)return false;
+  const p=pointOnRoute(t.route,t.t);
+  const next=route(s,t.source,t.to);
+  if(!next)return false;
+  const projected=projectRouteProgress(next.points,p);
+  if(!projected||projected.distance>36)return false;
+  t.route=next.points;
+  t.routeKey=next.points.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
+  t.t=Math.max(0,Math.min(.999,projected.progress));
+  t.routeInvalidated=false;
+  return true;
 }
 
 export function newContract(s,shop){
@@ -219,6 +249,24 @@ export function updateEconomy(s,dt,flash){
   }
 
   for(const t of s.trucks){
+    // Road deletion can invalidate a live truck route. Re-route from the
+    // truck's current physical position when an alternate network path exists.
+    // If the endpoints are now disconnected, safely return the cargo instead
+    // of letting the truck travel on a deleted road.
+    if(t.routeInvalidated){
+      if(!rerouteTruck(s,t)){
+        if(t.stage==='warehouse'){
+          t.source.stock=Math.min(t.source.max||Infinity,(t.source.stock||0)+(t.cargo||0));
+        }else{
+          t.source.stock=Math.min(t.source.max||Infinity,(t.source.stock||0)+(t.cargo||0));
+          if(t.contractId&&t.to.contract?.id===t.contractId){
+            t.to.contract.inFlight=Math.max(0,(t.to.contract.inFlight||0)-(t.cargo||0));
+          }
+        }
+        t.dead=true;
+        continue;
+      }
+    }
     // Routes are validated when the truck is dispatched. Do not re-project
     // route graph nodes back onto road geometry every tick: routed paths can
     // legitimately contain graph/intersection points that are not exact road
