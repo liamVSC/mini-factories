@@ -455,7 +455,7 @@ export function editRoadEndpoint(s,roadId,index,p){
       next.points[index]=junctionPoint;
     }
   });
-  if(!ok)return false;
+  if(!ok){console.log('DEBUG_COMMIT_FAIL',JSON.stringify(s.roads));return false;}
   for(const truck of s.trucks||[]){
     if(routeTouchesRoad(truck.route,{points:oldPoints},4))truck.routeInvalidated=true;
     if(targetBefore&&routeTouchesRoad(truck.route,{points:targetBefore},4))truck.routeInvalidated=true;
