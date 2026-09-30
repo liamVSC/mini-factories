@@ -375,6 +375,25 @@ test('clear road preview stays direct while blocked preview uses a clean 90 degr
   }
 });
 
+test('road preview path is exactly the path committed by road construction',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},240,0,'shop-1');
+  const obstacle=makeBuilding({name:'Warehouse',kind:'warehouse',need:null,color:'#fff'},120,0,'warehouse-1');
+  s.buildings.push(factory,shop,obstacle);
+
+  const preview=roadPreview(s,{x:4,y:0},{x:236,y:0});
+  assert.ok(preview);
+  assert.equal(preview.blocked,false);
+
+  const result=addRoad(s,preview.path,{
+    startBuilding:preview.start.building,
+    endBuilding:preview.end.building
+  });
+  assert.equal(result,true);
+  assert.deepEqual(s.roads[0].points,preview.path);
+});
+
 test('road construction rejects a duplicate road without charging twice',()=>{
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
