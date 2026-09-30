@@ -342,7 +342,7 @@ function validateRoadNetworkState(s){
 function commitRoadMutation(s,mutator){
   const before=cloneRoadState(s.roads);
   try{mutator();cleanupRoadNetwork(s);if(!validateRoadNetworkState(s))throw new Error('invalid-road-network');}
-  catch{ s.roads=before; return false; }
+  catch(error){ console.log('DEBUG_COMMIT_ERROR',error?.message||String(error)); s.roads=before; return false; }
   const affected=[...before,...(s.roads||[])];
   invalidateTrucksForRoads(s,affected.filter((road,index)=>index===affected.findIndex(r=>r.id===road.id)));
   return true;
