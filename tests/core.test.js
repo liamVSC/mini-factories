@@ -361,6 +361,42 @@ test('deleting a road under an active truck reroutes it without teleporting',()=
   assert.equal(t.dead,undefined);
 });
 
+test('deleting a bridge under a truck safely returns its cargo',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,350,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},0,500,'shop-1');
+  s.buildings.push(factory,shop);
+  const bridge={id:'bridge-road',points:[{x:0,y:350},{x:0,y:500}],bridge:true,condition:1,age:0};
+  s.roads.push(bridge);
+  const routed=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(routed);
+  factory.stock=0;
+  const t=truck({id:'bridge-active',route:routed.points,routeKey:'bridge',t:.5,speed:.05,cargo:2,source:factory,to:shop});
+  s.trucks.push(t);
+  assert.equal(eraseRoad(s,{x:0,y:425}),true);
+  assert.equal(t.routeInvalidated,true);
+  updateEconomy(s,.01,()=>{});
+  assert.equal(s.trucks.length,0);
+  assert.equal(factory.stock,2);
+});
+
+test('deleting a warehouse route returns cargo from an in-flight warehouse transfer',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const warehouse=makeBuilding({name:'Depot',kind:'warehouse',need:null,color:'#fff'},100,0,'warehouse-1');
+  s.buildings.push(factory,warehouse);
+  s.roads.push({id:'warehouse-road',points:[{x:0,y:0},{x:100,y:0}],bridge:false,condition:1,age:0});
+  const routed=routeOnRoadNetwork(s,factory,warehouse);
+  assert.ok(routed);
+  factory.stock=1;
+  const t=truck({id:'warehouse-active',route:routed.points,routeKey:'warehouse',t:.5,speed:.05,cargo:1,source:factory,to:warehouse,stage:'warehouse'});
+  s.trucks.push(t);
+  assert.equal(eraseRoad(s,{x:50,y:0}),true);
+  updateEconomy(s,.01,()=>{});
+  assert.equal(s.trucks.length,0);
+  assert.equal(factory.stock,2);
+});
+
 test('deleting the only road safely cancels an active delivery and returns cargo',()=>{
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
