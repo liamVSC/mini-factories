@@ -1,4 +1,4 @@
-const CACHE='mini-factories-v1';
+const CACHE='mini-factories-v1.0.7';
 const APP_SHELL=[
   './',
   './index.html',
@@ -9,21 +9,35 @@ const APP_SHELL=[
   './src/economy.js',
   './src/render.js',
   './src/render3d.js',
-  './src/three.module.js',
   './icon.svg',
-  './manifest.webmanifest'
+  './manifest.webmanifest',
+  'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm'
 ];
-self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+const EXTERNAL_ASSETS=new Set(['https://cdn.jsdelivr.net/npm/three@0.180.0/+esm']);
+self.addEventListener('install',event=>{
+  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
+});
+self.addEventListener('activate',event=>{
+  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+});
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET')return;
   const url=new URL(event.request.url);
-  if(url.origin!==self.location.origin)return;
-  event.respondWith(caches.match(event.request).then(cached=>{
-    if(cached)return cached;
-    return fetch(event.request).then(response=>{
-      if(response.ok)caches.open(CACHE).then(cache=>cache.put(event.request,response.clone()));
+  const external=EXTERNAL_ASSETS.has(event.request.url);
+  if(url.origin!==self.location.origin&&!external)return;
+  event.respondWith((async()=>{
+    const cached=await caches.match(event.request);
+    try{
+      const response=await fetch(event.request);
+      if(response.ok||response.type==='opaque'){
+        const cache=await caches.open(CACHE);
+        await cache.put(event.request,response.clone());
+      }
       return response;
-    }).catch(()=>caches.match('./index.html'));
-  }));
+    }catch{
+      if(cached)return cached;
+      if(url.origin===self.location.origin)return caches.match('./index.html');
+      throw new Error('Offline external asset unavailable');
+    }
+  })());
 });
