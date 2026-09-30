@@ -660,7 +660,8 @@ test('DEBUG route junction graph',()=>{
   const f=building('Food',-40,0),shop=building('Market',100,120);
   s.buildings.push(f,shop);
   s.roads.push(road([{x:-5,y:0},{x:200,y:0}]));
-  addRoad(s,[{x:100,y:0},{x:100,y:120}]);
+  const debugAdd=addRoad(s,[{x:100,y:0},{x:100,y:120}]);
+  console.log('DEBUG_ADD',debugAdd,JSON.stringify(s.roads));
   const n=roadNetwork(s),r=routeOnRoadNetwork(s,f,shop);
   console.log('DEBUG_NODES',JSON.stringify(n.nodes.map(x=>({x:x.x,y:x.y,d:(n.adjacency.get(x)||[]).length}))));
   console.log('DEBUG_ROUTE',JSON.stringify(r?.points));
