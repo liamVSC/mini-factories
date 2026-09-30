@@ -5,7 +5,7 @@ globalThis.innerWidth=1280;
 globalThis.innerHeight=720;
 
 const {freshState,makeBuilding,hydrate,serialise}=await import('../src/state.js');
-const {pointOnRoute,length,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget}=await import('../src/world.js');
+const {pointOnRoute,length,dist,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget}=await import('../src/world.js');
 const {updateEconomy}=await import('../src/economy.js');
 
 const route=[{x:0,y:0},{x:100,y:0}];
@@ -357,7 +357,7 @@ test('deleting a road under an active truck reroutes it without teleporting',()=
   assert.equal(t.routeInvalidated,false);
   const after=pointOnRoute(t.route,t.t);
   assert.ok(dist(before,after)<12);
-  assert.notDeepEqual(t.route,[[{x:0,y:0},{x:200,y:0}]]);
+  assert.ok(t.route.some(p=>Math.abs(p.y-100)<1));
   assert.equal(t.dead,undefined);
 });
 
