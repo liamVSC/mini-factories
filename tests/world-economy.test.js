@@ -273,3 +273,29 @@ test('deleting a branch invalidates only trucks whose saved route used that bran
   assert.equal(truck.routeInvalidated, false);
   assert.ok(routeOnRoadNetwork(s,f,shop));
 });
+
+test('editing a road segment can split it while preserving its geometry', () => {
+  const s = baseState();
+  s.roads.push(road([{x:0,y:0},{x:200,y:0}]));
+  const result = editRoadSegment(s,{x:100,y:8},'split');
+  assert.ok(result);
+  assert.equal(s.roads.length,2);
+  assert.ok(s.roads.every(r=>r.points.length>=2));
+  assert.ok(s.roads.some(r=>r.points.some(p=>Math.abs(p.x-100)<1e-9&&Math.abs(p.y)<1e-9)));
+});
+
+test('editing a road segment invalidates trucks using the edited road', () => {
+  const s = baseState();
+  const f = building('Food',0,0);
+  const shop = building('Market',200,0);
+  s.buildings.push(f,shop);
+  const r = road([{x:35,y:0},{x:165,y:0}]);
+  s.roads.push(r);
+  const routed = routeOnRoadNetwork(s,f,shop);
+  assert.ok(routed);
+  const truck = {id:'edit-road-truck',route:routed.points,t:.5,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10};
+  s.trucks.push(truck);
+  const result = editRoadSegment(s,{x:100,y:0},'split');
+  assert.ok(result);
+  assert.equal(truck.routeInvalidated,true);
+});
