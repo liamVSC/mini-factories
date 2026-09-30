@@ -11,12 +11,7 @@ const CHANGELOG=[
     'Kept road construction on the existing road system while allowing a road card to start placement from the map.'
   ]},
   {version:'1.0.2',date:'30 Sep 2026',items:[
-    'Fixed the 2D renderer fallback argument handling so mobile fallback rendering receives the correct game state and viewport.',
-    'Fixed road placement previews in fallback mode so they render correctly instead of disappearing.'
-  ]},
-  {version:'1.0.1',date:'30 Sep 2026',items:[
-    'Fixed the beige screen of death with a mobile-safe renderer fallback when 3D/WebGL startup fails.',
-    'Improved renderer startup resilience so a failed 3D initialization does not leave the game on a blank screen.'
+    'Removed the legacy 2D renderer fallback and standardised rendering on the 3D renderer.'
   ]},
   {version:'1.0',date:'30 Sep 2026',items:[
     'Completed the first mobile-focused UI pass with touch-friendly controls and compact bottom sheets.',
