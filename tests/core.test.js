@@ -336,6 +336,48 @@ test('disconnected buildings cannot be routed together',()=>{
   assert.equal(routeOnRoadNetwork(s,factory,shop),null);
 });
 
+test('deleting a road under an active truck reroutes it without teleporting',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},200,0,'shop-1');
+  s.buildings.push(factory,shop);
+  const direct={id:'direct',points:[{x:0,y:0},{x:200,y:0}],bridge:false,condition:1,age:0};
+  const upper={id:'upper-a',points:[{x:0,y:0},{x:0,y:100}],bridge:false,condition:1,age:0};
+  const upper2={id:'upper-b',points:[{x:0,y:100},{x:200,y:100}],bridge:false,condition:1,age:0};
+  const upper3={id:'upper-c',points:[{x:200,y:100},{x:200,y:0}],bridge:false,condition:1,age:0};
+  s.roads.push(direct,upper,upper2,upper3);
+  const routed=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(routed);
+  const t=truck({id:'reroute-truck',route:routed.points,routeKey:'direct',t:.35,speed:.05,value:25,cargo:1,source:factory,to:shop});
+  s.trucks.push(t);
+  const before=pointOnRoute(t.route,t.t);
+  assert.equal(eraseRoad(s,{x:100,y:0}),true);
+  assert.equal(t.routeInvalidated,true);
+  updateEconomy(s,.01,()=>{});
+  assert.equal(t.routeInvalidated,false);
+  const after=pointOnRoute(t.route,t.t);
+  assert.ok(dist(before,after)<12);
+  assert.notDeepEqual(t.route,[[{x:0,y:0},{x:200,y:0}]]);
+  assert.equal(t.dead,undefined);
+});
+
+test('deleting the only road safely cancels an active delivery and returns cargo',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},100,0,'shop-1');
+  s.buildings.push(factory,shop);
+  s.roads.push({id:'only-road',points:[{x:0,y:0},{x:100,y:0}],bridge:false,condition:1,age:0});
+  const routed=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(routed);
+  const t=truck({id:'cancelled-truck',route:routed.points,routeKey:'only',t:.5,speed:.05,value:25,cargo:2,source:factory,to:shop,contractId:0});
+  factory.stock=1;
+  s.trucks.push(t);
+  assert.equal(eraseRoad(s,{x:50,y:0}),true);
+  updateEconomy(s,.01,()=>{});
+  assert.equal(s.trucks.length,0);
+  assert.equal(factory.stock,3);
+});
+
 test('erasing a connecting road removes the route and prevents new dispatches',()=>{
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
