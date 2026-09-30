@@ -3,7 +3,7 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadPreview,addRoad,
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.4';
+const GAME_VERSION='1.5';
 const CHANGELOG=[
   {version:'1.4',date:'29 Sep 2026',items:[
     'Unified screen-to-world input around the 3D camera projection.',
@@ -40,6 +40,15 @@ function markWorldDirty(){s.renderVersion=(s.renderVersion||0)+1}
 function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSaveV6',JSON.stringify(serialise(s)))}catch(e){flash('Save failed — storage unavailable')}}
 function roadResultMessage(result,path){if(result===true)return 'Road built';if(result==='cash'){const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180))*2;return 'Need £'+cost+' cash (you have £'+Math.floor(s.cash)+')'}if(result==='too-short')return 'Select two different points or buildings';if(result==='blocked')return 'Road blocked — move around the building';if(result==='duplicate')return 'Road already exists here';return 'Invalid road'}
 function flash(text){const el=document.querySelector('#tip');el.textContent=text;clearTimeout(flash.timer);flash.timer=setTimeout(()=>el.textContent='Build roads between factories and shops.',1200)}
+function roadPreviewTip(preview){
+  if(!preview)return 'Build roads between factories and shops.';
+  const state=preview.blocked?'Blocked — move around buildings':s.cash<preview.cost?'Need £'+preview.cost+' cash':'Ready to build';
+  const snap=[];
+  if(preview.snappedStart)snap.push('start');
+  if(preview.snappedEnd)snap.push('end');
+  const snapText=snap.length?' • Snapped '+snap.join(' + '):'';
+  return state+' • '+Math.round(preview.length)+'m • £'+preview.cost+snapText;
+}
 function reset(){localStorage.removeItem('miniFactoriesSaveV6');s=freshState();seed(s);s.renderVersion=1;for(const b of s.buildings.filter(b=>b.kind==='shop'))newContract(s,b);document.querySelector('#settingsMenu').style.display='none';document.querySelector('#gameOver').style.display='none';s.paused=false;hidePanel();sync();save();flash('New factory started')}
 function renderChangeLog(){
   const el=document.querySelector('#changeLog');
@@ -242,6 +251,9 @@ canvas.addEventListener('pointermove',e=>{
     drag.previewStart=preview.start;
     drag.previewEnd=preview.end;
     drag.blocked=preview.blocked;
+    drag.previewInfo=preview;
+    const tip=document.querySelector('#tip');
+    if(tip)tip.textContent=roadPreviewTip(preview);
   }
   drag.last=sp;
 });
