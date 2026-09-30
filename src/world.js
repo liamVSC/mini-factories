@@ -121,7 +121,37 @@ function normalizeRoadGeometry(road){if(!road?.points)return null;const points=s
 function roadsExactlyDuplicate(a,b){if(!a?.points||!b?.points)return false;if(roadGeometrySignature(a)===roadGeometrySignature(b))return true;return roadGeometrySignature({...a,points:[...a.points].reverse()})===roadGeometrySignature(b)}
 function invalidateTrucksForRoads(s,roads){const removed=new Set(roads);for(const truck of s.trucks||[])if((truck.routeSegments||[]).some(r=>removed.has(r))||roads.some(r=>routeTouchesRoad(truck.route,r)))truck.routeInvalidated=true}
 export function cleanupRoadNetwork(s){const original=[...(s.roads||[])],kept=[],removed=[];for(const road of original){const normalized=normalizeRoadGeometry(road);if(!normalized){removed.push(road);continue}if(kept.some(existing=>roadsExactlyDuplicate(existing,normalized)||roadsHaveMeaningfulOverlap(existing,normalized))){removed.push(road);continue}kept.push(normalized)}s.roads=kept;if(removed.length)invalidateTrucksForRoads(s,removed);return{removed,roads:s.roads}}
-export function addRoad(s,points,meta={}){const validation=validateRoadGeometry(points);if(!validation.ok)return'boundary';const clean=validation.points,roadLength=length(clean);if(!Number.isFinite(roadLength))return'invalid';if(roadLength<12){const a=meta.startBuilding||roadBuildingTarget(s,clean[0]),b=meta.endBuilding||roadBuildingTarget(s,clean.at(-1));if(!a||!b||a===b)return'too-short'}if(roadPathBlocked(s,clean,{start:meta.startBuilding,end:meta.endBuilding}))return'blocked';const cost=Math.max(1,Math.ceil(roadLength/180))*2;if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';if((s.roads||[]).some(r=>(roadDistance(r,clean)<12&&Math.abs(length(r.points)-roadLength)<24)||roadsHaveMeaningfulOverlap(r,{points:clean})))return'duplicate';const beforeCount=s.roads.length;const road={id:newId(),points:clean.map(safePoint),age:0,bridge:clean.some((p,i)=>i?segmentNearRiver(clean[i-1],p):false),condition:1};const previousCash=s.cash;s.roads.push(road);const result=cleanupRoadNetwork(s);if(!s.roads.includes(road)){s.cash=previousCash;return'duplicate'}s.cash-=cost;if(!s.roads.includes(road)){s.roads=s.roads.filter(r=>r!==road);s.cash=previousCash;return'invalid'}reconcileRoadJunctions(s,road.points,meta);cleanupRoadNetwork(s);return true}
+export function addRoad(s,points,meta={}){
+  const validation=validateRoadGeometry(points);
+  if(!validation.ok){
+    const raw=validRoadPoints(points,0);
+    if(raw&&length(raw)<12)return'too-short';
+    return'boundary';
+  }
+  const clean=validation.points,roadLength=length(clean);
+  if(!Number.isFinite(roadLength))return'invalid';
+  if(roadLength<12){
+    const a=meta.startBuilding||roadBuildingTarget(s,clean[0]),b=meta.endBuilding||roadBuildingTarget(s,clean.at(-1));
+    if(!a||!b||a===b)return'too-short';
+  }
+  if(roadPathBlocked(s,clean,{start:meta.startBuilding,end:meta.endBuilding}))return'blocked';
+  const cost=Math.max(1,Math.ceil(roadLength/180))*2;
+  if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';
+  if((s.roads||[]).some(r=>(roadDistance(r,clean)<12&&Math.abs(length(r.points)-roadLength)<24)||roadsHaveMeaningfulOverlap(r,{points:clean})))return'duplicate';
+  const road={id:newId(),points:clean.map(safePoint),age:0,bridge:clean.some((p,i)=>i?segmentNearRiver(clean[i-1],p):false),condition:1};
+  const previousCash=s.cash;
+  s.roads.push(road);
+  cleanupRoadNetwork(s);
+  const committed=s.roads.find(r=>r?.id===road.id);
+  if(!committed){
+    s.cash=previousCash;
+    return'duplicate';
+  }
+  s.cash-=cost;
+  reconcileRoadJunctions(s,committed.points,meta);
+  cleanupRoadNetwork(s);
+  return true;
+}
 function routeTouchesRoad(route,road,tolerance=3){if(!Array.isArray(route)||route.length<2||!road?.points||road.points.length<2)return false;for(let i=1;i<route.length;i++){const a=route[i-1],b=route[i];for(let j=1;j<road.points.length;j++){const c=road.points[j-1],d=road.points[j],ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y},cross=Math.abs(ab.x*cd.y-ab.y*cd.x),aligned=cross<=1e-6*Math.max(1,Math.hypot(ab.x,ab.y)*Math.hypot(cd.x,cd.y));if(aligned){if(collinearOverlapLength(a,b,c,d)>tolerance)return true}else if(segmentDistance(a,b,c,d)<=tolerance&&segmentDistance(a,b,c,d)>tolerance*.25)return true}}return false}
 function segmentDistance(a,b,c,d){const cross=(u,v)=>u.x*v.y-u.y*v.x,ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y},ac={x:c.x-a.x,y:c.y-a.y},den=cross(ab,cd);if(Math.abs(den)>1e-9){const t=cross(ac,cd)/den,u=cross(ac,ab)/den;if(t>=0&&t<=1&&u>=0&&u<=1)return 0}return Math.min(pointSegmentDistance(a,c,d),pointSegmentDistance(b,c,d),pointSegmentDistance(c,a,b),pointSegmentDistance(d,a,b))}
 function roadAtPoint(s,p,tolerance=24){if(!finitePoint(p))return null;let hit=null,bd=tolerance;for(const r of s.roads||[]){const points=validRoadPoints(r?.points,0);if(!points)continue;const q=projectOnPolyline(points,p);if(q&&q.distance<bd){bd=q.distance;hit={road:r,projection:q}}}return hit}
