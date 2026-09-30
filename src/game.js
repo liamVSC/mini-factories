@@ -3,8 +3,11 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPrevi
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.6';
+const GAME_VERSION='1.0.7';
 const CHANGELOG=[
+  {version:'1.0.7',date:'30 Sep 2026',items:[
+    'Added Progressive Web App support with offline caching and install metadata.'
+  ]},
   {version:'1.0.6',date:'30 Sep 2026',items:[
     'Fixed building placement to report invalid locations instead of silently failing.',
     'Fixed road endpoint editing and segment removal/splitting input handling.',
@@ -30,6 +33,7 @@ const CHANGELOG=[
   ]}
 ];
 
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
 const canvas=document.querySelector('#game');let W=0,H=0;let s=load();let drag=null;let pointers=new Map();let pinch=null;let cameraGesture=null;let last=performance.now();let pinchCenter=null;let panelMode='none';
 function resize(){W=innerWidth;H=innerHeight;resizeRenderer(W,H)}addEventListener('resize',resize);resize();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
