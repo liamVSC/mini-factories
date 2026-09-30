@@ -391,7 +391,7 @@ test('intersection reroute reconnects through the nearest surviving junction',()
   s.buildings.push(factory,shop);
   s.roads.push(
     {id:'deleted',points:[{x:0,y:0},{x:300,y:0}],bridge:false,condition:1,age:0},
-    {id:'vertical',points:[{x:150,y:-100},{x:150,y:100}],bridge:false,condition:1,age:0},
+    {id:'surviving-approach',points:[{x:0,y:0},{x:150,y:0},{x:150,y:100}],bridge:false,condition:1,age:0},
     {id:'upper',points:[{x:150,y:100},{x:300,y:100},{x:300,y:0}],bridge:false,condition:1,age:0}
   );
   const routed=routeOnRoadNetwork(s,factory,shop);
@@ -400,8 +400,8 @@ test('intersection reroute reconnects through the nearest surviving junction',()
   s.trucks.push(t);
   assert.equal(eraseRoad(s,{x:150,y:0}),true);
   updateEconomy(s,.01,()=>{});
-  assert.ok(t.route.some(p=>Math.abs(p.x-150)<1&&Math.abs(p.y)<1)||t.route.some(p=>Math.abs(p.y-100)<1));
   assert.equal(t.routeInvalidated,false);
+  assert.ok(t.route.some(p=>Math.abs(p.x-150)<1&&Math.abs(p.y-100)<1));
 });
 
 test('deleting a bridge under a truck safely returns its cargo',()=>{
