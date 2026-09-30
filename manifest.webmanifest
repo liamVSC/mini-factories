@@ -1,0 +1,13 @@
+{
+  "name":"Mini Factories",
+  "short_name":"Mini Factories",
+  "description":"Build factories, shops and roads in a compact 3D logistics game.",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "orientation":"landscape",
+  "background_color":"#d8c7a3",
+  "theme_color":"#d8c7a3",
+  "categories":["games","simulation"],
+  "icons":[{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
