@@ -344,6 +344,28 @@ function addLaneAwareJunction(group,center,connections){
   }
 }
 
+function addJunctionControlLines(group,center,connections,radius){
+  const lineMaterial=roadMaterials.edge;
+  for(const connection of connections){
+    const d=roadDirection(connection.inner,connection.outer);
+    if(!d)continue;
+    // The control line sits on the approach, before the junction. It is
+    // aligned with the lane used by left-hand traffic rather than the road
+    // centreline, so the visual rule matches the truck lane model.
+    const travel={x:-d.x,y:-d.y};
+    const left={x:-travel.y,y:travel.x};
+    const laneOffset=t.lane==='right'?-4.3:4.3;
+    const distance=radius+9;
+    const p={
+      x:center.x+d.x*distance+left.x*laneOffset,
+      y:center.y+d.y*distance+left.y*laneOffset
+    };
+    const line=new THREE.Mesh(new THREE.BoxGeometry(7.2,.12,.85),lineMaterial);
+    line.position.set(p.x,ROAD.markingY+.025,p.y);
+    line.rotation.y=-Math.atan2(travel.y,travel.x);
+    group.add(line);
+  }
+}
 function makeRoadJunctions(roads){
   const group=new THREE.Group();
   // Use the same canonical topology as routing/editing so a visual junction
@@ -364,7 +386,7 @@ function makeRoadJunctions(roads){
     for(const connection of connections){
       if(!unique.some(existing=>Math.abs(existing.outer.x-connection.outer.x)<8&&Math.abs(existing.outer.y-connection.outer.y)<8))unique.push(connection);
     }
-    if(unique.length>=3)addLaneAwareJunction(group,{x:node.x,y:node.y},unique.slice(0,4));
+    if(unique.length>=3){const active=unique.slice(0,4);const center={x:node.x,y:node.y};const junctionRadius=ROAD.width*.66+Math.min(9,active.length*1.6);addLaneAwareJunction(group,center,active);addJunctionControlLines(group,center,active,junctionRadius);}
   }
   return group;
 }
