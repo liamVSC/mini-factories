@@ -651,8 +651,8 @@ test('factory uses warehouse then warehouse supplies the shop',()=>{
   assert.equal(s.trucks.length,1);
   assert.equal(s.trucks[0].stage,'delivery');
   assert.equal(s.trucks[0].source,warehouse);
-  for(const truck of s.trucks)truck.t=.999;
-  updateEconomy(s,.1,()=>{});
+  for(const truck of s.trucks)truck.t=1;
+  updateEconomy(s,.01,()=>{});
   assert.ok(s.orders>=3);
 });
 
