@@ -42,7 +42,11 @@ function endpointSegmentBlocked(building,a,b,side){
   const aRadius=Math.hypot(ax,ay),bRadius=Math.hypot(bx,by);
   const outward=side==='start' ? ax*(b.x-a.x)+ay*(b.y-a.y) : bx*(a.x-b.x)+by*(a.y-b.y);
   const connectionRadius=buildingFootprintRadius(building);
-  return (side==='start'&&aRadius<connectionRadius-0.001)||(side==='end'&&bRadius<connectionRadius-0.001)||outward<0;
+  // Legacy roads may use the building centre as their endpoint. Only enforce
+  // the outward-direction rule once the endpoint is actually outside the
+  // connection footprint.
+  const outside=side==='start'?aRadius>=connectionRadius-0.001:bRadius>=connectionRadius-0.001;
+  return outside&&outward<0;
 }
 function resolveRoadEndpoint(s,value){if(value?.building&&Number.isFinite(value.building.x))return buildingConnectionPoint(value.building,value);const building=nearestBuilding(s,value);if(building&&dist(building,value)<=48)return buildingConnectionPoint(building,value);const road=snapRoadPoint(s,value,42);return road||{x:value.x,y:value.y,distance:Infinity}}
 export function snapRoadPoint(s,p,max=42){const q=nearestRoad(s,p);if(!q||q.distance>max)return null;return{x:q.x,y:q.y,road:q.road,distance:q.distance}}
