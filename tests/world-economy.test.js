@@ -382,7 +382,7 @@ test('invalid road endpoint moves leave the network unchanged', () => {
 test('moving a road endpoint onto another road creates a routable junction', () => {
   const s = baseState();
   const f = building('Food',-120,0);
-  const shop = building('Market',120,100);
+  const shop = building('Market',0,150);
   s.buildings.push(f,shop);
   const main = road([{x:-85,y:0},{x:85,y:0}]);
   const branch = road([{x:0,80},{x:0,150}]);
