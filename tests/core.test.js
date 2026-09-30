@@ -645,7 +645,8 @@ test('canonical topology preserves boundary nodes separately from junction class
   const edgeX=WORLD_BOUNDS.maxX-WORLD_MARGIN;
   s.roads.push(
     {id:'edge-main',points:[{x:1000,y:0},{x:edgeX,y:0}],bridge:false,condition:1,age:0},
-    {id:'edge-branch',points:[{x:edgeX,y:0},{x:edgeX,y:160}],bridge:false,condition:1,age:0}
+    {id:'edge-branch',points:[{x:edgeX,y:0},{x:edgeX,y:160}],bridge:false,condition:1,age:0},
+    {id:'edge-return',points:[{x:edgeX,y:0},{x:edgeX-120,y:120}],bridge:false,condition:1,age:0}
   );
   const topology=roadTopology(s);
   assert.ok(topology.boundaryNodes.length>=1);
