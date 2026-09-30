@@ -560,3 +560,34 @@ test('traffic yields at a crossing instead of driving through another truck', ()
   assert.equal(second.t,.45);
   assert.ok(second.wait>0);
 });
+
+test('traffic gives an occupied junction to the first arriving movement', () => {
+  const s = baseState();
+  s.roads.push(
+    road([{x:-120,y:0},{x:0,y:0}]),
+    road([{x:0,y:0},{x:120,y:0}]),
+    road([{x:0,y:-120},{x:0,y:0}]),
+    road([{x:0,y:0},{x:0,y:120}])
+  );
+  const source = {type:'Food',level:1,loading:0,logistics:0,stock:0,max:10};
+  const destination = {contract:null};
+  const first = {id:'first',route:[{x:-100,y:0},{x:0,y:0},{x:100,y:0}],routeKey:'h',t:.45,speed:.1,value:0,cargo:1,source,to:destination,wait:0,stage:'delivery'};
+  const second = {id:'second',route:[{x:0,y:-100},{x:0,y:0},{x:0,y:100}],routeKey:'v',t:.45,speed:.1,value:0,cargo:1,source,to:destination,wait:0,stage:'delivery'};
+  s.trucks=[first,second];
+  updateEconomy(s,.1,()=>{});
+  assert.ok(first.t>.45);
+  assert.equal(second.t,.45);
+  assert.ok(second.wait>0);
+});
+
+test('opposing traffic is not forced to stop on the same straight road', () => {
+  const s = baseState();
+  const source = {type:'Food',level:1,loading:0,logistics:0,stock:0,max:10};
+  const destination = {contract:null};
+  const first = {id:'a',route:[{x:-100,y:0},{x:100,y:0}],routeKey:'east',t:.45,speed:.1,value:0,cargo:1,source,to:destination,wait:0,stage:'delivery'};
+  const second = {id:'b',route:[{x:100,y:0},{x:-100,y:0}],routeKey:'west',t:.45,speed:.1,value:0,cargo:1,source,to:destination,wait:0,stage:'delivery'};
+  s.trucks=[first,second];
+  updateEconomy(s,.1,()=>{});
+  assert.ok(first.t>.45);
+  assert.ok(second.t>.45);
+});
