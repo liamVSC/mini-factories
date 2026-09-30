@@ -138,23 +138,6 @@ function normalizeRoadEndpoint(s,p){
   if(!b||dist(b,p)>88)return p;
   return buildingConnectionPoint(b,p)
 }
-function roadTargetInternal(s,p){
-  if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))return null;
-  if(p.building&&Number.isFinite(p.building.x))return buildingConnectionPoint(p.building,p);
-  if(p.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))return{x:p.x,y:p.y,road:p.road,distance:0};
-
-  const building=roadBuildingTarget(s,p);
-  if(building)return buildingConnectionPoint(building,p);
-
-  const road=nearestRoad(s,p);
-  if(road)return{x:road.x,y:road.y,road:road.road,distance:road.distance};
-
-  // Unsnapped endpoints use a small construction grid so roads can be
-  // aligned cleanly without forcing nearby points onto unrelated roads.
-  const grid=12;
-  const snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
-  return{x:snapped.x,y:snapped.y,distance:Infinity,gridSnapped:true};
-}
 function cleanRoadPoints(points){
   const out=[];
   for(const p of points||[]){
