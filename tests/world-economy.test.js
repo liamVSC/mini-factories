@@ -647,7 +647,8 @@ test('factory uses warehouse then warehouse supplies the shop',()=>{
   // specifically exercises warehouse -> shop distribution.
   f.stock=0;
   f.production=0;
-  updateEconomy(s,1.2,()=>{});
+  f.dispatchTimer=.9;
+  updateEconomy(s,.1,()=>{});
   assert.equal(s.trucks.length,1);
   assert.equal(s.trucks[0].stage,'delivery');
   assert.equal(s.trucks[0].source,warehouse);
