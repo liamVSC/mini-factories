@@ -610,7 +610,9 @@ test('junctions remain routable when created close to the world edge',()=>{
     {id:'edge-vertical',points:[{x:1240,y:-120},{x:1240,y:120}],bridge:false,condition:1,age:0}
   );
   const network=roadNetwork(s);
-  assert.ok(network.junctions.some(p=>Math.abs(p.x-1240)<1e-9&&Math.abs(p.y)<1e-9));
+  const junction=network.nodes.find(p=>Math.abs(p.x-1240)<1e-9&&Math.abs(p.y)<1e-9);
+  assert.ok(junction);
+  assert.ok((network.adjacency.get(junction)||[]).length>=4);
   const snapped=roadTarget(s,{x:1241,y:3});
   assert.ok(snapped.road);
   assert.ok(Math.abs(snapped.x-1240)<2);
