@@ -149,16 +149,16 @@ test('duplicate roads are rejected without charging twice', () => {
   assert.equal(s.cash, cashAfterFirst);
 });
 
-test('placing a road into the middle of an existing road creates a real junction split', () => {
+test('placing a road into the middle of an existing road creates a real junction without splitting pavement', () => {
   const s = baseState();
   s.roads.push(road([{x:0,y:0},{x:200,y:0}]));
   const beforeCash = s.cash;
   assert.equal(addRoad(s, [{x:100,y:0},{x:100,y:120}]), true);
-  assert.equal(s.roads.length, 3);
+  assert.equal(s.roads.length, 2);
   assert.ok(s.roads.some(r => r.points.some(p => Math.abs(p.x-100)<1e-9 && Math.abs(p.y)<1e-9)));
   assert.ok(s.roads.some(r => r.points.some(p => Math.abs(p.x-100)<1e-9 && Math.abs(p.y-120)<1e-9)));
   const network = roadNetwork(s);
-  assert.ok(network.nodes.some(n => Math.abs(n.x-100)<1e-9 && Math.abs(n.y)<1e-9));
+  assert.ok(network.junctions.some(n => Math.abs(n.x-100)<1e-9 && Math.abs(n.y)<1e-9));
   assert.ok(s.cash < beforeCash);
 });
 
@@ -298,14 +298,13 @@ test('road segment hit-testing rejects points outside the edit tolerance', () =>
   assert.equal(roadSegmentAtPoint(s, {x:50,y:30}), null);
 });
 
-test('editing a road segment can split it while preserving its geometry', () => {
+test('road segment editing no longer supports splitting', () => {
   const s = baseState();
-  s.roads.push(road([{x:0,y:0},{x:200,y:0}]));
-  const result = editRoadSegment(s,{x:100,y:8},'split');
-  assert.ok(result);
-  assert.equal(s.roads.length,2);
-  assert.ok(s.roads.every(r=>r.points.length>=2));
-  assert.ok(s.roads.some(r=>r.points.some(p=>Math.abs(p.x-100)<1e-9&&Math.abs(p.y)<1e-9)));
+  const r = road([{x:0,y:0},{x:200,y:0}]);
+  s.roads.push(r);
+  const before = JSON.stringify(s.roads);
+  assert.equal(editRoadSegment(s,{x:100,y:8},'split'),false);
+  assert.equal(JSON.stringify(s.roads),before);
 });
 
 test('editing a road segment invalidates trucks using the edited road', () => {
@@ -324,13 +323,13 @@ test('editing a road segment invalidates trucks using the edited road', () => {
   assert.equal(truck.routeInvalidated,true);
 });
 
-test('interactive road editing removes one segment without deleting the branches', () => {
+test('road editing deletes the whole road instead of splitting or deleting one segment', () => {
   const s = baseState();
-  s.roads.push(road([{x:-120,y:0},{x:0,y:0},{x:120,y:0}]));
+  const r = road([{x:-120,y:0},{x:0,y:0},{x:120,y:0}]);
+  s.roads.push(r);
   const result = editRoadSegment(s,{x:60,y:0},'delete');
   assert.ok(result);
-  assert.equal(s.roads.length,1);
-  assert.deepEqual(s.roads[0].points,[{x:-120,y:0},{x:0,y:0}]);
+  assert.equal(s.roads.length,0);
 });
 
 
