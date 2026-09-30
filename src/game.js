@@ -3,8 +3,9 @@ import {seed,nearestBuilding,buildingAtPoint,roadBuildingTarget,nearestRoad,road
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.23';
+const GAME_VERSION='1.0.24';
 const CHANGELOG=[
+  {version:'1.0.24',date:'30 Sep 2026',items:['Added junction right-of-way handling so trucks yield before crossing traffic instead of driving through each other.','Added deterministic following and crossing conflict detection across separate routes so traffic queues safely at shared road space.']},
   {version:'1.0.23',date:'30 Sep 2026',items:['Fixed road drawing from buildings so the road connection point dynamically faces the destination building instead of starting on the wrong side.','Expanded building connection snapping and endpoint tolerance so roads can reliably reach nearby building facades without being blocked prematurely.']},
   {version:'1.0.22',date:'30 Sep 2026',items:['Improved mobile building and road hit areas so taps do not require pixel-perfect placement.','Added short access aprons between connected roads and building facades for a cleaner visual transition.']},
   {version:'1.0.21',date:'30 Sep 2026',items:['Fixed road-to-building connection geometry so road endpoints terminate on the actual rectangular building footprint instead of an oversized circular radius.','Improved road attachment tolerance so existing roads reliably connect to factory, shop and warehouse facades.']},
