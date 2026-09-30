@@ -47,8 +47,8 @@ export function placeBuilding(s,type,x,y){if(canPlaceBuildingAt(s,type,x,y))retu
 export function spawn(s,kind,forced){const pool=TYPES.filter(t=>t.kind===kind&&(!forced||t.name===forced)&&(!t.unlock||(s.research?.[t.unlock]||0)>=t.unlockLevel));if(!pool.length)return null;let candidates=pool;if(!forced&&pool.length>1){const recent=s.buildings.slice(-2).map(b=>b.type);const filtered=pool.filter(t=>!recent.includes(t.name));if(filtered.length)candidates=filtered}const type=candidates[Math.floor(Math.random()*candidates.length)];let x=0,y=0,ok=false;const count=s.buildings.length,minRadius=count<6?170:280,maxRadius=count<6?430:Math.min(760,430+s.companyLevel*22);for(let n=0;n<300&&!ok;n++){const angle=Math.random()*Math.PI*2,radius=minRadius+Math.random()*(maxRadius-minRadius);x=Math.cos(angle)*radius+(Math.random()-.5)*90;y=Math.sin(angle)*radius+(Math.random()-.5)*90;const river=riverY(x);if(Math.abs(y-river)<105)y+=y<river?-120:120;ok=s.buildings.every(b=>dist(b,{x,y})>145)}if(!ok)return null;const b=makeBuilding(type,x,y,newId());b.district=district(x,y);s.buildings.push(b);return b}
 export function seed(s){for(const t of['Steel','Food','Parts'])spawn(s,'factory',t);for(const t of['Market','Garage','Builder'])spawn(s,'shop',t)}
 export function pointOnRoute(points,t){const total=length(points);if(!total)return points[0];let want=total*Math.max(0,Math.min(1,t)),run=0;for(let i=1;i<points.length;i++){const seg=dist(points[i-1],points[i]);if(run+seg>=want){const q=(want-run)/seg;return{x:points[i-1].x+(points[i].x-points[i-1].x)*q,y:points[i-1].y+(points[i].y-points[i-1].y)*q}}run+=seg}return points.at(-1)}
-export function nearestBuilding(s,p){let best=null,bd=58;for(const b of s.buildings){const d=dist(b,p);if(d<bd){bd=d;best=b}}return best}
-export function roadBuildingTarget(s,p){let best=null,bd=Infinity;for(const b of s.buildings||[]){const hit=Math.max(52,(b.r||25)+26);const d=dist(b,p);if(d<=hit&&d<bd){bd=d;best=b}}return best}
+export function buildingHitbox(building,tolerance=0){const footprint=buildingFootprint(building);return{minX:building.x-footprint.halfWidth-tolerance,maxX:building.x+footprint.halfWidth+tolerance,minY:building.y-footprint.halfDepth-tolerance,maxY:building.y+footprint.halfDepth+tolerance}}export function buildingAtPoint(s,p,tolerance=10){if(!finitePoint(p))return null;let best=null,bestDistance=Infinity;for(const b of s.buildings||[]){const hit=buildingHitbox(b,tolerance);const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY),d=Math.hypot(dx,dy);if(d<=tolerance&&d<bestDistance){best=b;bestDistance=d}}return best}export function nearestBuilding(s,p){return buildingAtPoint(s,p,18)}
+export function roadBuildingTarget(s,p){if(!finitePoint(p))return null;let best=null,bd=Infinity;for(const b of s.buildings||[]){const hit=buildingHitbox(b,18),dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY),d=Math.hypot(dx,dy);if(d<bd){bd=d;best=b}}return bd<=18?best:null}
 function projectOnPolyline(points,p){let best=null,run=0;for(let i=1;i<points.length;i++){const q=projectSegment(p,points[i-1],points[i]);if(!best||q.distance<best.distance)best={...q,segment:i-1,along:run+dist(points[i-1],q.point)};run+=dist(points[i-1],points[i])}return best}
 export function nearestRoad(s,p){let best=null;for(const road of s.roads||[]){const points=validRoadPoints(road?.points,0);if(!points)continue;const q=projectOnPolyline(points,p);if(q&&(!best||q.distance<best.distance))best={x:q.point.x,y:q.point.y,road,distance:q.distance,segment:q.segment,along:q.along}}return best&&best.distance<=46?best:null}
 function buildingFootprint(building){
@@ -60,7 +60,7 @@ function buildingFootprintRadius(building){
   const footprint=buildingFootprint(building);
   return Math.max(26,(building?.r||25)+9,Math.min(footprint.halfWidth,footprint.halfDepth));
 }
-function buildingConnectionPoint(building,target){
+export function buildingConnectionPoint(building,target,exteriorOffset=2.5){
   const dx=Number(target?.x)-Number(building?.x),dy=Number(target?.y)-Number(building?.y);
   const len=Math.hypot(dx,dy)||1;
   const ux=dx/len,uy=dy/len;
@@ -71,7 +71,7 @@ function buildingConnectionPoint(building,target){
   // the shoulder/surface still visually meets and overlaps the building edge.
   const tx=Math.abs(ux)>1e-6?footprint.halfWidth/Math.abs(ux):Infinity;
   const ty=Math.abs(uy)>1e-6?footprint.halfDepth/Math.abs(uy):Infinity;
-  const distance=Math.min(tx,ty)+2.5;
+  const distance=Math.min(tx,ty)+exteriorOffset;
   return{
     x:building.x+ux*distance,
     y:building.y+uy*distance,
