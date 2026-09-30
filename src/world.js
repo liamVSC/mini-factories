@@ -390,12 +390,50 @@ export function roadPreview(s,a,b){
     cost:Math.max(1,Math.ceil(roadLength/180))*2
   };
 }
+function splitRoadAtPoint(s,road,p,tolerance=6){
+  if(!road?.points||road.points.length<2)return false;
+  for(let i=1;i<road.points.length;i++){
+    const a=road.points[i-1],b=road.points[i];
+    const q=projectSegment(p,a,b);
+    if(q.distance>tolerance)continue;
+    const atStart=dist(q.point,a)<=tolerance;
+    const atEnd=dist(q.point,b)<=tolerance;
+    if(atStart||atEnd)return false;
+    const left=[...road.points.slice(0,i),q.point];
+    const right=[q.point,...road.points.slice(i)];
+    if(length(left)<8||length(right)<8)return false;
+    road.points=left;
+    s.roads.push({
+      id:newId(),
+      points:right,
+      age:road.age||0,
+      bridge:road.bridge||false,
+      condition:Number.isFinite(road.condition)?road.condition:1
+    });
+    return true;
+  }
+  return false;
+}
+function reconcileRoadJunctions(s,points){
+  const endpoints=[points[0],points.at(-1)];
+  for(const endpoint of endpoints){
+    let best=null;
+    for(const road of s.roads||[]){
+      for(let i=1;i<road.points.length;i++){
+        const q=projectSegment(endpoint,road.points[i-1],road.points[i]);
+        if(!best||q.distance<best.distance)best={road,point:q.point,distance:q.distance};
+      }
+    }
+    if(best&&best.distance<=6)splitRoadAtPoint(s,best.road,best.point,6);
+  }
+}
+
 export function addRoad(s,points,meta={}){
   const clean=simplifyRoad(points);
   if(clean.length<2)return'invalid';
   const roadLength=length(clean);
   if(!Number.isFinite(roadLength))return'too-short';
-  if(roadLength<1){
+  if(roadLength<12){
     const a=meta.startBuilding||roadBuildingTarget(s,clean[0]);
     const b=meta.endBuilding||roadBuildingTarget(s,clean[clean.length-1]);
     if(!a||!b||a===b)return'too-short';
@@ -404,6 +442,7 @@ export function addRoad(s,points,meta={}){
   const cost=Math.max(1,Math.ceil(roadLength/180))*2;
   if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';
   if((s.roads||[]).some(r=>roadDistance(r,clean)<12&&Math.abs(length(r.points)-roadLength)<24))return'duplicate';
+  reconcileRoadJunctions(s,clean);
   const bridge=clean.some((p,i)=>i?segmentNearRiver(clean[i-1],p):false);
   s.cash-=cost;
   s.roads.push({id:newId(),points:clean,age:0,bridge,condition:1});
