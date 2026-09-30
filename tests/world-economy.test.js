@@ -460,3 +460,47 @@ test('road cleanup recalculates bridge state after geometry normalization', () =
   cleanupRoadNetwork(s);
   assert.equal(s.roads[0].bridge,true);
 });
+
+
+test('near-touching road endpoints are treated as one routing junction', () => {
+  const s = baseState();
+  const f = building('Food', -120, 0);
+  const shop = building('Market', 0, 120);
+  s.buildings.push(f, shop);
+  s.roads.push(
+    road([{x:-85,y:0},{x:0,y:0}]),
+    road([{x:4,y:0},{x:0,y:85}])
+  );
+  const network = roadNetwork(s);
+  assert.ok(network.junctions.some(n => Math.abs(n.x-2)<1e-9 && Math.abs(n.y)<1e-9));
+  assert.ok(routeOnRoadNetwork(s,f,shop));
+});
+
+test('endpoint-to-middle road proximity becomes a graph junction without mutating saved geometry', () => {
+  const s = baseState();
+  const f = building('Food', -120, 0);
+  const shop = building('Market', 0, 120);
+  s.buildings.push(f, shop);
+  const main = road([{x:-85,y:0},{x:85,y:0}]);
+  const branch = road([{x:0,y:5},{x:0,y:85}]);
+  s.roads.push(main, branch);
+  const before = JSON.stringify(s.roads);
+  const network = roadNetwork(s);
+  assert.ok(network.junctions.some(n => Math.abs(n.x)<1e-9 && Math.abs(n.y)<1e-9));
+  assert.ok(routeOnRoadNetwork(s,f,shop));
+  assert.equal(JSON.stringify(s.roads), before);
+});
+
+test('editing a road endpoint keeps an existing junction target routable after cleanup', () => {
+  const s = baseState();
+  const f = building('Food', -120, 0);
+  const shop = building('Market', 0, 150);
+  s.buildings.push(f, shop);
+  const main = road([{x:-85,y:0},{x:85,y:0}]);
+  const branch = road([{x:0,y:80},{x:0,y:150}]);
+  s.roads.push(main, branch);
+  assert.ok(editRoadEndpoint(s, branch.id, 0, {x:0,y:4}));
+  const routed = routeOnRoadNetwork(s, f, shop);
+  assert.ok(routed);
+  assert.ok(routed.points.some(p => Math.abs(p.x)<1e-9 && Math.abs(p.y)<1e-9));
+});
