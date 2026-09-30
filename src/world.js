@@ -530,7 +530,20 @@ export function editRoadSegment(s,p,action='delete'){
   const hit=roadAtPoint(s,p);
   if(!hit)return false;
   const {road,projection}=hit;
-  if(action==='delete')return eraseRoad(s,p);
+  if(action==='delete'){
+    const i=projection.segmentIndex;
+    if(!Number.isInteger(i)||i<1||i>=road.points.length)return false;
+    const left=road.points.slice(0,i);
+    const right=road.points.slice(i+1);
+    const replacements=[];
+    if(left.length>=2&&length(left)>=12)replacements.push({...road,points:left,id:newId()});
+    if(right.length>=2&&length(right)>=12)replacements.push({...road,points:right,id:newId()});
+    const idx=s.roads.indexOf(road);
+    if(idx<0)return false;
+    s.roads.splice(idx,1,...replacements);
+    invalidateTrucksForRoads(s,[road]);
+    return {road,segments:replacements,point:projection.point,action:'delete'};
+  }
   if(action!=='split')return false;
   const i=projection.segmentIndex;
   if(!Number.isInteger(i)||i<1||i>=road.points.length)return false;
