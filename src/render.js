@@ -28,8 +28,8 @@ function drawFallback(s,W,H,canvas){
   ctx.lineCap='round';ctx.lineJoin='round';
   for(const r of s.roads||[]){ctx.lineWidth=22*fallbackCamera.zoom;ctx.strokeStyle=r.bridge?'#755638':'#3f4648';roadLine(ctx,r.points);ctx.stroke();ctx.lineWidth=2*fallbackCamera.zoom;ctx.strokeStyle='#d9c56d';roadLine(ctx,r.points);ctx.stroke()}
   // Road preview
-  const p=previewState?.path||previewState?.points;
-  if(Array.isArray(p)&&p.length>=2){ctx.lineWidth=18*fallbackCamera.zoom;ctx.strokeStyle=previewState.blocked?'#d85a52':'#58a6d8';roadLine(ctx,p);ctx.stroke()}
+  const p=Array.isArray(previewState?.path)?previewState.path:null;
+  if(p&&p.length>=2){ctx.lineWidth=18*fallbackCamera.zoom;ctx.strokeStyle=previewState.blocked?'#d85a52':'#58a6d8';roadLine(ctx,p);ctx.stroke()}
   // Buildings
   for(const b of s.buildings||[]){const q=worldToFallback(b.x,b.y);const w=(b.kind==='warehouse'?96:b.kind==='factory'?78:70)*fallbackCamera.zoom;const h=(b.kind==='warehouse'?66:b.kind==='factory'?62:56)*fallbackCamera.zoom;ctx.fillStyle=b.color||'#c7b89f';ctx.fillRect(q.x-w/2,q.y-h/2,w,h);ctx.strokeStyle='#465158';ctx.lineWidth=2;ctx.strokeRect(q.x-w/2,q.y-h/2,w,h);ctx.fillStyle='#26353c';ctx.font=`${Math.max(9,11*fallbackCamera.zoom)}px system-ui`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(b.type,q.x,q.y)}
   // Trucks
@@ -38,7 +38,7 @@ function drawFallback(s,W,H,canvas){
   if(s.selected){const q=worldToFallback(s.selected.x,s.selected.y);ctx.beginPath();ctx.arc(q.x,q.y,34*fallbackCamera.zoom,0,Math.PI*2);ctx.strokeStyle='#ffd45a';ctx.lineWidth=3;ctx.stroke()}
 }
 
-export function render(ctx,s,W,H,canvas=document.querySelector('#game')){
+export function render(s,W,H,canvas=document.querySelector('#game')){
   fallbackSize={w:Math.max(1,W),h:Math.max(1,H)};
   if(renderer3d&&!rendererFailed){
     try{renderer3d.render(ctx,s,W,H,canvas);return}catch(error){rendererFailed=true;renderer3d=null;console.warn('3D renderer unavailable; using mobile-safe fallback.',error)}
