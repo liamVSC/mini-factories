@@ -347,8 +347,8 @@ export function addRoad(s,points,meta={}){
   const startBuilding=meta.startBuilding||buildingAtPoint(s,normalized[0],0);
   const endBuilding=meta.endBuilding||buildingAtPoint(s,normalized.at(-1),0);
   if(startBuilding&&endBuilding&&startBuilding===endBuilding)return'blocked';
-  if(startBuilding)normalized[0]=buildingConnectionPoint(startBuilding,normalized[0]);
-  if(endBuilding)normalized[normalized.length-1]=buildingConnectionPoint(endBuilding,normalized.at(-1));
+  if(startBuilding)normalized[0]=buildingConnectionPoint(startBuilding,normalized.at(-1));
+  if(endBuilding)normalized[normalized.length-1]=buildingConnectionPoint(endBuilding,normalized[0]);
   points=normalized;
   const validation=validateRoadGeometry(points);
   if(!validation.ok){
