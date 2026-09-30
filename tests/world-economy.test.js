@@ -390,8 +390,6 @@ test('moving a road endpoint onto another road creates a routable junction', () 
   const result = editRoadEndpoint(s,branch.id,0,{x:0,y:3});
   assert.ok(result);
   const routed = routeOnRoadNetwork(s,f,shop);
-  console.log('DEBUG_EDIT_ROAD',JSON.stringify(s.roads));
-  console.log('DEBUG_EDIT_ROUTE',JSON.stringify(routed?.points));
   assert.ok(routed);
   assert.ok(routed.points.some(p=>Math.abs(p.x)<1e-9&&Math.abs(p.y)<1e-9));
 });
@@ -505,8 +503,6 @@ test('editing a road endpoint keeps an existing junction target routable after c
   s.roads.push(main, branch);
   assert.ok(editRoadEndpoint(s, branch.id, 0, {x:0,y:4}));
   const routed = routeOnRoadNetwork(s,f,shop);
-  console.log('DEBUG_EDIT_ROAD',JSON.stringify(s.roads));
-  console.log('DEBUG_EDIT_ROUTE',JSON.stringify(routed?.points));
   assert.ok(routed);
   assert.ok(routed.points.some(p => Math.abs(p.x)<1e-9 && Math.abs(p.y)<1e-9));
 });
@@ -658,16 +654,3 @@ test('warehouse delivery respects total storage capacity',()=>{
   assert.ok(f.stock>=3);
 });
 
-
-test('DEBUG route junction graph',()=>{
-  const s=baseState();
-  const f=building('Food',-40,0),shop=building('Market',100,120);
-  s.buildings.push(f,shop);
-  s.roads.push(road([{x:-5,y:0},{x:200,y:0}]));
-  const debugAdd=addRoad(s,[{x:100,y:0},{x:100,y:120}]);
-  console.log('DEBUG_ADD',debugAdd,JSON.stringify(s.roads));
-  const n=roadNetwork(s),r=routeOnRoadNetwork(s,f,shop);
-  console.log('DEBUG_NODES',JSON.stringify(n.nodes.map(x=>({x:x.x,y:x.y,d:(n.adjacency.get(x)||[]).length}))));
-  console.log('DEBUG_ROUTE',JSON.stringify(r?.points));
-  assert.ok(r);
-});
