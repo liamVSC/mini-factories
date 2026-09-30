@@ -462,6 +462,57 @@ function roadsHaveMeaningfulOverlap(a,b){
   return overlap>=24||overlap>=Math.min(aLen,bLen)*.65;
 }
 
+function roadGeometrySignature(road){
+  return (road?.points||[]).map(p=>`${Math.round(p.x*10)/10},${Math.round(p.y*10)/10}`).join('|');
+}
+
+function normalizeRoadGeometry(road){
+  if(!road?.points)return null;
+  const points=simplifyRoad(road.points);
+  if(points.length<2||length(points)<12)return null;
+  const bridge=points.some((p,i)=>i?segmentNearRiver(points[i-1],p):false);
+  return {
+    ...road,
+    points,
+    bridge,
+    age:Number.isFinite(road.age)?road.age:0,
+    condition:Number.isFinite(road.condition)?Math.max(0,Math.min(1,road.condition)):1
+  };
+}
+
+function roadsExactlyDuplicate(a,b){
+  if(!a?.points||!b?.points)return false;
+  const direct=roadGeometrySignature(a)===roadGeometrySignature(b);
+  if(direct)return true;
+  const ar=[...a.points].reverse();
+  return roadGeometrySignature({...a,points:ar})===roadGeometrySignature(b);
+}
+
+export function cleanupRoadNetwork(s){
+  const original=[...(s.roads||[])];
+  const kept=[];
+  const removed=[];
+  for(const road of original){
+    const normalized=normalizeRoadGeometry(road);
+    if(!normalized){
+      removed.push(road);
+      continue;
+    }
+    if(kept.some(existing=>roadsExactlyDuplicate(existing,normalized)||roadsHaveMeaningfulOverlap(existing,normalized))){
+      removed.push(road);
+      continue;
+    }
+    kept.push(normalized);
+  }
+  if(removed.length){
+    s.roads=kept;
+    invalidateTrucksForRoads(s,removed);
+  }else{
+    s.roads=kept;
+  }
+  return {removed,roads:s.roads};
+}
+
 export function addRoad(s,points,meta={}){
   const clean=simplifyRoad(points);
   if(clean.length<2)return'invalid';
@@ -483,6 +534,7 @@ export function addRoad(s,points,meta={}){
   const bridge=clean.some((p,i)=>i?segmentNearRiver(clean[i-1],p):false);
   s.cash-=cost;
   s.roads.push({id:newId(),points:clean,age:0,bridge,condition:1});
+  cleanupRoadNetwork(s);
   return true;
 }
 function routeTouchesRoad(route,road,tolerance=3){
@@ -567,6 +619,7 @@ export function editRoadSegment(s,p,action='delete'){
     const idx=s.roads.indexOf(road);
     if(idx<0)return false;
     s.roads.splice(idx,1,...replacements);
+    cleanupRoadNetwork(s);
     for(const truck of s.trucks||[]){
       if(routeTouchesRoad(truck.route,{points:[removedStart,removedEnd]}))truck.routeInvalidated=true;
     }
@@ -586,6 +639,7 @@ export function editRoadSegment(s,p,action='delete'){
   const idx=s.roads.indexOf(road);
   if(idx<0)return false;
   s.roads.splice(idx,1,...replacement);
+  cleanupRoadNetwork(s);
   return {road,segments:replacement,point:q};
 }
 
@@ -650,6 +704,7 @@ export function editRoadEndpoint(s,roadId,index,p){
   if(idx<0)return false;
   const affected=[road];
   s.roads.splice(idx,1,next);
+  cleanupRoadNetwork(s);
   if(preview.target?.road){
     const junctionPoint={x:preview.target.x,y:preview.target.y};
     splitRoadAtPoint(s,preview.target.road,junctionPoint,6);
@@ -666,6 +721,7 @@ export function eraseRoad(s,p){
   if(!hit)return false;
   const {road}=hit;
   s.roads=s.roads.filter(r=>r!==road);
+  cleanupRoadNetwork(s);
   invalidateTrucksForRoads(s,[road]);
   return true;
 }
