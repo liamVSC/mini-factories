@@ -406,11 +406,7 @@ test('moving a road endpoint invalidates trucks using the old geometry', () => {
   assert.ok(routed);
   const truck = {id:'endpoint-edit-truck',route:routed.points,t:.4,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10};
   s.trucks.push(truck);
-  const preview=roadEndpointPreview(s,r,1,{x:85,y:120});
-  console.log('DEBUG_TRUCK_PREVIEW',JSON.stringify(preview));
-  const editResult=editRoadEndpoint(s,r.id,1,{x:85,y:120});
-  console.log('DEBUG_TRUCK_EDIT',JSON.stringify(editResult),JSON.stringify(s.roads),truck.routeInvalidated);
-  assert.ok(editResult);
+  assert.ok(editRoadEndpoint(s,r.id,1,{x:85,y:120}));
   assert.equal(truck.routeInvalidated,true);
 });
 
@@ -506,7 +502,6 @@ test('editing a road endpoint keeps an existing junction target routable after c
   const branch = road([{x:0,y:80},{x:0,y:150}]);
   s.roads.push(main, branch);
   const editResult=editRoadEndpoint(s, branch.id, 0, {x:0,y:4});
-  console.log('DEBUG_CLEANUP_EDIT',JSON.stringify(editResult),JSON.stringify(s.roads));
   const routed = routeOnRoadNetwork(s,f,shop);
   assert.ok(routed);
   assert.ok(routed.points.some(p => Math.abs(p.x)<1e-9 && Math.abs(p.y)<1e-9));
