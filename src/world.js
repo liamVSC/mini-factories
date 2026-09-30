@@ -141,11 +141,22 @@ function normalizeRoadEndpoint(s,p){
 function roadTarget(s,p){
   if(p?.building&&Number.isFinite(p.building.x))return buildingConnectionPoint(p.building,p);
   if(p?.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))return{x:p.x,y:p.y,road:p.road,distance:0};
-  const b=roadBuildingTarget(s,p);
-  if(b&&dist(b,p)<=96)return buildingConnectionPoint(b,p);
-  const r=nearestRoad(s,p);
-  if(r&&r.distance<=64)return{x:r.x,y:r.y,road:r.road,distance:r.distance};
-  return{x:p.x,y:p.y,distance:Infinity};
+
+  const building=roadBuildingTarget(s,p);
+  if(building&&dist(building,p)<=104){
+    return buildingConnectionPoint(building,p);
+  }
+
+  const road=nearestRoad(s,p);
+  if(road&&road.distance<=72){
+    return{x:road.x,y:road.y,road:road.road,distance:road.distance};
+  }
+
+  // Keep free placement available, but quantise unsnapped endpoints so
+  // roads are easier to align and later connect to one another.
+  const grid=12;
+  const snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
+  return{x:snapped.x,y:snapped.y,distance:Infinity,gridSnapped:true};
 }
 function cleanRoadPoints(points){
   const out=[];
@@ -225,15 +236,21 @@ export function roadPreview(s,a,b){
   const candidates=candidateRoadPaths(start,end).map(simplifyRoad);
   const clear=candidates.filter(path=>!roadPathBlocked(s,path));
   const path=(clear.length?clear:candidates).sort((x,y)=>length(x)-length(y))[0]||[start,end];
+  const blocked=roadPathBlocked(s,path);
+  const roadLength=length(path);
   return{
     path,
     start,
     end,
     snappedStart:Number.isFinite(start.distance),
     snappedEnd:Number.isFinite(end.distance),
+    gridSnappedStart:!!start.gridSnapped,
+    gridSnappedEnd:!!end.gridSnapped,
     connectsBuilding:!!start.building||!!end.building,
     connectsRoad:!!start.road||!!end.road,
-    blocked:roadPathBlocked(s,path)
+    blocked,
+    length:roadLength,
+    cost:Math.max(1,Math.ceil(roadLength/180))*2
   };
 }
 export function addRoad(s,points,meta={}){
