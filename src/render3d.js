@@ -35,8 +35,8 @@ function makeRoad(points,bridge){
   if(!bridge){
     for(let i=1;i<clean.length;i++){
       const a=clean[i-1],b=clean[i];
-      addSegment(a,b,roadWidth+2.4,.14,.08,'#62696a');
-      addSegment(a,b,roadWidth,.12,.16,'#3f4648');
+      addSegment(a,b,roadWidth+2.4,.14,.56,'#62696a');
+      addSegment(a,b,roadWidth,.12,.64,'#3f4648');
 
       const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
       if(len<1)continue;
@@ -47,7 +47,7 @@ function makeRoad(points,bridge){
         if(dashLen<2)break;
         const t=(along+dashLen/2)/len;
         const dash=new THREE.Mesh(new THREE.BoxGeometry(dashLen,.16,1),dashMaterial);
-        dash.position.set(a.x+dx*t,.24,a.y+dy*t);
+        dash.position.set(a.x+dx*t,.72,a.y+dy*t);
         dash.rotation.y=angle;
         group.add(dash);
       }
@@ -55,7 +55,7 @@ function makeRoad(points,bridge){
   }else{
     for(let i=1;i<clean.length;i++){
       const a=clean[i-1],b=clean[i];
-      addSegment(a,b,roadWidth,.18,.18,'#755638');
+      addSegment(a,b,roadWidth,.18,.64,'#755638');
       const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
       if(len<1)continue;
       const angle=Math.atan2(dy,dx);
@@ -65,7 +65,7 @@ function makeRoad(points,bridge){
         const rail=box(len,1.5,.8,'#b58a52');
         rail.position.set(
           (a.x+b.x)/2+normalX*side*(roadWidth/2),
-          .95,
+          1.42,
           (a.y+b.y)/2+normalZ*side*(roadWidth/2)
         );
         rail.rotation.y=-angle;
@@ -245,7 +245,7 @@ export function setPreview(path,start,end,blocked=false){
     const a=path[i-1],b=path[i],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
     if(len<1)continue;
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(len,.2,18),roadMaterial);
-    mesh.position.set((a.x+b.x)/2,.36,(a.y+b.y)/2);
+    mesh.position.set((a.x+b.x)/2,.78,(a.y+b.y)/2);
     mesh.rotation.y=-Math.atan2(dy,dx);
     previewGroup.add(mesh);
   }
@@ -264,14 +264,14 @@ export function setPreview(path,start,end,blocked=false){
       endpointMaterial(kind)
     );
     ring.rotation.x=-Math.PI/2;
-    ring.position.set(q.x,.7,q.y);
+    ring.position.set(q.x,1.08,q.y);
     previewGroup.add(ring);
     const core=new THREE.Mesh(
       new THREE.CircleGeometry(kind==='building'?3.5:3,16),
       endpointMaterial(kind)
     );
     core.rotation.x=-Math.PI/2;
-    core.position.set(q.x,.72,q.y);
+    core.position.set(q.x,1.10,q.y);
     previewGroup.add(core);
   }
   for(let i=1;i<path.length-1;i++){
@@ -282,7 +282,7 @@ export function setPreview(path,start,end,blocked=false){
       endpointMaterial('grid')
     );
     turn.rotation.x=-Math.PI/2;
-    turn.position.set(q.x,.66,q.y);
+    turn.position.set(q.x,1.04,q.y);
     previewGroup.add(turn);
   }
 }
