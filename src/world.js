@@ -17,7 +17,7 @@ export function nearestBuilding(s,p){let best=null,bd=58;for(const b of s.buildi
 export function roadBuildingTarget(s,p){
   let best=null,bd=Infinity;
   for(const b of s.buildings||[]){
-    const hit=Math.max(58,(b.r||25)+38);
+    const hit=Math.max(52,(b.r||25)+26);
     const d=dist(b,p);
     if(d<=hit&&d<bd){bd=d;best=b}
   }
@@ -138,22 +138,19 @@ function normalizeRoadEndpoint(s,p){
   if(!b||dist(b,p)>88)return p;
   return buildingConnectionPoint(b,p)
 }
-function roadTarget(s,p){
-  if(p?.building&&Number.isFinite(p.building.x))return buildingConnectionPoint(p.building,p);
-  if(p?.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))return{x:p.x,y:p.y,road:p.road,distance:0};
+function roadTargetInternal(s,p){
+  if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))return null;
+  if(p.building&&Number.isFinite(p.building.x))return buildingConnectionPoint(p.building,p);
+  if(p.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))return{x:p.x,y:p.y,road:p.road,distance:0};
 
   const building=roadBuildingTarget(s,p);
-  if(building&&dist(building,p)<=104){
-    return buildingConnectionPoint(building,p);
-  }
+  if(building)return buildingConnectionPoint(building,p);
 
   const road=nearestRoad(s,p);
-  if(road&&road.distance<=72){
-    return{x:road.x,y:road.y,road:road.road,distance:road.distance};
-  }
+  if(road)return{x:road.x,y:road.y,road:road.road,distance:road.distance};
 
-  // Keep free placement available, but quantise unsnapped endpoints so
-  // roads are easier to align and later connect to one another.
+  // Unsnapped endpoints use a small construction grid so roads can be
+  // aligned cleanly without forcing nearby points onto unrelated roads.
   const grid=12;
   const snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
   return{x:snapped.x,y:snapped.y,distance:Infinity,gridSnapped:true};
@@ -212,8 +209,10 @@ function candidateRoadPaths(start,end){
     [start,{x:start.x,y:my}, {x:end.x,y:my},end]
   ];
 }
-export function roadPreview(s,a,b){
-  const start=roadTarget(s,a),end=roadTarget(s,b);
+export function roadTarget(s,p){ return roadTargetInternal(s,p); }
+
+function roadTargetInternal(s,p){
+  const start=roadTargetInternal(s,a),end=roadTargetInternal(s,b);
   // If two different buildings were selected, always connect their actual
   // connection points. This prevents tap coordinates from collapsing to the
   // same snapped point on mobile.
