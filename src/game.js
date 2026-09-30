@@ -50,11 +50,12 @@ function roadPreviewTip(preview){
   if(!preview)return 'Build roads between factories and shops.';
   const state=preview.blocked?'Blocked — move around buildings':s.cash<preview.cost?'Need £'+preview.cost+' cash':'Ready to build';
   const snap=[];
-  if(preview.connectsBuilding)snap.push('building');
-  else if(preview.snappedStart)snap.push('start');
-  if(preview.connectsRoad)snap.push('road');
-  else if(preview.snappedEnd)snap.push('end');
-  if(preview.gridSnappedStart||preview.gridSnappedEnd)snap.push('grid');
+  if(preview.start?.building)snap.push('start:building');
+  else if(preview.start?.road)snap.push('start:road');
+  else if(preview.gridSnappedStart)snap.push('start:grid');
+  if(preview.end?.building)snap.push('end:building');
+  else if(preview.end?.road)snap.push('end:road');
+  else if(preview.gridSnappedEnd)snap.push('end:grid');
   const snapText=snap.length?' • '+snap.join(' + '):'';
   return state+' • '+Math.round(preview.length)+'m • £'+preview.cost+snapText;
 }
