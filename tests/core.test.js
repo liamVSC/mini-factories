@@ -430,7 +430,7 @@ test('building road endpoints stay outside the rendered footprint and cannot rou
   assert.ok(preview.path.length>=2);
   assert.ok(preview.path.every((p,i)=>i===0||Math.abs(p.x-preview.path[i-1].x)<1e-9||Math.abs(p.y-preview.path[i-1].y)<1e-9));
 
-  const reverseIntoBuilding=[{x:40,y:0},{x:0,y:0}];
+  const reverseIntoBuilding=[{x:70,y:0},{x:0,y:0}];
   assert.equal(addRoad(s,reverseIntoBuilding,{startBuilding:factory}),'blocked');
 });
 
