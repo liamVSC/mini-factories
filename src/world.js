@@ -254,6 +254,11 @@ function roadPathBlocked(s,points,endpointBuildings={}){
         if(endpointSegmentBlocked(building,a,b,isStart?'start':'end'))return true;
         continue;
       }
+      // Existing roads may start/end just outside a building footprint while
+      // still being a legitimate facade connection. Treat that endpoint as
+      // the building connection instead of rejecting the whole edited road.
+      if(i===1&&dist(a,{x:building.x,y:building.y})<=ROAD_BUILDING_SNAP_TOLERANCE)continue;
+      if(i===points.length-1&&dist(b,{x:building.x,y:building.y})<=ROAD_BUILDING_SNAP_TOLERANCE)continue;
       if(pointSegmentDistance(building,a,b)<clearance)return true;
     }
   }
