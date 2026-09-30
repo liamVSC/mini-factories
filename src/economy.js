@@ -161,7 +161,26 @@ function trafficConflict(s,t,network){
   }
 
   const here=junctionForTruck(network,t);
-  if(!here)return false;
+  if(!here){
+    // Saved/generated routes can cross at a point that is not an explicit
+    // route vertex. Detect those crossings as conflict zones too.
+    for(const o of s.trucks||[]){
+      if(o===t||o.dead||o.wait>0||!Array.isArray(o.route)||o.route.length<2)continue;
+      const q=pointOnRoute(o.route,o.t);
+      for(let i=1;i<t.route.length;i++){
+        const a=i===1?p:t.route[i-1],b=t.route[i];
+        for(let j=1;j<o.route.length;j++){
+          const c=o.route[j-1],d=o.route[j],hit=segmentHit(a,b,c,d);
+          if(!hit)continue;
+          const td=dist(p,hit),od=dist(q,hit);
+          if(td>72||od>72)continue;
+          if(td<9&&od<9)return String(o.id).localeCompare(String(t.id))<0;
+          if(String(o.id).localeCompare(String(t.id))<0)return true;
+        }
+      }
+    }
+    return false;
+  }
 
   const contenders=[];
   for(const o of s.trucks||[]){
