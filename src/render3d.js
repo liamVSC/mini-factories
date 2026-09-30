@@ -60,30 +60,48 @@ function addRoadBox(group,a,b,width,height,y,material){
   return {mesh,len,dx,dy,angle:Math.atan2(dy,dx)};
 }
 
-function addRoadMarkings(group,a,b,len,dx,dy,angle,width=ROAD.width){
-  if(len<4)return;
-  const nx=-Math.sin(angle),nz=Math.cos(angle);
+function addRoadMarkings(group,points,width=ROAD.width,markingY=ROAD.markingY){
+  if(!Array.isArray(points)||points.length<2)return;
+  const segments=[];
+  let total=0;
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i],len=Math.hypot(b.x-a.x,b.y-a.y);
+    if(len<.5)continue;
+    segments.push({a,b,len,start:total});
+    total+=len;
+  }
+  if(total<4)return;
 
-  const edgeWidth=.72;
+  // Edge lines follow the rounded centreline rather than being separate straight strips.
   for(const side of [-1,1]){
-    const edge=new THREE.Mesh(new THREE.BoxGeometry(Math.max(1,len-2),.12,edgeWidth),roadMaterials.edge);
-    edge.position.set(
-      (a.x+b.x)/2+nx*side*(width/2-1.5),
-      ROAD.markingY,
-      (a.y+b.y)/2+nz*side*(width/2-1.5)
-    );
-    edge.rotation.y=-Math.atan2(dy,dx);
-    group.add(edge);
+    for(const s of segments){
+      const angle=Math.atan2(s.b.y-s.a.y,s.b.x-s.a.x),nx=-Math.sin(angle),nz=Math.cos(angle);
+      const edge=new THREE.Mesh(new THREE.BoxGeometry(Math.max(1,s.len),.10,.62),roadMaterials.edge);
+      edge.position.set(
+        (s.a.x+s.b.x)/2+nx*side*(width/2-1.5),
+        markingY,
+        (s.a.y+s.b.y)/2+nz*side*(width/2-1.5)
+      );
+      edge.rotation.y=-angle;
+      group.add(edge);
+    }
   }
 
-  // Keep the centre line sparse enough to read clearly on a phone.
-  for(let along=10;along<len-6;along+=30){
-    const dashLen=Math.min(14,len-along-4);
-    if(dashLen<4)break;
-    const t=(along+dashLen/2)/len;
-    const dash=new THREE.Mesh(new THREE.BoxGeometry(dashLen,.12,1.05),roadMaterials.center);
-    dash.position.set(a.x+dx*t,ROAD.markingY+.015,a.y+dy*t);
-    dash.rotation.y=-Math.atan2(dy,dx);
+  // Centre dashes are placed by distance along the curved route.
+  const dashLen=12,gap=18;
+  for(let along=10;along<total-6;along+=dashLen+gap){
+    const wanted=Math.min(total-3,along+dashLen/2);
+    let seg=segments[segments.length-1];
+    for(const candidate of segments){
+      if(wanted<=candidate.start+candidate.len){seg=candidate;break;}
+    }
+    const q=(wanted-seg.start)/seg.len;
+    const x=seg.a.x+(seg.b.x-seg.a.x)*q;
+    const z=seg.a.y+(seg.b.y-seg.a.y)*q;
+    const angle=Math.atan2(seg.b.y-seg.a.y,seg.b.x-seg.a.x);
+    const dash=new THREE.Mesh(new THREE.BoxGeometry(dashLen,.11,1.02),roadMaterials.center);
+    dash.position.set(x,markingY+.015,z);
+    dash.rotation.y=-angle;
     group.add(dash);
   }
 }
