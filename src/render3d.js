@@ -16,6 +16,41 @@ const routeMetrics=new WeakMap();
 function mat(color,roughness=.8,metalness=0){return new THREE.MeshStandardMaterial({color,roughness,metalness});}
 function box(w,h,d,color){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));}
 function roadMat(color){return new THREE.MeshStandardMaterial({color,roughness:.9,metalness:0,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});}
+function roadIntersection(a,b,c,d){
+  const abx=b.x-a.x,aby=b.y-a.y,cdx=d.x-c.x,cdy=d.y-c.y;
+  const den=abx*cdy-aby*cdx;
+  if(Math.abs(den)<1e-8)return null;
+  const acx=c.x-a.x,acy=c.y-a.y;
+  const t=(acx*cdy-acy*cdx)/den,u=(acx*aby-acy*abx)/den;
+  if(t<0.0001||t>0.9999||u<0.0001||u>0.9999)return null;
+  return{x:a.x+abx*t,y:a.y+aby*t};
+}
+function makeRoadJunctions(roads){
+  const group=new THREE.Group();
+  const material=roadMat('#3f4648');
+  const seen=[];
+  const add=(p,radius=9)=>{
+    if(!p||seen.some(q=>Math.hypot(q.x-p.x,q.y-p.y)<2))return;
+    seen.push(p);
+    const mesh=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.12,24),material);
+    mesh.position.set(p.x,.71,p.y);
+    group.add(mesh);
+  };
+  const segments=[];
+  for(const road of roads||[]){
+    if(road?.bridge)continue;
+    const points=(road.points||[]).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y));
+    for(const p of points)add(p);
+    for(let i=1;i<points.length;i++)segments.push([points[i-1],points[i]]);
+  }
+  for(let i=0;i<segments.length;i++){
+    for(let j=i+1;j<segments.length;j++){
+      const hit=roadIntersection(segments[i][0],segments[i][1],segments[j][0],segments[j][1]);
+      if(hit)add(hit,9.5);
+    }
+  }
+  return group;
+}
 function makeRoad(points,bridge){
   if(!Array.isArray(points)||points.length<2)return new THREE.Group();
   const group=new THREE.Group();
@@ -128,6 +163,8 @@ function syncWorld(s){
   if(!scene)return;clearDynamic();
   const pts=[];for(const b of s.buildings||[]){addBuilding(b);if(Number.isFinite(b.x)&&Number.isFinite(b.y))pts.push({x:b.x,z:b.y});}
   for(const r of s.roads||[]){const g=makeRoad(r.points,!!r.bridge);scene.add(g);worldObjects.add(g);for(const p of r.points||[])if(Number.isFinite(p.x)&&Number.isFinite(p.y))pts.push({x:p.x,z:p.y});}
+  const junctions=makeRoadJunctions(s.roads||[]);
+  scene.add(junctions);worldObjects.add(junctions);
   if(pts.length){home={x:pts.reduce((n,p)=>n+p.x,0)/pts.length,z:pts.reduce((n,p)=>n+p.z,0)/pts.length};if(!cameraReady){desired.x=home.x;desired.z=home.z;target.x=home.x;target.z=home.z;}}
 }
 function updateCamera(s,W,H){
