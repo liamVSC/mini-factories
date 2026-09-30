@@ -79,10 +79,19 @@ function rerouteTruck(s,t){
   const next=route(s,t.source,t.to);
   if(!next)return false;
   const projected=projectRouteProgress(next.points,p);
-  if(!projected||projected.distance>36)return false;
-  t.route=next.points;
-  t.routeKey=next.points.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
-  t.t=Math.max(0,Math.min(.999,projected.progress));
+  if(!projected||projected.distance>96)return false;
+
+  // A deleted road can strand a truck between two remaining road segments.
+  // Preserve its physical position and let it drive to the nearest point on
+  // the replacement network instead of teleporting it onto that network.
+  const join=pointOnRoute(next.points,projected.progress);
+  if(!join)return false;
+  const remaining=next.points.slice(projected.segmentIndex+1);
+  const routePoints=[p,join,...remaining];
+  const compact=routePoints.filter((q,i)=>i===0||dist(q,routePoints[i-1])>.01);
+  t.route=compact;
+  t.routeKey=compact.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
+  t.t=0;
   t.routeInvalidated=false;
   return true;
 }
