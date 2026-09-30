@@ -3,8 +3,9 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPrevi
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.16';
+const GAME_VERSION='1.0.17';
 const CHANGELOG=[
+  {version:'1.0.17',date:'30 Sep 2026',items:['Hardened startup so the loading screen waits for the actual 3D renderer instead of probing WebGL first.','Added a renderer-ready signal so the map cannot be hidden before the game has drawn its first frame.']},
   {version:'1.0.16',date:'30 Sep 2026',items:['Hardened traffic dispatch so saturated roads stop spawning unnecessary trucks.','Preserved multi-road junction classification for near-touching and endpoint-to-road connections.']},
   {version:'1.0.15',date:'30 Sep 2026',items:['Added lane-aware road traffic metrics with per-segment vehicle capacity and congestion.','Truck speed now responds to local road congestion and road condition instead of only global traffic.','Road traffic state tracks active load, capacity and assigned lane for each road segment.']},
   {version:'1.0.14',date:'30 Sep 2026',items:['Road junction rendering now consumes the same canonical topology used by routing and editing.','3-way, 4-way and near-touching junction visuals now share one connectivity model.']},
@@ -71,7 +72,7 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();const sp=screenPos(e);set
 ['gesturestart','gesturechange','gestureend'].forEach(type=>document.addEventListener(type,e=>e.preventDefault(),{passive:false}));
 document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
 function roadPathSafe(s,a,b){try{const preview=roadPreview(s,a,b);return preview?.path||[a,b]}catch{return[a,b]}}
-function tick(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);s.congestion=Math.min(1,(s.trucks.length/12)*.72+(s.roads.length/18)*.28);if(s.objective<s.goals.length&&s.goals[s.objective].done(s))s.objective=Math.min(s.goals.length,s.objective+1);if(s.cash<0)s.gameOver=true;save();sync()}render(s,W,H);requestAnimationFrame(tick)}
+function tick(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);s.congestion=Math.min(1,(s.trucks.length/12)*.72+(s.roads.length/18)*.28);if(s.objective<s.goals.length&&s.goals[s.objective].done(s))s.objective=Math.min(s.goals.length,s.objective+1);if(s.cash<0)s.gameOver=true;save();sync()}render(s,W,H);if(!render.readySignalled){render.readySignalled=true;window.dispatchEvent(new Event('mini-factories-ready'));}requestAnimationFrame(tick)}
 document.querySelector('#road').onclick=()=>toggleMode('road');
 document.querySelector('#erase').onclick=()=>openRoadEditor();
 document.querySelector('#roadEditorClose').onclick=closeRoadEditor;
