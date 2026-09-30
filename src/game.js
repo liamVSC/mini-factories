@@ -212,7 +212,7 @@ canvas.addEventListener('pointerdown',e=>{
     else flash('Too close to another building or river');
     return;
   }
-  if(s.mode==='erase'){if(editRoadSegment(s,p,'delete')){markWorldDirty();save();flash('Road segment removed')}return}
+  if(s.mode==='erase'){const action=e.detail>=2?'split':'delete';const result=editRoadSegment(s,p,action);if(result){markWorldDirty();save();flash(action==='split'?'Road segment split':'Road segment removed')}return}
   if(s.mode==='select'){
     const hit=nearestBuilding(s,p);
     drag={pan:true,last:sp,start:sp,moved:false,hit};
