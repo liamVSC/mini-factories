@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm';
-import {riverY,isInsideWorldBounds,WORLD_BOUNDS,WORLD_MARGIN,roadTopology} from './world.js';
+import {riverY,isInsideWorldBounds,WORLD_BOUNDS,WORLD_MARGIN,roadTopology,buildingConnectionPoint} from './world.js';
 
 let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null,roadEditGroup=null,roadEndpointGroup=null;
 let target={x:0,z:0,yaw:0,pitch:.82,distance:620};
@@ -231,7 +231,27 @@ function addBoundaryRoadEnd(group,p,width,y){
   }
 }
 
-function makeRoad(points,bridge){
+function buildingForRoadEndpoint(s,p){
+  let best=null,bd=9;
+  for(const b of s.buildings||[]){
+    const q=buildingConnectionPoint(b,p,0);
+    const d=Math.hypot(q.x-p.x,q.y-p.y);
+    if(d<bd){bd=d;best={building:b,facade:q}}
+  }
+  return best;
+}
+function addBuildingAccessApron(group,building,roadPoint,facade,bridge){
+  if(!building||bridge)return;
+  const dx=roadPoint.x-facade.x,dy=roadPoint.y-facade.y,len=Math.hypot(dx,dy);
+  if(len<1)return;
+  const ux=dx/len,uy=dy/len;
+  const apronLength=Math.max(10,Math.min(22,len+7));
+  const outer={x:facade.x+ux*apronLength,y:facade.y+uy*apronLength};
+  const width=ROAD.shoulderWidth+2;
+  addRoadBox(group,facade,outer,width,.10,ROAD.shoulderY+.018,roadMaterials.shoulder);
+  addRoadBox(group,facade,{x:facade.x+ux*Math.min(8,apronLength),y:facade.y+uy*Math.min(8,apronLength)},ROAD.width+3,.08,ROAD.surfaceY+.018,roadMaterials.asphalt);
+}
+function makeRoad(points,bridge,s=null){
   if(!Array.isArray(points)||points.length<2)return new THREE.Group();
   const group=new THREE.Group();
   const clean=roundedRoadPoints(points);
@@ -251,6 +271,13 @@ function makeRoad(points,bridge){
     addRoadSurface(group,clean,width,ROAD.surfaceY,roadMaterials.asphalt);
     addRoadMarkings(group,clean,width);
     addRoadCurbs(group,clean,width);
+  }
+
+  if(!bridge&&s){
+    for(const p of [clean[0],clean.at(-1)]){
+      const connection=buildingForRoadEndpoint(s,p);
+      if(connection)addBuildingAccessApron(group,connection.building,p,connection.facade,bridge);
+    }
   }
 
   const capRadius=(bridge?width:shoulder)/2;
@@ -492,7 +519,7 @@ function resize(w,h){
 function syncWorld(s){
   if(!scene)return;clearDynamic();
   const pts=[];for(const b of s.buildings||[]){addBuilding(b);if(Number.isFinite(b.x)&&Number.isFinite(b.y))pts.push({x:b.x,z:b.y});}
-  for(const r of s.roads||[]){const points=(r.points||[]).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y)&&isInsideWorldBounds(p));if(points.length<2)continue;const g=makeRoad(points,!!r.bridge);scene.add(g);worldObjects.add(g);for(const p of points)pts.push({x:p.x,z:p.y});}
+  for(const r of s.roads||[]){const points=(r.points||[]).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y)&&isInsideWorldBounds(p));if(points.length<2)continue;const g=makeRoad(points,!!r.bridge,s);scene.add(g);worldObjects.add(g);for(const p of points)pts.push({x:p.x,z:p.y});}
   const junctions=makeRoadJunctions(s.roads||[]);
   scene.add(junctions);worldObjects.add(junctions);
   if(pts.length){home={x:pts.reduce((n,p)=>n+p.x,0)/pts.length,z:pts.reduce((n,p)=>n+p.z,0)/pts.length};if(!cameraReady){desired.x=home.x;desired.z=home.z;target.x=home.x;target.z=home.z;}}
