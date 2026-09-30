@@ -432,16 +432,37 @@ export function updateEconomy(s,dt,flash){
       continue;
     }
     const p=pointOnRoute(t.route,t.t);let blocked=false,nearestAhead=Infinity;
-    for(const o of s.trucks){if(o===t||o.dead)continue;const q=pointOnRoute(o.route,o.t);if(dist(p,q)<30&&o.routeKey===t.routeKey&&o.t>t.t)nearestAhead=Math.min(nearestAhead,o.t-t.t)}
+    let nearestGap=Infinity;
+    for(const o of s.trucks){
+      if(o===t||o.dead)continue;
+      const q=pointOnRoute(o.route,o.t);
+      if(o.routeKey!==t.routeKey||o.t<=t.t)continue;
+      const gap=Math.max(0,dist(p,q));
+      if(gap<nearestGap)nearestGap=gap;
+      if(gap<30)nearestAhead=Math.min(nearestAhead,o.t-t.t);
+    }
     const trafficNetwork=roadNetwork(s);
     const trafficBlocked=trafficConflict(s,t,trafficNetwork);
     let trafficSpeedFactor=1;
+    // Maintain a physical following distance with progressive braking rather
+    // than the old binary "move/stop" behaviour. This also creates natural
+    // queues when several trucks share a lane.
+    if(nearestGap<42){
+      const safeGap=18+Math.min(18,t.speed*90);
+      const followingFactor=Math.max(0,Math.min(1,(nearestGap-safeGap)/24));
+      trafficSpeedFactor=Math.min(trafficSpeedFactor,followingFactor);
+      if(nearestGap<=safeGap){
+        blocked=true;
+        t.wait=Math.min(2,t.wait+dt*.5);
+      }
+    }
     if(trafficBlocked){
       const control=t.trafficControl;
       // Brake progressively before the stop/yield line. Once inside the final
       // approach zone, hold position until the junction is available.
       const metresAhead=control?.metresAhead??0;
-      trafficSpeedFactor=Math.max(0,Math.min(1,(metresAhead-9)/28));
+      const approachFactor=Math.max(0,Math.min(1,(metresAhead-9)/28));
+      trafficSpeedFactor=Math.min(trafficSpeedFactor,approachFactor);
       if(metresAhead<=9){
         blocked=true;
         t.wait=Math.min(2,t.wait+dt);
@@ -451,10 +472,6 @@ export function updateEconomy(s,dt,flash){
     }else{
       t.trafficControl=null;
       t.wait=Math.max(0,t.wait-dt*.75);
-    }
-    if(nearestAhead<.045){
-      blocked=true;
-      t.wait=Math.min(2,t.wait+dt);
     }
     if(blocked)continue;
     t.t+=dt*t.speed*Math.max(.65,1-(s.congestion*.18))*trafficSpeedFactor;
