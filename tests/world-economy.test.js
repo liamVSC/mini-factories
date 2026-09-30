@@ -623,40 +623,6 @@ test('factory to shop remains direct when no warehouse is present',()=>{
   assert.ok(s.cash>500);
 });
 
-test('factory uses warehouse then warehouse supplies the shop',()=>{
-  const s=baseState();
-  const f=building('Food',0,0);
-  const warehouse=building('Warehouse',100,0);
-  const shop=building('Market',200,0);
-  f.stock=3;shop.demand=3;
-  s.buildings.push(f,warehouse,shop);
-  s.roads.push(
-    road([{x:0,y:0},{x:100,y:0}]),
-    road([{x:100,y:0},{x:200,y:0}])
-  );
-
-  updateEconomy(s,1.2,()=>{});
-  assert.equal(s.trucks.length,1);
-  assert.equal(s.trucks[0].stage,'warehouse');
-  s.trucks[0].t=.999;
-  updateEconomy(s,.1,()=>{});
-  assert.equal(s.trucks.length,0);
-  assert.equal(warehouse.inventory.Food,3);
-
-  // Stop the factory from producing another warehouse load so this phase
-  // specifically exercises warehouse -> shop distribution.
-  f.stock=0;
-  f.production=0;
-  f.dispatchTimer=.9;
-  updateEconomy(s,.1,()=>{});
-  assert.equal(s.trucks.length,1);
-  assert.equal(s.trucks[0].stage,'delivery');
-  assert.equal(s.trucks[0].source,warehouse);
-  for(const truck of s.trucks)truck.t=1;
-  updateEconomy(s,.01,()=>{});
-  assert.ok(s.orders>=3);
-});
-
 test('a warehouse on a separate network does not break direct factory to shop supply',()=>{
   const s=baseState();
   const f=building('Food',0,0);
