@@ -390,6 +390,8 @@ test('moving a road endpoint onto another road creates a routable junction', () 
   const result = editRoadEndpoint(s,branch.id,0,{x:0,y:3});
   assert.ok(result);
   const routed = routeOnRoadNetwork(s,f,shop);
+  console.log('DEBUG_EDIT_ROAD',JSON.stringify(s.roads));
+  console.log('DEBUG_EDIT_ROUTE',JSON.stringify(routed?.points));
   assert.ok(routed);
   assert.ok(routed.points.some(p=>Math.abs(p.x)<1e-9&&Math.abs(p.y)<1e-9));
 });
@@ -502,7 +504,9 @@ test('editing a road endpoint keeps an existing junction target routable after c
   const branch = road([{x:0,y:80},{x:0,y:150}]);
   s.roads.push(main, branch);
   assert.ok(editRoadEndpoint(s, branch.id, 0, {x:0,y:4}));
-  const routed = routeOnRoadNetwork(s, f, shop);
+  const routed = routeOnRoadNetwork(s,f,shop);
+  console.log('DEBUG_EDIT_ROAD',JSON.stringify(s.roads));
+  console.log('DEBUG_EDIT_ROUTE',JSON.stringify(routed?.points));
   assert.ok(routed);
   assert.ok(routed.points.some(p => Math.abs(p.x)<1e-9 && Math.abs(p.y)<1e-9));
 });
