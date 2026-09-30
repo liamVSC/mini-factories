@@ -644,7 +644,8 @@ export function editRoadEndpoint(s,roadId,index,p){
   const oldEndpoint=oldPoints[index];
   const clean=preview.path;
   if(dist(oldEndpoint,clean[index])<2)return false;
-  const next={...road,points:clean};
+  const bridge=clean.some((point,i)=>i?segmentNearRiver(clean[i-1],point):false);
+  const next={...road,points:clean,bridge,condition:Number.isFinite(road.condition)?road.condition:1};
   const idx=s.roads.indexOf(road);
   if(idx<0)return false;
   const affected=[road];
