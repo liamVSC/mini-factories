@@ -53,7 +53,8 @@ function renderChangeLog(){
   if(!el)return;
   el.innerHTML=CHANGELOG.map(v=>'<section class="changelog-version"><div class="changelog-head"><b>v'+v.version+'</b><span>'+v.date+'</span></div><ul>'+v.items.map(x=>'<li>'+x+'</li>').join('')+'</ul></section>').join('');
 }
-renderChangeLog();\nbindBuildMenu();
+renderChangeLog();
+bindBuildMenu();
 function sync(){
   document.querySelector('#cash').textContent='£'+Math.floor(s.cash);
   document.querySelector('#orders').textContent=s.orders;
