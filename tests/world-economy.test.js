@@ -653,3 +653,16 @@ test('warehouse delivery respects total storage capacity',()=>{
   assert.equal(warehouse.storage,1);
   assert.ok(f.stock>=3);
 });
+
+
+test('DEBUG route junction graph',()=>{
+  const s=baseState();
+  const f=building('Food',-40,0),shop=building('Market',100,120);
+  s.buildings.push(f,shop);
+  s.roads.push(road([{x:-5,y:0},{x:200,y:0}]));
+  addRoad(s,[{x:100,y:0},{x:100,y:120}]);
+  const n=roadNetwork(s),r=routeOnRoadNetwork(s,f,shop);
+  console.log('DEBUG_NODES',JSON.stringify(n.nodes.map(x=>({x:x.x,y:x.y,d:(n.adjacency.get(x)||[]).length}))));
+  console.log('DEBUG_ROUTE',JSON.stringify(r?.points));
+  assert.ok(r);
+});
