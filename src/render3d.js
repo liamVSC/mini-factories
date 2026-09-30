@@ -306,7 +306,7 @@ function addLaneAwareJunction(group,center,connections){
   asphalt.position.set(center.x,ROAD.surfaceY-.015,center.y);
   group.add(asphalt);
 
-  const dirs=connections.map(c=>({c,d:roadDirection(c.inner,c.outer)})).filter(x=>x.d);
+  const dirs=connections.map(c=>({c,d:roadDirection(c.inner,c.outer)})).filter(x=>x.d).sort((a,b)=>Math.atan2(a.d.y,a.d.x)-Math.atan2(b.d.y,b.d.x));
   for(const {d} of dirs){
     const len=radius+ROAD.width*.95;
     addRoadBox(group,center,{x:center.x+d.x*len,y:center.y+d.y*len},ROAD.width,.12,ROAD.surfaceY,roadMaterials.asphalt);
