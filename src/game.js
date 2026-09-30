@@ -67,6 +67,7 @@ function renderChangeLog(){
 }
 renderChangeLog();
 function sync(){document.querySelector('#cash').textContent='£'+Math.floor(s.cash);document.querySelector('#orders').textContent=s.orders;document.querySelector('#companyLevel').textContent=s.companyLevel;const levelProgress=document.querySelector('#levelProgress');if(levelProgress)levelProgress.style.width=Math.min(100,Math.max(0,(s.xp/Math.max(1,s.xpToNext))*100))+'%';const traffic=document.querySelector('#traffic');if(traffic)traffic.textContent=Math.round(Math.max(0,Math.min(100,s.congestion||0)))+'%';const g=s.goals[s.objective];document.querySelector('#objective').innerHTML=g?`<b>Goal ${s.objective+1}/6</b> • ${g.text} <span>${Math.min(g.target,Math.floor(g.progress(s)))}/${g.target}</span>`:'All objectives complete';const p=document.querySelector('#panel');if(panelMode==='building'&&s.selected&&p.style.display!=='none')showPanel(s.selected);}
+function setMenuActive(id){document.querySelectorAll('.actions button').forEach(el=>el.classList.remove('active'));if(id)document.querySelector('#'+id)?.classList.add('active')}
 function clearDynamicBuildButtons(){
   document.querySelectorAll('#panel button[id^="build"]').forEach(el=>el.style.display='none');
 }
@@ -79,6 +80,7 @@ function clearButtonActions(){
 }
 function showPanel(b){
   panelMode='building';
+  setMenuActive(null);
   const p=document.querySelector('#panel');
   clearDynamicBuildButtons();
   clearButtonActions();
@@ -89,6 +91,7 @@ function showPanel(b){
   document.querySelector('#objective').style.display='none';
   const t=TYPES.find(x=>x.name===b.type);
   document.querySelector('#name').textContent=b.type;
+  document.querySelector('#panelHint').textContent=b.kind==='factory'?'Production and upgrades':b.kind==='warehouse'?'Storage and logistics':'Demand and deliveries';
   document.querySelector('#type').textContent=t?.role||(b.kind==='factory'?'Factory':'Shop');
   document.querySelector('#info').innerHTML=b.kind==='factory'
     ? '<b>'+b.stock+'/'+b.max+'</b> stock • Lv '+b.level+'<br><small>'+(t?.desc||'Produces '+b.type+' for delivery.')+'</small>'
@@ -122,11 +125,12 @@ function showPanel(b){
   }
 }
 function showBuild(){
-  panelMode='build';s.selected=null;
+  panelMode='build';
+  setMenuActive('build');s.selected=null;
   clearDynamicBuildButtons();
   clearButtonActions();
   const p=document.querySelector('#panel');p.classList.remove('shop-panel','factory-panel','warehouse-panel','research-panel','company-panel');p.classList.add('build-panel');p.style.display='block';document.querySelector('#objective').style.display='none';
-  document.querySelector('#name').textContent='Build';document.querySelector('#type').textContent='Construction';
+  document.querySelector('#name').textContent='Build';document.querySelector('#panelHint').textContent='Choose a building';document.querySelector('#type').textContent='Construction';
   document.querySelector('#info').innerHTML='<b>Cash £'+Math.floor(s.cash)+'</b> • Choose a building';
   document.querySelector('#shop').style.display='none';
   const available=TYPES.filter(t=>!t.unlock||(s.research?.[t.unlock]||0)>=t.unlockLevel);
@@ -136,7 +140,8 @@ function showBuild(){
 }
 function startBuild(t){const reason=canBuild(s,t);if(reason){flash(reason);return}hidePanel();s.buildMode=t;s.mode='build';document.querySelector('#road').classList.remove('active');document.querySelector('#erase').classList.remove('active');flash('Tap an empty area to place '+t.name)}
 function showCompany(){
-  panelMode='company';s.selected=null;
+  panelMode='company';
+  setMenuActive('company');s.selected=null;
   clearDynamicBuildButtons();
   clearButtonActions();
   const p=document.querySelector('#panel');
@@ -144,6 +149,7 @@ function showCompany(){
   p.style.display='block';
   document.querySelector('#objective').style.display='none';
   document.querySelector('#name').textContent='Company';
+  document.querySelector('#panelHint').textContent='Network overview';
   document.querySelector('#type').textContent='Expansion';
   const unlocked=s.buildings.length;
   const cap=10+(s.research?.industry||0)*2;
@@ -161,7 +167,8 @@ function showCompany(){
   }
 }
 function showResearch(){
-  panelMode='research';s.selected=null;
+  panelMode='research';
+  setMenuActive('research');s.selected=null;
   clearDynamicBuildButtons();
   clearButtonActions();
   const p=document.querySelector('#panel');
@@ -169,6 +176,7 @@ function showResearch(){
   p.style.display='block';
   document.querySelector('#objective').style.display='none';
   document.querySelector('#name').textContent='Research';
+  document.querySelector('#panelHint').textContent='Spend cash to unlock improvements';
   document.querySelector('#type').textContent='Company development';
   document.querySelector('#info').innerHTML='<b>Level '+s.companyLevel+'</b> • XP '+Math.floor(s.xp)+'/'+s.xpToNext;
   document.querySelector('#shop').style.display='none';
@@ -185,11 +193,11 @@ function showResearch(){
     el.onclick=()=>{if(research(s,key)){save();sync();showResearch()}};
   }
 }
-function hidePanel(){const p=document.querySelector('#panel');p.classList.remove('shop-panel','factory-panel','warehouse-panel','research-panel','company-panel','build-panel');panelMode='none';s.selected=null;s.buildMode=null;if(s.mode==='build')s.mode='select';document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
+function hidePanel(){const p=document.querySelector('#panel');setMenuActive(null);p.classList.remove('shop-panel','factory-panel','warehouse-panel','research-panel','company-panel','build-panel');panelMode='none';s.selected=null;s.buildMode=null;if(s.mode==='build')s.mode='select';document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
 function worldPos(e){const sp=screenPos(e);return screenToWorld(sp.x,sp.y,W,H)}
 function panBy(dx,dy){panScreen(dx,dy,W,H)}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-function toggleMode(m){s.mode=s.mode===m?'select':m;drag=null;s.roadEditHover=null;s.roadEditSelection=null;s.roadEditEndpoint=null;s.roadEditEndpointPreview=null;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase');document.querySelector('#tip').textContent=s.mode==='erase'?'Drag a road endpoint • tap a segment to remove • double-tap to split':'Build roads between factories and shops.'}
+function toggleMode(m){s.mode=s.mode===m?'select':m;setMenuActive(s.mode==='road'?'road':s.mode==='erase'?'erase':null);drag=null;s.roadEditHover=null;s.roadEditSelection=null;s.roadEditEndpoint=null;s.roadEditEndpointPreview=null;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase');document.querySelector('#tip').textContent=s.mode==='erase'?'Drag a road endpoint • tap a segment to remove • double-tap to split':'Build roads between factories and shops.'}
 function setZoomAt(screen,z){
   s.camera.zoom=Math.max(.55,Math.min(2.4,z));
   zoomAtScreen(screen.x,screen.y,s.camera.zoom,W,H);
