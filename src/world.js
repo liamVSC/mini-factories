@@ -66,11 +66,12 @@ function buildingConnectionPoint(building,target){
   const ux=dx/len,uy=dy/len;
   const footprint=buildingFootprint(building);
   // Buildings are rendered as rectangles, so use the exact ray/rectangle
-  // intersection instead of a circular radius. This makes road centre lines
-  // terminate on the actual facade regardless of approach angle.
+  // intersection instead of an oversized circular radius. Keep a tiny
+  // exterior offset so the road centreline sits just outside the facade while
+  // the shoulder/surface still visually meets and overlaps the building edge.
   const tx=Math.abs(ux)>1e-6?footprint.halfWidth/Math.abs(ux):Infinity;
   const ty=Math.abs(uy)>1e-6?footprint.halfDepth/Math.abs(uy):Infinity;
-  const distance=Math.min(tx,ty);
+  const distance=Math.min(tx,ty)+2.5;
   return{
     x:building.x+ux*distance,
     y:building.y+uy*distance,
@@ -83,34 +84,101 @@ function resolveRoadEndpoint(s,value){if(value?.building&&Number.isFinite(value.
 export function snapRoadPoint(s,p,max=42){const q=nearestRoad(s,p);if(!q||q.distance>max)return null;return{x:q.x,y:q.y,road:q.road,distance:q.distance}}
 export function snap(s,p){const b=nearestBuilding(s,p);if(b)return b;const r=nearestRoad(s,p);return r||p}
 function segmentIntersection(a,b,c,d){const ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y},cross=(u,v)=>u.x*v.y-u.y*v.x,den=cross(ab,cd),ac={x:c.x-a.x,y:c.y-a.y};if(Math.abs(den)<1e-9)return null;const t=cross(ac,cd)/den,u=cross(ac,ab)/den;if(t<-.000001||t>1.000001||u<-.000001||u>1.000001)return null;return{x:a.x+ab.x*t,y:a.y+ab.y*t,t,u}}
-function addNode(nodes,p){let n=nodes.find(x=>dist(x,p)<2.5);if(!n){n={x:p.x,y:p.y};nodes.push(n)}return n}
+function addNode(nodes,p,tolerance=2.5){let n=nodes.find(x=>dist(x,p)<tolerance);if(!n){n={x:p.x,y:p.y};nodes.push(n)}return n}
 function roadPointParameter(a,b,p){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)return 0;return Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l))}
-export function roadNetwork(s,extraPoints=[]){const valid=(s.roads||[]).map(r=>({...r,points:validRoadPoints(r?.points,0)})).filter(r=>r.points?.length>=2&&roadWithinWorldBounds(r.points)),nodes=[],edges=[],marks=new Map();for(const road of valid){const segments=road.points.slice(1).map(()=>[]);marks.set(road,segments);for(let i=1;i<road.points.length;i++){segments[i-1].push(addNode(nodes,road.points[i-1]));segments[i-1].push(addNode(nodes,road.points[i]));}}for(let ri=0;ri<valid.length;ri++){const aRoad=valid[ri];for(let qi=ri;qi<valid.length;qi++){const bRoad=valid[qi];for(let i=1;i<aRoad.points.length;i++){const a=aRoad.points[i-1],b=aRoad.points[i],first=aRoad===bRoad?i:1;for(let j=first;j<bRoad.points.length;j++){if(aRoad===bRoad&&i===j)continue;const hit=segmentIntersection(a,b,bRoad.points[j-1],bRoad.points[j]);if(!hit)continue;const n=addNode(nodes,hit);marks.get(aRoad)[i-1].push(n);marks.get(bRoad)[j-1].push(n)}}}}// Treat near-touching endpoints as real graph connections. This keeps persisted roads
-// routable even if a previous edit or save left a junction a few pixels off.
-const junctionTolerance=6;
-for(let ri=0;ri<valid.length;ri++)for(let qi=ri;qi<valid.length;qi++){
-  const aRoad=valid[ri],bRoad=valid[qi];
-  const aEnds=[{index:0,point:aRoad.points[0]},{index:aRoad.points.length-1,point:aRoad.points.at(-1)}];
-  const bEnds=[{index:0,point:bRoad.points[0]},{index:bRoad.points.length-1,point:bRoad.points.at(-1)}];
-  for(const aEnd of aEnds)for(const bEnd of bEnds){
-    if(aRoad===bRoad)continue;
-    if(dist(aEnd.point,bEnd.point)>junctionTolerance)continue;
-    const n=addNode(nodes,{x:(aEnd.point.x+bEnd.point.x)/2,y:(aEnd.point.y+bEnd.point.y)/2});
-    const aSeg=aEnd.index===0?0:aRoad.points.length-2;
-    const bSeg=bEnd.index===0?0:bRoad.points.length-2;
-    marks.get(aRoad)[aSeg].push(n);marks.get(bRoad)[bSeg].push(n);
-  }
-  // An endpoint touching the middle of another road is also a junction.
-  for(const aEnd of aEnds){
-    for(let j=1;j<bRoad.points.length;j++){
-      if(aRoad===bRoad)continue;
-      const q=projectSegment(aEnd.point,bRoad.points[j-1],bRoad.points[j]);
-      if(q.distance>junctionTolerance)continue;
-      const n=addNode(nodes,q.point);
-      marks.get(aRoad)[aEnd.index===0?0:aRoad.points.length-2].push(n);
-      marks.get(bRoad)[j-1].push(n);
+export function roadNetwork(s,extraPoints=[]){
+  const valid=(s.roads||[]).map(r=>({...r,points:validRoadPoints(r?.points,0)})).filter(r=>r.points?.length>=2&&roadWithinWorldBounds(r.points));
+  const nodes=[],edges=[],marks=new Map(),virtualEdges=[];
+  for(const road of valid){
+    const segments=road.points.slice(1).map(()=>[]);
+    marks.set(road,segments);
+    for(let i=1;i<road.points.length;i++){
+      segments[i-1].push(addNode(nodes,road.points[i-1]));
+      segments[i-1].push(addNode(nodes,road.points[i]));
     }
   }
+  for(let ri=0;ri<valid.length;ri++){
+    const aRoad=valid[ri];
+    for(let qi=ri;qi<valid.length;qi++){
+      const bRoad=valid[qi];
+      for(let i=1;i<aRoad.points.length;i++){
+        const a=aRoad.points[i-1],b=aRoad.points[i],first=aRoad===bRoad?i:1;
+        for(let j=first;j<bRoad.points.length;j++){
+          if(aRoad===bRoad&&i===j)continue;
+          const hit=segmentIntersection(a,b,bRoad.points[j-1],bRoad.points[j]);
+          if(!hit)continue;
+          const n=addNode(nodes,hit);
+          marks.get(aRoad)[i-1].push(n);
+          marks.get(bRoad)[j-1].push(n);
+        }
+      }
+    }
+  }
+  // Treat near-touching endpoints as real graph connections without moving
+  // persisted geometry. These are virtual graph edges: the visual road stays
+  // exactly where the player placed it, while routing can still traverse the
+  // small connection gap.
+  const junctionTolerance=6;
+  const connectEndpoint=(road,index,node)=>{
+    const endpoint=addNode(nodes,road.points[index],.5);
+    const d=dist(endpoint,node);
+    if(d>.001)virtualEdges.push({a:endpoint,b:node,d,road});
+  };
+  for(let ri=0;ri<valid.length;ri++)for(let qi=ri;qi<valid.length;qi++){
+    const aRoad=valid[ri],bRoad=valid[qi];
+    const aEnds=[{index:0,point:aRoad.points[0]},{index:aRoad.points.length-1,point:aRoad.points.at(-1)}];
+    const bEnds=[{index:0,point:bRoad.points[0]},{index:bRoad.points.length-1,point:bRoad.points.at(-1)}];
+    if(aRoad===bRoad)continue;
+
+    for(const aEnd of aEnds)for(const bEnd of bEnds){
+      if(dist(aEnd.point,bEnd.point)>junctionTolerance)continue;
+      const n=addNode(nodes,{x:(aEnd.point.x+bEnd.point.x)/2,y:(aEnd.point.y+bEnd.point.y)/2},.5);
+      connectEndpoint(aRoad,aEnd.index,n);
+      connectEndpoint(bRoad,bEnd.index,n);
+    }
+
+    const attachEndpointToRoad=(end,road)=>{
+      for(let j=1;j<road.points.length;j++){
+        const q=projectSegment(end.point,road.points[j-1],road.points[j]);
+        if(q.distance>junctionTolerance)continue;
+        const n=addNode(nodes,q.point,.5);
+        connectEndpoint(end===null?road: aRoad,end?.index??0,n);
+      }
+    };
+
+    for(const aEnd of aEnds){
+      for(let j=1;j<bRoad.points.length;j++){
+        const q=projectSegment(aEnd.point,bRoad.points[j-1],bRoad.points[j]);
+        if(q.distance>junctionTolerance)continue;
+        const n=addNode(nodes,q.point,.5);
+        connectEndpoint(aRoad,aEnd.index,n);
+        marks.get(bRoad)[j-1].push(n);
+      }
+    }
+    for(const bEnd of bEnds){
+      for(let i=1;i<aRoad.points.length;i++){
+        const q=projectSegment(bEnd.point,aRoad.points[i-1],aRoad.points[i]);
+        if(q.distance>junctionTolerance)continue;
+        const n=addNode(nodes,q.point,.5);
+        connectEndpoint(bRoad,bEnd.index,n);
+        marks.get(aRoad)[i-1].push(n);
+      }
+    }
+  }
+  for(const p of extraPoints||[]){if(!finitePoint(p))continue;let best=null;for(const road of valid)for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(!best||q.distance<best.distance)best={road,segment:i-1,point:q.point,distance:q.distance}}if(best){const n=addNode(nodes,best.point);marks.get(best.road)[best.segment].push(n)}}
+  for(const road of valid)for(let i=0;i<road.points.length-1;i++){
+    const a=road.points[i],b=road.points[i+1];
+    const list=[...new Set(marks.get(road)[i])].sort((u,v)=>roadPointParameter(a,b,u)-roadPointParameter(a,b,v));
+    for(let j=1;j<list.length;j++){const u=list[j-1],v=list[j],d=dist(u,v);if(d>0.5)edges.push({a:u,b:v,d,road});}
+  }
+  for(const edge of virtualEdges)if(edge.d>.001)edges.push(edge);
+  const adjacency=new Map(nodes.map(n=>[n,[]]));
+  for(const e of edges){
+    adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});
+    adjacency.get(e.b).push({node:e.a,d:e.d,road:e.road});
+  }
+  const junctions=nodes.filter(n=>(adjacency.get(n)?.length||0)>=3);
+  return{nodes,edges,adjacency,junctions}
 }
 for(const p of extraPoints||[]){if(!finitePoint(p))continue;let best=null;for(const road of valid)for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(!best||q.distance<best.distance)best={road,segment:i-1,point:q.point,distance:q.distance}}if(best){const n=addNode(nodes,best.point);marks.get(best.road)[best.segment].push(n)}}for(const road of valid)for(let i=0;i<road.points.length-1;i++){const a=road.points[i],b=road.points[i+1],list=[...new Set(marks.get(road)[i])].sort((u,v)=>roadPointParameter(a,b,u)-roadPointParameter(a,b,v));for(let j=1;j<list.length;j++){const u=list[j-1],v=list[j],d=dist(u,v);if(d>0.5)edges.push({a:u,b:v,d,road});}}const adjacency=new Map(nodes.map(n=>[n,[]]));for(const e of edges){adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});adjacency.get(e.b).push({node:e.a,d:e.d,road:e.road})}const junctions=nodes.filter(n=>(adjacency.get(n)?.length||0)>=3);return{nodes,edges,adjacency,junctions}}
 export function roadTopology(s){
