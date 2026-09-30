@@ -5,7 +5,7 @@ globalThis.innerWidth=1280;
 globalThis.innerHeight=720;
 
 const {freshState,makeBuilding,hydrate,serialise}=await import('../src/state.js');
-const {pointOnRoute,length,addRoad,eraseRoad,routeOnRoadNetwork}=await import('../src/world.js');
+const {pointOnRoute,length,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview}=await import('../src/world.js');
 const {updateEconomy}=await import('../src/economy.js');
 
 const route=[{x:0,y:0},{x:100,y:0}];
@@ -303,6 +303,36 @@ test('erasing a connecting road removes the route and prevents new dispatches',(
   shop.demand=4;
   updateEconomy(s,2,()=>{});
   assert.equal(s.trucks.length,0);
+});
+
+test('road preview snaps to buildings, roads and the placement grid',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},240,0,'shop-1');
+  s.buildings.push(factory,shop);
+  s.roads.push({id:'road-1',points:[{x:120,y:-80},{x:120,y:80}],bridge:false,condition:1,age:0});
+
+  const buildingPreview=roadPreview(s,{x:4,y:3},{x:236,y:-2});
+  assert.equal(buildingPreview.start.building,factory);
+  assert.equal(buildingPreview.end.building,shop);
+  assert.equal(buildingPreview.snappedStart,true);
+  assert.equal(buildingPreview.snappedEnd,true);
+  assert.ok(Number.isFinite(buildingPreview.length));
+  assert.ok(Number.isFinite(buildingPreview.cost));
+
+  const roadPreviewResult=roadPreview(s,{x:118,y:12},{x:190,y:180});
+  assert.ok(roadPreviewResult.start.road);
+  assert.ok(Number.isFinite(roadPreviewResult.length));
+  assert.ok(Number.isFinite(roadPreviewResult.cost));
+
+  const gridPreview=roadPreview(s,{x:173,y:177},{x:350,y:355});
+  assert.equal(gridPreview.start.gridSnapped,true);
+  assert.equal(gridPreview.end.gridSnapped,true);
+  assert.equal(gridPreview.start.x%12,0);
+  assert.equal(gridPreview.start.y%12,0);
+  assert.equal(gridPreview.end.x%12,0);
+  assert.equal(gridPreview.end.y%12,0);
+  assert.ok(Number.isFinite(gridPreview.cost));
 });
 
 test('road construction rejects a duplicate road without charging twice',()=>{
