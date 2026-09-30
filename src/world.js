@@ -490,7 +490,18 @@ function routeTouchesRoad(route,road,tolerance=3){
   for(let i=1;i<route.length;i++){
     const a=route[i-1],b=route[i];
     for(let j=1;j<road.points.length;j++){
-      if(segmentDistance(a,b,road.points[j-1],road.points[j])<=tolerance)return true;
+      const c=road.points[j-1],d=road.points[j];
+      const ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y};
+      const cross=Math.abs(ab.x*cd.y-ab.y*cd.x);
+      const aligned=cross<=1e-6*Math.max(1,Math.hypot(ab.x,ab.y)*Math.hypot(cd.x,cd.y));
+      if(aligned){
+        const overlap=collinearOverlapLength(a,b,c,d);
+        if(overlap>tolerance)return true;
+      }else if(segmentDistance(a,b,c,d)<=tolerance){
+        // A perpendicular crossing at a junction is not route usage.
+        const hit=segmentDistance(a,b,c,d);
+        if(hit>tolerance*0.25)return true;
+      }
     }
   }
   return false;
