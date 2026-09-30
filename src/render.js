@@ -41,7 +41,7 @@ function drawFallback(s,W,H,canvas){
 export function render(s,W,H,canvas=document.querySelector('#game')){
   fallbackSize={w:Math.max(1,W),h:Math.max(1,H)};
   if(renderer3d&&!rendererFailed){
-    try{renderer3d.render(ctx,s,W,H,canvas);return}catch(error){rendererFailed=true;renderer3d=null;console.warn('3D renderer unavailable; using mobile-safe fallback.',error)}
+    try{renderer3d.render(null,s,W,H,canvas);return}catch(error){rendererFailed=true;renderer3d=null;console.warn('3D renderer unavailable; using mobile-safe fallback.',error)}
   }
   drawFallback(s,W,H,canvas);
 }
