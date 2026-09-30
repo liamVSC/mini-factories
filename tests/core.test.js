@@ -413,6 +413,21 @@ test('clear road preview stays direct while blocked preview uses a clean 90 degr
   }
 });
 
+test('road preview routes around multiple buildings without cutting through them',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},-220,0,'factory-route');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},220,0,'shop-route');
+  const obstacleA=makeBuilding({name:'Steel',kind:'factory',need:null,color:'#fff'},-60,0,'obstacle-a');
+  const obstacleB=makeBuilding({name:'Parts',kind:'factory',need:null,color:'#fff'},60,0,'obstacle-b');
+  s.buildings.push(factory,shop,obstacleA,obstacleB);
+  const preview=roadPreview(s,factory,shop);
+  assert.ok(preview);
+  assert.ok(preview.path.length>2);
+  assert.equal(preview.blocked,false);
+  assert.ok(preview.path.every((p,i)=>i===0||Math.abs(p.x-preview.path[i-1].x)<1e-9||Math.abs(p.y-preview.path[i-1].y)<1e-9));
+  assert.equal(addRoad(s,preview.path,{startBuilding:factory,endBuilding:shop}),true);
+});
+
 test('road preview path is exactly the path committed by road construction',()=>{
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
