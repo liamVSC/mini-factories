@@ -640,7 +640,7 @@ test('canonical road topology identifies three-way and four-way junctions',()=>{
   assert.ok(four.fourWayJunctions[0].roadIds.includes('west'));
 });
 
-test('canonical topology preserves boundary nodes separately from junction classification',()=>{
+test('canonical topology preserves boundary nodes without misclassifying a two-road boundary turn as a junction',()=>{
   const s=freshState();
   const edgeX=WORLD_BOUNDS.maxX-WORLD_MARGIN;
   s.roads.push(
@@ -649,19 +649,17 @@ test('canonical topology preserves boundary nodes separately from junction class
   );
   const topology=roadTopology(s);
   assert.ok(topology.boundaryNodes.length>=1);
-  assert.ok(topology.topologyJunctions.some(n=>n.type==='boundary-junction'));
+  assert.equal(topology.topologyJunctions.some(n=>n.type==='boundary-junction'),false);
   assert.ok(topology.boundaryNodes.some(n=>Math.abs(n.x-edgeX)<1e-9));
 });
 
-test('splitting a road keeps both resulting segments valid and routable',()=>{
+test('road editing deliberately rejects the removed split action',()=>{
   const s=freshState();
-  s.roads.push({id:'split-me',points:[{x:-120,y:0},{x:120,y:0}],bridge:false,condition:1,age:0});
-  const result=editRoadSegment(s,{x:0,y:0},'split');
-  assert.ok(result);
-  assert.equal(s.roads.length,2);
-  assert.ok(s.roads.every(r=>r.points.length>=2));
-  const topology=roadTopology(s);
-  assert.ok(topology.nodes.some(n=>Math.abs(n.x)<1e-9&&Math.abs(n.y)<1e-9));
+  const road={id:'no-split',points:[{x:-120,y:0},{x:120,y:0}],bridge:false,condition:1,age:0};
+  s.roads.push(road);
+  const before=JSON.stringify(s.roads);
+  assert.equal(editRoadSegment(s,{x:0,y:0},'split'),false);
+  assert.equal(JSON.stringify(s.roads),before);
 });
 
 test('road preview snaps to buildings, roads and the placement grid',()=>{
