@@ -870,7 +870,7 @@ test('stale traffic reservations expire on simulation time rather than browser t
     wait:0,
     stage:'delivery'
   }];
-  updateEconomy(s,0,()=>{});
+  updateEconomy(s,.1,()=>{});
   assert.ok(s.trucks[0].t>.45);
   assert.equal(s.trafficReservations['0,0']?.truckId,'new');
 });
