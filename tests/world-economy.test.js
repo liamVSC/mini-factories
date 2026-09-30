@@ -643,6 +643,10 @@ test('factory uses warehouse then warehouse supplies the shop',()=>{
   assert.equal(s.trucks.length,0);
   assert.equal(warehouse.inventory.Food,3);
 
+  // Stop the factory from producing another warehouse load so this phase
+  // specifically exercises warehouse -> shop distribution.
+  f.stock=0;
+  f.production=0;
   updateEconomy(s,1.2,()=>{});
   assert.equal(s.trucks.length,1);
   assert.equal(s.trucks[0].stage,'delivery');
