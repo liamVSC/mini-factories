@@ -353,6 +353,28 @@ test('road preview snaps to buildings, roads and the placement grid',()=>{
   assert.ok(Number.isFinite(gridPreview.cost));
 });
 
+test('clear road preview stays direct while blocked preview uses a clean 90 degree route',()=>{
+  const s=freshState();
+  const a=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const b=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},240,0,'shop-1');
+  s.buildings.push(a,b);
+
+  const clear=roadPreview(s,{x:4,y:0},{x:236,y:0});
+  assert.equal(clear.path.length,2);
+  assert.equal(clear.blocked,false);
+
+  const obstacle=makeBuilding({name:'Warehouse',kind:'warehouse',need:null,color:'#fff'},120,0,'warehouse-1');
+  s.buildings.push(obstacle);
+  const blocked=roadPreview(s,{x:4,y:0},{x:236,y:0});
+  assert.ok(blocked.path.length>=3);
+  assert.equal(blocked.blocked,false);
+  for(let i=2;i<blocked.path.length;i++){
+    const a=blocked.path[i-2],b=blocked.path[i-1],c=blocked.path[i];
+    const ab={x:b.x-a.x,y:b.y-a.y},bc={x:c.x-b.x,y:c.y-b.y};
+    assert.equal(ab.x*bc.x+ab.y*bc.y,0);
+  }
+});
+
 test('road construction rejects a duplicate road without charging twice',()=>{
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
