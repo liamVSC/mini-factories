@@ -280,6 +280,48 @@ test('routing through a road intersection produces a usable route',()=>{
 });
 
 
+test('truck follows an intersection route across the junction instead of stopping at the branch',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},200,200,'shop-1');
+  s.buildings.push(factory,shop);
+  s.roads.push(
+    {id:'road-a',points:[{x:0,y:0},{x:200,y:0}],bridge:false,condition:1,age:0},
+    {id:'road-b',points:[{x:100,y:-100},{x:100,y:200}],bridge:false,condition:1,age:0},
+    {id:'road-c',points:[{x:100,y:200},{x:200,y:200}],bridge:false,condition:1,age:0}
+  );
+  factory.dispatchTimer=100;
+
+  const routed=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(routed);
+  assert.ok(routed.points.some(p=>Math.abs(p.x-100)<1&&Math.abs(p.y)<1));
+  assert.ok(routed.points.some(p=>Math.abs(p.x-100)<1&&Math.abs(p.y-200)<1));
+
+  const t=truck({
+    id:'intersection-truck',
+    route:routed.points,
+    routeKey:routed.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),
+    t:.19,
+    speed:.085,
+    value:25,
+    cargo:1,
+    source:factory,
+    to:shop
+  });
+  s.trucks.push(t);
+
+  updateEconomy(s,.1,()=>{});
+  const p=pointOnRoute(routed.points,t.t);
+  assert.ok(p.x>=99&&p.x<=101);
+  assert.ok(p.y>0&&p.y<15);
+
+  t.t=.999;
+  updateEconomy(s,.1,()=>{});
+  assert.equal(s.trucks.length,0);
+  assert.equal(s.cash,525);
+  assert.equal(s.orders,1);
+});
+
 test('disconnected buildings cannot be routed together',()=>{
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
