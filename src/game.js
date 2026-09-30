@@ -3,7 +3,7 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPrevi
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.3';
+const GAME_VERSION='1.0.4';
 const CHANGELOG=[
   {version:'1.0.3',date:'30 Sep 2026',items:[
     'Added a visual, mobile-first build menu for roads, factories, shops and warehouses.',
