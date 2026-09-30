@@ -336,6 +336,9 @@ function addToWarehouse(warehouse,type,n){
 }
 function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,contractId=0,longDistance=false,valuePerUnit=0,stage='delivery'}){
   if(!route||!cargo)return false;
+  // Keep the simulation bounded under sustained demand. Finished trucks are
+  // removed each tick, so this only limits genuinely in-flight congestion.
+  if((s.trucks||[]).length>=80)return false;
   // Final hard gate: both buildings must still be physically attached
   // to the saved road network when the truck is spawned.
   if(!roadAttachment(s,source)||!roadAttachment(s,destination))return false;
@@ -501,9 +504,9 @@ export function updateEconomy(s,dt,flash){
       // Brake progressively before the stop/yield line. Once inside the final
       // approach zone, hold position until the junction is available.
       const metresAhead=control?.metresAhead??0;
-      const approachFactor=Math.max(0,Math.min(1,(metresAhead-9)/28));
+      const approachFactor=Math.max(0,Math.min(1,(metresAhead-12)/28));
       trafficSpeedFactor=Math.min(trafficSpeedFactor,approachFactor);
-      if(metresAhead<=9){
+      if(metresAhead<=12){
         blocked=true;
         t.wait=Math.min(2,t.wait+dt);
       }else{
