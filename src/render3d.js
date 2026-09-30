@@ -131,6 +131,31 @@ function updateBuilding(b,selected){
   const scale=selected?1.035:1;
   if(g.scale.x!==scale)g.scale.setScalar(scale);
 }
+function updateRoadEndpointVisual(s){
+  const endpoint=s.roadEditEndpoint;
+  const preview=s.roadEditEndpointPreview;
+  if(!roadEditGroup)return;
+  if(!endpoint&&!preview)return;
+  const road=(s.roads||[]).find(x=>x?.id===(endpoint?.roadId||preview?.roadId));
+  if(!road?.points)return;
+  const index=endpoint?.index??preview?.index;
+  const base=road.points[index];
+  if(!base)return;
+  const target=preview?.point||base;
+  const invalid=!!preview?.invalid;
+  const material=new THREE.MeshBasicMaterial({color:invalid?'#d85a52':'#ffd45a',transparent:true,opacity:.95,depthWrite:false,side:THREE.DoubleSide});
+  const ring=new THREE.Mesh(new THREE.RingGeometry(7,10,24),material);
+  ring.rotation.x=-Math.PI/2;
+  ring.position.set(target.x,1.2,target.y);
+  roadEditGroup.add(ring);
+  if(preview&&Math.hypot(target.x-base.x,target.y-base.y)>1){
+    const dx=target.x-base.x,dy=target.y-base.y,len=Math.hypot(dx,dy);
+    const line=new THREE.Mesh(new THREE.BoxGeometry(len,.18,4),material);
+    line.position.set((base.x+target.x)/2,1.1,(base.y+target.y)/2);
+    line.rotation.y=-Math.atan2(dy,dx);
+    roadEditGroup.add(line);
+  }
+}
 function updateRoadEditVisual(s){
   if(!roadEditGroup)return;
   const hover=s.roadEditHover, selected=s.roadEditSelection;
@@ -402,6 +427,7 @@ export function render(ctx,s,W,H,canvas=document.querySelector('#game')){
     }
     updateSelectionVisual(s);
     updateRoadEditVisual(s);
+    updateRoadEndpointVisual(s);
   }
   updateCamera(s,W,H);
   drawTrucks(s);
