@@ -305,6 +305,20 @@ test('erasing a connecting road removes the route and prevents new dispatches',(
   assert.equal(s.trucks.length,0);
 });
 
+test('roads crossing the river are marked as bridges and remain routable',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,350,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},0,500,'shop-1');
+  s.buildings.push(factory,shop);
+  const path=[{x:0,y:350},{x:0,y:500}];
+  assert.equal(addRoad(s,path,{startBuilding:factory,endBuilding:shop}),true);
+  assert.equal(s.roads.length,1);
+  assert.equal(s.roads[0].bridge,true);
+  const routed=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(routed);
+  assert.ok(routed.distance>0);
+});
+
 test('road endpoint targeting uses tight building and road snap zones',()=>{
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
