@@ -271,7 +271,9 @@ function roadTargetInternal(s,p){
     const hit=buildingHitbox(building,0);
     const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
     const buildingDistance=Math.hypot(dx,dy);
-    if(road.distance<=buildingDistance)return{x:road.x,y:road.y,road:road.road,distance:road.distance};
+    if(buildingDistance<=10||road.distance<=buildingDistance)return buildingDistance<=10
+      ? {...buildingConnectionPoint(building,p),building,distance:buildingDistance}
+      : {x:road.x,y:road.y,road:road.road,distance:road.distance};
     const q=buildingConnectionPoint(building,p);
     return{...q,building,distance:buildingDistance};
   }
@@ -344,11 +346,16 @@ export function cleanupRoadNetwork(s){const original=[...(s.roads||[])],kept=[],
 export function addRoad(s,points,meta={}){
   if(!Array.isArray(points)||points.length<2)return'invalid';
   const normalized=points.map(q=>safePoint(q));
-  const startBuilding=meta.startBuilding||buildingAtPoint(s,normalized[0],0);
-  const endBuilding=meta.endBuilding||buildingAtPoint(s,normalized.at(-1),0);
+  const inferredStart=buildingAtPoint(s,normalized[0],0);
+  const inferredEnd=buildingAtPoint(s,normalized.at(-1),0);
+  const startBuilding=meta.startBuilding||inferredStart;
+  const endBuilding=meta.endBuilding||inferredEnd;
   if(startBuilding&&endBuilding&&startBuilding===endBuilding)return'blocked';
-  if(startBuilding)normalized[0]=buildingConnectionPoint(startBuilding,normalized.at(-1));
-  if(endBuilding)normalized[normalized.length-1]=buildingConnectionPoint(endBuilding,normalized[0]);
+  // Explicit building connections use facade endpoints. Legacy direct addRoad
+  // calls may still provide a building centre as an endpoint; keep those
+  // coordinates intact and let the endpoint collision rules validate them.
+  if(meta.startBuilding)normalized[0]=buildingConnectionPoint(meta.startBuilding,normalized.at(-1));
+  if(meta.endBuilding)normalized[normalized.length-1]=buildingConnectionPoint(meta.endBuilding,normalized[0]);
   points=normalized;
   const validation=validateRoadGeometry(points);
   if(!validation.ok){
