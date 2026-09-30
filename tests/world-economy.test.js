@@ -299,3 +299,12 @@ test('editing a road segment invalidates trucks using the edited road', () => {
   assert.ok(result);
   assert.equal(truck.routeInvalidated,true);
 });
+
+test('interactive road editing removes one segment without deleting the branches', () => {
+  const s = baseState();
+  s.roads.push(road([{x:-120,y:0},{x:0,y:0},{x:120,y:0}]));
+  const result = editRoadSegment(s,{x:60,y:0},'delete');
+  assert.ok(result);
+  assert.equal(s.roads.length,1);
+  assert.deepEqual(s.roads[0].points,[{x:-120,y:0},{x:0,y:0}]);
+});
