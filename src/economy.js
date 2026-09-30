@@ -219,6 +219,10 @@ export function updateEconomy(s,dt,flash){
     }
   }
   for(const f of s.buildings.filter(b=>b.kind==='factory')){
+    // Do not keep spawning delivery vehicles into an already saturated network.
+    // This is a dispatch throttle, not a routing failure: urgent contracts can
+    // still be serviced once capacity becomes available again.
+    if((s.congestion||0)>=.92&&!s.buildings.some(b=>b.kind==='shop'&&b.contract?.urgent&&b.contract?.type===f.type))continue;
     f.dispatchTimer=(f.dispatchTimer||0)+dt;
     if(f.dispatchTimer<Math.max(.65,1.15-f.level*.12))continue;
     const shops=s.buildings.filter(b=>b.kind==='shop'&&b.need===f.type&&b.demand>0);
