@@ -597,3 +597,4 @@ export function eraseRoad(s,p){
   invalidateTrucksForRoads(s,[road]);
   return true;
 }
+
