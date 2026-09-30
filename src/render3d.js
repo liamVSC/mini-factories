@@ -295,6 +295,22 @@ function roadDirection(a,b){
   return len?{x:dx/len,y:dy/len}:null;
 }
 
+function addTurnLaneMarking(group,start,control,end,width=1.05){
+  const steps=10; let prev=start;
+  for(let i=1;i<=steps;i++){
+    const t=i/steps,m=1-t;
+    const next={x:m*m*start.x+2*m*t*control.x+t*t*end.x,y:m*m*start.y+2*m*t*control.y+t*t*end.y};
+    if(i%2===0||i===steps){
+      const dx=next.x-prev.x,dy=next.y-prev.y,len=Math.hypot(dx,dy);
+      if(len>1){
+        const dash=new THREE.Mesh(new THREE.BoxGeometry(Math.max(2,len*.82),.09,width),roadMaterials.center);
+        dash.position.set((prev.x+next.x)/2,ROAD.markingY+.025,(prev.y+next.y)/2);
+        dash.rotation.y=-Math.atan2(dy,dx); group.add(dash);
+      }
+    }
+    prev=next;
+  }
+}
 function addLaneAwareJunction(group,center,connections){
   if(connections.length<2)return;
   const radius=ROAD.width*.66+Math.min(9,connections.length*1.6);
@@ -329,6 +345,11 @@ function addLaneAwareJunction(group,center,connections){
         const end={x:center.x+b.x*turnRadius,y:center.y+b.y*turnRadius};
         const control={x:center.x+Math.cos(mid)*turnRadius*1.12,y:center.y+Math.sin(mid)*turnRadius*1.12};
         addFlatCurve(group,start,control,end,ROAD.width*.82,ROAD.surfaceY,roadMaterials.asphalt,6);
+        addTurnLaneMarking(group,
+          {x:start.x+(control.x-start.x)*.12,y:start.y+(control.y-start.y)*.12},
+          control,
+          {x:end.x+(control.x-end.x)*.12,y:end.y+(control.y-end.y)*.12}
+        );
       }
     }
   }
