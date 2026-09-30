@@ -297,11 +297,16 @@ test('truck follows an intersection route across the junction instead of stoppin
   assert.ok(routed.points.some(p=>Math.abs(p.x-100)<1&&Math.abs(p.y)<1));
   assert.ok(routed.points.some(p=>Math.abs(p.x-100)<1&&Math.abs(p.y-200)<1));
 
+  const firstJunctionIndex=routed.points.findIndex(p=>Math.abs(p.x-100)<1&&Math.abs(p.y)<1);
+  assert.ok(firstJunctionIndex>0);
+  const distanceToJunction=length(routed.points.slice(0,firstJunctionIndex+1));
+  const routeFraction=distanceToJunction/length(routed.points);
+
   const t=truck({
     id:'intersection-truck',
     route:routed.points,
     routeKey:routed.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),
-    t:.19,
+    t:Math.max(0,routeFraction-.001),
     speed:.085,
     value:25,
     cargo:1,
