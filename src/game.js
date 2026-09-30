@@ -1,10 +1,15 @@
 import {freshState,hydrate,serialise,TYPES} from './state.js';
-import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPreview,addRoad,eraseRoad,editRoadSegment,roadSegmentAtPoint,roadEndpointAtPoint,roadEndpointPreview,editRoadEndpoint,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
+import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPreview,addRoad,eraseRoad,editRoadSegment,roadSegmentAtPoint,roadEndpointAtPoint,roadEndpointPreview,editRoadEndpoint,dist,buildingCost,buildingUnlock,canBuild,canPlaceBuildingAt,placeBuilding} from './world.js';
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.2';
+const GAME_VERSION='1.0.3';
 const CHANGELOG=[
+  {version:'1.0.3',date:'30 Sep 2026',items:[
+    'Added a visual, mobile-first build menu for roads, factories, shops and warehouses.',
+    'Added drag-to-map building placement with live valid/invalid feedback and prices.',
+    'Kept road construction on the existing road system while allowing a road card to start placement from the map.'
+  ]},
   {version:'1.0.2',date:'30 Sep 2026',items:[
     'Fixed the 2D renderer fallback argument handling so mobile fallback rendering receives the correct game state and viewport.',
     'Fixed road placement previews in fallback mode so they render correctly instead of disappearing.'
@@ -42,13 +47,13 @@ function roadPreviewTip(preview){
   const snapText=snap.length?' • '+snap.join(' + '):'';
   return state+' • '+Math.round(preview.length)+'m • £'+preview.cost+snapText;
 }
-function reset(){localStorage.removeItem('miniFactoriesSaveV6');s=freshState();seed(s);s.renderVersion=1;for(const b of s.buildings.filter(b=>b.kind==='shop'))newContract(s,b);document.querySelector('#settingsMenu').style.display='none';document.querySelector('#gameOver').style.display='none';s.paused=false;hidePanel();sync();save();flash('New factory started')}
+function reset(){closeBuildMenu();localStorage.removeItem('miniFactoriesSaveV6');s=freshState();seed(s);s.renderVersion=1;for(const b of s.buildings.filter(b=>b.kind==='shop'))newContract(s,b);document.querySelector('#settingsMenu').style.display='none';document.querySelector('#gameOver').style.display='none';s.paused=false;hidePanel();sync();save();flash('New factory started')}
 function renderChangeLog(){
   const el=document.querySelector('#changeLog');
   if(!el)return;
   el.innerHTML=CHANGELOG.map(v=>'<section class="changelog-version"><div class="changelog-head"><b>v'+v.version+'</b><span>'+v.date+'</span></div><ul>'+v.items.map(x=>'<li>'+x+'</li>').join('')+'</ul></section>').join('');
 }
-renderChangeLog();
+renderChangeLog();\nbindBuildMenu();
 function sync(){
   document.querySelector('#cash').textContent='£'+Math.floor(s.cash);
   document.querySelector('#orders').textContent=s.orders;
@@ -121,21 +126,140 @@ function showPanel(b){
     shop.onclick=()=>{if(!shop.disabled&&upgrade(s,b,1)){save();sync();showPanel(b)}};
   }
 }
+let buildMenuOpen=false;
+let buildDrag=null;
+
+function buildIcon(t){
+  if(t.kind==='factory')return '🏭';
+  if(t.kind==='shop')return '🏪';
+  if(t.kind==='warehouse')return '📦';
+  return '🛣️';
+}
+function buildEntries(){
+  return [{name:'Road',kind:'road',role:'Connect buildings',desc:'Drag onto the map to start a road.'},...TYPES];
+}
+function buildPlacementReason(t,p){
+  if(t.kind==='road')return null;
+  return canPlaceBuildingAt(s,t,p.x,p.y);
+}
+function renderBuildMenu(){
+  const menu=document.querySelector('#buildMenu');
+  if(!menu)return;
+  const grid=document.querySelector('#buildCards');
+  if(!grid)return;
+  grid.innerHTML=buildEntries().map(t=>{
+    const reason=t.kind==='road'?null:buildingUnlock(t,s);
+    const cost=t.kind==='road'?'From £2': '£'+buildingCost(s,t);
+    const locked=!!reason;
+    const subtitle=reason||t.role||t.desc||'Build';
+    return '<button class="build-card'+(locked?' locked':'')+'" data-build-type="'+t.name+'" '+(locked?'disabled':'')+'>'+
+      '<span class="build-icon">'+buildIcon(t)+'</span>'+
+      '<span class="build-copy"><b>'+t.name+'</b><small>'+subtitle+'</small></span>'+
+      '<strong>'+cost+'</strong>'+
+      (locked?'<span class="build-lock">🔒</span>':'')+
+      '</button>';
+  }).join('');
+  menu.querySelector('.build-cash').textContent='£'+Math.floor(s.cash);
+}
 function showBuild(){
   panelMode='build';
-  setMenuActive('build');s.selected=null;
-  clearDynamicBuildButtons();
-  clearButtonActions();
-  const p=document.querySelector('#panel');p.classList.remove('shop-panel','factory-panel','warehouse-panel','research-panel','company-panel');p.classList.add('build-panel');p.style.display='block';document.querySelector('#objective').style.display='none';
-  document.querySelector('#name').textContent='Build';document.querySelector('#panelHint').textContent='Choose a building';document.querySelector('#type').textContent='Construction';
-  document.querySelector('#info').innerHTML='<b>Cash £'+Math.floor(s.cash)+'</b> • Choose a building';
-  document.querySelector('#shop').style.display='none';
-  const available=TYPES.filter(t=>!t.unlock||(s.research?.[t.unlock]||0)>=t.unlockLevel);
-  const items=[...available];
-  for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);const t=items[i-1];el.style.display=t?'block':'none';if(!t)continue;const reason=buildingUnlock(t,s);const cost=buildingCost(s,t);el.innerHTML='🏗️ '+t.name+' <span>£'+cost+'</span><small>'+ (reason||t.role||'Build production')+'</small>';el.disabled=!!reason||s.cash<cost;el.onclick=()=>startBuild(t);}
-  if(items.length>4){for(let i=5;i<=items.length;i++){const id='build'+i;let el=document.querySelector('#'+id);if(!el){el=document.createElement('button');el.id=id;el.className='upgrade';p.appendChild(el)}const t=items[i-1],reason=buildingUnlock(t,s),cost=buildingCost(s,t);el.style.display='block';el.innerHTML='🏗️ '+t.name+' <span>£'+cost+'</span><small>'+ (reason||t.role||'Build production')+'</small>';el.disabled=!!reason||s.cash<cost;el.onclick=()=>startBuild(t);}}
+  s.selected=null;
+  hidePanel();
+  buildMenuOpen=true;
+  setMenuActive('build');
+  renderBuildMenu();
+  document.querySelector('#buildMenu')?.classList.add('open');
+  document.querySelector('#buildMenu')?.setAttribute('aria-hidden','false');
 }
-function startBuild(t){const reason=canBuild(s,t);if(reason){flash(reason);return}hidePanel();s.buildMode=t;s.mode='build';setMenuActive('build');document.querySelector('#road').classList.remove('active');document.querySelector('#erase').classList.remove('active');flash('Tap an empty area to place '+t.name)}
+function closeBuildMenu(){
+  buildMenuOpen=false;
+  buildDrag=null;
+  document.querySelector('#buildMenu')?.classList.remove('open');
+  document.querySelector('#buildMenu')?.setAttribute('aria-hidden','true');
+  document.querySelector('#buildGhost')?.classList.remove('show');
+  if(panelMode==='build')panelMode='none';
+  if(s.mode==='build'){s.mode='select';s.buildMode=null}
+  setMenuActive(null);
+}
+function startBuild(t){
+  const reason=canBuild(s,t);
+  if(reason){flash(reason);renderBuildMenu();return}
+  closeBuildMenu();
+  s.buildMode=t;
+  s.mode='build';
+  setMenuActive('build');
+  document.querySelector('#road').classList.remove('active');
+  document.querySelector('#erase').classList.remove('active');
+  flash('Tap an empty area to place '+t.name);
+}
+function buildCardForTarget(e){
+  const card=e.target.closest('.build-card');
+  if(!card)return null;
+  const type=buildEntries().find(t=>t.name===card.dataset.buildType);
+  return type&&type.kind!=='road'&&canBuild(s,type)?type:type;
+}
+function canvasDropPoint(clientX,clientY){
+  const el=document.elementFromPoint(clientX,clientY);
+  if(el!==canvas&&!canvas.contains(el))return null;
+  return screenToWorld(clientX,clientY,W,H);
+}
+function updateBuildGhost(clientX,clientY){
+  const ghost=document.querySelector('#buildGhost');
+  if(!ghost||!buildDrag)return;
+  ghost.style.left=clientX+'px';ghost.style.top=clientY+'px';
+  ghost.classList.add('show');
+  const p=canvasDropPoint(clientX,clientY);
+  const t=buildDrag.type;
+  if(!p){ghost.classList.remove('valid');ghost.classList.add('invalid');ghost.querySelector('small').textContent='Drop on the map';return}
+  if(t.kind==='road'){ghost.classList.remove('invalid');ghost.classList.add('valid');ghost.querySelector('small').textContent='Drop to start road';return}
+  const reason=buildPlacementReason(t,p);
+  ghost.classList.toggle('valid',!reason);
+  ghost.classList.toggle('invalid',!!reason);
+  ghost.querySelector('small').textContent=reason||'Release to build';
+}
+function finishBuildDrag(e){
+  if(!buildDrag)return;
+  const d=buildDrag;buildDrag=null;
+  const ghost=document.querySelector('#buildGhost');ghost?.classList.remove('show');
+  if(!d.dragging){startBuild(d.type);return}
+  const p=canvasDropPoint(e.clientX,e.clientY);
+  if(!p){flash('Drop the building on the map');return}
+  if(d.type.kind==='road'){
+    const target=roadBuildingTarget(s,p)||roadTarget(s,p)||p;
+    s.mode='road';s.buildMode=null;drag={start:target,current:target};
+    closeBuildMenu();
+    setMenuActive('road');
+    document.querySelector('#road').classList.add('active');
+    flash('Road start set — drag to the next point');
+    return;
+  }
+  const reason=buildPlacementReason(d.type,p);
+  if(reason){flash(reason);renderBuildMenu();buildMenuOpen=true;document.querySelector('#buildMenu')?.classList.add('open');return}
+  const built=placeBuilding(s,d.type,p.x,p.y);
+  if(built){markWorldDirty();save();sync();renderBuildMenu();flash(d.type.name+' constructed');}
+}
+function bindBuildMenu(){
+  const menu=document.querySelector('#buildMenu');
+  if(!menu)return;
+  menu.addEventListener('pointerdown',e=>{
+    const type=buildCardForTarget(e);
+    if(!type)return;
+    buildDrag={type,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,dragging:false};
+    try{e.currentTarget.setPointerCapture(e.pointerId)}catch{}
+    e.preventDefault();
+  });
+  menu.addEventListener('pointermove',e=>{
+    if(!buildDrag||buildDrag.pointerId!==e.pointerId)return;
+    const moved=Math.hypot(e.clientX-buildDrag.startX,e.clientY-buildDrag.startY)>7;
+    if(moved)buildDrag.dragging=true;
+    if(buildDrag.dragging)updateBuildGhost(e.clientX,e.clientY);
+  });
+  menu.addEventListener('pointerup',e=>{
+    if(!buildDrag||buildDrag.pointerId!==e.pointerId)return;
+    finishBuildDrag(e);
+  });
+  menu.addEventListener('pointercancel',()=>{buildDrag=null;document.querySelector('#buildGhost')?.classList.remove('show')});
+}
 function showCompany(){
   panelMode='company';
   setMenuActive('company');s.selected=null;
@@ -190,7 +314,7 @@ function showResearch(){
     el.onclick=()=>{if(research(s,key)){save();sync();showResearch()}};
   }
 }
-function hidePanel(){const p=document.querySelector('#panel');setMenuActive(null);p.classList.remove('shop-panel','factory-panel','warehouse-panel','research-panel','company-panel','build-panel');panelMode='none';s.selected=null;s.buildMode=null;if(s.mode==='build')s.mode='select';document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
+function hidePanel(){const p=document.querySelector('#panel');if(buildMenuOpen)closeBuildMenu();setMenuActive(null);p.classList.remove('shop-panel','factory-panel','warehouse-panel','research-panel','company-panel','build-panel');panelMode='none';s.selected=null;s.buildMode=null;if(s.mode==='build')s.mode='select';document.querySelector('#panel').style.display='none';document.querySelector('#objective').style.display='';}
 function worldPos(e){const sp=screenPos(e);return screenToWorld(sp.x,sp.y,W,H)}
 function panBy(dx,dy){panScreen(dx,dy,W,H)}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
