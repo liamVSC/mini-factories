@@ -182,6 +182,9 @@ function closeBuildMenu(){
   setMenuActive(null);
 }
 function startBuild(t){
+  if(t.kind==='road'){
+    closeBuildMenu();s.buildMode=null;s.mode='road';setMenuActive('road');document.querySelector('#road').classList.add('active');document.querySelector('#erase').classList.remove('active');flash('Drag on the map to build a road');return;
+  }
   const reason=canBuild(s,t);
   if(reason){flash(reason);renderBuildMenu();return}
   closeBuildMenu();
