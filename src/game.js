@@ -3,15 +3,19 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPrevi
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.4';
+const GAME_VERSION='1.0.5';
 const CHANGELOG=[
+  {version:'1.0.5',date:'30 Sep 2026',items:[
+    'Fixed mobile camera panning so one-finger dragging moves the map without accidentally selecting buildings.',
+    'Improved two-finger camera controls with pinch zoom, two-finger pan and twist rotation.'
+  ]},
+  {version:'1.0.4',date:'30 Sep 2026',items:[
+    'Removed the legacy 2D renderer fallback and standardised rendering on the 3D renderer.'
+  ]},
   {version:'1.0.3',date:'30 Sep 2026',items:[
     'Added a visual, mobile-first build menu for roads, factories, shops and warehouses.',
     'Added drag-to-map building placement with live valid/invalid feedback and prices.',
     'Kept road construction on the existing road system while allowing a road card to start placement from the map.'
-  ]},
-  {version:'1.0.2',date:'30 Sep 2026',items:[
-    'Removed the legacy 2D renderer fallback and standardised rendering on the 3D renderer.'
   ]},
   {version:'1.0',date:'30 Sep 2026',items:[
     'Completed the first mobile-focused UI pass with touch-friendly controls and compact bottom sheets.',
@@ -353,6 +357,10 @@ canvas.addEventListener('pointerdown',e=>{
     const hit=roadSegmentAtPoint(s,p);
     if(hit){s.roadEditSelection=hit;drag={road:hit.road,segment:hit.segment};return;}
   }
+  if(s.mode==='select'){
+    drag={camera:true,startX:sp.x,startY:sp.y,lastX:sp.x,lastY:sp.y,moved:false};
+    return;
+  }
   const b=nearestBuilding(s,p);
   s.selected=b||null;
   if(b)showPanel(b);else hidePanel();
@@ -363,14 +371,29 @@ canvas.addEventListener('pointermove',e=>{
     const [a,b]=[...pointers.values()];
     const d=Math.max(1,Math.hypot(b.x-a.x,b.y-a.y));
     const c={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
-    if(pinch){setZoomAt(c,pinch.z*(d/pinch.d));panBy(c.x-pinchCenter.x,c.y-pinchCenter.y);pinchCenter=c}
+    if(pinch){
+      setZoomAt(c,pinch.z*(d/pinch.d));
+      panBy(c.x-pinchCenter.x,c.y-pinchCenter.y);
+      const angle=Math.atan2(b.y-a.y,b.x-a.x);
+      let delta=angle-pinchAngle;
+      if(delta>Math.PI)delta-=Math.PI*2;
+      if(delta<-Math.PI)delta+=Math.PI*2;
+      if(Math.abs(delta)>0.001)controlCamera(0,0,0,delta*.72);
+      pinchAngle=angle;
+      pinchCenter=c;
+    }
     return;
   }
   const p=worldPos(e);
   if(s.mode==='road'&&drag){drag.current=roadBuildingTarget(s,p)||roadTarget(s,p)||p;const preview=roadPreview(s,drag.start,drag.current);setPreview(preview);document.querySelector('#tip').textContent=roadPreviewTip(preview);return;}
   if(s.mode==='erase'&&drag?.endpoint){s.roadEditEndpointPreview=roadEndpointPreview(s,drag.road,drag.endpoint,p);setPreview(s.roadEditEndpointPreview);return;}
   if(s.mode==='erase'){s.roadEditHover=roadSegmentAtPoint(s,p);setPreview(null);return;}
-  if(drag&&s.mode==='select'){panBy(e.movementX,e.movementY)}
+  if(drag?.camera&&s.mode==='select'){
+    const dx=sp.x-drag.lastX,dy=sp.y-drag.lastY;
+    if(Math.hypot(sp.x-drag.startX,sp.y-drag.startY)>6)drag.moved=true;
+    if(dx||dy)panBy(dx,dy);
+    drag.lastX=sp.x;drag.lastY=sp.y;
+  }
 });
 canvas.addEventListener('pointerup',e=>{
   pointers.delete(e.pointerId);
@@ -378,7 +401,15 @@ canvas.addEventListener('pointerup',e=>{
   if(s.mode==='road'&&drag){const d=drag;drag=null;const target=roadBuildingTarget(s,d.current)||roadTarget(s,d.current)||d.current;const path=roadPathSafe(s,d.start,target);const result=addRoad(s,path);setPreview(null);document.querySelector('#tip').textContent=roadResultMessage(result,path);if(result===true){markWorldDirty();save();sync()}}
   else if(s.mode==='erase'&&drag?.endpoint){const d=drag;drag=null;const p=worldPos(e);const result=editRoadEndpoint(s,d.road,d.endpoint,p);s.roadEditEndpointPreview=null;setPreview(null);if(result){markWorldDirty();save();sync();flash('Road endpoint moved')}else flash('Invalid road endpoint')}
   else if(s.mode==='erase'&&drag?.segment){const d=drag;drag=null;const p=worldPos(e);const now=performance.now();if(d.lastTap&&now-d.lastTap<320){const result=editRoadSegment(s,d.road,d.segment,p,true);d.lastTap=0;if(result){markWorldDirty();save();sync();flash('Road segment split')}else flash('Could not split road')}else{const result=eraseRoad(s,d.road,d.segment);if(result){markWorldDirty();save();sync();flash('Road segment removed')}}}
-  else if(s.mode==='select'&&drag){drag=null}
+  else if(s.mode==='select'&&drag?.camera){
+    const d=drag;drag=null;
+    if(!d.moved){
+      const p=worldPos(e);
+      const b=nearestBuilding(s,p);
+      s.selected=b||null;
+      if(b)showPanel(b);else hidePanel();
+    }
+  }
 });
 function roadPathSafe(a,b,c){try{const r=roadTarget(a,b,c);return r?.points||r||[b,c]}catch{return[b,c]}}
 canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);drag=null;setPreview(null)});
