@@ -528,6 +528,20 @@ function roadAtPoint(s,p,tolerance=24){
   return hit;
 }
 
+export function roadSegmentAtPoint(s,p,tolerance=24){
+  const hit=roadAtPoint(s,p,tolerance);
+  if(!hit)return null;
+  const segment=hit.projection.segment;
+  if(!Number.isInteger(segment)||segment<0||segment>=hit.road.points.length-1)return null;
+  return {
+    road:hit.road,
+    roadId:hit.road.id,
+    segment,
+    point:hit.projection.point,
+    distance:hit.projection.distance
+  };
+}
+
 function invalidateTrucksForRoads(s,roads){
   const removed=new Set(roads);
   for(const truck of s.trucks||[]){
