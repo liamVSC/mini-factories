@@ -201,9 +201,9 @@ function simplifyRoad(points){
   out.push(p[p.length-1]);
   return out;
 }
-function candidateRoadPaths(start,end){
-  // Keep the natural direct route first. Only introduce 90-degree bends when
-  // the direct segment is obstructed; this makes dragging feel predictable.
+function candidateRoadPaths(start,end,obstacles=[]){
+  // Keep the natural direct route first. If it is blocked, route around
+  // obstacle edges using a small set of deterministic Manhattan candidates.
   const mx=(start.x+end.x)/2,my=(start.y+end.y)/2;
   const candidates=[
     [start,end],
@@ -212,6 +212,19 @@ function candidateRoadPaths(start,end){
     [start,{x:mx,y:start.y},{x:mx,y:end.y},end],
     [start,{x:start.x,y:my},{x:end.x,y:my},end]
   ];
+
+  for(const b of obstacles){
+    const clearance=(b.r||25)+18;
+    const left=b.x-clearance,right=b.x+clearance,top=b.y-clearance,bottom=b.y+clearance;
+    candidates.push(
+      [start,{x:start.x,y:top},{x:end.x,y:top},end],
+      [start,{x:start.x,y:bottom},{x:end.x,y:bottom},end],
+      [start,{x:left,y:start.y},{x:left,y:end.y},end],
+      [start,{x:right,y:start.y},{x:right,y:end.y},end],
+      [start,{x:left,y:top},{x:right,y:top},{x:right,y:end.y},end],
+      [start,{x:right,y:bottom},{x:left,y:bottom},{x:left,y:end.y},end]
+    );
+  }
   return candidates;
 }
 
@@ -220,7 +233,7 @@ function routeBendPenalty(path){
 }
 
 function chooseRoadPath(s,start,end,endpointBuildings={}){
-  const candidates=candidateRoadPaths(start,end).map(simplifyRoad);
+  const candidates=candidateRoadPaths(start,end,(s.buildings||[]).filter(b=>b!==startBuilding&&b!==endBuilding)).map(simplifyRoad);
   const clear=candidates.filter(path=>!roadPathBlocked(s,path,endpointBuildings));
   if(clear.length){
     return clear.sort((a,b)=>{
