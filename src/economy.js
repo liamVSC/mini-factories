@@ -79,7 +79,7 @@ function rerouteTruck(s,t){
   const next=route(s,t.source,t.to);
   if(!next)return false;
   const projected=projectRouteProgress(next.points,p);
-  if(!projected||projected.distance>96)return false;
+  if(!projected||projected.distance>160)return false;
 
   // A deleted road can strand a truck between two remaining road segments.
   // Preserve its physical position and let it drive to the nearest point on
