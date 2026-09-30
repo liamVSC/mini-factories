@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm';
-import {riverY,isInsideWorldBounds,WORLD_BOUNDS,WORLD_MARGIN} from './world.js';
+import {riverY,isInsideWorldBounds,WORLD_BOUNDS,WORLD_MARGIN,roadTopology} from './world.js';
 
 let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null,roadEditGroup=null,roadEndpointGroup=null;
 let target={x:0,z:0,yaw:0,pitch:.82,distance:620};
@@ -319,60 +319,25 @@ function addLaneAwareJunction(group,center,connections){
 
 function makeRoadJunctions(roads){
   const group=new THREE.Group();
-  const intersections=[];
-  const segmentData=[];
-  for(const road of roads||[]){
-    const points=(road?.points||[]).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y)&&isInsideWorldBounds(p));
-    if(points.length<2||road?.bridge)continue;
-    for(let i=1;i<points.length;i++){
-      const a=points[i-1],b=points[i];
-      if(Math.hypot(b.x-a.x,b.y-a.y)<1)continue;
-      segmentData.push({road,a,b});
-    }
-  }
-
-  // Collect true crossings plus endpoints close enough to another road.
-  for(let i=0;i<segmentData.length;i++){
-    const s=segmentData[i];
-    for(let j=i+1;j<segmentData.length;j++){
-      const t=segmentData[j];
-      if(s.road===t.road)continue;
-      const hit=roadIntersection(s.a,s.b,t.a,t.b);
-      if(hit)intersections.push({point:hit,segments:[s,t]});
-    }
-  }
-  for(const road of roads||[]){
-    const points=(road?.points||[]).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y)&&isInsideWorldBounds(p));
-    if(points.length<2||road?.bridge)continue;
-    for(const endpoint of [points[0],points.at(-1)]){
-      const near=segmentData.filter(s=>s.road!==road&&
-        Math.min(distPointToSegment(endpoint,s.a,s.b))<ROAD.width*.8);
-      if(near.length)intersections.push({point:endpoint,segments:near});
-    }
-  }
-
-  const clusters=[];
-  for(const hit of intersections){
-    const existing=clusters.find(c=>Math.hypot(c.point.x-hit.point.x,c.point.y-hit.point.y)<ROAD.width*.85);
-    if(existing)existing.hits.push(hit);else clusters.push({point:hit.point,hits:[hit]});
-  }
-
-  for(const cluster of clusters){
+  // Use the same canonical topology as routing/editing so a visual junction
+  // cannot disagree with the road graph about whether roads are connected.
+  const network=roadTopology({roads:(roads||[]).filter(road=>!road?.bridge)});
+  for(const node of network.nodes){
+    const links=network.adjacency.get(node)||[];
+    if(links.length<3)continue;
     const connections=[];
-    for(const hit of cluster.hits){
-      for(const s of hit.segments){
-        const d1=roadDirection(s.a,s.b);
-        const nearA=Math.hypot(cluster.point.x-s.a.x,cluster.point.y-s.a.y);
-        const nearB=Math.hypot(cluster.point.x-s.b.x,cluster.point.y-s.b.y);
-        const outward=nearA<nearB?d1:{x:-d1.x,y:-d1.y};
-        connections.push({inner:cluster.point,outer:{x:cluster.point.x+outward.x*20,y:cluster.point.y+outward.y*20}});
-      }
+    for(const link of links){
+      const dx=link.node.x-node.x,dy=link.node.y-node.y,len=Math.hypot(dx,dy)||1;
+      connections.push({
+        inner:{x:node.x,y:node.y},
+        outer:{x:node.x+(dx/len)*20,y:node.y+(dy/len)*20}
+      });
     }
     const unique=[];
-    for(const c of connections){
-      if(!unique.some(u=>Math.abs(u.outer.x-c.outer.x)<8&&Math.abs(u.outer.y-c.outer.y)<8))unique.push(c);
+    for(const connection of connections){
+      if(!unique.some(existing=>Math.abs(existing.outer.x-connection.outer.x)<8&&Math.abs(existing.outer.y-connection.outer.y)<8))unique.push(connection);
     }
-    addLaneAwareJunction(group,cluster.point,unique.slice(0,4));
+    if(unique.length>=3)addLaneAwareJunction(group,{x:node.x,y:node.y},unique.slice(0,4));
   }
   return group;
 }
