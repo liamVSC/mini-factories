@@ -223,7 +223,7 @@ test('warehouse delivery to a connected shop consumes stored inventory',()=>{
   );
   updateEconomy(s,1.2,()=>{});
   assert.equal(s.trucks.length,1);
-  assert.equal(s.trucks[0].source.id,'factory-1');
+  assert.equal(s.trucks[0].source.id,'warehouse-1');
   assert.equal(s.trucks[0].to.id,'shop-1');
   assert.equal(s.trucks[0].cargo,3);
   assert.equal(warehouse.inventory.Food,2);
