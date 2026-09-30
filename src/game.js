@@ -93,4 +93,6 @@ document.querySelector('#company').onclick=showCompany;
 document.querySelector('#panelClose').onclick=hidePanel;
 document.querySelector('#settings').onclick=()=>{s.paused=true;document.querySelector('#settingsMenu').style.display='flex'};
 document.querySelector('#settingsClose').onclick=()=>{s.paused=false;document.querySelector('#settingsMenu').style.display='none'};
+document.querySelector('#changeLogOpen').onclick=()=>{document.querySelector('#settingsMenu').style.display='none';document.querySelector('#changeLogPage').style.display='grid'};
+document.querySelector('#changeLogClose').onclick=()=>{document.querySelector('#changeLogPage').style.display='none';document.querySelector('#settingsMenu').style.display='flex'};
 document.querySelector('#newgame').onclick=()=>reset();document.querySelector('#again').onclick=()=>reset();document.querySelector('#cameraHome').onclick=()=>{resetCamera(W,H);s.renderVersion=(s.renderVersion||0)+1};requestAnimationFrame(tick);
