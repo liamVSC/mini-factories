@@ -195,3 +195,30 @@ test('partially overlapping roads are rejected without creating duplicate paveme
   assert.equal(s.roads.length, 1);
   assert.equal(s.cash, beforeCash);
 });
+
+test('three-way road junction is one shared routing node', () => {
+  const s = baseState();
+  s.roads.push(
+    road([{x:-120,y:0},{x:0,y:0}]),
+    road([{x:0,y:0},{x:120,y:0}]),
+    road([{x:0,y:0},{x:0,y:120}])
+  );
+  const network = roadNetwork(s);
+  const junctions = network.junctions.filter(n => Math.abs(n.x)<1e-9 && Math.abs(n.y)<1e-9);
+  assert.equal(junctions.length, 1);
+  assert.ok((network.adjacency.get(junctions[0])||[]).length >= 3);
+});
+
+test('four-way road junction is one shared routing node for every branch', () => {
+  const s = baseState();
+  s.roads.push(
+    road([{x:-120,y:0},{x:0,y:0}]),
+    road([{x:0,y:0},{x:120,y:0}]),
+    road([{x:0,y:-120},{x:0,y:0}]),
+    road([{x:0,y:0},{x:0,y:120}])
+  );
+  const network = roadNetwork(s);
+  const junctions = network.junctions.filter(n => Math.abs(n.x)<1e-9 && Math.abs(n.y)<1e-9);
+  assert.equal(junctions.length, 1);
+  assert.equal((network.adjacency.get(junctions[0])||[]).length, 4);
+});
