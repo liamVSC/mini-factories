@@ -189,7 +189,7 @@ function hidePanel(){const p=document.querySelector('#panel');p.classList.remove
 function worldPos(e){const sp=screenPos(e);return screenToWorld(sp.x,sp.y,W,H)}
 function panBy(dx,dy){panScreen(dx,dy,W,H)}
 function screenPos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-function toggleMode(m){s.mode=s.mode===m?'select':m;drag=null;s.roadEditHover=null;s.roadEditSelection=null;s.roadEditEndpoint=null;s.roadEditEndpointPreview=null;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase');document.querySelector('#tip').textContent=s.mode==='erase'?'Hover a road segment • tap to remove • double-tap to split':'Build roads between factories and shops.'}
+function toggleMode(m){s.mode=s.mode===m?'select':m;drag=null;s.roadEditHover=null;s.roadEditSelection=null;s.roadEditEndpoint=null;s.roadEditEndpointPreview=null;document.querySelector('#road').classList.toggle('active',s.mode==='road');document.querySelector('#erase').classList.toggle('active',s.mode==='erase');document.querySelector('#tip').textContent=s.mode==='erase'?'Drag a road endpoint • tap a segment to remove • double-tap to split':'Build roads between factories and shops.'}
 function setZoomAt(screen,z){
   s.camera.zoom=Math.max(.55,Math.min(2.4,z));
   zoomAtScreen(screen.x,screen.y,s.camera.zoom,W,H);
