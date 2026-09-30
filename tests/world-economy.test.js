@@ -408,6 +408,7 @@ test('moving a road endpoint invalidates trucks using the old geometry', () => {
   const truck = {id:'endpoint-edit-truck',route:routed.points,t:.4,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10};
   s.trucks.push(truck);
   const preview=roadEndpointPreview(s,r,1,{x:85,y:120}); console.log('DEBUG_PREVIEW2',JSON.stringify(preview));
+  const pdebug=roadEndpointPreview(s,r,1,{x:85,y:120}); console.log('DEBUG_TRUCK2',JSON.stringify({target:pdebug?.target,path:pdebug?.path,blocked:pdebug?.blocked,duplicate:pdebug?.duplicate}));
   assert.ok(editRoadEndpoint(s,r.id,1,{x:85,y:120}));
   assert.equal(truck.routeInvalidated,true);
 });
