@@ -204,8 +204,10 @@ function candidateRoadPaths(start,end,obstacles=[]){
       [start,{x:start.x,y:bottom},{x:end.x,y:bottom},end],
       [start,{x:left,y:start.y},{x:left,y:end.y},end],
       [start,{x:right,y:start.y},{x:right,y:end.y},end],
-      [start,{x:left,y:top},{x:right,y:top},{x:right,y:end.y},end],
-      [start,{x:right,y:bottom},{x:left,y:bottom},{x:left,y:end.y},end]
+      [start,{x:start.x,y:top},{x:right,y:top},{x:right,y:end.y},end],
+      [start,{x:start.x,y:bottom},{x:right,y:bottom},{x:right,y:end.y},end],
+      [start,{x:left,y:start.y},{x:left,y:top},{x:end.x,y:top},{x:end.x,y:end.y},end],
+      [start,{x:left,y:start.y},{x:left,y:bottom},{x:end.x,y:bottom},{x:end.x,y:end.y},end]
     );
   }
   return candidates;
