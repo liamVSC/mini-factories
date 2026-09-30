@@ -209,41 +209,62 @@ function candidateRoadPaths(start,end){
     [start,{x:start.x,y:my}, {x:end.x,y:my},end]
   ];
 }
-export function roadTarget(s,p){ return roadTargetInternal(s,p); }
+export function roadTarget(s,p){
+  return roadTargetInternal(s,p);
+}
 
 function roadTargetInternal(s,p){
-  const start=roadTargetInternal(s,a),end=roadTargetInternal(s,b);
-  // If two different buildings were selected, always connect their actual
-  // connection points. This prevents tap coordinates from collapsing to the
-  // same snapped point on mobile.
-  const startBuilding=start?.building;
-  const endBuilding=end?.building;
+  if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))return null;
+  if(p.building&&Number.isFinite(p.building.x))
+    return buildingConnectionPoint(p.building,p);
+  if(p.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))
+    return{x:p.x,y:p.y,road:p.road,distance:0};
+
+  const building=roadBuildingTarget(s,p);
+  if(building)return buildingConnectionPoint(building,p);
+
+  const road=nearestRoad(s,p);
+  if(road)return{x:road.x,y:road.y,road:road.road,distance:road.distance};
+
+  const grid=12;
+  const snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
+  return{x:snapped.x,y:snapped.y,distance:Infinity,gridSnapped:true};
+}
+
+export function roadPreview(s,a,b){
+  const start=roadTargetInternal(s,a);
+  const end=roadTargetInternal(s,b);
+  if(!start||!end)return null;
+
+  const startBuilding=start.building;
+  const endBuilding=end.building;
+
   if(startBuilding&&endBuilding&&startBuilding!==endBuilding){
     const sa=buildingConnectionPoint(startBuilding,endBuilding);
     const eb=buildingConnectionPoint(endBuilding,startBuilding);
     const direct=[sa,eb];
     const candidates=candidateRoadPaths(sa,eb).map(simplifyRoad);
-    const clear=candidates.filter(path=>!roadPathBlocked(s,path));
+    const clear=candidates.filter(path=>!roadPathBlocked(s,path,{startBuilding,endBuilding}));
     const path=(clear.length?clear:[direct]).sort((x,y)=>length(x)-length(y))[0];
     const roadLength=length(path);
     return{
       path,start:sa,end:eb,
       snappedStart:true,snappedEnd:true,
       connectsBuilding:true,connectsRoad:false,
-      blocked:roadPathBlocked(s,path,{start:startBuilding,end:endBuilding}),
+      blocked:roadPathBlocked(s,path,{startBuilding,endBuilding}),
       length:roadLength,
       cost:Math.max(1,Math.ceil(roadLength/180))*2
     };
   }
+
   const candidates=candidateRoadPaths(start,end).map(simplifyRoad);
-  const clear=candidates.filter(path=>!roadPathBlocked(s,path));
+  const clear=candidates.filter(path=>!roadPathBlocked(s,path,{startBuilding,endBuilding}));
   const path=(clear.length?clear:candidates).sort((x,y)=>length(x)-length(y))[0]||[start,end];
-  const blocked=roadPathBlocked(s,path);
+  const blocked=roadPathBlocked(s,path,{startBuilding,endBuilding});
   const roadLength=length(path);
+
   return{
-    path,
-    start,
-    end,
+    path,start,end,
     snappedStart:Number.isFinite(start.distance),
     snappedEnd:Number.isFinite(end.distance),
     gridSnappedStart:!!start.gridSnapped,
