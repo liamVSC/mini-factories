@@ -302,6 +302,21 @@ function warehouseFor(s,building){
   }
   return best;
 }
+function supplyWarehouseFor(s,factory,shop){
+  let best=null,bestScore=Infinity;
+  for(const warehouse of s.buildings.filter(b=>b.kind==='warehouse')){
+    const toWarehouse=route(s,factory,warehouse);
+    if(!toWarehouse)continue;
+    const toShop=route(s,warehouse,shop);
+    if(!toShop)continue;
+    const score=toWarehouse.distance+toShop.distance;
+    if(score<bestScore){
+      bestScore=score;
+      best={warehouse,toWarehouse,toShop,distance:score};
+    }
+  }
+  return best;
+}
 function warehouseCapacity(w,type){return Math.max(0,(w.max||24)-(w.storage||0));}
 function takeFromWarehouse(warehouse,type,n){
   const have=Math.max(0,warehouse?.inventory?.[type]||0),take=Math.min(have,Math.max(0,n));
@@ -367,10 +382,14 @@ export function updateEconomy(s,dt,flash){
     const shops=s.buildings.filter(b=>b.kind==='shop'&&b.need===f.type&&b.demand>0);
     let choice=null,best=Infinity,choiceRoute=null,choiceHub=null,choicePriority=-Infinity;
     for(const shop of shops){
-      const hub2=warehouseFor(s,shop);
-      const direct=hub2?null:route(s,f,shop);
-      const via=hub2&&hub2.inventory?.[f.type]>0?route(s,hub2,shop):null;
-      const candidate=via||direct;
+      // A warehouse only becomes the supply-chain path when the factory
+      // can actually reach it AND the warehouse can reach this shop. Otherwise
+      // preserve the original direct factory-to-shop route.
+      const supply=supplyWarehouseFor(s,f,shop);
+      const direct=route(s,f,shop);
+      const hub2=supply?.warehouse||null;
+      const via=supply&&hub2.inventory?.[f.type]>0?supply.toShop:null;
+      const candidate=via||(!supply?direct:null);
       if(!candidate)continue;
 
       // Prioritise real shortages/contracts over ordinary demand.
@@ -395,9 +414,9 @@ export function updateEconomy(s,dt,flash){
       cargo=Math.min(capacity,choiceHub.inventory[f.type],Math.max(1,needed||capacity));
       if(cargo>0){source=choiceHub;stage='delivery';fromWarehouse=true}
     }else{
-      // A connected warehouse with no stock is a real supply-chain shortage,
-      // not permission to bypass the hub. The factory-to-hub pass above will
-      // replenish it on the next dispatch cycle.
+      // A complete warehouse path with no stock is a real supply-chain
+      // shortage, not permission to bypass the hub. If there is no complete
+      // warehouse path, the original direct factory-to-shop route remains valid.
       if(choiceHub)continue;
       if(!f.stock)continue;
       const directRoute=route(s,f,shop);
