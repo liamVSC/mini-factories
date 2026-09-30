@@ -704,12 +704,12 @@ export function editRoadEndpoint(s,roadId,index,p){
   if(idx<0)return false;
   const affected=[road];
   s.roads.splice(idx,1,next);
-  cleanupRoadNetwork(s);
   if(preview.target?.road){
     const junctionPoint={x:preview.target.x,y:preview.target.y};
     splitRoadAtPoint(s,preview.target.road,junctionPoint,6);
     next.points[index]=junctionPoint;
   }
+  cleanupRoadNetwork(s);
   for(const truck of s.trucks||[]){
     if(routeTouchesRoad(truck.route,{points:oldPoints},4))truck.routeInvalidated=true;
   }
