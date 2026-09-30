@@ -111,7 +111,7 @@ function movementAtJunction(route,junctionIndex){
   incoming.x/=il;incoming.y/=il;outgoing.x/=ol;outgoing.y/=ol;
   const dot=incoming.x*outgoing.x+incoming.y*outgoing.y;
   const cross=incoming.x*outgoing.y-incoming.y*outgoing.x;
-  return {node,straight:dot<-.82,turn:Math.abs(cross)>.18,incoming,outgoing};
+  return {node,straight:dot>.82,turn:dot<=.82&&Math.abs(cross)>.18,incoming,outgoing};
 }
 function junctionForTruck(network,t){
   const p=pointOnRoute(t.route,t.t);
@@ -303,7 +303,7 @@ function dispatchTruck(s,{route,source,destination,cargo,contractId=0,longDistan
   // Final hard gate: both buildings must still be physically attached
   // to the saved road network when the truck is spawned.
   if(!roadAttachment(s,source)||!roadAttachment(s,destination))return false;
-  s.trucks.push({id:newId(),route:route.points,routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage});
+  s.trucks.push({id:newId(),route:route.points,routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage,lane:'left'});
   return true;
 }
 
