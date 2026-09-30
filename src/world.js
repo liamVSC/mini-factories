@@ -414,18 +414,51 @@ function splitRoadAtPoint(s,road,p,tolerance=6){
   }
   return false;
 }
-function reconcileRoadJunctions(s,points){
-  const endpoints=[points[0],points.at(-1)];
+function reconcileRoadJunctions(s,points,meta={}){
+  const endpoints=[
+    {index:0,building:meta.startBuilding},
+    {index:points.length-1,building:meta.endBuilding}
+  ];
   for(const endpoint of endpoints){
+    if(endpoint.building)continue;
+    const target=points[endpoint.index];
     let best=null;
     for(const road of s.roads||[]){
       for(let i=1;i<road.points.length;i++){
-        const q=projectSegment(endpoint,road.points[i-1],road.points[i]);
+        const q=projectSegment(target,road.points[i-1],road.points[i]);
         if(!best||q.distance<best.distance)best={road,point:q.point,distance:q.distance};
       }
     }
-    if(best&&best.distance<=6)splitRoadAtPoint(s,best.road,best.point,6);
+    if(best&&best.distance<=6){
+      points[endpoint.index]={x:best.point.x,y:best.point.y};
+      splitRoadAtPoint(s,best.road,best.point,6);
+    }
   }
+}
+
+function collinearOverlapLength(a,b,c,d){
+  const ab={x:b.x-a.x,y:b.y-a.y};
+  const len=Math.hypot(ab.x,ab.y);
+  if(len<1e-9)return 0;
+  const cross=(p,q)=>p.x*q.y-p.y*q.x;
+  const ac={x:c.x-a.x,y:c.y-a.y},ad={x:d.x-a.x,y:d.y-a.y};
+  if(Math.abs(cross(ab,ac))>1e-6*len||Math.abs(cross(ab,ad))>1e-6*len)return 0;
+  const ux=ab.x/len,uy=ab.y/len;
+  const cproj=ac.x*ux+ac.y*uy,dproj=ad.x*ux+ad.y*uy;
+  return Math.max(0,Math.min(len,Math.max(cproj,dproj))-Math.max(0,Math.min(cproj,dproj)));
+}
+
+function roadsHaveMeaningfulOverlap(a,b){
+  const ap=a?.points||[],bp=b?.points||[];
+  if(ap.length<2||bp.length<2)return false;
+  let overlap=0;
+  for(let i=1;i<ap.length;i++){
+    for(let j=1;j<bp.length;j++){
+      overlap=Math.max(overlap,collinearOverlapLength(ap[i-1],ap[i],bp[j-1],bp[j]));
+    }
+  }
+  const aLen=length(ap),bLen=length(bp);
+  return overlap>=24||overlap>=Math.min(aLen,bLen)*.65;
 }
 
 export function addRoad(s,points,meta={}){
@@ -441,8 +474,11 @@ export function addRoad(s,points,meta={}){
   if(roadPathBlocked(s,clean,{start:meta.startBuilding,end:meta.endBuilding}))return'blocked';
   const cost=Math.max(1,Math.ceil(roadLength/180))*2;
   if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';
-  if((s.roads||[]).some(r=>roadDistance(r,clean)<12&&Math.abs(length(r.points)-roadLength)<24))return'duplicate';
-  reconcileRoadJunctions(s,clean);
+  if((s.roads||[]).some(r=>
+    (roadDistance(r,clean)<12&&Math.abs(length(r.points)-roadLength)<24)||
+    roadsHaveMeaningfulOverlap(r,{points:clean})
+  ))return'duplicate';
+  reconcileRoadJunctions(s,clean,meta);
   const bridge=clean.some((p,i)=>i?segmentNearRiver(clean[i-1],p):false);
   s.cash-=cost;
   s.roads.push({id:newId(),points:clean,age:0,bridge,condition:1});
