@@ -197,7 +197,19 @@ function trafficConflict(s,t,network){
   // ties use id so two simultaneous arrivals can never deadlock.
   const contendersWithSelf=[...contenders,{truck:t,info:here,arrival:here.metresAhead}];
   contendersWithSelf.sort((a,b)=>a.arrival-b.arrival||String(a.truck.id).localeCompare(String(b.truck.id)));
-  if(contendersWithSelf[0]?.truck!==t)return true;
+  const winner=contendersWithSelf[0]?.truck;
+  const yielding=winner!==t;
+
+  // Keep a stable control state on the truck so rendering can show a stop line
+  // / braking state and the simulation can slow before the conflict zone rather
+  // than teleporting from full speed to a complete stop.
+  t.trafficControl={
+    junction:{x:here.junction.x,y:here.junction.y},
+    metresAhead:here.metresAhead,
+    yielding,
+    movement:here.movement?.turn?'turn':here.movement?.straight?'straight':'merge'
+  };
+  if(yielding)return true;
 
   // Claim the junction briefly. This prevents a second movement entering while
   // the first truck is physically occupying the conflict zone.
@@ -423,9 +435,29 @@ export function updateEconomy(s,dt,flash){
     for(const o of s.trucks){if(o===t||o.dead)continue;const q=pointOnRoute(o.route,o.t);if(dist(p,q)<30&&o.routeKey===t.routeKey&&o.t>t.t)nearestAhead=Math.min(nearestAhead,o.t-t.t)}
     const trafficNetwork=roadNetwork(s);
     const trafficBlocked=trafficConflict(s,t,trafficNetwork);
-    if(nearestAhead<.045||trafficBlocked){blocked=true;t.wait=Math.min(2,t.wait+dt)}else t.wait=Math.max(0,t.wait-dt*.75);
+    let trafficSpeedFactor=1;
+    if(trafficBlocked){
+      const control=t.trafficControl;
+      // Brake progressively before the stop/yield line. Once inside the final
+      // approach zone, hold position until the junction is available.
+      const metresAhead=control?.metresAhead??0;
+      trafficSpeedFactor=Math.max(0,Math.min(1,(metresAhead-9)/28));
+      if(metresAhead<=9){
+        blocked=true;
+        t.wait=Math.min(2,t.wait+dt);
+      }else{
+        t.wait=Math.max(0,t.wait-dt*.4);
+      }
+    }else{
+      t.trafficControl=null;
+      t.wait=Math.max(0,t.wait-dt*.75);
+    }
+    if(nearestAhead<.045){
+      blocked=true;
+      t.wait=Math.min(2,t.wait+dt);
+    }
     if(blocked)continue;
-    t.t+=dt*t.speed*Math.max(.65,1-(s.congestion*.18));
+    t.t+=dt*t.speed*Math.max(.65,1-(s.congestion*.18))*trafficSpeedFactor;
     if(t.t>=1){
       if(t.stage==='warehouse'){
         const accepted=addToWarehouse(t.to,t.source.type,t.cargo);
