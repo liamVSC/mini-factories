@@ -361,6 +361,49 @@ test('deleting a road under an active truck reroutes it without teleporting',()=
   assert.equal(t.dead,undefined);
 });
 
+test('deleting a multi-segment road reroutes a truck through an intersecting alternate road',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},240,0,'shop-1');
+  s.buildings.push(factory,shop);
+  const main={id:'main-bend',points:[{x:0,y:0},{x:120,y:0},{x:240,y:0}],bridge:false,condition:1,age:0};
+  const north={id:'north-a',points:[{x:0,y:0},{x:0,y:100}],bridge:false,condition:1,age:0};
+  const north2={id:'north-b',points:[{x:0,y:100},{x:240,y:100}],bridge:false,condition:1,age:0};
+  const north3={id:'north-c',points:[{x:240,y:100},{x:240,y:0}],bridge:false,condition:1,age:0};
+  s.roads.push(main,north,north2,north3);
+  const routed=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(routed);
+  const t=truck({id:'multi-segment-reroute',route:routed.points,routeKey:'main-bend',t:.45,speed:.05,cargo:1,source:factory,to:shop});
+  s.trucks.push(t);
+  const before=pointOnRoute(t.route,t.t);
+  assert.equal(eraseRoad(s,{x:120,y:0}),true);
+  updateEconomy(s,.01,()=>{});
+  const after=pointOnRoute(t.route,t.t);
+  assert.ok(dist(before,after)<18);
+  assert.ok(t.route.some(p=>Math.abs(p.y-100)<1));
+  assert.equal(t.dead,undefined);
+});
+
+test('intersection reroute reconnects through the nearest surviving junction',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},300,0,'shop-1');
+  s.buildings.push(factory,shop);
+  s.roads.push(
+    {id:'deleted',points:[{x:0,y:0},{x:300,y:0}],bridge:false,condition:1,age:0},
+    {id:'vertical',points:[{x:150,y:-100},{x:150,y:100}],bridge:false,condition:1,age:0},
+    {id:'upper',points:[{x:150,y:100},{x:300,y:100},{x:300,y:0}],bridge:false,condition:1,age:0}
+  );
+  const routed=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(routed);
+  const t=truck({id:'junction-reroute',route:routed.points,routeKey:'deleted',t:.5,speed:.05,cargo:1,source:factory,to:shop});
+  s.trucks.push(t);
+  assert.equal(eraseRoad(s,{x:150,y:0}),true);
+  updateEconomy(s,.01,()=>{});
+  assert.ok(t.route.some(p=>Math.abs(p.x-150)<1&&Math.abs(p.y)<1)||t.route.some(p=>Math.abs(p.y-100)<1));
+  assert.equal(t.routeInvalidated,false);
+});
+
 test('deleting a bridge under a truck safely returns its cargo',()=>{
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,350,'factory-1');
