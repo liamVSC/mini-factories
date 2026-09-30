@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 24
       - name: Repair truncated world module if present
-        if: contains(github.event.head_commit.message, 'Fix road junction classification and restore test suite')
+        if: contains(github.event.head_commit.message, 'one-time recovery')
         run: |
           if grep -q "return... (truncated)" src/world.js; then
             git restore --source=016b5bebebbce779ea1eb7eb5e9b41859cb21b28 -- src/world.js
