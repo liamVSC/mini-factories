@@ -259,6 +259,30 @@ function roadPathBlocked(s,points,endpointBuildings={}){
   }
   return false;
 }
+function segmentIntersectsRect(a,b,rect){
+  const inside=p=>p.x>=rect.minX&&p.x<=rect.maxX&&p.y>=rect.minY&&p.y<=rect.maxY;
+  if(inside(a)||inside(b))return true;
+  const edges=[
+    [{x:rect.minX,y:rect.minY},{x:rect.maxX,y:rect.minY}],
+    [{x:rect.maxX,y:rect.minY},{x:rect.maxX,y:rect.maxY}],
+    [{x:rect.maxX,y:rect.maxY},{x:rect.minX,y:rect.maxY}],
+    [{x:rect.minX,y:rect.maxY},{x:rect.minX,y:rect.minY}]
+  ];
+  return edges.some(([u,v])=>!!segmentIntersection(a,b,u,v));
+}
+function roadPathIntersectsBuildingFootprint(s,points,endpointBuildings={}){
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i];
+    for(const building of s.buildings||[]){
+      const isStart=endpointBuildings.start&&building.id===endpointBuildings.start.id&&i===1;
+      const isEnd=endpointBuildings.end&&building.id===endpointBuildings.end.id&&i===points.length-1;
+      if(isStart||isEnd)continue;
+      if(segmentIntersectsRect(a,b,buildingHitbox(building,0)))return true;
+    }
+  }
+  return false;
+}
+
 function simplifyRoad(points){const p=cleanRoadPoints(points);if(p.length<=2)return p;const out=[p[0]];for(let i=1;i<p.length-1;i++){const a=out.at(-1),b=p[i],c=p[i+1],ab={x:b.x-a.x,y:b.y-a.y},bc={x:c.x-b.x,y:c.y-b.y};if(Math.abs(ab.x*bc.y-ab.y*bc.x)<1.5)continue;out.push(b)}out.push(p.at(-1));return out}
 function candidateRoadPaths(start,end,obstacles=[]){const mx=(start.x+end.x)/2,my=(start.y+end.y)/2,candidates=[[start,end],[start,{x:end.x,y:start.y},end],[start,{x:start.x,y:end.y},end],[start,{x:mx,y:start.y},{x:mx,y:end.y},end],[start,{x:start.x,y:my},{x:end.x,y:my},end]];for(const b of obstacles){const clearance=(b.r||25)+18,left=b.x-clearance,right=b.x+clearance,top=b.y-clearance,bottom=b.y+clearance;candidates.push([start,{x:start.x,y:top},{x:end.x,y:top},end],[start,{x:start.x,y:bottom},{x:end.x,y:bottom},end],[start,{x:left,y:start.y},{x:left,y:end.y},end],[start,{x:right,y:start.y},{x:right,y:end.y},end],[start,{x:start.x,y:top},{x:right,y:top},{x:right,y:end.y},end],[start,{x:start.x,y:bottom},{x:right,y:bottom},{x:right,y:end.y},end],[start,{x:left,y:start.y},{x:left,y:top},{x:end.x,y:top},{x:end.x,y:end.y},end],[start,{x:left,y:start.y},{x:left,y:bottom},{x:end.x,y:bottom},{x:end.x,y:end.y},end])}return candidates}
 function routeBendPenalty(path){return Math.max(0,path.length-2)*18}
@@ -447,7 +471,7 @@ function endpointTarget(s,p,road,index){
 export function roadEndpointPreview(s,road,index,p){if(!road?.points||!Number.isInteger(index)||!road.points[index]||!finitePoint(p))return null;const target=endpointTarget(s,p,road,index),points=road.points.map(q=>safePoint(q));points[index]={x:target.x,y:target.y};
 const clean=simplifyRoad(points),boundary=validateRoadGeometry(clean),lengthValue=length(clean);
 const meta={startBuilding:index===0?target.building:roadBuildingTarget(s,clean[0]),endBuilding:index===clean.length-1?target.building:roadBuildingTarget(s,clean.at(-1))};
-const targetRoad=target.road||null;const targetPoint=targetRoad&&target.x!=null?{x:target.x,y:target.y}:null;const targetEndpoints=targetRoad?.points?.length?[targetRoad.points[0],targetRoad.points.at(-1)]:[];const targetIsInterior=!!targetPoint&&targetEndpoints.every(q=>dist(q,targetPoint)>6);const blocked=clean.length<2||lengthValue<12||(target.road?false:roadPathBlocked(s,clean,meta)),otherRoads=(s.roads||[]).filter(r=>r!==road&&(!targetIsInterior||r!==targetRoad)),duplicate=otherRoads.some(r=>roadsHaveMeaningfulOverlap(r,{points:clean}));
+const targetRoad=target.road||null;const targetPoint=targetRoad&&target.x!=null?{x:target.x,y:target.y}:null;const targetEndpoints=targetRoad?.points?.length?[targetRoad.points[0],targetRoad.points.at(-1)]:[];const targetIsInterior=!!targetPoint&&targetEndpoints.every(q=>dist(q,targetPoint)>6);const blocked=clean.length<2||lengthValue<12||(target.road?false:(target.gridSnapped?roadPathIntersectsBuildingFootprint(s,clean,meta):roadPathBlocked(s,clean,meta))),otherRoads=(s.roads||[]).filter(r=>r!==road&&(!targetIsInterior||r!==targetRoad)),duplicate=otherRoads.some(r=>roadsHaveMeaningfulOverlap(r,{points:clean}));
 return{road,roadId:road.id,index,target,point:target,edgeSnapped:!!target.edgeSnapped,path:clean,blocked:blocked||!boundary.ok,blockedReason:boundary.ok?null:boundary.reason,duplicate,length:lengthValue}}
 export function editRoadEndpoint(s,roadId,index,p){
   const road=(s.roads||[]).find(r=>r?.id===roadId);
