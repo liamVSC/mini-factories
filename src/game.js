@@ -3,8 +3,14 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPrevi
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.5';
+const GAME_VERSION='1.6';
 const CHANGELOG=[
+  {version:'1.6',date:'30 Sep 2026',items:[
+    'Tightened road endpoint snapping to avoid accidental building or road capture.',
+    'Centralised road placement endpoint targeting.',
+    'Improved placement markers for snapped endpoints and route bends.',
+    'Improved live road placement feedback.'
+  ]},
   {version:'1.4',date:'29 Sep 2026',items:[
     'Unified screen-to-world input around the 3D camera projection.',
     'Improved zoom-at-cursor, pan and pinch camera behaviour.',
@@ -44,9 +50,12 @@ function roadPreviewTip(preview){
   if(!preview)return 'Build roads between factories and shops.';
   const state=preview.blocked?'Blocked — move around buildings':s.cash<preview.cost?'Need £'+preview.cost+' cash':'Ready to build';
   const snap=[];
-  if(preview.snappedStart)snap.push('start');
-  if(preview.snappedEnd)snap.push('end');
-  const snapText=snap.length?' • Snapped '+snap.join(' + '):'';
+  if(preview.connectsBuilding)snap.push('building');
+  else if(preview.snappedStart)snap.push('start');
+  if(preview.connectsRoad)snap.push('road');
+  else if(preview.snappedEnd)snap.push('end');
+  if(preview.gridSnappedStart||preview.gridSnappedEnd)snap.push('grid');
+  const snapText=snap.length?' • '+snap.join(' + '):'';
   return state+' • '+Math.round(preview.length)+'m • £'+preview.cost+snapText;
 }
 function reset(){localStorage.removeItem('miniFactoriesSaveV6');s=freshState();seed(s);s.renderVersion=1;for(const b of s.buildings.filter(b=>b.kind==='shop'))newContract(s,b);document.querySelector('#settingsMenu').style.display='none';document.querySelector('#gameOver').style.display='none';s.paused=false;hidePanel();sync();save();flash('New factory started')}
