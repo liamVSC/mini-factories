@@ -627,22 +627,60 @@ function routeMetric(route){
   routeMetrics.set(route,metric);
   return metric;
 }
+function smoothTruckRoute(route){
+  if(!Array.isArray(route)||route.length<3)return route||[];
+  const clean=[];
+  for(const p of route){
+    if(!Number.isFinite(p?.x)||!Number.isFinite(p?.y))continue;
+    const last=clean.at(-1);
+    if(last&&Math.hypot(last.x-p.x,last.y-p.y)<.5)continue;
+    clean.push({x:p.x,y:p.y});
+  }
+  if(clean.length<3)return clean;
+  const result=[clean[0]];
+  for(let i=1;i<clean.length-1;i++){
+    const prev=clean[i-1],cur=clean[i],next=clean[i+1];
+    const inLen=Math.hypot(cur.x-prev.x,cur.y-prev.y);
+    const outLen=Math.hypot(next.x-cur.x,next.y-cur.y);
+    if(inLen<1||outLen<1){result.push(cur);continue}
+    const trim=Math.min(12,inLen*.22,outLen*.22);
+    if(trim<2){result.push(cur);continue}
+    const inT={x:cur.x+(prev.x-cur.x)*(trim/inLen),y:cur.y+(prev.y-cur.y)*(trim/inLen)};
+    const outT={x:cur.x+(next.x-cur.x)*(trim/outLen),y:cur.y+(next.y-cur.y)*(trim/outLen)};
+    result.push(inT);
+    const steps=Math.max(4,Math.min(8,Math.ceil(trim/3)));
+    for(let s=1;s<=steps;s++){
+      const q=s/steps,m=1-q;
+      result.push({
+        x:m*m*inT.x+2*m*q*cur.x+q*q*outT.x,
+        y:m*m*inT.y+2*m*q*cur.y+q*q*outT.y
+      });
+    }
+    result.push(outT);
+  }
+  result.push(clean.at(-1));
+  return result;
+}
 function truckPoint(route,t){
   if(!Array.isArray(route)||!route.length)return null;
-  if(route.length===1)return{x:route[0].x,y:route[0].y,next:route[0]};
+  if(route.length===1)return{x:route[0].x,y:route[0].y,next:route[0],tangent:{x:1,y:0}};
+  const visualRoute=smoothTruckRoute(route);
   const clamped=Math.max(0,Math.min(1,Number(t)||0));
-  const metric=routeMetric(route);
-  if(!metric.total)return{x:route[0].x,y:route[0].y,next:route[1]};
+  const metric=routeMetric(visualRoute);
+  if(!metric.total)return{x:visualRoute[0].x,y:visualRoute[0].y,next:visualRoute[1],tangent:{x:1,y:0}};
   const wanted=metric.total*clamped;
-  let lo=1,hi=route.length-1;
+  let lo=1,hi=visualRoute.length-1;
   while(lo<hi){
     const mid=(lo+hi)>>1;
     if(metric.cumulative[mid]>=wanted)hi=mid;
     else lo=mid+1;
   }
-  const i=lo,a=route[i-1],b=route[i],run=metric.cumulative[i-1],seg=metric.cumulative[i]-run;
+  const i=lo,a=visualRoute[i-1],b=visualRoute[i],run=metric.cumulative[i-1],seg=metric.cumulative[i]-run;
   const q=seg?(wanted-run)/seg:0;
-  return{x:a.x+(b.x-a.x)*q,y:a.y+(b.y-a.y)*q,next:b};
+  const x=a.x+(b.x-a.x)*q,y=a.y+(b.y-a.y)*q;
+  const tangentLength=Math.hypot(b.x-a.x,b.y-a.y);
+  const tangent=tangentLength?{x:(b.x-a.x)/tangentLength,y:(b.y-a.y)/tangentLength}:{x:1,y:0};
+  return{x,y,next:b,tangent};
 }
 function drawTrucks(s){
   const active=new Set();
@@ -653,13 +691,15 @@ function drawTrucks(s){
     if(!g){g=createTruckMesh(t);truckMeshes.set(t.id,g);}
     const p=truckPoint(t.route,t.t);
     if(!p)continue;
-    // UK-style left-hand traffic: keep each truck on the left side of its
-    // travel direction instead of placing every vehicle on the centreline.
-    const dx=p.next.x-p.x,dy=p.next.y-p.y,len=Math.hypot(dx,dy);
+    // The simulation route remains authoritative, but the visual vehicle follows
+    // a rounded centreline through junctions. This removes the hard 90-degree
+    // snap and makes turning trucks trace the same kind of arc as the road.
+    const dx=p.tangent.x,dy=p.tangent.y;
     const laneOffset=t.lane==='right'?-4.3:4.3;
-    const nx=len>1e-6?-dy/len:0,nz=len>1e-6?dx/len:0;
-    g.position.set(p.x+nx*laneOffset,.86,p.y+nz*laneOffset);
-    g.lookAt(p.next.x+nx*laneOffset,.86,p.next.y+nz*laneOffset);
+    const nx=-dy,nz=dx;
+    const laneX=p.x+nx*laneOffset,laneZ=p.y+nz*laneOffset;
+    g.position.set(laneX,.86,laneZ);
+    g.lookAt(laneX+dx,.86,laneZ+dy);
     const trafficState=t.trafficControl?.yielding?'yield':t.wait>0?'stopped':(t.trafficControl?'approach':'moving');
     g.userData.trafficState=trafficState;
     for(const child of g.children){
