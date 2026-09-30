@@ -274,10 +274,13 @@ function roadPathIntersectsBuildingFootprint(s,points,endpointBuildings={}){
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i];
     for(const building of s.buildings||[]){
+      const rect=buildingHitbox(building,0);
+      const startsInside=a.x>=rect.minX&&a.x<=rect.maxX&&a.y>=rect.minY&&a.y<=rect.maxY;
+      const endsInside=b.x>=rect.minX&&b.x<=rect.maxX&&b.y>=rect.minY&&b.y<=rect.maxY;
       const isStart=endpointBuildings.start&&building.id===endpointBuildings.start.id&&i===1;
       const isEnd=endpointBuildings.end&&building.id===endpointBuildings.end.id&&i===points.length-1;
-      if(isStart||isEnd)continue;
-      if(segmentIntersectsRect(a,b,buildingHitbox(building,0)))return true;
+      if(isStart||isEnd||(i===1&&startsInside)||(i===points.length-1&&endsInside))continue;
+      if(segmentIntersectsRect(a,b,rect))return true;
     }
   }
   return false;
