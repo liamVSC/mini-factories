@@ -436,11 +436,11 @@ const targetRoad=target.road||null;const targetPoint=targetRoad&&target.x!=null?
 return{road,roadId:road.id,index,target,point:target,edgeSnapped:!!target.edgeSnapped,path:clean,blocked:blocked||!boundary.ok,blockedReason:boundary.ok?null:boundary.reason,duplicate,length:lengthValue}}
 export function editRoadEndpoint(s,roadId,index,p){
   const road=(s.roads||[]).find(r=>r?.id===roadId);
-  if(!road?.points||!Number.isInteger(index)||index<0||index>=road.points.length)return false;
+  if(!road?.points||!Number.isInteger(index)||index<0||index>=road.points.length){console.log('DEBUG_EDIT_FAIL','lookup');return false;}
   const preview=roadEndpointPreview(s,road,index,p);
-  if(!preview||preview.blocked||preview.duplicate)return false;
+  if(!preview||preview.blocked||preview.duplicate){console.log('DEBUG_EDIT_FAIL',JSON.stringify({preview:preview&&{blocked:preview.blocked,duplicate:preview.duplicate,target:preview.target,path:preview.path}}));return false;}
   const oldPoints=road.points.map(safePoint),oldEndpoint=oldPoints[index],clean=preview.path;
-  if(dist(oldEndpoint,clean[index])<2)return false;
+  if(dist(oldEndpoint,clean[index])<2){console.log('DEBUG_EDIT_FAIL','distance');return false;}
   const bridge=clean.some((point,i)=>i?segmentNearRiver(clean[i-1],point):false);
   const next={...road,points:clean,bridge,condition:Number.isFinite(road.condition)?road.condition:1};
   const idx=s.roads.indexOf(road);if(idx<0)return false;
