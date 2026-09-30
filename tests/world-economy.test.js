@@ -374,7 +374,7 @@ test('invalid overlapping road endpoint moves leave the network unchanged', () =
   const other = road([{x:60,y:0},{x:140,y:0}]);
   s.roads.push(r,other);
   const before = JSON.stringify(s.roads);
-  assert.equal(editRoadEndpoint(s,r.id,1,{x:80,y:0}),false);
+  assert.equal(editRoadEndpoint(s,r.id,1,{x:100,y:0}),false);
   assert.equal(JSON.stringify(s.roads),before);
 });
 
