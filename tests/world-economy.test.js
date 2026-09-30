@@ -523,3 +523,40 @@ test('road preview from a building faces the destination and snaps to a nearby b
   assert.ok(Math.abs(preview.start.y - start.y) < 1e-9);
   assert.ok(Math.abs(preview.end.y - end.y) < 1e-9);
 });
+
+test('traffic yields at a crossing instead of driving through another truck', () => {
+  const s = baseState();
+  const source = {type:'Food',level:1,loading:0,logistics:0,stock:0,max:10};
+  const destination = {contract:null};
+  const first = {
+    id:'truck-a',
+    route:[{x:-100,y:0},{x:100,y:0}],
+    routeKey:'horizontal',
+    t:.45,
+    speed:.1,
+    value:0,
+    cargo:1,
+    source,
+    to:destination,
+    wait:0,
+    stage:'delivery'
+  };
+  const second = {
+    id:'truck-b',
+    route:[{x:0,y:-100},{x:0,y:100}],
+    routeKey:'vertical',
+    t:.45,
+    speed:.1,
+    value:0,
+    cargo:1,
+    source,
+    to:destination,
+    wait:0,
+    stage:'delivery'
+  };
+  s.trucks=[first,second];
+  updateEconomy(s,.1,()=>{});
+  assert.ok(first.t>.45);
+  assert.equal(second.t,.45);
+  assert.ok(second.wait>0);
+});
