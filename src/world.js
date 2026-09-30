@@ -217,8 +217,77 @@ function routeBendPenalty(path){
   return Math.max(0,path.length-2)*18;
 }
 
+function orthogonalObstaclePath(s,start,end,endpointBuildings={}){
+  const obstacles=(s.buildings||[]).filter(b=>b!==endpointBuildings.start&&b!==endpointBuildings.end);
+  if(!obstacles.length)return null;
+  const xs=[start.x,end.x],ys=[start.y,end.y];
+  for(const b of obstacles){
+    const clearance=(b.r||25)+18;
+    xs.push(b.x-clearance,b.x+clearance);
+    ys.push(b.y-clearance,b.y+clearance);
+  }
+  const uniq=a=>[...new Set(a.map(v=>Math.round(v*10)/10))].sort((a,b)=>a-b);
+  const xvals=uniq(xs),yvals=uniq(ys);
+  const nodes=[],byKey=new Map();
+  const key=(x,y)=>x+','+y;
+  for(const x of xvals)for(const y of yvals){
+    const p={x,y};
+    if(roadPathBlocked(s,[p,p],endpointBuildings))continue;
+    const n={x,y,edges:[]};nodes.push(n);byKey.set(key(x,y),n);
+  }
+  const clearSegment=(a,b)=>!roadPathBlocked(s,[a,b],endpointBuildings);
+  for(const y of yvals){
+    const row=nodes.filter(n=>n.y===y).sort((a,b)=>a.x-b.x);
+    for(let i=1;i<row.length;i++){
+      const a=row[i-1],b=row[i];
+      if(clearSegment(a,b)){
+        const d=dist(a,b);a.edges.push({node:b,d});b.edges.push({node:a,d});
+      }
+    }
+  }
+  for(const x of xvals){
+    const col=nodes.filter(n=>n.x===x).sort((a,b)=>a.y-b.y);
+    for(let i=1;i<col.length;i++){
+      const a=col[i-1],b=col[i];
+      if(clearSegment(a,b)){
+        const d=dist(a,b);a.edges.push({node:b,d});b.edges.push({node:a,d});
+      }
+    }
+  }
+  const startNode={x:start.x,y:start.y,edges:[]},endNode={x:end.x,y:end.y,edges:[]};
+  const attach=(p,node)=>{
+    for(const n of nodes){
+      if(n.x===p.x&&n.y===p.y)continue;
+      const d=dist(p,n);
+      if(p.x===n.x||p.y===n.y){
+        if(clearSegment(p,n)){const e={node:n,d};node.edges.push(e);}
+      }
+    }
+  };
+  attach(start,startNode);attach(end,endNode);
+  nodes.push(startNode,endNode);
+  const queue=[{node:startNode,d:0}],best=new Map([[startNode,0]]),prev=new Map();
+  while(queue.length){
+    queue.sort((a,b)=>a.d-b.d);
+    const cur=queue.shift();
+    if(cur.d!==best.get(cur.node))continue;
+    if(cur.node===endNode)break;
+    for(const e of cur.node.edges){
+      const nd=cur.d+e.d;
+      if(nd<(best.get(e.node)??Infinity)){best.set(e.node,nd);prev.set(e.node,cur.node);queue.push({node:e.node,d:nd});}
+    }
+  }
+  if(!best.has(endNode))return null;
+  const path=[];let n=endNode;
+  while(n){path.unshift({x:n.x,y:n.y});n=prev.get(n);}
+  return simplifyRoad(path);
+}
+
 function chooseRoadPath(s,start,end,endpointBuildings={}){
-  const candidates=candidateRoadPaths(start,end,(s.buildings||[]).filter(b=>b!==endpointBuildings.start&&b!==endpointBuildings.end)).map(simplifyRoad);
+  const obstacles=(s.buildings||[]).filter(b=>b!==endpointBuildings.start&&b!==endpointBuildings.end);
+  const candidates=candidateRoadPaths(start,end,obstacles).map(simplifyRoad);
+  const routed=orthogonalObstaclePath(s,start,end,endpointBuildings);
+  if(routed)candidates.push(routed);
   const clear=candidates.filter(path=>!roadPathBlocked(s,path,endpointBuildings));
   if(clear.length){
     return clear.sort((a,b)=>{
