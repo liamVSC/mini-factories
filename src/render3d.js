@@ -15,6 +15,7 @@ const routeMetrics=new WeakMap();
 
 function mat(color,roughness=.8,metalness=0){return new THREE.MeshStandardMaterial({color,roughness,metalness});}
 function box(w,h,d,color){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));}
+function roadMat(color){return new THREE.MeshStandardMaterial({color,roughness:.9,metalness:0,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});}
 function makeRoad(points,bridge){
   if(!Array.isArray(points)||points.length<2)return new THREE.Group();
   const group=new THREE.Group();
@@ -42,8 +43,8 @@ function makeRoad(points,bridge){
   };
 
   if(!bridge){
-    buildStrip(roadWidth+1.8,.018,mat('#62696a'));
-    buildStrip(roadWidth,.035,mat('#3f4648'));
+    buildStrip(roadWidth+1.8,.08,roadMat('#62696a'));
+    buildStrip(roadWidth,.12,roadMat('#3f4648'));
 
     const markings=new THREE.Group();
     const dashMaterial=mat('#d9c56d');
@@ -61,7 +62,7 @@ function makeRoad(points,bridge){
     }
     group.add(markings);
   }else{
-    buildStrip(roadWidth,.04,mat('#755638'));
+    buildStrip(roadWidth,.16,roadMat('#755638'));
     const a=clean[0],b=clean.at(-1);
     const angle=Math.atan2(b.y-a.y,b.x-a.x);
     const span=Math.max(1,clean.reduce((sum,p,i)=>i?sum+Math.hypot(p.x-clean[i-1].x,p.y-clean[i-1].y):0,0));
