@@ -589,6 +589,77 @@ export function editRoadSegment(s,p,action='delete'){
   return {road,segments:replacement,point:q};
 }
 
+function roadEndpointCandidate(s,p,maxDistance=24){
+  let best=null;
+  for(const road of s.roads||[]){
+    if(!road?.points||road.points.length<2)continue;
+    for(const index of [0,road.points.length-1]){
+      const q=road.points[index],d=dist(q,p);
+      if(d<=maxDistance&&(!best||d<best.distance))best={road,index,point:{x:q.x,y:q.y},distance:d};
+    }
+  }
+  return best;
+}
+
+export function roadEndpointAtPoint(s,p,tolerance=28){
+  const hit=roadEndpointCandidate(s,p,tolerance);
+  if(!hit)return null;
+  return {road:hit.road,roadId:hit.road.id,index:hit.index,point:hit.point,distance:hit.distance};
+}
+
+function endpointTarget(s,p,road,index){
+  const building=roadBuildingTarget(s,p);
+  if(building){
+    const q=buildingConnectionPoint(building,p);
+    return {x:q.x,y:q.y,building};
+  }
+  const roadHit=snapRoadPoint(s,p,24);
+  if(roadHit&&roadHit.road!==road)return {x:roadHit.x,y:roadHit.y,road:roadHit.road};
+  const endpoint=roadEndpointCandidate(s,p,24);
+  if(endpoint&&endpoint.road!==road)return {x:endpoint.point.x,y:endpoint.point.y,road:endpoint.road};
+  const grid=12;
+  return {x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
+}
+
+export function roadEndpointPreview(s,road,index,p){
+  if(!road?.points||!Number.isInteger(index)||!road.points[index])return null;
+  const target=endpointTarget(s,p,road,index);
+  const points=road.points.map(q=>({x:q.x,y:q.y}));
+  points[index]={x:target.x,y:target.y};
+  const clean=simplifyRoad(points);
+  const lengthValue=length(clean);
+  const meta={startBuilding:index===0?target.building:null,endBuilding:index===clean.length-1?target.building:null};
+  const blocked=clean.length<2||lengthValue<12||roadPathBlocked(s,clean,meta);
+  const otherRoads=(s.roads||[]).filter(r=>r!==road);
+  const duplicate=otherRoads.some(r=>roadsHaveMeaningfulOverlap(r,{points:clean}));
+  return {road,roadId:road.id,index,target,path:clean,blocked,duplicate,length:lengthValue};
+}
+
+export function editRoadEndpoint(s,roadId,index,p){
+  const road=(s.roads||[]).find(r=>r?.id===roadId);
+  if(!road?.points||!Number.isInteger(index)||index<0||index>=road.points.length)return false;
+  const preview=roadEndpointPreview(s,road,index,p);
+  if(!preview||preview.blocked||preview.duplicate)return false;
+  const oldPoints=road.points.map(q=>({x:q.x,y:q.y}));
+  const oldEndpoint=oldPoints[index];
+  const clean=preview.path;
+  if(dist(oldEndpoint,clean[index])<2)return false;
+  const next={...road,points:clean};
+  const idx=s.roads.indexOf(road);
+  if(idx<0)return false;
+  const affected=[road];
+  s.roads.splice(idx,1,next);
+  if(preview.target?.road){
+    const junctionPoint={x:preview.target.x,y:preview.target.y};
+    splitRoadAtPoint(s,preview.target.road,junctionPoint,6);
+    next.points[index]=junctionPoint;
+  }
+  for(const truck of s.trucks||[]){
+    if(routeTouchesRoad(truck.route,{points:oldPoints},4))truck.routeInvalidated=true;
+  }
+  return {road:next,oldPoints,point:{x:clean[index].x,y:clean[index].y},target:preview.target,affected};
+}
+
 export function eraseRoad(s,p){
   const hit=roadAtPoint(s,p);
   if(!hit)return false;
