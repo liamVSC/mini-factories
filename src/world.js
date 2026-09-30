@@ -25,7 +25,25 @@ export function roadBuildingTarget(s,p){
 }
 function projectOnPolyline(points,p){let best=null,run=0;for(let i=1;i<points.length;i++){const q=projectSegment(p,points[i-1],points[i]);if(!best||q.distance<best.distance)best={...q,segment:i-1,along:run+dist(points[i-1],q.point)};run+=dist(points[i-1],points[i])}return best}
 export function nearestRoad(s,p){let best=null;for(const road of s.roads||[]){if(!road?.points||road.points.length<2)continue;const q=projectOnPolyline(road.points,p);if(q&&(!best||q.distance<best.distance))best={x:q.point.x,y:q.point.y,road,distance:q.distance,segment:q.segment,along:q.along}}return best&&best.distance<=46?best:null}
-function buildingConnectionPoint(building,target){const dx=target.x-building.x,dy=target.y-building.y;const len=Math.hypot(dx,dy)||1;const radius=Math.max(26,(building.r||25)+9);return{x:building.x+dx/len*radius,y:building.y+dy/len*radius,building,distance:0}}
+function buildingFootprintRadius(building){
+  const footprint=building?.kind==='warehouse'?48:building?.kind==='factory'?39:35;
+  return Math.max(26,(building?.r||25)+9,footprint+5);
+}
+function buildingConnectionPoint(building,target){
+  const dx=target.x-building.x,dy=target.y-building.y;
+  const len=Math.hypot(dx,dy)||1;
+  const radius=buildingFootprintRadius(building);
+  return{x:building.x+dx/len*radius,y:building.y+dy/len*radius,building,distance:0}
+}
+function endpointSegmentBlocked(building,a,b,side){
+  if(!building)return false;
+  const ax=a.x-building.x,ay=a.y-building.y;
+  const bx=b.x-building.x,by=b.y-building.y;
+  const aRadius=Math.hypot(ax,ay),bRadius=Math.hypot(bx,by);
+  const outward=side==='start' ? ax*(b.x-a.x)+ay*(b.y-a.y) : bx*(a.x-b.x)+by*(a.y-b.y);
+  const connectionRadius=buildingFootprintRadius(building);
+  return (side==='start'&&aRadius<connectionRadius-0.001)||(side==='end'&&bRadius<connectionRadius-0.001)||outward<0;
+}
 function resolveRoadEndpoint(s,value){if(value?.building&&Number.isFinite(value.building.x))return buildingConnectionPoint(value.building,value);const building=nearestBuilding(s,value);if(building&&dist(building,value)<=48)return buildingConnectionPoint(building,value);const road=snapRoadPoint(s,value,42);return road||{x:value.x,y:value.y,distance:Infinity}}
 export function snapRoadPoint(s,p,max=42){const q=nearestRoad(s,p);if(!q||q.distance>max)return null;return{x:q.x,y:q.y,road:q.road,distance:q.distance}}
 export function snap(s,p){const b=nearestBuilding(s,p);if(b)return b;const r=nearestRoad(s,p);return r||p}
@@ -163,8 +181,15 @@ function roadPathBlocked(s,points,endpointBuildings={}){
     const a=points[i-1],b=points[i];
     for(const building of s.buildings||[]){
       const clearance=(building.r||25)+12;
-      // A road is allowed to terminate at its endpoint buildings.
-      if((i===1&&building===startBuilding)||(i===points.length-1&&building===endBuilding))continue;
+      const isStart=building===startBuilding&&i===1;
+      const isEnd=building===endBuilding&&i===points.length-1;
+      // Endpoint buildings may be connected, but the first/last segment must
+      // leave/approach from outside the building footprint rather than running
+      // back through it.
+      if(isStart||isEnd){
+        if(endpointSegmentBlocked(building,a,b,isStart?'start':'end'))return true;
+        continue;
+      }
       if(pointSegmentDistance(building,a,b)<clearance)return true;
     }
   }
