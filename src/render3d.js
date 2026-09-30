@@ -23,56 +23,54 @@ function makeRoad(points,bridge){
   if(clean.length<2)return group;
 
   const roadWidth=bridge?15:18;
-  const buildStrip=(width,y,material)=>{
-    const half=width/2,vertices=[],indices=[];
-    for(let i=0;i<clean.length;i++){
-      const p=clean[i],prev=clean[Math.max(0,i-1)],next=clean[Math.min(clean.length-1,i+1)];
-      const dx=next.x-prev.x,dy=next.y-prev.y,len=Math.hypot(dx,dy)||1;
-      const nx=-dy/len,ny=dx/len;
-      vertices.push(p.x+nx*half,y,p.y+ny*half,p.x-nx*half,y,p.y-ny*half);
-    }
-    for(let i=0;i<clean.length-1;i++){
-      const a=i*2,b=a+1,c=a+2,d=a+3;
-      indices.push(a,c,b,b,c,d);
-    }
-    const geometry=new THREE.BufferGeometry();
-    geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
-    geometry.setIndex(indices);
-    geometry.computeVertexNormals();
-    group.add(new THREE.Mesh(geometry,material));
+  const addSegment=(a,b,width,height,y,color)=>{
+    const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+    if(len<1)return;
+    const mesh=new THREE.Mesh(new THREE.BoxGeometry(len,height,width),roadMat(color));
+    mesh.position.set((a.x+b.x)/2,y,(a.y+b.y)/2);
+    mesh.rotation.y=-Math.atan2(dy,dx);
+    group.add(mesh);
   };
 
   if(!bridge){
-    buildStrip(roadWidth+1.8,.08,roadMat('#62696a'));
-    buildStrip(roadWidth,.12,roadMat('#3f4648'));
+    for(let i=1;i<clean.length;i++){
+      const a=clean[i-1],b=clean[i];
+      addSegment(a,b,roadWidth+2.4,.14,.08,'#62696a');
+      addSegment(a,b,roadWidth,.12,.16,'#3f4648');
 
-    const markings=new THREE.Group();
-    const dashMaterial=mat('#d9c56d');
-    for(let i=0;i<clean.length-1;i++){
-      const a=clean[i],b=clean[i+1],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+      const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
       if(len<1)continue;
-      for(let along=0;along<len;along+=30){
-        const end=Math.min(along+18,len),t1=along/len,t2=end/len;
-        const x1=a.x+dx*t1,y1=a.y+dy*t1,x2=a.x+dx*t2,y2=a.y+dy*t2;
-        const dash=new THREE.Mesh(new THREE.BoxGeometry(Math.max(.1,end-along),.12,1),dashMaterial);
-        dash.position.set((x1+x2)/2,.12,(y1+y2)/2);
-        dash.rotation.y=-Math.atan2(y2-y1,x2-x1);
-        markings.add(dash);
+      const angle=-Math.atan2(dy,dx);
+      const dashMaterial=mat('#d9c56d');
+      for(let along=6;along<len-1;along+=30){
+        const dashLen=Math.min(18,len-along);
+        if(dashLen<2)break;
+        const t=(along+dashLen/2)/len;
+        const dash=new THREE.Mesh(new THREE.BoxGeometry(dashLen,.16,1),dashMaterial);
+        dash.position.set(a.x+dx*t,.24,a.y+dy*t);
+        dash.rotation.y=angle;
+        group.add(dash);
       }
     }
-    group.add(markings);
   }else{
-    buildStrip(roadWidth,.16,roadMat('#755638'));
-    const a=clean[0],b=clean.at(-1);
-    const angle=Math.atan2(b.y-a.y,b.x-a.x);
-    const span=Math.max(1,clean.reduce((sum,p,i)=>i?sum+Math.hypot(p.x-clean[i-1].x,p.y-clean[i-1].y):0,0));
-    for(const side of [-1,1]){
-      const rail=box(span,1.5,.8,'#b58a52');
-      rail.position.set((a.x+b.x)/2,.95,(a.y+b.y)/2);
-      rail.rotation.y=-angle;
-      rail.position.x+=Math.cos(angle+Math.PI/2)*side*(roadWidth/2);
-      rail.position.z+=Math.sin(angle+Math.PI/2)*side*(roadWidth/2);
-      group.add(rail);
+    for(let i=1;i<clean.length;i++){
+      const a=clean[i-1],b=clean[i];
+      addSegment(a,b,roadWidth,.18,.18,'#755638');
+      const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+      if(len<1)continue;
+      const angle=Math.atan2(dy,dx);
+      const normalX=Math.cos(angle+Math.PI/2);
+      const normalZ=Math.sin(angle+Math.PI/2);
+      for(const side of [-1,1]){
+        const rail=box(len,1.5,.8,'#b58a52');
+        rail.position.set(
+          (a.x+b.x)/2+normalX*side*(roadWidth/2),
+          .95,
+          (a.y+b.y)/2+normalZ*side*(roadWidth/2)
+        );
+        rail.rotation.y=-angle;
+        group.add(rail);
+      }
     }
   }
   return group;
