@@ -1,5 +1,5 @@
 import {TYPES} from './state.js';
-import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment} from './world.js';
+import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment,roadNetwork} from './world.js';
 const newId=()=>globalThis.crypto?.randomUUID?.()||'id-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
 
 export function spec(type){return TYPES.find(t=>t.name===type)||TYPES[0]}
@@ -95,36 +95,98 @@ function routeDistanceToPoint(route,t,p){
   }
   return best;
 }
-function trafficConflict(s,t){
+function routeProgressToPoint(route,p){
+  const projected=projectRouteProgress(route,p);
+  return projected?.progress??0;
+}
+function movementAtJunction(route,junctionIndex){
+  if(junctionIndex<0||junctionIndex>=route.length)return null;
+  const node=route[junctionIndex];
+  const before=route[Math.max(0,junctionIndex-1)];
+  const after=route[Math.min(route.length-1,junctionIndex+1)];
+  const incoming={x:node.x-before.x,y:node.y-before.y};
+  const outgoing={x:after.x-node.x,y:after.y-node.y};
+  const il=Math.hypot(incoming.x,incoming.y),ol=Math.hypot(outgoing.x,outgoing.y);
+  if(il<1e-6||ol<1e-6)return null;
+  incoming.x/=il;incoming.y/=il;outgoing.x/=ol;outgoing.y/=ol;
+  const dot=incoming.x*outgoing.x+incoming.y*outgoing.y;
+  const cross=incoming.x*outgoing.y-incoming.y*outgoing.x;
+  return {node,straight:dot<-.82,turn:Math.abs(cross)>.18,incoming,outgoing};
+}
+function junctionForTruck(network,t){
+  const p=pointOnRoute(t.route,t.t);
+  if(!p)return null;
+  let best=null,bestDistance=Infinity,bestIndex=-1;
+  for(const j of network.junctions||[]){
+    let index=-1,d=Infinity;
+    for(let i=0;i<t.route.length;i++){
+      const q=t.route[i],dd=dist(q,j);
+      if(dd<d){d=dd;index=i}
+    }
+    if(index<0||d>1.5)continue;
+    const progress=routeProgressToPoint(t.route,j);
+    const remaining=Math.max(0,progress-t.t);
+    const routeLength=Math.max(1,length(t.route));
+    const metresAhead=remaining*routeLength;
+    if(metresAhead< -6||metresAhead>72)continue;
+    if(d<bestDistance){bestDistance=d;best={junction:j,index,progress,metresAhead,movement:movementAtJunction(t.route,index)}}
+  }
+  return best;
+}
+function movementConflict(a,b){
+  if(!a?.movement||!b?.movement)return true;
+  // Same movement shares one lane and is handled by the following-distance rule.
+  const ai=a.movement,bi=b.movement;
+  if(a.junction===b.junction&&Math.abs(a.index-b.index)===0){
+    if(ai.straight&&bi.straight){
+      const opposing=ai.incoming.x*bi.incoming.x+ai.incoming.y*bi.incoming.y<-.7;
+      if(opposing)return false;
+    }
+    const same=ai.incoming.x*bi.incoming.x+ai.incoming.y*bi.incoming.y>.7 &&
+      ai.outgoing.x*bi.outgoing.x+ai.outgoing.y*bi.outgoing.y>.7;
+    if(same)return false;
+  }
+  return true;
+}
+function trafficConflict(s,t,network){
   if(t.wait>0)return false;
   const p=pointOnRoute(t.route,t.t);
+  if(!p)return false;
+
+  // Same-route following is always lane-safe: the rear truck yields.
+  for(const o of s.trucks||[]){
+    if(o===t||o.dead||!Array.isArray(o.route)||o.route.length<2)continue;
+    const q=pointOnRoute(o.route,o.t);
+    if(o.routeKey===t.routeKey&&o.t>t.t&&dist(p,q)<34)return true;
+  }
+
+  const here=junctionForTruck(network,t);
+  if(!here)return false;
+
+  const contenders=[];
   for(const o of s.trucks||[]){
     if(o===t||o.dead||o.wait>0||!Array.isArray(o.route)||o.route.length<2)continue;
+    const other=junctionForTruck(network,o);
+    if(!other||dist(here.junction,other.junction)>1.5)continue;
+    if(!movementConflict(here,other))continue;
     const q=pointOnRoute(o.route,o.t);
-    // Normal following: the truck behind yields to the truck ahead.
-    if(dist(p,q)<30){
-      if(o.routeKey===t.routeKey&&o.t>t.t)return true;
-      // Different route polylines can still overlap at a junction.
-      if(o.routeKey!==t.routeKey&&dist(p,q)<18&&o.id<t.id)return true;
-    }
-    // Detect a genuine crossing ahead. The lower deterministic priority yields
-    // so two trucks cannot enter the same junction at once.
-    for(let i=1;i<t.route.length;i++){
-      const a=i===1?p:t.route[i-1],b=t.route[i];
-      for(let j=1;j<o.route.length;j++){
-        const c=j===1?q:o.route[j-1],d=o.route[j];
-        const hit=segmentHit(a,b,c,d);
-        if(!hit)continue;
-        const td=dist(p,hit),od=dist(q,hit);
-        if(td>58||od>58)continue;
-        if(td<7&&od<7){
-          if(o.id<t.id)return true;
-          continue;
-        }
-        if(o.id<t.id)return true;
-      }
-    }
+    const arrival=other.metresAhead;
+    if(arrival<=78&&dist(p,q)<105)contenders.push({truck:o,info:other,arrival});
   }
+
+  // Deterministic right-of-way. The truck with the earliest arrival wins;
+  // ties use id so two simultaneous arrivals can never deadlock.
+  const contendersWithSelf=[...contenders,{truck:t,info:here,arrival:here.metresAhead}];
+  contendersWithSelf.sort((a,b)=>a.arrival-b.arrival||String(a.truck.id).localeCompare(String(b.truck.id)));
+  if(contendersWithSelf[0]?.truck!==t)return true;
+
+  // Claim the junction briefly. This prevents a second movement entering while
+  // the first truck is physically occupying the conflict zone.
+  s.trafficReservations=s.trafficReservations||{};
+  const key=`${Math.round(here.junction.x*10)/10},${Math.round(here.junction.y*10)/10}`;
+  const reservation=s.trafficReservations[key];
+  if(reservation&&reservation.truckId!==t.id&&reservation.until>performance.now())return true;
+  s.trafficReservations[key]={truckId:t.id,until:performance.now()+900};
   return false;
 }
 function rerouteTruck(s,t){
@@ -340,7 +402,7 @@ export function updateEconomy(s,dt,flash){
     }
     const p=pointOnRoute(t.route,t.t);let blocked=false,nearestAhead=Infinity;
     for(const o of s.trucks){if(o===t||o.dead)continue;const q=pointOnRoute(o.route,o.t);if(dist(p,q)<30&&o.routeKey===t.routeKey&&o.t>t.t)nearestAhead=Math.min(nearestAhead,o.t-t.t)}
-    const trafficBlocked=trafficConflict(s,t);
+    const trafficNetwork=roadNetwork(s);\n    const trafficBlocked=trafficConflict(s,t,trafficNetwork);
     if(nearestAhead<.045||trafficBlocked){blocked=true;t.wait=Math.min(2,t.wait+dt)}else t.wait=Math.max(0,t.wait-dt*.75);
     if(blocked)continue;
     t.t+=dt*t.speed*Math.max(.65,1-(s.congestion*.18));
