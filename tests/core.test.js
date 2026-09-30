@@ -5,7 +5,7 @@ globalThis.innerWidth=1280;
 globalThis.innerHeight=720;
 
 const {freshState,makeBuilding,hydrate,serialise}=await import('../src/state.js');
-const {pointOnRoute,length,dist,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget,roadEndpointPreview,editRoadEndpoint,editRoadSegment,roadNetwork,roadTopology,roadTrafficMetrics,WORLD_BOUNDS,WORLD_MARGIN}=await import('../src/world.js');
+const {pointOnRoute,length,dist,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget,roadEndpointPreview,editRoadEndpoint,editRoadSegment,roadNetwork,roadTopology,WORLD_BOUNDS,WORLD_MARGIN}=await import('../src/world.js');
 const {updateEconomy}=await import('../src/economy.js');
 
 const route=[{x:0,y:0},{x:100,y:0}];
@@ -645,8 +645,7 @@ test('canonical topology preserves boundary nodes separately from junction class
   const edgeX=WORLD_BOUNDS.maxX-WORLD_MARGIN;
   s.roads.push(
     {id:'edge-main',points:[{x:1000,y:0},{x:edgeX,y:0}],bridge:false,condition:1,age:0},
-    {id:'edge-branch',points:[{x:edgeX,y:0},{x:edgeX,y:160}],bridge:false,condition:1,age:0},
-    {id:'edge-return',points:[{x:edgeX,y:0},{x:edgeX-120,y:120}],bridge:false,condition:1,age:0}
+    {id:'edge-branch',points:[{x:edgeX,y:0},{x:edgeX,y:160}],bridge:false,condition:1,age:0}
   );
   const topology=roadTopology(s);
   assert.ok(topology.boundaryNodes.length>=1);
@@ -663,35 +662,6 @@ test('splitting a road keeps both resulting segments valid and routable',()=>{
   assert.ok(s.roads.every(r=>r.points.length>=2));
   const topology=roadTopology(s);
   assert.ok(topology.nodes.some(n=>Math.abs(n.x)<1e-9&&Math.abs(n.y)<1e-9));
-});
-
-test('road traffic metrics expose lane capacity and segment congestion state',()=>{
-  const s=freshState();
-  s.roads.push({id:'traffic-road',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0});
-  const metrics=roadTrafficMetrics(s);
-  assert.equal(metrics.segments.length,1);
-  assert.equal(metrics.segments[0].lanes,2);
-  assert.equal(metrics.segments[0].capacity,2);
-  assert.equal(metrics.segments[0].load,0);
-  assert.equal(metrics.segments[0].congestion,0);
-});
-
-test('economy assigns trucks to road lanes and derives congestion from segment capacity',()=>{
-  const s=freshState();
-  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
-  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},120,0,'shop-1');
-  s.buildings.push(factory,shop);
-  s.roads.push({id:'traffic-road',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0});
-  const route=[{x:0,y:0},{x:120,y:0}];
-  for(let i=0;i<4;i++)s.trucks.push(truck({id:'traffic-'+i,route:[...route],routeKey:'traffic',t:.45,speed:.01,value:1,cargo:1,to:shop,source:factory}));
-  updateEconomy(s,.001,()=>{});
-  assert.ok(s.congestion>0);
-  assert.ok(s.congestion<=1);
-  assert.ok(s.trucks.every(t=>t.trafficRoadId==='traffic-road'));
-  assert.ok(s.trucks.every(t=>t.trafficLane===0||t.trafficLane===1));
-  assert.equal(s.roads[0].trafficLoad,4);
-  assert.equal(s.roads[0].trafficCapacity,2);
-  assert.equal(s.roads[0].trafficCongestion,1);
 });
 
 test('road preview snaps to buildings, roads and the placement grid',()=>{

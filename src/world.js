@@ -8,15 +8,36 @@ const validRoadPoints=(points,minLength=12)=>{const clean=[];for(const p of poin
 function projectSegment(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)return{point:{x:a.x,y:a.y},distance:dist(p,a)};const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));const point={x:a.x+dx*t,y:a.y+dy*t};return{point,distance:dist(p,point)}}
 function nearestPointOnRoad(road,p){let best=null,bd=Infinity;for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(q.distance<bd){bd=q.distance;best=q.point}}return best}
 export const riverY=x=>420+Math.sin(x*.002)*35;
+
+// The renderer defines the actual playable ground as a 2600 x 2600 plane
+// centred on the world origin. The river geometry is also generated from
+// -1300 to +1300, so ±1300 is the authoritative world edge.
+// Keep all world/build tools on this single coordinate system.
 export const WORLD_SIZE=2600;
 export const WORLD_HALF_SIZE=WORLD_SIZE/2;
-export const WORLD_BOUNDS=Object.freeze({minX:-WORLD_HALF_SIZE,maxX:WORLD_HALF_SIZE,minY:-WORLD_HALF_SIZE,maxY:WORLD_HALF_SIZE});
+export const WORLD_BOUNDS=Object.freeze({
+  minX:-WORLD_HALF_SIZE,maxX:WORLD_HALF_SIZE,minY:-WORLD_HALF_SIZE,maxY:WORLD_HALF_SIZE
+});
+// Construction needs a small clearance so road/building geometry does not sit
+// half outside the rendered ground.
 export const WORLD_CONSTRUCTION_MARGIN=24;
 export const WORLD_MARGIN=WORLD_CONSTRUCTION_MARGIN;
 export const WORLD_EDGE_SNAP_DISTANCE=52;
-export function isInsideWorldBounds(p,margin=WORLD_MARGIN){return finitePoint(p)&&Number(p.x)>=WORLD_BOUNDS.minX+margin&&Number(p.x)<=WORLD_BOUNDS.maxX-margin&&Number(p.y)>=WORLD_BOUNDS.minY+margin&&Number(p.y)<=WORLD_BOUNDS.maxY-margin}
-function roadWithinWorldBounds(points,margin=WORLD_MARGIN){const clean=validRoadPoints(points,0);return !!clean&&clean.every(p=>isInsideWorldBounds(p,margin))}
-export function validateRoadGeometry(points){const clean=validRoadPoints(points,12);if(!clean)return{ok:false,reason:'Road is too short or invalid',points:[]};if(!roadWithinWorldBounds(clean))return{ok:false,reason:'Road is outside the playable area',points:clean};return{ok:true,reason:null,points:clean}}
+
+export function isInsideWorldBounds(p,margin=WORLD_MARGIN){
+  return finitePoint(p)&&Number(p.x)>=WORLD_BOUNDS.minX+margin&&Number(p.x)<=WORLD_BOUNDS.maxX-margin&&Number(p.y)>=WORLD_BOUNDS.minY+margin&&Number(p.y)<=WORLD_BOUNDS.maxY-margin;
+}
+function roadWithinWorldBounds(points,margin=WORLD_MARGIN){
+  const clean=validRoadPoints(points,0);
+  return !!clean&&clean.every(p=>isInsideWorldBounds(p,margin));
+}
+export function validateRoadGeometry(points){
+  const clean=validRoadPoints(points,12);
+  if(!clean)return{ok:false,reason:'Road is too short or invalid',points:[]};
+  if(!roadWithinWorldBounds(clean))return{ok:false,reason:'Road is outside the playable area',points:clean};
+  return{ok:true,reason:null,points:clean};
+}
+
 export function district(x,y){if(Math.abs(y-riverY(x))<170)return'Riverside';if(x<0&&y<180)return'Industrial';if(x>0&&y>0)return'Market Quarter';return'West End'}
 export function buildingCost(s,type){const base={Steel:260,Food:220,Parts:320,Market:180,Garage:240,Builder:220,Plastics:420,Glass:500,Electronics:520,Furniture:600,Warehouse:700};return Math.round((base[type.name]||300)*Math.pow(1.12,s.buildings.length))}
 export function buildingUnlock(t,s){if(t.unlock&&(s.research?.[t.unlock]||0)<t.unlockLevel)return'Requires '+t.unlock+' research Lv '+t.unlockLevel;const min={Steel:1,Food:1,Parts:2,Market:1,Garage:2,Builder:1,Plastics:1,Glass:2,Electronics:1,Furniture:2,Warehouse:2}[t.name]||1;if(s.companyLevel<min)return'Requires Company Level '+min;return null}
@@ -39,17 +60,256 @@ export function snap(s,p){const b=nearestBuilding(s,p);if(b)return b;const r=nea
 function segmentIntersection(a,b,c,d){const ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y},cross=(u,v)=>u.x*v.y-u.y*v.x,den=cross(ab,cd),ac={x:c.x-a.x,y:c.y-a.y};if(Math.abs(den)<1e-9)return null;const t=cross(ac,cd)/den,u=cross(ac,ab)/den;if(t<-.000001||t>1.000001||u<-.000001||u>1.000001)return null;return{x:a.x+ab.x*t,y:a.y+ab.y*t,t,u}}
 function addNode(nodes,p){let n=nodes.find(x=>dist(x,p)<2.5);if(!n){n={x:p.x,y:p.y};nodes.push(n)}return n}
 function roadPointParameter(a,b,p){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)return 0;return Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l))}
-function isRoadJunctionNode(node,links){if(links.length>=3)return true;if(links.length!==2)return false;const a=links[0].node,b=links[1].node;const avx=a.x-node.x,avy=a.y-node.y,bvx=b.x-node.x,bvy=b.y-node.y;const al=Math.hypot(avx,avy),bl=Math.hypot(bvx,bvy);if(al<1e-9||bl<1e-9)return false;const alignment=Math.abs((avx*bvx+avy*bvy)/(al*bl));return alignment<0.985}
-export function roadNetwork(s,extraPoints=[]){const valid=(s.roads||[]).map(r=>({...r,points:validRoadPoints(r?.points,0)})).filter(r=>r.points?.length>=2&&roadWithinWorldBounds(r.points)),nodes=[],edges=[],marks=new Map();for(const road of valid){const segments=road.points.slice(1).map(()=>[]);marks.set(road,segments);for(let i=1;i<road.points.length;i++){segments[i-1].push(addNode(nodes,road.points[i-1]));segments[i-1].push(addNode(nodes,road.points[i]));}}for(let ri=0;ri<valid.length;ri++){const aRoad=valid[ri];for(let qi=ri;qi<valid.length;qi++){const bRoad=valid[qi];for(let i=1;i<aRoad.points.length;i++){const a=aRoad.points[i-1],b=aRoad.points[i],first=aRoad===bRoad?i:1;for(let j=first;j<bRoad.points.length;j++){if(aRoad===bRoad&&i===j)continue;const hit=segmentIntersection(a,b,bRoad.points[j-1],bRoad.points[j]);if(!hit)continue;const n=addNode(nodes,hit);marks.get(aRoad)[i-1].push(n);marks.get(bRoad)[j-1].push(n)}}}}const junctionTolerance=6;for(let ri=0;ri<valid.length;ri++)for(let qi=ri;qi<valid.length;qi++){const aRoad=valid[ri],bRoad=valid[qi];const aEnds=[{index:0,point:aRoad.points[0]},{index:aRoad.points.length-1,point:aRoad.points.at(-1)}];const bEnds=[{index:0,point:bRoad.points[0]},{index:bRoad.points.length-1,point:bRoad.points.at(-1)}];for(const aEnd of aEnds)for(const bEnd of bEnds){if(aRoad===bRoad)continue;if(dist(aEnd.point,bEnd.point)>junctionTolerance)continue;const n=addNode(nodes,{x:(aEnd.point.x+bEnd.point.x)/2,y:(aEnd.point.y+bEnd.point.y)/2});const aSeg=aEnd.index===0?0:aRoad.points.length-2;const bSeg=bEnd.index===0?0:bRoad.points.length-2;marks.get(aRoad)[aSeg].push(n);marks.get(bRoad)[bSeg].push(n);}for(const aEnd of aEnds){for(let j=1;j<bRoad.points.length;j++){if(aRoad===bRoad)continue;const q=projectSegment(aEnd.point,bRoad.points[j-1],bRoad.points[j]);if(q.distance>junctionTolerance)continue;const n=addNode(nodes,q.point);marks.get(aRoad)[aEnd.index===0?0:aRoad.points.length-2].push(n);marks.get(bRoad)[j-1].push(n);}}}for(const p of extraPoints||[]){if(!finitePoint(p))continue;let best=null;for(const road of valid)for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(!best||q.distance<best.distance)best={road,segment:i-1,point:q.point,distance:q.distance}}if(best){const n=addNode(nodes,best.point);marks.get(best.road)[best.segment].push(n)}}for(const road of valid)for(let i=0;i<road.points.length-1;i++){const a=road.points[i],b=road.points[i+1],list=[...new Set(marks.get(road)[i])].sort((u,v)=>roadPointParameter(a,b,u)-roadPointParameter(a,b,v));for(let j=1;j<list.length;j++){const u=list[j-1],v=list[j],d=dist(u,v);if(d>0.5)edges.push({a:u,b:v,d,road});}}const adjacency=new Map(nodes.map(n=>[n,[]]));for(const e of edges){adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});adjacency.get(e.b).push({node:e.a,d:e.d,road:e.road})}const junctions=nodes.filter(n=>isRoadJunctionNode(n,adjacency.get(n)||[]));return{nodes,edges,adjacency,junctions}}
-export function roadTrafficMetrics(s){
-  const segments=[];const byRoad=new Map();
-  for(const road of s.roads||[]){if(!Array.isArray(road.points)||road.points.length<2)continue;const roadSegments=[];const condition=Math.max(0,Math.min(1,Number.isFinite(road.condition)?road.condition:1));for(let i=1;i<road.points.length;i++){const a=road.points[i-1],b=road.points[i],segmentLength=dist(a,b);if(segmentLength<1)continue;const lanes=2;const capacity=Math.max(2,Math.ceil(segmentLength/120)*lanes);const segment={road,index:i-1,a,b,length:segmentLength,lanes,capacity,load:0,congestion:0,speedMultiplier:Math.max(.35,.7+.3*condition)};segments.push(segment);roadSegments.push(segment)}byRoad.set(road.id,roadSegments)}
-  const nearest=(p,maxDistance=48)=>{let best=null,bd=maxDistance;for(const segment of segments){const q=projectSegment(p,segment.a,segment.b);if(q.distance<bd){bd=q.distance;best={segment,projection:q}}}return best};return{segments,byRoad,nearest}}
-export function roadTrafficSegment(s,p,maxDistance=48){return roadTrafficMetrics(s).nearest(p,maxDistance)}
-export function roadTopology(s){const network=roadNetwork(s);const boundaryMinX=WORLD_BOUNDS.minX+WORLD_MARGIN,boundaryMaxX=WORLD_BOUNDS.maxX-WORLD_MARGIN,boundaryMinY=WORLD_BOUNDS.minY+WORLD_MARGIN,boundaryMaxY=WORLD_BOUNDS.maxY-WORLD_MARGIN,boundaryTolerance=3;const topologyNodes=network.nodes.map((node,index)=>{const links=network.adjacency.get(node)||[],roadIds=[...new Set(links.map(link=>link.road?.id).filter(Boolean))],degree=links.length,boundary=Math.abs(node.x-boundaryMinX)<=boundaryTolerance||Math.abs(node.x-boundaryMaxX)<=boundaryTolerance||Math.abs(node.y-boundaryMinY)<=boundaryTolerance||Math.abs(node.y-boundaryMaxY)<=boundaryTolerance,junction=isRoadJunctionNode(node,links);return{id:index,x:node.x,y:node.y,degree,roadIds,boundary,junction,type:junction?(boundary?'boundary-junction':'junction'):(boundary?'boundary':degree===1?'endpoint':'node')}});const junctions=topologyNodes.filter(node=>node.junction);return{...network,topologyNodes,topologyJunctions:junctions,boundaryNodes:topologyNodes.filter(node=>node.boundary),threeWayJunctions:junctions.filter(node=>node.degree===3),fourWayJunctions:junctions.filter(node=>node.degree>=4)}}
+export function roadNetwork(s,extraPoints=[]){const valid=(s.roads||[]).map(r=>({...r,points:validRoadPoints(r?.points,0)})).filter(r=>r.points?.length>=2&&roadWithinWorldBounds(r.points)),nodes=[],edges=[],marks=new Map();for(const road of valid){const segments=road.points.slice(1).map(()=>[]);marks.set(road,segments);for(let i=1;i<road.points.length;i++){segments[i-1].push(addNode(nodes,road.points[i-1]));segments[i-1].push(addNode(nodes,road.points[i]));}}for(let ri=0;ri<valid.length;ri++){const aRoad=valid[ri];for(let qi=ri;qi<valid.length;qi++){const bRoad=valid[qi];for(let i=1;i<aRoad.points.length;i++){const a=aRoad.points[i-1],b=aRoad.points[i],first=aRoad===bRoad?i:1;for(let j=first;j<bRoad.points.length;j++){if(aRoad===bRoad&&i===j)continue;const hit=segmentIntersection(a,b,bRoad.points[j-1],bRoad.points[j]);if(!hit)continue;const n=addNode(nodes,hit);marks.get(aRoad)[i-1].push(n);marks.get(bRoad)[j-1].push(n)}}}}// Treat near-touching endpoints as real graph connections. This keeps persisted roads
+// routable even if a previous edit or save left a junction a few pixels off.
+const junctionTolerance=6;
+for(let ri=0;ri<valid.length;ri++)for(let qi=ri;qi<valid.length;qi++){
+  const aRoad=valid[ri],bRoad=valid[qi];
+  const aEnds=[{index:0,point:aRoad.points[0]},{index:aRoad.points.length-1,point:aRoad.points.at(-1)}];
+  const bEnds=[{index:0,point:bRoad.points[0]},{index:bRoad.points.length-1,point:bRoad.points.at(-1)}];
+  for(const aEnd of aEnds)for(const bEnd of bEnds){
+    if(aRoad===bRoad)continue;
+    if(dist(aEnd.point,bEnd.point)>junctionTolerance)continue;
+    const n=addNode(nodes,{x:(aEnd.point.x+bEnd.point.x)/2,y:(aEnd.point.y+bEnd.point.y)/2});
+    const aSeg=aEnd.index===0?0:aRoad.points.length-2;
+    const bSeg=bEnd.index===0?0:bRoad.points.length-2;
+    marks.get(aRoad)[aSeg].push(n);marks.get(bRoad)[bSeg].push(n);
+  }
+  // An endpoint touching the middle of another road is also a junction.
+  for(const aEnd of aEnds){
+    for(let j=1;j<bRoad.points.length;j++){
+      if(aRoad===bRoad)continue;
+      const q=projectSegment(aEnd.point,bRoad.points[j-1],bRoad.points[j]);
+      if(q.distance>junctionTolerance)continue;
+      const n=addNode(nodes,q.point);
+      marks.get(aRoad)[aEnd.index===0?0:aRoad.points.length-2].push(n);
+      marks.get(bRoad)[j-1].push(n);
+    }
+  }
+}
+for(const p of extraPoints||[]){if(!finitePoint(p))continue;let best=null;for(const road of valid)for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(!best||q.distance<best.distance)best={road,segment:i-1,point:q.point,distance:q.distance}}if(best){const n=addNode(nodes,best.point);marks.get(best.road)[best.segment].push(n)}}for(const road of valid)for(let i=0;i<road.points.length-1;i++){const a=road.points[i],b=road.points[i+1],list=[...new Set(marks.get(road)[i])].sort((u,v)=>roadPointParameter(a,b,u)-roadPointParameter(a,b,v));for(let j=1;j<list.length;j++){const u=list[j-1],v=list[j],d=dist(u,v);if(d>0.5)edges.push({a:u,b:v,d,road});}}const adjacency=new Map(nodes.map(n=>[n,[]]));for(const e of edges){adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});adjacency.get(e.b).push({node:e.a,d:e.d,road:e.road})}const junctions=nodes.filter(n=>(adjacency.get(n)?.length||0)>=3);return{nodes,edges,adjacency,junctions}}
+export function roadTopology(s){
+  const network=roadNetwork(s);
+  const boundaryMinX=WORLD_BOUNDS.minX+WORLD_MARGIN;
+  const boundaryMaxX=WORLD_BOUNDS.maxX-WORLD_MARGIN;
+  const boundaryMinY=WORLD_BOUNDS.minY+WORLD_MARGIN;
+  const boundaryMaxY=WORLD_BOUNDS.maxY-WORLD_MARGIN;
+  const boundaryTolerance=3;
+  const topologyNodes=network.nodes.map((node,index)=>{
+    const links=network.adjacency.get(node)||[];
+    const roadIds=[...new Set(links.map(link=>link.road?.id).filter(Boolean))];
+    const degree=links.length;
+    const boundary=Math.abs(node.x-boundaryMinX)<=boundaryTolerance||Math.abs(node.x-boundaryMaxX)<=boundaryTolerance||Math.abs(node.y-boundaryMinY)<=boundaryTolerance||Math.abs(node.y-boundaryMaxY)<=boundaryTolerance;
+    const junction=degree>=3;
+    return{
+      id:index,
+      x:node.x,
+      y:node.y,
+      degree,
+      roadIds,
+      boundary,
+      junction,
+      type:junction?(boundary?'boundary-junction':'junction'):(boundary?'boundary':degree===1?'endpoint':'node')
+    };
+  });
+  const junctions=topologyNodes.filter(node=>node.junction);
+  return{
+    ...network,
+    topologyNodes,
+    topologyJunctions:junctions,
+    boundaryNodes:topologyNodes.filter(node=>node.boundary),
+    threeWayJunctions:junctions.filter(node=>node.degree===3),
+    fourWayJunctions:junctions.filter(node=>node.degree>=4)
+  };
+}
 function shortestRoadPath(network,a,b){const queue=[{node:a,d:0}],best=new Map([[a,0]]),prev=new Map();while(queue.length){queue.sort((x,y)=>x.d-y.d);const cur=queue.shift();if(cur.d!==best.get(cur.node))continue;if(cur.node===b)break;for(const nx of network.adjacency.get(cur.node)||[]){const nd=cur.d+nx.d;if(nd<(best.get(nx.node)??Infinity)){best.set(nx.node,nd);prev.set(nx.node,cur.node);queue.push({node:nx.node,d:nd})}}}if(!best.has(b))return null;const path=[];let n=b;while(n){path.unshift(n);n=prev.get(n)}return{path,distance:best.get(b)}}
 export function roadAttachment(s,building){if(!building)return null;const limit=Math.max(42,(building.r||25)+18);let best=null;for(const road of s.roads||[]){const points=validRoadPoints(road?.points,0);if(!points)continue;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],q=projectSegment(building,a,b);if(q.distance<=limit&&(!best||q.distance<best.distance))best={road,point:{x:q.point.x,y:q.point.y},distance:q.distance,segment:i-1}}}return best}
-function nearestGraphNode(network,p){let best=null,bd=Infinity;for(const n of network.nodes){const d=dist(n,p);if(d<bd){bd=d;best=n}}return best&&bd<=2.5?best:null}
 export function routeOnRoadNetwork(s,a,b){const aa=roadAttachment(s,a),bb=roadAttachment(s,b);if(!aa||!bb)return null;const network=roadNetwork(s,[aa.point,bb.point]),start=nearestGraphNode(network,aa.point),end=nearestGraphNode(network,bb.point);if(!start||!end)return null;const result=shortestRoadPath(network,start,end);if(!result||result.path.length<2)return null;return{points:result.path.map(p=>({x:p.x,y:p.y})),distance:result.distance,networkDistance:result.distance,start:{x:aa.point.x,y:aa.point.y},end:{x:bb.point.x,y:bb.point.y}}}
-function pointSegmentDistance(p,a,b){return projectSegment(p,a,b).distance}
+function nearestGraphNode(network,p){let best=null,bd=Infinity;for(const n of network.nodes){const d=dist(n,p);if(d<bd){bd=d;best=n}}return best&&bd<=2.5?best:null}
 export function roadPath(s,a,b){const start=snap(s,a),end=snap(s,b);if(dist(start,end)<8)return[start,end];const existing=routeOnRoadNetwork(s,start,end);return existing?existing.points:null}
+function roadDistance(a,b){const ap=a?.points||a,bp=b?.points||b;if(!Array.isArray(ap)||!Array.isArray(bp)||ap.length<2||bp.length<2)return Infinity;let best=Infinity;for(let i=1;i<ap.length;i++){const pa=ap[i-1],pb=ap[i];for(let j=1;j<bp.length;j++){const pc=bp[j-1],pd=bp[j];best=Math.min(best,projectSegment(pa,pc,pd).distance,projectSegment(pb,pc,pd).distance,projectSegment(pc,pa,pb).distance,projectSegment(pd,pa,pb).distance)}}return best}
+function pointSegmentDistance(p,a,b){return projectSegment(p,a,b).distance}
+function normalizeRoadEndpoint(s,p){const b=nearestBuilding(s,p);if(!b||dist(b,p)>88)return p;return buildingConnectionPoint(b,p)}
+function cleanRoadPoints(points){return validRoadPoints(points,0)||[]}
+function segmentNearRiver(a,b,threshold=45){const span=Math.max(1,dist(a,b)),samples=Math.max(3,Math.ceil(span/24));for(let i=0;i<=samples;i++){const t=i/samples,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;if(Math.abs(y-riverY(x))<threshold)return true}return false}
+function roadPathBlocked(s,points,endpointBuildings={}){if(!validRoadPoints(points,0))return true;const startBuilding=endpointBuildings.start||roadBuildingTarget(s,points[0]),endBuilding=endpointBuildings.end||roadBuildingTarget(s,points.at(-1));for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];for(const building of s.buildings||[]){const clearance=(building.r||25)+12,isStart=building===startBuilding&&i===1,isEnd=building===endBuilding&&i===points.length-1;if(isStart||isEnd){if(endpointSegmentBlocked(building,a,b,isStart?'start':'end'))return true;continue}if(pointSegmentDistance(building,a,b)<clearance)return true}}return false}
+function simplifyRoad(points){const p=cleanRoadPoints(points);if(p.length<=2)return p;const out=[p[0]];for(let i=1;i<p.length-1;i++){const a=out.at(-1),b=p[i],c=p[i+1],ab={x:b.x-a.x,y:b.y-a.y},bc={x:c.x-b.x,y:c.y-b.y};if(Math.abs(ab.x*bc.y-ab.y*bc.x)<1.5)continue;out.push(b)}out.push(p.at(-1));return out}
+function candidateRoadPaths(start,end,obstacles=[]){const mx=(start.x+end.x)/2,my=(start.y+end.y)/2,candidates=[[start,end],[start,{x:end.x,y:start.y},end],[start,{x:start.x,y:end.y},end],[start,{x:mx,y:start.y},{x:mx,y:end.y},end],[start,{x:start.x,y:my},{x:end.x,y:my},end]];for(const b of obstacles){const clearance=(b.r||25)+18,left=b.x-clearance,right=b.x+clearance,top=b.y-clearance,bottom=b.y+clearance;candidates.push([start,{x:start.x,y:top},{x:end.x,y:top},end],[start,{x:start.x,y:bottom},{x:end.x,y:bottom},end],[start,{x:left,y:start.y},{x:left,y:end.y},end],[start,{x:right,y:start.y},{x:right,y:end.y},end],[start,{x:start.x,y:top},{x:right,y:top},{x:right,y:end.y},end],[start,{x:start.x,y:bottom},{x:right,y:bottom},{x:right,y:end.y},end],[start,{x:left,y:start.y},{x:left,y:top},{x:end.x,y:top},{x:end.x,y:end.y},end],[start,{x:left,y:start.y},{x:left,y:bottom},{x:end.x,y:bottom},{x:end.x,y:end.y},end])}return candidates}
+function routeBendPenalty(path){return Math.max(0,path.length-2)*18}
+function orthogonalObstaclePath(s,start,end,endpointBuildings={}){const obstacles=(s.buildings||[]).filter(b=>b!==endpointBuildings.start&&b!==endpointBuildings.end);if(!obstacles.length)return null;const xs=[start.x,end.x],ys=[start.y,end.y];for(const b of obstacles){const clearance=(b.r||25)+18;xs.push(b.x-clearance,b.x+clearance);ys.push(b.y-clearance,b.y+clearance)}const uniq=a=>[...new Set(a.map(v=>Math.round(v*10)/10))].sort((a,b)=>a-b),xvals=uniq(xs),yvals=uniq(ys),nodes=[],byKey=new Map(),key=(x,y)=>x+','+y;for(const x of xvals)for(const y of yvals){const p={x,y};if(roadPathBlocked(s,[p,p],endpointBuildings))continue;const n={x,y,edges:[]};nodes.push(n);byKey.set(key(x,y),n)}const clearSegment=(a,b)=>!roadPathBlocked(s,[a,b],endpointBuildings);for(const y of yvals){const row=nodes.filter(n=>n.y===y).sort((a,b)=>a.x-b.x);for(let i=1;i<row.length;i++){const a=row[i-1],b=row[i];if(clearSegment(a,b)){const d=dist(a,b);a.edges.push({node:b,d});b.edges.push({node:a,d})}}}for(const x of xvals){const col=nodes.filter(n=>n.x===x).sort((a,b)=>a.y-b.y);for(let i=1;i<col.length;i++){const a=col[i-1],b=col[i];if(clearSegment(a,b)){const d=dist(a,b);a.edges.push({node:b,d});b.edges.push({node:a,d})}}}const startNode={x:start.x,y:start.y,edges:[]},endNode={x:end.x,y:end.y,edges:[]},attach=(p,node)=>{for(const n of nodes){if(n.x===p.x&&n.y===p.y)continue;const d=dist(p,n);if(p.x===n.x||p.y===n.y)if(clearSegment(p,n))node.edges.push({node:n,d})}};attach(start,startNode);attach(end,endNode);nodes.push(startNode,endNode);const queue=[{node:startNode,d:0}],best=new Map([[startNode,0]]),prev=new Map();while(queue.length){queue.sort((a,b)=>a.d-b.d);const cur=queue.shift();if(cur.d!==best.get(cur.node))continue;if(cur.node===endNode)break;for(const e of cur.node.edges){const nd=cur.d+e.d;if(nd<(best.get(e.node)??Infinity)){best.set(e.node,nd);prev.set(e.node,cur.node);queue.push({node:e.node,d:nd})}}}if(!best.has(endNode))return null;const path=[];let n=endNode;while(n){path.unshift({x:n.x,y:n.y});n=prev.get(n)}return simplifyRoad(path)}
+function chooseRoadPath(s,start,end,endpointBuildings={}){const obstacles=(s.buildings||[]).filter(b=>b!==endpointBuildings.start&&b!==endpointBuildings.end),candidates=candidateRoadPaths(start,end,obstacles).map(simplifyRoad),routed=orthogonalObstaclePath(s,start,end,endpointBuildings);if(routed)candidates.push(routed);const clear=candidates.filter(path=>!roadPathBlocked(s,path,endpointBuildings));if(clear.length)return clear.sort((a,b)=>length(a)+routeBendPenalty(a)-(length(b)+routeBendPenalty(b)))[0];return null}
+function snapToWorldEdge(p){
+  if(!finitePoint(p))return null;
+  const minX=WORLD_BOUNDS.minX+WORLD_MARGIN,maxX=WORLD_BOUNDS.maxX-WORLD_MARGIN;
+  const minY=WORLD_BOUNDS.minY+WORLD_MARGIN,maxY=WORLD_BOUNDS.maxY-WORLD_MARGIN;
+  const xEdge=p.x<=minX+WORLD_EDGE_SNAP_DISTANCE?minX:p.x>=maxX-WORLD_EDGE_SNAP_DISTANCE?maxX:null;
+  const yEdge=p.y<=minY+WORLD_EDGE_SNAP_DISTANCE?minY:p.y>=maxY-WORLD_EDGE_SNAP_DISTANCE?maxY:null;
+  if(xEdge===null&&yEdge===null)return null;
+  return{
+    x:xEdge===null?p.x:xEdge,
+    y:yEdge===null?p.y:yEdge,
+    distance:Math.min(xEdge===null?Infinity:Math.abs(p.x-xEdge),yEdge===null?Infinity:Math.abs(p.y-yEdge)),
+    edgeSnapped:true,
+    edgeX:xEdge!==null,
+    edgeY:yEdge!==null
+  };
+}
+export function roadTarget(s,p){return roadTargetInternal(s,p)}
+function roadTargetInternal(s,p){
+  if(!finitePoint(p))return null;
+  if(p.building&&Number.isFinite(p.building.x))return buildingConnectionPoint(p.building,p);
+  if(p.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))return{x:p.x,y:p.y,road:p.road,distance:0};
+  const building=roadBuildingTarget(s,p);if(building)return buildingConnectionPoint(building,p);
+  const road=nearestRoad(s,p);if(road)return{x:road.x,y:road.y,road:road.road,distance:road.distance};
+  const edge=snapToWorldEdge(p);if(edge)return edge;
+  const grid=12,snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
+  return{x:snapped.x,y:snapped.y,distance:Infinity,gridSnapped:true};
+}
+export function roadPreview(s,a,b){const start=roadTargetInternal(s,a),end=roadTargetInternal(s,b);if(!start||!end)return null;const startBuilding=start.building,endBuilding=end.building;if(startBuilding&&endBuilding&&startBuilding!==endBuilding){const sa=buildingConnectionPoint(startBuilding,endBuilding),eb=buildingConnectionPoint(endBuilding,startBuilding),path=chooseRoadPath(s,sa,eb,{start:startBuilding,end:endBuilding});if(!path)return{path:[sa,eb],start:sa,end:eb,snappedStart:true,snappedEnd:true,connectsBuilding:true,connectsRoad:false,blocked:true,length:Infinity,cost:Infinity};const boundary=validateRoadGeometry(path);
+    const roadLength=length(path);
+    return{path,start:sa,end:eb,snappedStart:true,snappedEnd:true,connectsBuilding:true,connectsRoad:false,blocked:!boundary.ok,length:roadLength,blockedReason:boundary.ok?null:boundary.reason,cost:boundary.ok?Math.max(1,Math.ceil(roadLength/180))*2:Infinity}}
+const path=chooseRoadPath(s,start,end,{start:startBuilding,end:endBuilding});
+const boundary=validateRoadGeometry(path||[start,end]);
+const blocked=!boundary.ok||!path||roadPathBlocked(s,path,{start:startBuilding,end:endBuilding});
+const roadLength=path?length(path):Infinity;
+return{path:path||[start,end],start,end,snappedStart:Number.isFinite(start.distance),snappedEnd:Number.isFinite(end.distance),edgeSnappedStart:!!start.edgeSnapped,edgeSnappedEnd:!!end.edgeSnapped,gridSnappedStart:!!start.gridSnapped,gridSnappedEnd:!!end.gridSnapped,connectsBuilding:!!start.building||!!end.building,connectsRoad:!!start.road||!!end.road,blocked,blockedReason:!boundary.ok?boundary.reason:null,length:roadLength,cost:Number.isFinite(roadLength)?Math.max(1,Math.ceil(roadLength/180))*2:Infinity}}
+function splitRoadAtPoint(s,road,p,tolerance=6){if(!road?.points||road.points.length<2||!finitePoint(p))return false;for(let i=1;i<road.points.length;i++){const a=road.points[i-1],b=road.points[i],q=projectSegment(p,a,b);if(q.distance>tolerance)continue;if(dist(q.point,a)<=tolerance||dist(q.point,b)<=tolerance)return false;const left=[...road.points.slice(0,i),q.point],right=[q.point,...road.points.slice(i)];if(!validRoadPoints(left)||!validRoadPoints(right))return false;road.points=left;s.roads.push({id:newId(),points:right,age:road.age||0,bridge:road.bridge||false,condition:Number.isFinite(road.condition)?road.condition:1});return true}return false}
+function reconcileRoadJunctions(s,points,meta={}){
+  const endpoints=[{index:0,building:meta.startBuilding},{index:points.length-1,building:meta.endBuilding}];
+  for(const endpoint of endpoints){
+    if(endpoint.building)continue;
+    const target=points[endpoint.index];
+    let best=null;
+    for(const road of s.roads||[]){
+      if(road.points===points)continue;
+      for(let i=1;i<road.points.length;i++){
+        const q=projectSegment(target,road.points[i-1],road.points[i]);
+        if(!best||q.distance<best.distance)best={road,point:q.point,distance:q.distance};
+      }
+    }
+    if(best&&best.distance<=6){
+      points[endpoint.index]={x:best.point.x,y:best.point.y};
+      splitRoadAtPoint(s,best.road,best.point,6);
+    }
+  }
+}
+function collinearOverlapLength(a,b,c,d){const ab={x:b.x-a.x,y:b.y-a.y},len=Math.hypot(ab.x,ab.y);if(len<1e-9)return 0;const cross=(p,q)=>p.x*q.y-p.y*q.x,ac={x:c.x-a.x,y:c.y-a.y},ad={x:d.x-a.x,y:d.y-a.y};if(Math.abs(cross(ab,ac))>1e-6*len||Math.abs(cross(ab,ad))>1e-6*len)return 0;const ux=ab.x/len,uy=ab.y/len,cproj=ac.x*ux+ac.y*uy,dproj=ad.x*ux+ad.y*uy;return Math.max(0,Math.min(len,Math.max(cproj,dproj))-Math.max(0,Math.min(cproj,dproj)))}
+function roadsHaveMeaningfulOverlap(a,b){const ap=a?.points||[],bp=b?.points||[];if(ap.length<2||bp.length<2)return false;let overlap=0;for(let i=1;i<ap.length;i++)for(let j=1;j<bp.length;j++)overlap=Math.max(overlap,collinearOverlapLength(ap[i-1],ap[i],bp[j-1],bp[j]));const aLen=length(ap),bLen=length(bp);return overlap>=24||overlap>=Math.min(aLen,bLen)*.65}
+function roadGeometrySignature(road){return(road?.points||[]).map(p=>`${Math.round(p.x*10)/10},${Math.round(p.y*10)/10}`).join('|')}
+function normalizeRoadGeometry(road){if(!road?.points)return null;const points=simplifyRoad(road.points);const validation=validateRoadGeometry(points);if(!validation.ok)return null;const bridge=points.some((p,i)=>i?segmentNearRiver(points[i-1],p):false);return{...road,points,bridge,age:Number.isFinite(road.age)?road.age:0,condition:Number.isFinite(road.condition)?Math.max(0,Math.min(1,road.condition)):1}}
+function roadsExactlyDuplicate(a,b){if(!a?.points||!b?.points)return false;if(roadGeometrySignature(a)===roadGeometrySignature(b))return true;return roadGeometrySignature({...a,points:[...a.points].reverse()})===roadGeometrySignature(b)}
+function invalidateTrucksForRoads(s,roads){const removed=new Set(roads);for(const truck of s.trucks||[])if((truck.routeSegments||[]).some(r=>removed.has(r))||roads.some(r=>routeTouchesRoad(truck.route,r)))truck.routeInvalidated=true}
+function cloneRoadState(roads){return (roads||[]).map(road=>({...road,points:(road.points||[]).map(safePoint)}));}
+function validateRoadNetworkState(s){
+  const seen=new Set();
+  for(const road of s.roads||[]){
+    if(!road?.id||seen.has(road.id))return false;
+    seen.add(road.id);
+    const normalized=normalizeRoadGeometry(road);
+    if(!normalized||normalized.points.length<2)return false;
+  }
+  return true;
+}
+function commitRoadMutation(s,mutator){
+  const before=cloneRoadState(s.roads);
+  try{mutator();cleanupRoadNetwork(s);if(!validateRoadNetworkState(s))throw new Error('invalid-road-network');}
+  catch{ s.roads=before; return false; }
+  const affected=[...before,...(s.roads||[])];
+  invalidateTrucksForRoads(s,affected.filter((road,index)=>index===affected.findIndex(r=>r.id===road.id)));
+  return true;
+}
+export function cleanupRoadNetwork(s){const original=[...(s.roads||[])],kept=[],removed=[];for(const road of original){const normalized=normalizeRoadGeometry(road);if(!normalized){removed.push(road);continue}if(kept.some(existing=>roadsExactlyDuplicate(existing,normalized)||roadsHaveMeaningfulOverlap(existing,normalized))){removed.push(road);continue}kept.push(normalized)}s.roads=kept;if(removed.length)invalidateTrucksForRoads(s,removed);return{removed,roads:s.roads}}
+export function addRoad(s,points,meta={}){
+  const validation=validateRoadGeometry(points);
+  if(!validation.ok){
+    const raw=validRoadPoints(points,0);
+    if(raw&&length(raw)<12)return'too-short';
+    return'boundary';
+  }
+  const clean=validation.points,roadLength=length(clean);
+  if(!Number.isFinite(roadLength))return'invalid';
+  if(roadLength<12){
+    const a=meta.startBuilding||roadBuildingTarget(s,clean[0]),b=meta.endBuilding||roadBuildingTarget(s,clean.at(-1));
+    if(!a||!b||a===b)return'too-short';
+  }
+  if(roadPathBlocked(s,clean,{start:meta.startBuilding,end:meta.endBuilding}))return'blocked';
+  const cost=Math.max(1,Math.ceil(roadLength/180))*2;
+  if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';
+  if((s.roads||[]).some(r=>(roadDistance(r,clean)<12&&Math.abs(length(r.points)-roadLength)<24)||roadsHaveMeaningfulOverlap(r,{points:clean})))return'duplicate';
+  const road={id:newId(),points:clean.map(safePoint),age:0,bridge:clean.some((p,i)=>i?segmentNearRiver(clean[i-1],p):false),condition:1};
+  const previousCash=s.cash;
+  s.roads.push(road);
+  cleanupRoadNetwork(s);
+  const committed=s.roads.find(r=>r?.id===road.id);
+  if(!committed){
+    s.cash=previousCash;
+    return'duplicate';
+  }
+  s.cash-=cost;
+  reconcileRoadJunctions(s,committed.points,meta);
+  cleanupRoadNetwork(s);
+  return true;
+}
+function routeTouchesRoad(route,road,tolerance=3){if(!Array.isArray(route)||route.length<2||!road?.points||road.points.length<2)return false;for(let i=1;i<route.length;i++){const a=route[i-1],b=route[i];for(let j=1;j<road.points.length;j++){const c=road.points[j-1],d=road.points[j],ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y},cross=Math.abs(ab.x*cd.y-ab.y*cd.x),aligned=cross<=1e-6*Math.max(1,Math.hypot(ab.x,ab.y)*Math.hypot(cd.x,cd.y));if(aligned){if(collinearOverlapLength(a,b,c,d)>tolerance)return true}else if(segmentDistance(a,b,c,d)<=tolerance&&segmentDistance(a,b,c,d)>tolerance*.25)return true}}return false}
+function segmentDistance(a,b,c,d){const cross=(u,v)=>u.x*v.y-u.y*v.x,ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y},ac={x:c.x-a.x,y:c.y-a.y},den=cross(ab,cd);if(Math.abs(den)>1e-9){const t=cross(ac,cd)/den,u=cross(ac,ab)/den;if(t>=0&&t<=1&&u>=0&&u<=1)return 0}return Math.min(pointSegmentDistance(a,c,d),pointSegmentDistance(b,c,d),pointSegmentDistance(c,a,b),pointSegmentDistance(d,a,b))}
+function roadAtPoint(s,p,tolerance=24){if(!finitePoint(p))return null;let hit=null,bd=tolerance;for(const r of s.roads||[]){const points=validRoadPoints(r?.points,0);if(!points)continue;const q=projectOnPolyline(points,p);if(q&&q.distance<bd){bd=q.distance;hit={road:r,projection:q}}}return hit}
+export function roadSegmentAtPoint(s,p,tolerance=24){const hit=roadAtPoint(s,p,tolerance);if(!hit)return null;const segment=hit.projection.segment;if(!Number.isInteger(segment)||segment<0||segment>=hit.road.points.length-1)return null;return{road:hit.road,roadId:hit.road.id,segment,point:hit.projection.point,distance:hit.projection.distance}}
+export function editRoadSegment(s,p,action='delete'){
+  const hit=roadAtPoint(s,p);if(!hit)return false;
+  const{road,projection}=hit,i=projection.segment;
+  if(!Number.isInteger(i)||i<0||i>=road.points.length-1)return false;
+  if(action==='delete'){
+    const removedStart=safePoint(road.points[i]),removedEnd=safePoint(road.points[i+1]);
+    const left=road.points.slice(0,i+1),right=road.points.slice(i+1),replacements=[];
+    if(left.length>=2&&length(left)>=12)replacements.push({...road,points:left,id:newId()});
+    if(right.length>=2&&length(right)>=12)replacements.push({...road,points:right,id:newId()});
+    const idx=s.roads.indexOf(road);if(idx<0)return false;
+    const ok=commitRoadMutation(s,()=>s.roads.splice(idx,1,...replacements));
+    if(!ok)return false;
+    for(const truck of s.trucks||[])if(routeTouchesRoad(truck.route,{points:[removedStart,removedEnd]}))truck.routeInvalidated=true;
+    return{road,segments:replacements,point:projection.point,action:'delete'};
+  }
+  if(action!=='split')return false;
+  const q=safePoint(projection.point),left=[...road.points.slice(0,i+1),q],right=[q,...road.points.slice(i+1)];
+  if(!validRoadPoints(left)||!validRoadPoints(right))return false;
+  const replacement=[{...road,points:left,id:newId()},{...road,points:right,id:newId()}],idx=s.roads.indexOf(road);
+  if(idx<0)return false;
+  if(!commitRoadMutation(s,()=>s.roads.splice(idx,1,...replacement)))return false;
+  return{road,segments:replacement,point:q,action:'split'};
+}
+function roadEndpointCandidate(s,p,maxDistance=24){if(!finitePoint(p))return null;let best=null;for(const road of s.roads||[]){if(!validRoadPoints(road?.points,0))continue;for(const index of [0,road.points.length-1]){const q=road.points[index],d=dist(q,p);if(d<=maxDistance&&(!best||d<best.distance))best={road,index,point:{x:q.x,y:q.y},distance:d}}}return best}
+export function roadEndpointAtPoint(s,p,tolerance=28){const hit=roadEndpointCandidate(s,p,tolerance);if(!hit)return null;return{road:hit.road,roadId:hit.road.id,index:hit.index,point:hit.point,distance:hit.distance}}
+function endpointTarget(s,p,road,index){const building=roadBuildingTarget(s,p);if(building){const q=buildingConnectionPoint(building,p);return{x:q.x,y:q.y,building}}const roadHit=snapRoadPoint(s,p,24);if(roadHit&&roadHit.road!==road)return{x:roadHit.x,y:roadHit.y,road:roadHit.road};const endpoint=roadEndpointCandidate(s,p,24);if(endpoint&&endpoint.road!==road)return{x:endpoint.point.x,y:endpoint.point.y,road:endpoint.road};const edge=snapToWorldEdge(p);if(edge)return edge;
+const grid=12;const snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
+return isInsideWorldBounds(snapped)?snapped:{x:Math.max(WORLD_BOUNDS.minX+WORLD_MARGIN,Math.min(WORLD_BOUNDS.maxX-WORLD_MARGIN,snapped.x)),y:Math.max(WORLD_BOUNDS.minY+WORLD_MARGIN,Math.min(WORLD_BOUNDS.maxY-WORLD_MARGIN,snapped.y))}}
+export function roadEndpointPreview(s,road,index,p){if(!road?.points||!Number.isInteger(index)||!road.points[index]||!finitePoint(p))return null;const target=endpointTarget(s,p,road,index),points=road.points.map(q=>safePoint(q));points[index]={x:target.x,y:target.y};const clean=simplifyRoad(points),boundary=validateRoadGeometry(clean),lengthValue=length(clean),meta={startBuilding:index===0?target.building:null,endBuilding:index===clean.length-1?target.building:null},blocked=clean.length<2||lengthValue<12||roadPathBlocked(s,clean,meta),otherRoads=(s.roads||[]).filter(r=>r!==road),duplicate=otherRoads.some(r=>roadsHaveMeaningfulOverlap(r,{points:clean}));return{road,roadId:road.id,index,target,point:target,edgeSnapped:!!target.edgeSnapped,path:clean,blocked:blocked||!boundary.ok,blockedReason:boundary.ok?null:boundary.reason,duplicate,length:lengthValue}}
+export function editRoadEndpoint(s,roadId,index,p){
+  const road=(s.roads||[]).find(r=>r?.id===roadId);
+  if(!road?.points||!Number.isInteger(index)||index<0||index>=road.points.length)return false;
+  const preview=roadEndpointPreview(s,road,index,p);
+  if(!preview||preview.blocked||preview.duplicate)return false;
+  const oldPoints=road.points.map(safePoint),oldEndpoint=oldPoints[index],clean=preview.path;
+  if(dist(oldEndpoint,clean[index])<2)return false;
+  const bridge=clean.some((point,i)=>i?segmentNearRiver(clean[i-1],point):false);
+  const next={...road,points:clean,bridge,condition:Number.isFinite(road.condition)?road.condition:1};
+  const idx=s.roads.indexOf(road);if(idx<0)return false;
+  const targetRoad=preview.target?.road||null,targetBefore=targetRoad?targetRoad.points.map(safePoint):null;
+  const junctionPoint={x:preview.target.x,y:preview.target.y};
+  const ok=commitRoadMutation(s,()=>{
+    s.roads.splice(idx,1,next);
+    const liveTarget=targetRoad&&s.roads.includes(targetRoad)?targetRoad:null;
+    if(liveTarget){
+      splitRoadAtPoint(s,liveTarget,junctionPoint,6);
+      next.points[index]=junctionPoint;
+    }else if(preview.target?.road){
+      next.points[index]=junctionPoint;
+    }
+  });
+  if(!ok)return false;
+  for(const truck of s.trucks||[]){
+    if(routeTouchesRoad(truck.route,{points:oldPoints},4))truck.routeInvalidated=true;
+    if(targetBefore&&routeTouchesRoad(truck.route,{points:targetBefore},4))truck.routeInvalidated=true;
+  }
+  return{road:next,oldPoints,point:{x:next.points[index].x,y:next.points[index].y},target:preview.target,affected:[road,targetRoad].filter(Boolean)};
+}
+export function eraseRoad(s,p){const hit=roadAtPoint(s,p);if(!hit)return false;const{road}=hit;s.roads=s.roads.filter(r=>r!==road);cleanupRoadNetwork(s);invalidateTrucksForRoads(s,[road]);return true}
