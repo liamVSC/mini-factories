@@ -88,6 +88,40 @@ for(let ri=0;ri<valid.length;ri++)for(let qi=ri;qi<valid.length;qi++){
   }
 }
 for(const p of extraPoints||[]){if(!finitePoint(p))continue;let best=null;for(const road of valid)for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(!best||q.distance<best.distance)best={road,segment:i-1,point:q.point,distance:q.distance}}if(best){const n=addNode(nodes,best.point);marks.get(best.road)[best.segment].push(n)}}for(const road of valid)for(let i=0;i<road.points.length-1;i++){const a=road.points[i],b=road.points[i+1],list=[...new Set(marks.get(road)[i])].sort((u,v)=>roadPointParameter(a,b,u)-roadPointParameter(a,b,v));for(let j=1;j<list.length;j++){const u=list[j-1],v=list[j],d=dist(u,v);if(d>0.5)edges.push({a:u,b:v,d,road});}}const adjacency=new Map(nodes.map(n=>[n,[]]));for(const e of edges){adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});adjacency.get(e.b).push({node:e.a,d:e.d,road:e.road})}const junctions=nodes.filter(n=>(adjacency.get(n)?.length||0)>=3);return{nodes,edges,adjacency,junctions}}
+export function roadTrafficMetrics(s){
+  const segments=[];
+  const byRoad=new Map();
+  for(const road of s.roads||[]){
+    if(!Array.isArray(road.points)||road.points.length<2)continue;
+    const roadSegments=[];
+    const condition=Math.max(0,Math.min(1,Number.isFinite(road.condition)?road.condition:1));
+    for(let i=1;i<road.points.length;i++){
+      const a=road.points[i-1],b=road.points[i],segmentLength=dist(a,b);
+      if(segmentLength<1)continue;
+      const lanes=2;
+      const capacity=Math.max(2,Math.ceil(segmentLength/120)*lanes);
+      const segment={road,index:i-1,a,b,length:segmentLength,lanes,capacity,load:0,congestion:0,speedMultiplier:Math.max(.35,.7+.3*condition)};
+      segments.push(segment);
+      roadSegments.push(segment);
+    }
+    byRoad.set(road.id,roadSegments);
+  }
+  const nearest=(p,maxDistance=48)=>{
+    let best=null,bd=maxDistance;
+    for(const segment of segments){
+      const q=projectSegment(p,segment.a,segment.b);
+      if(q.distance<bd){bd=q.distance;best={segment,projection:q}}
+    }
+    return best;
+  };
+  return{segments,byRoad,nearest};
+}
+
+export function roadTrafficSegment(s,p,maxDistance=48){
+  const metrics=roadTrafficMetrics(s);
+  return metrics.nearest(p,maxDistance);
+}
+
 export function roadTopology(s){
   const network=roadNetwork(s);
   const boundaryMinX=WORLD_BOUNDS.minX+WORLD_MARGIN;
