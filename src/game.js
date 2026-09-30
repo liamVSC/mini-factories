@@ -3,8 +3,9 @@ import {seed,nearestBuilding,buildingAtPoint,roadBuildingTarget,nearestRoad,road
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.25';
+const GAME_VERSION='1.0.26';
 const CHANGELOG=[
+  {version:'1.0.26',date:'30 Sep 2026',items:['Fixed junction movement classification so straight-through traffic is treated as straight instead of being misclassified by direction vectors.','Added visible junction control lines aligned to the active left-hand traffic lane and made spawned trucks explicitly lane-aware.']},
   {version:'1.0.25',date:'30 Sep 2026',items:['Hardened traffic right-of-way with explicit junction reservations so conflicting movements cannot enter the same junction together.','Added UK-style left-hand traffic lane positioning and crossing protection for routes whose junction point is not an explicit route vertex.']},
   {version:'1.0.23',date:'30 Sep 2026',items:['Fixed road drawing from buildings so the road connection point dynamically faces the destination building instead of starting on the wrong side.','Expanded building connection snapping and endpoint tolerance so roads can reliably reach nearby building facades without being blocked prematurely.']},
   {version:'1.0.22',date:'30 Sep 2026',items:['Improved mobile building and road hit areas so taps do not require pixel-perfect placement.','Added short access aprons between connected roads and building facades for a cleaner visual transition.']},
