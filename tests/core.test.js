@@ -5,7 +5,7 @@ globalThis.innerWidth=1280;
 globalThis.innerHeight=720;
 
 const {freshState,makeBuilding,hydrate,serialise}=await import('../src/state.js');
-const {pointOnRoute,length,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview}=await import('../src/world.js');
+const {pointOnRoute,length,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget}=await import('../src/world.js');
 const {updateEconomy}=await import('../src/economy.js');
 
 const route=[{x:0,y:0},{x:100,y:0}];
@@ -303,6 +303,24 @@ test('erasing a connecting road removes the route and prevents new dispatches',(
   shop.demand=4;
   updateEconomy(s,2,()=>{});
   assert.equal(s.trucks.length,0);
+});
+
+test('road endpoint targeting uses tight building and road snap zones',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  s.buildings.push(factory);
+  s.roads.push({id:'road-1',points:[{x:120,y:-80},{x:120,y:80}],bridge:false,condition:1,age:0});
+
+  const building=roadTarget(s,{x:50,y:0});
+  assert.equal(building.building,factory);
+
+  const road=roadTarget(s,{x:120,y:30});
+  assert.ok(road.road);
+
+  const free=roadTarget(s,{x:400,y:401});
+  assert.equal(free.gridSnapped,true);
+  assert.equal(free.x%12,0);
+  assert.equal(free.y%12,0);
 });
 
 test('road preview snaps to buildings, roads and the placement grid',()=>{
