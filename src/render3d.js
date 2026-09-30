@@ -1,4 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm';
+import {riverY} from './world.js';
 
 let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null;
 let target={x:0,z:0,yaw:0,pitch:.82,distance:620};
@@ -149,7 +150,16 @@ function init(canvas){
   scene.add(new THREE.HemisphereLight('#f7f2df','#68745e',2.1));
   const sun=new THREE.DirectionalLight('#fff1cf',3.2);sun.position.set(-240,320,180);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
   const ground=box(2600,2,2600,'#b7c79d');ground.position.y=-1;ground.receiveShadow=true;scene.add(ground);
-  const water=box(2600,.7,78,'#5f9db3');water.position.set(0,.1,0);scene.add(water);
+  const river=new THREE.Group();
+  const riverWidth=82,riverStart=-1300,riverStep=44;
+  for(let x=riverStart;x<=1300;x+=riverStep){
+    const x2=Math.min(1300,x+riverStep+8),mid=(x+x2)/2,dy=riverY(x2)-riverY(x),angle=Math.atan2(dy,x2-x);
+    const segment=box(Math.hypot(x2-x,dy)+10,.7,riverWidth,'#5f9db3');
+    segment.position.set(mid,.1,(riverY(x)+riverY(x2))/2);
+    segment.rotation.y=-angle;
+    river.add(segment);
+  }
+  scene.add(river);
   resize(canvas.clientWidth||innerWidth,canvas.clientHeight||innerHeight);
 }
 function resize(w,h){
