@@ -387,7 +387,6 @@ test('moving a road endpoint onto another road creates a routable junction', () 
   const main = road([{x:-85,y:0},{x:85,y:0}]);
   const branch = road([{x:0,y:80},{x:0,y:150}]);
   s.roads.push(main,branch);
-  const pdebug=roadEndpointPreview(s,branch,0,{x:0,y:3}); console.log('DEBUG_PREVIEW2',JSON.stringify({target:pdebug?.target,path:pdebug?.path,blocked:pdebug?.blocked,duplicate:pdebug?.duplicate,reason:pdebug?.blockedReason}));
   const result = editRoadEndpoint(s,branch.id,0,{x:0,y:3});
   assert.ok(result);
   const routed = routeOnRoadNetwork(s,f,shop);
