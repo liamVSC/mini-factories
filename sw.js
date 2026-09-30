@@ -1,4 +1,4 @@
-const CACHE='mini-factories-v1.0.27';
+const CACHE='mini-factories-v1.0.28';
 const APP_SHELL=[
   './',
   './index.html',
