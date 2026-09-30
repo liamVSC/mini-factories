@@ -3,8 +3,12 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPrevi
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0';
+const GAME_VERSION='1.0.1';
 const CHANGELOG=[
+  {version:'1.0.1',date:'30 Sep 2026',items:[
+    'Fixed the beige screen of death with a mobile-safe renderer fallback when 3D/WebGL startup fails.',
+    'Improved renderer startup resilience so a failed 3D initialization does not leave the game on a blank screen.'
+  ]},
   {version:'1.0',date:'30 Sep 2026',items:[
     'Completed the first mobile-focused UI pass with touch-friendly controls and compact bottom sheets.',
     'Improved road placement, snapping, endpoint editing and road cleanup.',
