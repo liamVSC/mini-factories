@@ -357,7 +357,7 @@ function validateRoadNetworkState(s){
 function commitRoadMutation(s,mutator){
   const before=cloneRoadState(s.roads);
   try{mutator();cleanupRoadNetwork(s);if(!validateRoadNetworkState(s))throw new Error('invalid-road-network');}
-  catch(error){ console.log('DEBUG_COMMIT_ERROR',error?.message||String(error)); s.roads=before; return false; }
+  catch{ s.roads=before; return false; }
   const affected=[...before,...(s.roads||[])];
   invalidateTrucksForRoads(s,affected.filter((road,index)=>index===affected.findIndex(r=>r.id===road.id)));
   return true;
@@ -446,16 +446,16 @@ function endpointTarget(s,p,road,index){
 }
 export function roadEndpointPreview(s,road,index,p){if(!road?.points||!Number.isInteger(index)||!road.points[index]||!finitePoint(p))return null;const target=endpointTarget(s,p,road,index),points=road.points.map(q=>safePoint(q));points[index]={x:target.x,y:target.y};
 const clean=simplifyRoad(points),boundary=validateRoadGeometry(clean),lengthValue=length(clean);
-const meta={startBuilding:index===0?target.building:buildingAtPoint(s,clean[0],0),endBuilding:index===clean.length-1?target.building:buildingAtPoint(s,clean.at(-1),0)};
+const meta={startBuilding:index===0?target.building:roadBuildingTarget(s,clean[0]),endBuilding:index===clean.length-1?target.building:roadBuildingTarget(s,clean.at(-1))};
 const targetRoad=target.road||null;const targetPoint=targetRoad&&target.x!=null?{x:target.x,y:target.y}:null;const targetEndpoints=targetRoad?.points?.length?[targetRoad.points[0],targetRoad.points.at(-1)]:[];const targetIsInterior=!!targetPoint&&targetEndpoints.every(q=>dist(q,targetPoint)>6);const blocked=clean.length<2||lengthValue<12||(target.road?false:roadPathBlocked(s,clean,meta)),otherRoads=(s.roads||[]).filter(r=>r!==road&&(!targetIsInterior||r!==targetRoad)),duplicate=otherRoads.some(r=>roadsHaveMeaningfulOverlap(r,{points:clean}));
 return{road,roadId:road.id,index,target,point:target,edgeSnapped:!!target.edgeSnapped,path:clean,blocked:blocked||!boundary.ok,blockedReason:boundary.ok?null:boundary.reason,duplicate,length:lengthValue}}
 export function editRoadEndpoint(s,roadId,index,p){
   const road=(s.roads||[]).find(r=>r?.id===roadId);
-  if(!road?.points||!Number.isInteger(index)||index<0||index>=road.points.length){console.log('DEBUG_EDIT_FAIL','lookup');return false;}
+  if(!road?.points||!Number.isInteger(index)||index<0||index>=road.points.length)return false;
   const preview=roadEndpointPreview(s,road,index,p);
-  if(!preview||preview.blocked||preview.duplicate){console.log('DEBUG_EDIT_FAIL',JSON.stringify({preview:preview&&{blocked:preview.blocked,duplicate:preview.duplicate,target:preview.target,path:preview.path}}));return false;}
+  if(!preview||preview.blocked||preview.duplicate)return false;
   const oldPoints=road.points.map(safePoint),oldEndpoint=oldPoints[index],clean=preview.path;
-  if(dist(oldEndpoint,clean[index])<2){console.log('DEBUG_EDIT_FAIL','distance');return false;}
+  if(dist(oldEndpoint,clean[index])<2)return false;
   const bridge=clean.some((point,i)=>i?segmentNearRiver(clean[i-1],point):false);
   const next={...road,points:clean,bridge,condition:Number.isFinite(road.condition)?road.condition:1};
   const idx=s.roads.indexOf(road);if(idx<0)return false;
@@ -470,7 +470,7 @@ export function editRoadEndpoint(s,roadId,index,p){
       next.points[index]=junctionPoint;
     }
   });
-  if(!ok){console.log('DEBUG_COMMIT_FAIL',JSON.stringify(s.roads));return false;}
+  if(!ok)return false;
   for(const truck of s.trucks||[]){
     if(routeTouchesRoad(truck.route,{points:oldPoints},4))truck.routeInvalidated=true;
     if(targetBefore&&routeTouchesRoad(truck.route,{points:targetBefore},4))truck.routeInvalidated=true;
