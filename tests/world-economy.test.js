@@ -387,6 +387,7 @@ test('moving a road endpoint onto another road creates a routable junction', () 
   const main = road([{x:-85,y:0},{x:85,y:0}]);
   const branch = road([{x:0,y:80},{x:0,y:150}]);
   s.roads.push(main,branch);
+  const preview=roadEndpointPreview(s,branch,0,{x:0,y:3}); console.log('DEBUG_PREVIEW',JSON.stringify(preview));
   const result = editRoadEndpoint(s,branch.id,0,{x:0,y:3});
   assert.ok(result);
   const routed = routeOnRoadNetwork(s,f,shop);
@@ -406,6 +407,7 @@ test('moving a road endpoint invalidates trucks using the old geometry', () => {
   assert.ok(routed);
   const truck = {id:'endpoint-edit-truck',route:routed.points,t:.4,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10};
   s.trucks.push(truck);
+  const preview=roadEndpointPreview(s,r,1,{x:85,y:120}); console.log('DEBUG_PREVIEW2',JSON.stringify(preview));
   assert.ok(editRoadEndpoint(s,r.id,1,{x:85,y:120}));
   assert.equal(truck.routeInvalidated,true);
 });
