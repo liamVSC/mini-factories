@@ -16,7 +16,8 @@ const {
   roadAttachment,
   routeOnRoadNetwork,
   roadNetwork,
-  cleanupRoadNetwork
+  cleanupRoadNetwork,
+  roadPreview
 } = await import('../src/world.js');
 const {route, updateEconomy} = await import('../src/economy.js');
 
@@ -504,4 +505,21 @@ test('editing a road endpoint keeps an existing junction target routable after c
   const routed = routeOnRoadNetwork(s, f, shop);
   assert.ok(routed);
   assert.ok(routed.points.some(p => Math.abs(p.x)<1e-9 && Math.abs(p.y)<1e-9));
+});
+
+test('road preview from a building faces the destination and snaps to a nearby building', () => {
+  const s = baseState();
+  const start = building('Food', 0, 0);
+  const end = building('Market', 220, 0);
+  s.buildings.push(start, end);
+
+  const preview = roadPreview(s, start, {x: end.x + 52, y: end.y});
+  assert.ok(preview);
+  assert.ok(!preview.blocked);
+  assert.equal(preview.start.building, start);
+  assert.equal(preview.end.building, end);
+  assert.ok(preview.start.x > start.x);
+  assert.ok(preview.end.x < end.x);
+  assert.ok(Math.abs(preview.start.y - start.y) < 1e-9);
+  assert.ok(Math.abs(preview.end.y - end.y) < 1e-9);
 });
