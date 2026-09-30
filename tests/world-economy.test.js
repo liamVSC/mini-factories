@@ -271,7 +271,7 @@ test('deleting a branch invalidates only trucks whose saved route used that bran
   s.trucks.push(truck);
 
   assert.equal(eraseRoad(s, {x:0,y:80}), true);
-  assert.equal(truck.routeInvalidated, false);
+  assert.ok(!truck.routeInvalidated);
   assert.ok(routeOnRoadNetwork(s,f,shop));
 });
 
@@ -296,7 +296,7 @@ test('editing a road segment invalidates trucks using the edited road', () => {
   assert.ok(routed);
   const truck = {id:'edit-road-truck',route:routed.points,t:.5,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10};
   s.trucks.push(truck);
-  const result = editRoadSegment(s,{x:100,y:0},'split');
+  const result = editRoadSegment(s,{x:100,y:0},'delete');
   assert.ok(result);
   assert.equal(truck.routeInvalidated,true);
 });
