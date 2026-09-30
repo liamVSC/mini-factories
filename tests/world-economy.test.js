@@ -175,3 +175,23 @@ test('tiny disconnected road fragments are rejected without mutation', () => {
   assert.equal(s.roads.length, 0);
   assert.equal(s.cash, beforeCash);
 });
+
+
+test('near-road endpoints snap exactly to the existing segment and split it', () => {
+  const s = baseState();
+  s.roads.push(road([{x:0,y:0},{x:200,y:0}]));
+  assert.equal(addRoad(s, [{x:100,y:4},{x:100,y:120}]), true);
+  assert.ok(s.roads.some(r => r.points.some(p => Math.abs(p.x-100)<1e-9 && Math.abs(p.y)<1e-9)));
+  const placed = s.roads.find(r => r.points.some(p => Math.abs(p.y-120)<1e-9));
+  assert.ok(placed);
+  assert.ok(placed.points.some(p => Math.abs(p.x-100)<1e-9 && Math.abs(p.y)<1e-9));
+});
+
+test('partially overlapping roads are rejected without creating duplicate pavement', () => {
+  const s = baseState();
+  assert.equal(addRoad(s, [{x:0,y:0},{x:200,y:0}]), true);
+  const beforeCash = s.cash;
+  assert.equal(addRoad(s, [{x:50,y:0},{x:250,y:0}]), 'duplicate');
+  assert.equal(s.roads.length, 1);
+  assert.equal(s.cash, beforeCash);
+});
