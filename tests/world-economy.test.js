@@ -142,3 +142,36 @@ test('duplicate roads are rejected without charging twice', () => {
   assert.equal(s.roads.length, 1);
   assert.equal(s.cash, cashAfterFirst);
 });
+
+test('placing a road into the middle of an existing road creates a real junction split', () => {
+  const s = baseState();
+  s.roads.push(road([{x:0,y:0},{x:200,y:0}]));
+  const beforeCash = s.cash;
+  assert.equal(addRoad(s, [{x:100,y:0},{x:100,y:120}]), true);
+  assert.equal(s.roads.length, 3);
+  assert.ok(s.roads.some(r => r.points.some(p => Math.abs(p.x-100)<1e-9 && Math.abs(p.y)<1e-9)));
+  assert.ok(s.roads.some(r => r.points.some(p => Math.abs(p.x-100)<1e-9 && Math.abs(p.y-120)<1e-9)));
+  const network = roadNetwork(s);
+  assert.ok(network.nodes.some(n => Math.abs(n.x-100)<1e-9 && Math.abs(n.y)<1e-9));
+  assert.ok(s.cash < beforeCash);
+});
+
+test('a newly connected road is routable through its snapped junction', () => {
+  const s = baseState();
+  const f = building('Food', -40, 0);
+  const shop = building('Market', 100, 120);
+  s.buildings.push(f, shop);
+  s.roads.push(road([{x:-5,y:0},{x:200,y:0}]));
+  assert.equal(addRoad(s, [{x:100,y:0},{x:100,y:120}]), true);
+  const r = routeOnRoadNetwork(s, f, shop);
+  assert.ok(r);
+  assert.ok(r.points.some(p => Math.abs(p.x-100)<1e-9 && Math.abs(p.y)<1e-9));
+});
+
+test('tiny disconnected road fragments are rejected without mutation', () => {
+  const s = baseState();
+  const beforeCash = s.cash;
+  assert.equal(addRoad(s, [{x:0,y:0},{x:5,y:0}]), 'too-short');
+  assert.equal(s.roads.length, 0);
+  assert.equal(s.cash, beforeCash);
+});
