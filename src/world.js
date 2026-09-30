@@ -8,6 +8,28 @@ const validRoadPoints=(points,minLength=12)=>{const clean=[];for(const p of poin
 function projectSegment(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)return{point:{x:a.x,y:a.y},distance:dist(p,a)};const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));const point={x:a.x+dx*t,y:a.y+dy*t};return{point,distance:dist(p,point)}}
 function nearestPointOnRoad(road,p){let best=null,bd=Infinity;for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(q.distance<bd){bd=q.distance;best=q.point}}return best}
 export const riverY=x=>420+Math.sin(x*.002)*35;
+
+// The playable world is defined by the renderer/world coordinate system.
+// Keep the boundary in one place so roads, buildings and future world tools
+// cannot silently disagree about where the player can build.
+export const WORLD_BOUNDS=Object.freeze({
+  minX:-900,maxX:900,minY:-650,maxY:650
+});
+export const WORLD_MARGIN=28;
+export function isInsideWorldBounds(p,margin=WORLD_MARGIN){
+  return finitePoint(p)&&Number(p.x)>=WORLD_BOUNDS.minX+margin&&Number(p.x)<=WORLD_BOUNDS.maxX-margin&&Number(p.y)>=WORLD_BOUNDS.minY+margin&&Number(p.y)<=WORLD_BOUNDS.maxY-margin;
+}
+function roadWithinWorldBounds(points,margin=WORLD_MARGIN){
+  const clean=validRoadPoints(points,0);
+  return !!clean&&clean.every(p=>isInsideWorldBounds(p,margin));
+}
+export function validateRoadGeometry(points){
+  const clean=validRoadPoints(points,12);
+  if(!clean)return{ok:false,reason:'Road is too short or invalid',points:[]};
+  if(!roadWithinWorldBounds(clean))return{ok:false,reason:'Road is outside the playable area',points:clean};
+  return{ok:true,reason:null,points:clean};
+}
+
 export function district(x,y){if(Math.abs(y-riverY(x))<170)return'Riverside';if(x<0&&y<180)return'Industrial';if(x>0&&y>0)return'Market Quarter';return'West End'}
 export function buildingCost(s,type){const base={Steel:260,Food:220,Parts:320,Market:180,Garage:240,Builder:220,Plastics:420,Glass:500,Electronics:520,Furniture:600,Warehouse:700};return Math.round((base[type.name]||300)*Math.pow(1.12,s.buildings.length))}
 export function buildingUnlock(t,s){if(t.unlock&&(s.research?.[t.unlock]||0)<t.unlockLevel)return'Requires '+t.unlock+' research Lv '+t.unlockLevel;const min={Steel:1,Food:1,Parts:2,Market:1,Garage:2,Builder:1,Plastics:1,Glass:2,Electronics:1,Furniture:2,Warehouse:2}[t.name]||1;if(s.companyLevel<min)return'Requires Company Level '+min;return null}
@@ -50,7 +72,7 @@ function chooseRoadPath(s,start,end,endpointBuildings={}){const obstacles=(s.bui
 export function roadTarget(s,p){return roadTargetInternal(s,p)}
 function roadTargetInternal(s,p){if(!finitePoint(p))return null;if(p.building&&Number.isFinite(p.building.x))return buildingConnectionPoint(p.building,p);if(p.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))return{x:p.x,y:p.y,road:p.road,distance:0};const building=roadBuildingTarget(s,p);if(building)return buildingConnectionPoint(building,p);const road=nearestRoad(s,p);if(road)return{x:road.x,y:road.y,road:road.road,distance:road.distance};const grid=12,snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};return{x:snapped.x,y:snapped.y,distance:Infinity,gridSnapped:true}}
 export function roadPreview(s,a,b){const start=roadTargetInternal(s,a),end=roadTargetInternal(s,b);if(!start||!end)return null;const startBuilding=start.building,endBuilding=end.building;if(startBuilding&&endBuilding&&startBuilding!==endBuilding){const sa=buildingConnectionPoint(startBuilding,endBuilding),eb=buildingConnectionPoint(endBuilding,startBuilding),path=chooseRoadPath(s,sa,eb,{start:startBuilding,end:endBuilding});if(!path)return{path:[sa,eb],start:sa,end:eb,snappedStart:true,snappedEnd:true,connectsBuilding:true,connectsRoad:false,blocked:true,length:Infinity,cost:Infinity};const roadLength=length(path);return{path,start:sa,end:eb,snappedStart:true,snappedEnd:true,connectsBuilding:true,connectsRoad:false,blocked:false,length:roadLength,cost:Math.max(1,Math.ceil(roadLength/180))*2}}
-const path=chooseRoadPath(s,start,end,{start:startBuilding,end:endBuilding});const blocked=!path||roadPathBlocked(s,path,{start:startBuilding,end:endBuilding});const roadLength=path?length(path):Infinity;return{path:path||[start,end],start,end,snappedStart:Number.isFinite(start.distance),snappedEnd:Number.isFinite(end.distance),gridSnappedStart:!!start.gridSnapped,gridSnappedEnd:!!end.gridSnapped,connectsBuilding:!!start.building||!!end.building,connectsRoad:!!start.road||!!end.road,blocked,length:roadLength,cost:Number.isFinite(roadLength)?Math.max(1,Math.ceil(roadLength/180))*2:Infinity}}
+const path=chooseRoadPath(s,start,end,{start:startBuilding,end:endBuilding});const blocked=!boundary.ok||roadPathBlocked(s,path,{start:startBuilding,end:endBuilding});const roadLength=path?length(path):Infinity;return{path:path||[start,end],start,end,snappedStart:Number.isFinite(start.distance),snappedEnd:Number.isFinite(end.distance),gridSnappedStart:!!start.gridSnapped,gridSnappedEnd:!!end.gridSnapped,connectsBuilding:!!start.building||!!end.building,connectsRoad:!!start.road||!!end.road,blocked,blockedReason:!boundary.ok?boundary.reason:null,length:roadLength,cost:Number.isFinite(roadLength)?Math.max(1,Math.ceil(roadLength/180))*2:Infinity}}
 function splitRoadAtPoint(s,road,p,tolerance=6){if(!road?.points||road.points.length<2||!finitePoint(p))return false;for(let i=1;i<road.points.length;i++){const a=road.points[i-1],b=road.points[i],q=projectSegment(p,a,b);if(q.distance>tolerance)continue;if(dist(q.point,a)<=tolerance||dist(q.point,b)<=tolerance)return false;const left=[...road.points.slice(0,i),q.point],right=[q.point,...road.points.slice(i)];if(!validRoadPoints(left)||!validRoadPoints(right))return false;road.points=left;s.roads.push({id:newId(),points:right,age:road.age||0,bridge:road.bridge||false,condition:Number.isFinite(road.condition)?road.condition:1});return true}return false}
 function reconcileRoadJunctions(s,points,meta={}){const endpoints=[{index:0,building:meta.startBuilding},{index:points.length-1,building:meta.endBuilding}];for(const endpoint of endpoints){if(endpoint.building)continue;const target=points[endpoint.index];let best=null;for(const road of s.roads||[]){for(let i=1;i<road.points.length;i++){const q=projectSegment(target,road.points[i-1],road.points[i]);if(!best||q.distance<best.distance)best={road,point:q.point,distance:q.distance}}}if(best&&best.distance<=6){points[endpoint.index]={x:best.point.x,y:best.point.y};splitRoadAtPoint(s,best.road,best.point,6)}}}
 function collinearOverlapLength(a,b,c,d){const ab={x:b.x-a.x,y:b.y-a.y},len=Math.hypot(ab.x,ab.y);if(len<1e-9)return 0;const cross=(p,q)=>p.x*q.y-p.y*q.x,ac={x:c.x-a.x,y:c.y-a.y},ad={x:d.x-a.x,y:d.y-a.y};if(Math.abs(cross(ab,ac))>1e-6*len||Math.abs(cross(ab,ad))>1e-6*len)return 0;const ux=ab.x/len,uy=ab.y/len,cproj=ac.x*ux+ac.y*uy,dproj=ad.x*ux+ad.y*uy;return Math.max(0,Math.min(len,Math.max(cproj,dproj))-Math.max(0,Math.min(cproj,dproj)))}
