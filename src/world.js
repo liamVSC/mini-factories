@@ -217,7 +217,20 @@ export function roadTopology(s){
 }
 function shortestRoadPath(network,a,b){const queue=[{node:a,d:0}],best=new Map([[a,0]]),prev=new Map();while(queue.length){queue.sort((x,y)=>x.d-y.d);const cur=queue.shift();if(cur.d!==best.get(cur.node))continue;if(cur.node===b)break;for(const nx of network.adjacency.get(cur.node)||[]){const nd=cur.d+nx.d;if(nd<(best.get(nx.node)??Infinity)){best.set(nx.node,nd);prev.set(nx.node,cur.node);queue.push({node:nx.node,d:nd})}}}if(!best.has(b))return null;const path=[];let n=b;while(n){path.unshift(n);n=prev.get(n)}return{path,distance:best.get(b)}}
 export function roadAttachment(s,building){if(!building)return null;const footprint=buildingFootprint(building);const limit=Math.max(48,Math.hypot(footprint.halfWidth,footprint.halfDepth)+6,(building.r||25)+18);let best=null;for(const road of s.roads||[]){const points=validRoadPoints(road?.points,0);if(!points)continue;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],q=projectSegment(building,a,b);if(q.distance<=limit&&(!best||q.distance<best.distance))best={road,point:{x:q.point.x,y:q.point.y},distance:q.distance,segment:i-1}}}return best}
-export function routeOnRoadNetwork(s,a,b){const aa=roadAttachment(s,a),bb=roadAttachment(s,b);if(!aa||!bb)return null;const network=roadNetwork(s,[aa.point,bb.point]),start=nearestGraphNode(network,aa.point),end=nearestGraphNode(network,bb.point);if(!start||!end)return null;const result=shortestRoadPath(network,start,end);if(!result||result.path.length<2)return null;return{points:result.path.map(p=>({x:p.x,y:p.y})),distance:result.distance,networkDistance:result.distance,start:{x:aa.point.x,y:aa.point.y},end:{x:bb.point.x,y:bb.point.y}}}
+export function routeOnRoadNetwork(s,a,b){const aa=roadAttachment(s,a),bb=roadAttachment(s,b);if(!aa||!bb)return null;const network=roadNetwork(s,[aa.point,bb.point]),start=nearestGraphNode(network,aa.point),end=nearestGraphNode(network,bb.point);if(!start||!end)return null;const result=shortestRoadPath(network,start,end);if(!result||result.path.length<2)return null;
+  const routePoints=result.path.map(p=>({x:p.x,y:p.y}));
+  // Keep canonical junction coordinates in the returned route even when a
+  // graph connection is represented by a virtual endpoint-to-road edge.
+  const canonical=network.junctions||[];
+  for(const junction of canonical){
+    for(let i=1;i<routePoints.length;i++){
+      const a=routePoints[i-1],b=routePoints[i],q=projectSegment(junction,a,b);
+      if(q.distance>2.5||q.t<=1e-6||q.t>=1-1e-6)continue;
+      routePoints.splice(i,0,{x:junction.x,y:junction.y});
+      break;
+    }
+  }
+  return{points:routePoints,distance:result.distance,networkDistance:result.distance,start:{x:aa.point.x,y:aa.point.y},end:{x:bb.point.x,y:bb.point.y}}}
 function nearestGraphNode(network,p){let best=null,bd=Infinity;for(const n of network.nodes){const d=dist(n,p);if(d<bd){bd=d;best=n}}return best&&bd<=2.5?best:null}
 export function roadPath(s,a,b){const start=snap(s,a),end=snap(s,b);if(dist(start,end)<8)return[start,end];const existing=routeOnRoadNetwork(s,start,end);return existing?existing.points:null}
 function roadDistance(a,b){const ap=a?.points||a,bp=b?.points||b;if(!Array.isArray(ap)||!Array.isArray(bp)||ap.length<2||bp.length<2)return Infinity;let best=Infinity;for(let i=1;i<ap.length;i++){const pa=ap[i-1],pb=ap[i];for(let j=1;j<bp.length;j++){const pc=bp[j-1],pd=bp[j];best=Math.min(best,projectSegment(pa,pc,pd).distance,projectSegment(pb,pc,pd).distance,projectSegment(pc,pa,pb).distance,projectSegment(pd,pa,pb).distance)}}return best}
@@ -252,7 +265,7 @@ function roadTargetInternal(s,p){
   if(!finitePoint(p))return null;
   if(p.building&&Number.isFinite(p.building.x))return buildingConnectionPoint(p.building,p);
   if(p.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))return{x:p.x,y:p.y,road:p.road,distance:0};
-  const building=roadBuildingTarget(s,p);if(building)return buildingConnectionPoint(building,p);
+  const building=roadBuildingTarget(s,p);if(building){const q=buildingConnectionPoint(building,p);return{...q,building,distance:0};}
   const road=nearestRoad(s,p);if(road)return{x:road.x,y:road.y,road:road.road,distance:road.distance};
   const edge=snapToWorldEdge(p);if(edge)return edge;
   const grid=12,snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
