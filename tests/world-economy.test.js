@@ -626,41 +626,48 @@ test('factory to shop remains direct when no warehouse is present',()=>{
 test('factory uses warehouse then warehouse supplies the shop',()=>{
   const s=baseState();
   const f=building('Food',0,0);
-  const warehouse=building('Warehouse',110,0);
-  const shop=building('Market',220,0);
+  const warehouse=building('Warehouse',100,0);
+  const shop=building('Market',200,0);
   f.stock=3;shop.demand=3;
   s.buildings.push(f,warehouse,shop);
   s.roads.push(
-    road([{x:35,y:0},{x:62,y:0}]),
-    road([{x:62,y:0},{x:158,y:0}]),
-    road([{x:158,y:0},{x:185,y:0}])
+    road([{x:0,y:0},{x:100,y:0}]),
+    road([{x:100,y:0},{x:200,y:0}])
   );
-  let sawWarehouseTransfer=false;
-  let sawRetailDelivery=false;
-  for(let i=0;i<240&&s.orders<1;i++){
-    updateEconomy(s,.2,()=>{});
-    sawWarehouseTransfer ||= s.trucks.some(t=>t.stage==='warehouse');
-    sawRetailDelivery ||= s.trucks.some(t=>t.stage==='delivery'&&t.source?.kind==='warehouse');
-  }
-  assert.ok(sawWarehouseTransfer,'factory should dispatch into the warehouse');
-  assert.ok(sawRetailDelivery||s.orders>=1,'warehouse should dispatch toward the shop');
-  assert.ok(s.orders>=1);
+
+  updateEconomy(s,1.2,()=>{});
+  assert.equal(s.trucks.length,1);
+  assert.equal(s.trucks[0].stage,'warehouse');
+  s.trucks[0].t=.999;
+  updateEconomy(s,.1,()=>{});
+  assert.equal(s.trucks.length,0);
+  assert.equal(warehouse.inventory.Food,3);
+
+  updateEconomy(s,1.2,()=>{});
+  assert.equal(s.trucks.length,1);
+  assert.equal(s.trucks[0].stage,'delivery');
+  assert.equal(s.trucks[0].source,warehouse);
+  s.trucks[0].t=.999;
+  updateEconomy(s,.1,()=>{});
+  assert.equal(s.orders,3);
 });
 
-test('a warehouse connected only to the shop does not break direct factory to shop supply',()=>{
+test('a warehouse on a separate network does not break direct factory to shop supply',()=>{
   const s=baseState();
   const f=building('Food',0,0);
   const shop=building('Market',220,0);
-  const warehouse=building('Warehouse',220,100);
+  const otherShop=building('Market',500,100);
+  const warehouse=building('Warehouse',500,0);
   f.stock=3;shop.demand=3;
-  s.buildings.push(f,shop,warehouse);
+  s.buildings.push(f,shop,otherShop,warehouse);
   s.roads.push(
     road([{x:35,y:0},{x:185,y:0}]),
-    road([{x:185,y:0},{x:220,y:100}])
+    road([{x:465,y:0},{x:535,y:0}]),
+    road([{x:500,y:0},{x:500,y:72}])
   );
   for(let i=0;i<120&&s.orders<1;i++)updateEconomy(s,.2,()=>{});
   assert.ok(s.orders>=1,'direct factory to shop delivery must remain available');
-  assert.equal(warehouse.storage||0,0,'unreachable warehouse should not receive cargo');
+  assert.equal(warehouse.storage||0,0,'separate warehouse network should not receive cargo');
 });
 
 test('warehouse delivery respects total storage capacity',()=>{
