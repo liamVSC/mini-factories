@@ -1,5 +1,5 @@
 import {TYPES} from './state.js';
-import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment} from './world.js';
+import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment,roadTrafficMetrics} from './world.js';
 const newId=()=>globalThis.crypto?.randomUUID?.()||'id-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
 
 export function spec(type){return TYPES.find(t=>t.name===type)||TYPES[0]}
@@ -71,6 +71,38 @@ export function route(s,a,b){
   const r=routeOnRoadNetwork(s,a,b);
   if(!r||!Array.isArray(r.points)||r.points.length<2)return null;
   return r;
+}
+
+function updateRoadTraffic(s){
+  const metrics=roadTrafficMetrics(s);
+  for(const road of s.roads||[]) { road.trafficLoad=0; road.trafficCapacity=0; road.trafficCongestion=0; }
+  for(const t of s.trucks||[]){
+    if(t.dead||!Array.isArray(t.route)||t.route.length<2)continue;
+    const hit=metrics.nearest(pointOnRoute(t.route,t.t),52);
+    if(!hit)continue;
+    const segment=hit.segment;
+    segment.load++;
+    t.trafficRoadId=segment.road.id;
+    t.trafficSegment=segment.index;
+    t.trafficLane=Math.abs(hashTrafficId(t.id))%segment.lanes;
+  }
+  let weighted=0,weight=0;
+  for(const segment of metrics.segments){
+    segment.congestion=Math.min(1,segment.load/Math.max(1,segment.capacity));
+    const road=segment.road;
+    road.trafficLoad=(road.trafficLoad||0)+segment.load;
+    road.trafficCapacity=(road.trafficCapacity||0)+segment.capacity;
+    road.trafficCongestion=Math.max(road.trafficCongestion||0,segment.congestion);
+    const w=Math.max(1,segment.length);
+    weighted+=segment.congestion*w;weight+=w;
+  }
+  s.congestion=weight?Math.min(1,weighted/weight):0;
+  return metrics;
+}
+function hashTrafficId(value){
+  let hash=0;
+  for(const ch of String(value||''))hash=((hash<<5)-hash+ch.charCodeAt(0))|0;
+  return hash>>>0;
 }
 
 function rerouteTruck(s,t){
@@ -168,7 +200,7 @@ function dispatchTruck(s,{route,source,destination,cargo,contractId=0,longDistan
   // Final hard gate: both buildings must still be physically attached
   // to the saved road network when the truck is spawned.
   if(!roadAttachment(s,source)||!roadAttachment(s,destination))return false;
-  s.trucks.push({id:newId(),route:route.points,routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage});
+  s.trucks.push({id:newId(),route:route.points,routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage,trafficLane:0});
   return true;
 }
 
@@ -257,6 +289,8 @@ export function updateEconomy(s,dt,flash){
     f.dispatchTimer=0;
   }
 
+  const traffic=updateRoadTraffic(s);
+
   for(const t of s.trucks){
     // Road deletion can invalidate a live truck route. Re-route from the
     // truck's current physical position when an alternate network path exists.
@@ -288,7 +322,13 @@ export function updateEconomy(s,dt,flash){
     for(const o of s.trucks){if(o===t||o.dead)continue;const q=pointOnRoute(o.route,o.t);if(dist(p,q)<30&&o.routeKey===t.routeKey&&o.t>t.t)nearestAhead=Math.min(nearestAhead,o.t-t.t)}
     if(nearestAhead<.045){blocked=true;t.wait=Math.min(2,t.wait+dt)}else t.wait=Math.max(0,t.wait-dt*.75);
     if(blocked)continue;
-    t.t+=dt*t.speed*Math.max(.65,1-(s.congestion*.18));
+    const livePoint=pointOnRoute(t.route,t.t);
+    const trafficHit=traffic.nearest(livePoint,52);
+    const localCongestion=trafficHit?.segment?.congestion||0;
+    const condition=trafficHit?.segment?.road?.condition;
+    const conditionMultiplier=Math.max(.45,.7+.3*(Number.isFinite(condition)?condition:1));
+    const congestionMultiplier=Math.max(.5,1-localCongestion*.35);
+    t.t+=dt*t.speed*conditionMultiplier*congestionMultiplier;
     if(t.t>=1){
       if(t.stage==='warehouse'){
         const accepted=addToWarehouse(t.to,t.source.type,t.cargo);
@@ -303,7 +343,7 @@ export function updateEconomy(s,dt,flash){
   }
   s.trucks=s.trucks.filter(t=>!t.dead);
   while(s.xp>=s.xpToNext){s.xp-=s.xpToNext;s.companyLevel++;s.xpToNext=Math.round(100*Math.pow(1.22,s.companyLevel-1));flash('Company Level '+s.companyLevel)}
-  s.congestion=Math.min(1,(s.trucks.length+s.trucks.filter(t=>t.wait>0).length*1.5)/Math.max(3,s.roads.length*2));
+  updateRoadTraffic(s);
   const reduction=s.trucks.reduce((n,t)=>n+(t.source?.logistics||0),0)/Math.max(1,s.trucks.length);
   s.cash-=s.roads.length*dt*.055*(1+s.congestion*Math.max(.55,1-reduction*.12));
   const g=s.goals[s.objective];if(g&&g.done(s))s.objective=Math.min(5,s.objective+1);if(s.cash<=0){s.cash=0;s.gameOver=true}
