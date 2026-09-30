@@ -51,8 +51,33 @@ export function nearestBuilding(s,p){let best=null,bd=58;for(const b of s.buildi
 export function roadBuildingTarget(s,p){let best=null,bd=Infinity;for(const b of s.buildings||[]){const hit=Math.max(52,(b.r||25)+26);const d=dist(b,p);if(d<=hit&&d<bd){bd=d;best=b}}return best}
 function projectOnPolyline(points,p){let best=null,run=0;for(let i=1;i<points.length;i++){const q=projectSegment(p,points[i-1],points[i]);if(!best||q.distance<best.distance)best={...q,segment:i-1,along:run+dist(points[i-1],q.point)};run+=dist(points[i-1],points[i])}return best}
 export function nearestRoad(s,p){let best=null;for(const road of s.roads||[]){const points=validRoadPoints(road?.points,0);if(!points)continue;const q=projectOnPolyline(points,p);if(q&&(!best||q.distance<best.distance))best={x:q.point.x,y:q.point.y,road,distance:q.distance,segment:q.segment,along:q.along}}return best&&best.distance<=46?best:null}
-function buildingFootprintRadius(building){const footprint=building?.kind==='warehouse'?48:building?.kind==='factory'?39:35;return Math.max(26,(building?.r||25)+9,footprint+5)}
-function buildingConnectionPoint(building,target){const dx=target.x-building.x,dy=target.y-building.y,len=Math.hypot(dx,dy)||1,radius=buildingFootprintRadius(building);return{x:building.x+dx/len*radius,y:building.y+dy/len*radius,building,distance:0}}
+function buildingFootprint(building){
+  if(building?.kind==='warehouse')return{halfWidth:48,halfDepth:33};
+  if(building?.kind==='factory')return{halfWidth:39,halfDepth:31};
+  return{halfWidth:35,halfDepth:28};
+}
+function buildingFootprintRadius(building){
+  const footprint=buildingFootprint(building);
+  return Math.max(26,(building?.r||25)+9,Math.min(footprint.halfWidth,footprint.halfDepth));
+}
+function buildingConnectionPoint(building,target){
+  const dx=Number(target?.x)-Number(building?.x),dy=Number(target?.y)-Number(building?.y);
+  const len=Math.hypot(dx,dy)||1;
+  const ux=dx/len,uy=dy/len;
+  const footprint=buildingFootprint(building);
+  // Buildings are rendered as rectangles, so use the exact ray/rectangle
+  // intersection instead of a circular radius. This makes road centre lines
+  // terminate on the actual facade regardless of approach angle.
+  const tx=Math.abs(ux)>1e-6?footprint.halfWidth/Math.abs(ux):Infinity;
+  const ty=Math.abs(uy)>1e-6?footprint.halfDepth/Math.abs(uy):Infinity;
+  const distance=Math.min(tx,ty);
+  return{
+    x:building.x+ux*distance,
+    y:building.y+uy*distance,
+    building,
+    distance:0
+  };
+}
 function endpointSegmentBlocked(building,a,b,side){if(!building)return false;const ax=a.x-building.x,ay=a.y-building.y,bx=b.x-building.x,by=b.y-building.y,aRadius=Math.hypot(ax,ay),bRadius=Math.hypot(bx,by);const outward=side==='start'?ax*(b.x-a.x)+ay*(b.y-a.y):bx*(a.x-b.x)+by*(a.y-b.y);const connectionRadius=buildingFootprintRadius(building);const outside=side==='start'?aRadius>=connectionRadius-.001:bRadius>=connectionRadius-.001;return outside&&outward<0}
 function resolveRoadEndpoint(s,value){if(value?.building&&Number.isFinite(value.building.x))return buildingConnectionPoint(value.building,value);const building=nearestBuilding(s,value);if(building&&dist(building,value)<=48)return buildingConnectionPoint(building,value);const road=snapRoadPoint(s,value,42);return road||{x:value.x,y:value.y,distance:Infinity}}
 export function snapRoadPoint(s,p,max=42){const q=nearestRoad(s,p);if(!q||q.distance>max)return null;return{x:q.x,y:q.y,road:q.road,distance:q.distance}}
@@ -123,7 +148,7 @@ export function roadTopology(s){
   };
 }
 function shortestRoadPath(network,a,b){const queue=[{node:a,d:0}],best=new Map([[a,0]]),prev=new Map();while(queue.length){queue.sort((x,y)=>x.d-y.d);const cur=queue.shift();if(cur.d!==best.get(cur.node))continue;if(cur.node===b)break;for(const nx of network.adjacency.get(cur.node)||[]){const nd=cur.d+nx.d;if(nd<(best.get(nx.node)??Infinity)){best.set(nx.node,nd);prev.set(nx.node,cur.node);queue.push({node:nx.node,d:nd})}}}if(!best.has(b))return null;const path=[];let n=b;while(n){path.unshift(n);n=prev.get(n)}return{path,distance:best.get(b)}}
-export function roadAttachment(s,building){if(!building)return null;const limit=Math.max(42,(building.r||25)+18);let best=null;for(const road of s.roads||[]){const points=validRoadPoints(road?.points,0);if(!points)continue;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],q=projectSegment(building,a,b);if(q.distance<=limit&&(!best||q.distance<best.distance))best={road,point:{x:q.point.x,y:q.point.y},distance:q.distance,segment:i-1}}}return best}
+export function roadAttachment(s,building){if(!building)return null;const footprint=buildingFootprint(building);const limit=Math.max(48,Math.hypot(footprint.halfWidth,footprint.halfDepth)+6,(building.r||25)+18);let best=null;for(const road of s.roads||[]){const points=validRoadPoints(road?.points,0);if(!points)continue;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],q=projectSegment(building,a,b);if(q.distance<=limit&&(!best||q.distance<best.distance))best={road,point:{x:q.point.x,y:q.point.y},distance:q.distance,segment:i-1}}}return best}
 export function routeOnRoadNetwork(s,a,b){const aa=roadAttachment(s,a),bb=roadAttachment(s,b);if(!aa||!bb)return null;const network=roadNetwork(s,[aa.point,bb.point]),start=nearestGraphNode(network,aa.point),end=nearestGraphNode(network,bb.point);if(!start||!end)return null;const result=shortestRoadPath(network,start,end);if(!result||result.path.length<2)return null;return{points:result.path.map(p=>({x:p.x,y:p.y})),distance:result.distance,networkDistance:result.distance,start:{x:aa.point.x,y:aa.point.y},end:{x:bb.point.x,y:bb.point.y}}}
 function nearestGraphNode(network,p){let best=null,bd=Infinity;for(const n of network.nodes){const d=dist(n,p);if(d<bd){bd=d;best=n}}return best&&bd<=2.5?best:null}
 export function roadPath(s,a,b){const start=snap(s,a),end=snap(s,b);if(dist(start,end)<8)return[start,end];const existing=routeOnRoadNetwork(s,start,end);return existing?existing.points:null}
