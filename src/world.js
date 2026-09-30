@@ -113,7 +113,25 @@ const blocked=!boundary.ok||!path||roadPathBlocked(s,path,{start:startBuilding,e
 const roadLength=path?length(path):Infinity;
 return{path:path||[start,end],start,end,snappedStart:Number.isFinite(start.distance),snappedEnd:Number.isFinite(end.distance),edgeSnappedStart:!!start.edgeSnapped,edgeSnappedEnd:!!end.edgeSnapped,gridSnappedStart:!!start.gridSnapped,gridSnappedEnd:!!end.gridSnapped,connectsBuilding:!!start.building||!!end.building,connectsRoad:!!start.road||!!end.road,blocked,blockedReason:!boundary.ok?boundary.reason:null,length:roadLength,cost:Number.isFinite(roadLength)?Math.max(1,Math.ceil(roadLength/180))*2:Infinity}}
 function splitRoadAtPoint(s,road,p,tolerance=6){if(!road?.points||road.points.length<2||!finitePoint(p))return false;for(let i=1;i<road.points.length;i++){const a=road.points[i-1],b=road.points[i],q=projectSegment(p,a,b);if(q.distance>tolerance)continue;if(dist(q.point,a)<=tolerance||dist(q.point,b)<=tolerance)return false;const left=[...road.points.slice(0,i),q.point],right=[q.point,...road.points.slice(i)];if(!validRoadPoints(left)||!validRoadPoints(right))return false;road.points=left;s.roads.push({id:newId(),points:right,age:road.age||0,bridge:road.bridge||false,condition:Number.isFinite(road.condition)?road.condition:1});return true}return false}
-function reconcileRoadJunctions(s,points,meta={}){const endpoints=[{index:0,building:meta.startBuilding},{index:points.length-1,building:meta.endBuilding}];for(const endpoint of endpoints){if(endpoint.building)continue;const target=points[endpoint.index];let best=null;for(const road of s.roads||[]){for(let i=1;i<road.points.length;i++){const q=projectSegment(target,road.points[i-1],road.points[i]);if(!best||q.distance<best.distance)best={road,point:q.point,distance:q.distance}}}if(best&&best.distance<=6){points[endpoint.index]={x:best.point.x,y:best.point.y};splitRoadAtPoint(s,best.road,best.point,6)}}}
+function reconcileRoadJunctions(s,points,meta={}){
+  const endpoints=[{index:0,building:meta.startBuilding},{index:points.length-1,building:meta.endBuilding}];
+  for(const endpoint of endpoints){
+    if(endpoint.building)continue;
+    const target=points[endpoint.index];
+    let best=null;
+    for(const road of s.roads||[]){
+      if(road.points===points)continue;
+      for(let i=1;i<road.points.length;i++){
+        const q=projectSegment(target,road.points[i-1],road.points[i]);
+        if(!best||q.distance<best.distance)best={road,point:q.point,distance:q.distance};
+      }
+    }
+    if(best&&best.distance<=6){
+      points[endpoint.index]={x:best.point.x,y:best.point.y};
+      splitRoadAtPoint(s,best.road,best.point,6);
+    }
+  }
+}
 function collinearOverlapLength(a,b,c,d){const ab={x:b.x-a.x,y:b.y-a.y},len=Math.hypot(ab.x,ab.y);if(len<1e-9)return 0;const cross=(p,q)=>p.x*q.y-p.y*q.x,ac={x:c.x-a.x,y:c.y-a.y},ad={x:d.x-a.x,y:d.y-a.y};if(Math.abs(cross(ab,ac))>1e-6*len||Math.abs(cross(ab,ad))>1e-6*len)return 0;const ux=ab.x/len,uy=ab.y/len,cproj=ac.x*ux+ac.y*uy,dproj=ad.x*ux+ad.y*uy;return Math.max(0,Math.min(len,Math.max(cproj,dproj))-Math.max(0,Math.min(cproj,dproj)))}
 function roadsHaveMeaningfulOverlap(a,b){const ap=a?.points||[],bp=b?.points||[];if(ap.length<2||bp.length<2)return false;let overlap=0;for(let i=1;i<ap.length;i++)for(let j=1;j<bp.length;j++)overlap=Math.max(overlap,collinearOverlapLength(ap[i-1],ap[i],bp[j-1],bp[j]));const aLen=length(ap),bLen=length(bp);return overlap>=24||overlap>=Math.min(aLen,bLen)*.65}
 function roadGeometrySignature(road){return(road?.points||[]).map(p=>`${Math.round(p.x*10)/10},${Math.round(p.y*10)/10}`).join('|')}
