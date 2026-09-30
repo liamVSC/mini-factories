@@ -222,3 +222,54 @@ test('four-way road junction is one shared routing node for every branch', () =>
   assert.equal(junctions.length, 1);
   assert.equal((network.adjacency.get(junctions[0])||[]).length, 4);
 });
+
+test('deleting one junction branch preserves the remaining road graph', () => {
+  const s = baseState();
+  const west = road([{x:-120,y:0},{x:0,y:0}]);
+  const east = road([{x:0,y:0},{x:120,y:0}]);
+  const north = road([{x:0,y:0},{x:0,y:120}]);
+  s.roads.push(west,east,north);
+
+  assert.equal(eraseRoad(s, {x:0,y:80}), true);
+  assert.equal(s.roads.length, 2);
+
+  const network = roadNetwork(s);
+  assert.equal(network.junctions.filter(n => Math.abs(n.x)<1e-9 && Math.abs(n.y)<1e-9).length, 0);
+
+  const f = building('Food', -120, 0);
+  const shop = building('Market', 120, 0);
+  s.buildings.push(f,shop);
+  assert.ok(routeOnRoadNetwork(s,f,shop));
+});
+
+test('deleting a branch invalidates only trucks whose saved route used that branch', () => {
+  const s = baseState();
+  const f = building('Food', -120, 0);
+  const shop = building('Market', 120, 0);
+  s.buildings.push(f,shop);
+
+  const west = road([{x:-85,y:0},{x:0,y:0}]);
+  const east = road([{x:0,y:0},{x:85,y:0}]);
+  const north = road([{x:0,y:0},{x:0,y:120}]);
+  s.roads.push(west,east,north);
+
+  const truckRoute = routeOnRoadNetwork(s,f,shop);
+  assert.ok(truckRoute);
+  const truck = {
+    id:'branch-delete-truck',
+    route:truckRoute.points,
+    routeKey:'branch-delete',
+    t:.35,
+    speed:.05,
+    cargo:1,
+    source:f,
+    to:shop,
+    stage:'delivery',
+    value:10
+  };
+  s.trucks.push(truck);
+
+  assert.equal(eraseRoad(s, {x:0,y:80}), true);
+  assert.equal(truck.routeInvalidated, false);
+  assert.ok(routeOnRoadNetwork(s,f,shop));
+});
