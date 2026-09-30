@@ -248,6 +248,8 @@ function bindBuildMenu(){
     const type=buildCardForTarget(e);
     if(!type)return;
     buildDrag={type,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,dragging:false};
+    const ghost=document.querySelector('#buildGhost');
+    if(ghost){ghost.querySelector('span').textContent=buildIcon(type);ghost.querySelector('b').textContent=type.name;ghost.querySelector('small').textContent=type.kind==='road'?'Drop to start road':'Drag onto the map';ghost.classList.remove('valid','invalid');}
     try{e.currentTarget.setPointerCapture(e.pointerId)}catch{}
     e.preventDefault();
   });
@@ -262,6 +264,7 @@ function bindBuildMenu(){
     finishBuildDrag(e);
   });
   menu.addEventListener('pointercancel',()=>{buildDrag=null;document.querySelector('#buildGhost')?.classList.remove('show')});
+  document.querySelector('#buildMenuClose')?.addEventListener('click',closeBuildMenu);
 }
 function showCompany(){
   panelMode='company';
