@@ -222,7 +222,9 @@ function drawTrucks(s){
 }
 export function setPreview(path,start,end,blocked=false){
   if(!previewGroup)return;
-  const key=path&&path.length>=2?JSON.stringify([path,start,end,blocked]):'';
+  const snapStart=start?.building?'building':start?.road?'road':start?.gridSnapped?'grid':'free';
+  const snapEnd=end?.building?'building':end?.road?'road':end?.gridSnapped?'grid':'free';
+  const key=path&&path.length>=2?JSON.stringify([path,start,end,blocked,snapStart,snapEnd]):'';
   if(key===previewKey)return;
   previewKey=key;
   while(previewGroup.children.length){
@@ -232,18 +234,31 @@ export function setPreview(path,start,end,blocked=false){
   }
   if(!path||path.length<2)return;
 
-  const material=mat(blocked?'#d85a52':'#58a6d8');
+  const roadMaterial=new THREE.MeshStandardMaterial({
+    color:blocked?'#d85a52':'#58a6d8',
+    transparent:true,
+    opacity:.62,
+    depthWrite:false,
+    side:THREE.DoubleSide
+  });
   for(let i=1;i<path.length;i++){
     const a=path[i-1],b=path[i],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
     if(len<1)continue;
-    const mesh=new THREE.Mesh(new THREE.BoxGeometry(len,.18,5),material);
-    mesh.position.set((a.x+b.x)/2,.42,(a.y+b.y)/2);
+    const mesh=new THREE.Mesh(new THREE.BoxGeometry(len,.2,18),roadMaterial);
+    mesh.position.set((a.x+b.x)/2,.36,(a.y+b.y)/2);
     mesh.rotation.y=-Math.atan2(dy,dx);
     previewGroup.add(mesh);
   }
-  for(const q of [start,end]){
+
+  const endpointMaterial=kind=>new THREE.MeshStandardMaterial({
+    color:blocked?'#d85a52':kind==='building'?'#f4e5a8':kind==='road'?'#67d5e8':kind==='grid'?'#b8c7ff':'#ffffff',
+    transparent:true,
+    opacity:.9,
+    depthWrite:false
+  });
+  for(const [q,kind] of [[start,snapStart],[end,snapEnd]]){
     if(!q)continue;
-    const m=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),mat(blocked?'#d85a52':'#f4e5a8'));
+    const m=new THREE.Mesh(new THREE.SphereGeometry(kind==='building'?6:5,16,10),endpointMaterial(kind));
     m.position.set(q.x,.8,q.y);
     previewGroup.add(m);
   }
