@@ -344,8 +344,11 @@ export function cleanupRoadNetwork(s){const original=[...(s.roads||[])],kept=[],
 export function addRoad(s,points,meta={}){
   if(!Array.isArray(points)||points.length<2)return'invalid';
   const normalized=points.map(q=>safePoint(q));
-  if(meta.startBuilding||roadBuildingTarget(s,normalized[0]))normalized[0]=buildingConnectionPoint(meta.startBuilding||roadBuildingTarget(s,normalized[0]),normalized[0]);
-  if(meta.endBuilding||roadBuildingTarget(s,normalized.at(-1)))normalized[normalized.length-1]=buildingConnectionPoint(meta.endBuilding||roadBuildingTarget(s,normalized.at(-1)),normalized.at(-1));
+  const startBuilding=meta.startBuilding||buildingAtPoint(s,normalized[0],0);
+  const endBuilding=meta.endBuilding||buildingAtPoint(s,normalized.at(-1),0);
+  if(startBuilding&&endBuilding&&startBuilding===endBuilding)return'blocked';
+  if(startBuilding)normalized[0]=buildingConnectionPoint(startBuilding,normalized[0]);
+  if(endBuilding)normalized[normalized.length-1]=buildingConnectionPoint(endBuilding,normalized.at(-1));
   points=normalized;
   const validation=validateRoadGeometry(points);
   if(!validation.ok){
