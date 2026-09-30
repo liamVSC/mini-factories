@@ -604,8 +604,13 @@ function drawTrucks(s){
     if(!g){g=createTruckMesh(t);truckMeshes.set(t.id,g);}
     const p=truckPoint(t.route,t.t);
     if(!p)continue;
-    g.position.set(p.x,0,p.y);
-    g.lookAt(p.next.x,0,p.next.y);
+    // UK-style left-hand traffic: keep each truck on the left side of its
+    // travel direction instead of placing every vehicle on the centreline.
+    const dx=p.next.x-p.x,dy=p.next.y-p.y,len=Math.hypot(dx,dy);
+    const laneOffset=4.3;
+    const nx=len>1e-6?-dy/len:0,nz=len>1e-6?dx/len:0;
+    g.position.set(p.x+nx*laneOffset,.86,p.y+nz*laneOffset);
+    g.lookAt(p.next.x+nx*laneOffset,.86,p.next.y+nz*laneOffset);
   }
   for(const [id,g] of truckMeshes){
     if(active.has(id))continue;
