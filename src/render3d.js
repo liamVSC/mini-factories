@@ -1,13 +1,14 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm';
 import {riverY} from './world.js';
 
-let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null;
+let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null,roadEditGroup=null;
 let target={x:0,z:0,yaw:0,pitch:.82,distance:620};
 let desired={...target};
 let home={x:0,z:0};
 let cameraReady=false;
 let viewport={width:1,height:1};
 let previewKey='';
+let roadEditKey='';
 let lastBuildingSelection=null;
 const meshes=new Map();
 const worldObjects=new Set();
@@ -130,6 +131,57 @@ function updateBuilding(b,selected){
   const scale=selected?1.035:1;
   if(g.scale.x!==scale)g.scale.setScalar(scale);
 }
+function updateRoadEditVisual(s){
+  if(!roadEditGroup)return;
+  const hover=s.roadEditHover, selected=s.roadEditSelection;
+  const key=JSON.stringify([
+    hover?.roadId||null,hover?.segment??null,
+    selected?.roadId||null,selected?.segment??null
+  ]);
+  if(key===roadEditKey)return;
+  roadEditKey=key;
+  while(roadEditGroup.children.length){
+    const child=roadEditGroup.children[0];
+    roadEditGroup.remove(child);
+    disposeObject(child);
+  }
+  const items=[];
+  if(hover)items.push({state:hover});
+  if(selected&&(!hover||selected.roadId!==hover.roadId||selected.segment!==hover.segment))items.push({state:selected});
+  for(const item of items){
+    const hit=item.state;
+    const road=(s.roads||[]).find(r=>r?.id===hit.roadId);
+    if(!road?.points||hit.segment<0||hit.segment>=road.points.length-1)continue;
+    const a=road.points[hit.segment],b=road.points[hit.segment+1];
+    if(!Number.isFinite(a?.x)||!Number.isFinite(a?.y)||!Number.isFinite(b?.x)||!Number.isFinite(b?.y))continue;
+    const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+    if(len<1)continue;
+    const selectedState=selected&&hit.roadId===selected.roadId&&hit.segment===selected.segment;
+    const material=new THREE.MeshBasicMaterial({
+      color:selectedState?'#ffd45a':'#63d7ff',
+      transparent:true,
+      opacity:selectedState?.72:.52,
+      depthWrite:false,
+      side:THREE.DoubleSide
+    });
+    const mesh=new THREE.Mesh(new THREE.BoxGeometry(len,.22,22),material);
+    mesh.position.set((a.x+b.x)/2,.92,(a.y+b.y)/2);
+    mesh.rotation.y=-Math.atan2(dy,dx);
+    roadEditGroup.add(mesh);
+    const markerMaterial=new THREE.MeshBasicMaterial({
+      color:selectedState?'#fff0a6':'#9ceaff',
+      transparent:true,
+      opacity:.9,
+      depthWrite:false
+    });
+    for(const p of [a,b]){
+      const ring=new THREE.Mesh(new THREE.RingGeometry(4.5,6.5,20),markerMaterial);
+      ring.rotation.x=-Math.PI/2;
+      ring.position.set(p.x,1.12,p.y);
+      roadEditGroup.add(ring);
+    }
+  }
+}
 function updateSelectionVisual(s){
   const selected=s.selected?.id||null;
   if(selected===lastBuildingSelection)return;
@@ -146,7 +198,7 @@ function init(canvas){
   if(renderer)return;
   renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio||1,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-  scene=new THREE.Scene();scene.background=new THREE.Color('#9eaf88');root=new THREE.Group();scene.add(root);previewGroup=new THREE.Group();scene.add(previewGroup);
+  scene=new THREE.Scene();scene.background=new THREE.Color('#9eaf88');root=new THREE.Group();scene.add(root);previewGroup=new THREE.Group();scene.add(previewGroup);roadEditGroup=new THREE.Group();scene.add(roadEditGroup);
   scene.add(new THREE.HemisphereLight('#f7f2df','#68745e',2.1));
   const sun=new THREE.DirectionalLight('#fff1cf',3.2);sun.position.set(-240,320,180);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
   const ground=box(2600,2,2600,'#b7c79d');ground.position.y=-1;ground.receiveShadow=true;scene.add(ground);
@@ -341,6 +393,7 @@ export function render(ctx,s,W,H,canvas=document.querySelector('#game')){
     render.lastState=s;
     render.lastWorldVersion=s.renderVersion;
     lastBuildingSelection=null;
+    roadEditKey='';
   }
   if(render.lastState===s){
     if(render.lastWorldBuildingSignature!==s.buildings?.length){
@@ -348,6 +401,7 @@ export function render(ctx,s,W,H,canvas=document.querySelector('#game')){
       for(const b of s.buildings||[])updateBuilding(b,false);
     }
     updateSelectionVisual(s);
+    updateRoadEditVisual(s);
   }
   updateCamera(s,W,H);
   drawTrucks(s);
