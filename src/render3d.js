@@ -596,7 +596,25 @@ export function cameraPointFromScreen(x,y,W=viewport.width,H=viewport.height){
   const t=-camera3d.position.y/dir.y;
   return{x:camera3d.position.x+dir.x*t,z:camera3d.position.z+dir.z*t};
 }
-function createTruckMesh(t){const g=new THREE.Group();const body=box(14,6,25,t.longDistance?'#8755c7':'#d79234');body.position.y=5;g.add(body);const cab=box(12,7,9,'#d9b75e');cab.position.set(0,6,8);g.add(cab);const wm=mat('#202729');for(const x of [-7,7])for(const z of [-7,7]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(2.7,2.7,1.8,12),wm);wh.rotation.z=Math.PI/2;wh.position.set(x,2.7,z);g.add(wh);}scene.add(g);return g;}
+function createTruckMesh(t){
+  const g=new THREE.Group();
+  const body=box(14,6,25,t.longDistance?'#8755c7':'#d79234');body.position.y=5;g.add(body);
+  const cab=box(12,7,9,'#d9b75e');cab.position.set(0,6,8);g.add(cab);
+  const wm=mat('#202729');
+  for(const x of [-7,7])for(const z of [-7,7]){
+    const wh=new THREE.Mesh(new THREE.CylinderGeometry(2.7,2.7,1.8,12),wm);
+    wh.rotation.z=Math.PI/2;wh.position.set(x,2.7,z);g.add(wh);
+  }
+  const brakeMaterial=new THREE.MeshStandardMaterial({color:'#7d1f1f',emissive:'#220000',emissiveIntensity:.25});
+  for(const x of [-4.2,4.2]){
+    const light=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.3,.35),brakeMaterial);
+    light.position.set(x,5.1,-12.7);
+    light.userData.brakeLight=true;
+    g.add(light);
+  }
+  scene.add(g);
+  return g;
+}
 function routeMetric(route){
   let metric=routeMetrics.get(route);
   if(metric&&metric.count===route.length)return metric;
@@ -642,7 +660,15 @@ function drawTrucks(s){
     const nx=len>1e-6?-dy/len:0,nz=len>1e-6?dx/len:0;
     g.position.set(p.x+nx*laneOffset,.86,p.y+nz*laneOffset);
     g.lookAt(p.next.x+nx*laneOffset,.86,p.next.y+nz*laneOffset);
-    g.userData.trafficState=t.trafficControl?.yielding?'yield':t.wait>0?'stopped':'moving';
+    const trafficState=t.trafficControl?.yielding?'yield':t.wait>0?'stopped':(t.trafficControl?'approach':'moving');
+    g.userData.trafficState=trafficState;
+    for(const child of g.children){
+      if(!child.userData?.brakeLight)continue;
+      const material=child.material;
+      if(material?.emissiveIntensity!==undefined){
+        material.emissiveIntensity=trafficState==='stopped'?1.4:trafficState==='yield'?.9:trafficState==='approach'?.55:.25;
+      }
+    }
   }
   for(const [id,g] of truckMeshes){
     if(active.has(id))continue;
