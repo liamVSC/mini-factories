@@ -95,7 +95,7 @@ export function roadTopology(s){
   const boundaryMinY=WORLD_BOUNDS.minY+WORLD_MARGIN;
   const boundaryMaxY=WORLD_BOUNDS.maxY-WORLD_MARGIN;
   const boundaryTolerance=3;
-  const nodes=network.nodes.map((node,index)=>{
+  const topologyNodes=network.nodes.map((node,index)=>{
     const links=network.adjacency.get(node)||[];
     const roadIds=[...new Set(links.map(link=>link.road?.id).filter(Boolean))];
     const degree=links.length;
@@ -112,12 +112,12 @@ export function roadTopology(s){
       type:junction?(boundary?'boundary-junction':'junction'):(boundary?'boundary':degree===1?'endpoint':'node')
     };
   });
-  const junctions=nodes.filter(node=>node.junction);
+  const junctions=topologyNodes.filter(node=>node.junction);
   return{
     ...network,
-    nodes,
-    junctions,
-    boundaryNodes:nodes.filter(node=>node.boundary),
+    topologyNodes,
+    topologyJunctions:junctions,
+    boundaryNodes:topologyNodes.filter(node=>node.boundary),
     threeWayJunctions:junctions.filter(node=>node.degree===3),
     fourWayJunctions:junctions.filter(node=>node.degree>=4)
   };
