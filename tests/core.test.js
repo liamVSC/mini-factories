@@ -413,6 +413,27 @@ test('clear road preview stays direct while blocked preview uses a clean 90 degr
   }
 });
 
+
+
+test('building road endpoints stay outside the rendered footprint and cannot route back through the building',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},220,0,'shop-1');
+  const obstacle=makeBuilding({name:'Warehouse',kind:'warehouse',need:null,color:'#fff'},0,90,'warehouse-1');
+  s.buildings.push(factory,shop,obstacle);
+
+  const preview=roadPreview(s,factory,shop);
+  assert.ok(preview);
+  assert.equal(preview.blocked,false);
+  assert.ok(Math.hypot(preview.start.x-factory.x,preview.start.y-factory.y)>39);
+  assert.ok(Math.hypot(preview.end.x-shop.x,preview.end.y-shop.y)>35);
+  assert.ok(preview.path.length>=2);
+  assert.ok(preview.path.every((p,i)=>i===0||Math.abs(p.x-preview.path[i-1].x)<1e-9||Math.abs(p.y-preview.path[i-1].y)<1e-9));
+
+  const reverseIntoBuilding=[{x:40,y:0},{x:0,y:0}];
+  assert.equal(addRoad(s,reverseIntoBuilding,{startBuilding:factory}),'blocked');
+});
+
 test('road preview routes around multiple buildings without cutting through them',()=>{
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},-220,0,'factory-route');
