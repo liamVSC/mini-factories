@@ -265,8 +265,24 @@ function roadTargetInternal(s,p){
   if(!finitePoint(p))return null;
   if(p.building&&Number.isFinite(p.building.x))return buildingConnectionPoint(p.building,p);
   if(p.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))return{x:p.x,y:p.y,road:p.road,distance:0};
-  const building=roadBuildingTarget(s,p);if(building){const q=buildingConnectionPoint(building,p);return{...q,building,distance:0};}
-  const road=nearestRoad(s,p);if(road)return{x:road.x,y:road.y,road:road.road,distance:road.distance};
+  const building=roadBuildingTarget(s,p);
+  const road=nearestRoad(s,p);
+  if(building&&road){
+    const hit=buildingHitbox(building,0);
+    const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
+    const buildingDistance=Math.hypot(dx,dy);
+    if(road.distance<=buildingDistance)return{x:road.x,y:road.y,road:road.road,distance:road.distance};
+    const q=buildingConnectionPoint(building,p);
+    return{...q,building,distance:buildingDistance};
+  }
+  if(building){
+    const hit=buildingHitbox(building,0);
+    const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
+    const buildingDistance=Math.hypot(dx,dy);
+    const q=buildingConnectionPoint(building,p);
+    return{...q,building,distance:buildingDistance};
+  }
+  if(road)return{x:road.x,y:road.y,road:road.road,distance:road.distance};
   const edge=snapToWorldEdge(p);if(edge)return edge;
   const grid=12,snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
   return{x:snapped.x,y:snapped.y,distance:Infinity,gridSnapped:true};
@@ -326,6 +342,11 @@ function commitRoadMutation(s,mutator){
 }
 export function cleanupRoadNetwork(s){const original=[...(s.roads||[])],kept=[],removed=[];for(const road of original){const normalized=normalizeRoadGeometry(road);if(!normalized){removed.push(road);continue}if(kept.some(existing=>roadsExactlyDuplicate(existing,normalized)||roadsHaveMeaningfulOverlap(existing,normalized))){removed.push(road);continue}kept.push(normalized)}s.roads=kept;if(removed.length)invalidateTrucksForRoads(s,removed);return{removed,roads:s.roads}}
 export function addRoad(s,points,meta={}){
+  if(!Array.isArray(points)||points.length<2)return'invalid';
+  const normalized=points.map(q=>safePoint(q));
+  if(meta.startBuilding||roadBuildingTarget(s,normalized[0]))normalized[0]=buildingConnectionPoint(meta.startBuilding||roadBuildingTarget(s,normalized[0]),normalized[0]);
+  if(meta.endBuilding||roadBuildingTarget(s,normalized.at(-1)))normalized[normalized.length-1]=buildingConnectionPoint(meta.endBuilding||roadBuildingTarget(s,normalized.at(-1)),normalized.at(-1));
+  points=normalized;
   const validation=validateRoadGeometry(points);
   if(!validation.ok){
     const raw=validRoadPoints(points,0);
