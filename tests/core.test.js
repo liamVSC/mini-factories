@@ -5,7 +5,7 @@ globalThis.innerWidth=1280;
 globalThis.innerHeight=720;
 
 const {freshState,makeBuilding,hydrate,serialise}=await import('../src/state.js');
-const {pointOnRoute,length,dist,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget,roadEndpointPreview,editRoadEndpoint,editRoadSegment,roadNetwork,roadTopology,WORLD_BOUNDS,WORLD_MARGIN}=await import('../src/world.js');
+const {pointOnRoute,length,dist,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget,roadEndpointPreview,editRoadEndpoint,editRoadSegment,roadNetwork,roadTopology,cleanupRoadNetwork,WORLD_BOUNDS,WORLD_MARGIN}=await import('../src/world.js');
 const {updateEconomy}=await import('../src/economy.js');
 
 const route=[{x:0,y:0},{x:100,y:0}];
@@ -827,4 +827,50 @@ test('economy remains finite during a sustained multi-truck simulation',()=>{
   assert.ok(Number.isFinite(s.xp));
   assert.ok(s.trucks.every(t=>Number.isFinite(t.t)));
   assert.ok(s.trucks.length<=80);
+});
+
+
+test('road graph canonicalises duplicate discovered edges at a junction',()=>{
+  const s=freshState();
+  s.roads.push(
+    {id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},
+    {id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},
+    {id:'north',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0},
+    {id:'south',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0}
+  );
+  const network=roadNetwork(s);
+  const junction=network.junctions.find(n=>Math.abs(n.x)<1e-9&&Math.abs(n.y)<1e-9);
+  assert.ok(junction);
+  assert.equal((network.adjacency.get(junction)||[]).length,4);
+  assert.equal(network.junctions.filter(n=>Math.abs(n.x)<1e-9&&Math.abs(n.y)<1e-9).length,1);
+});
+
+test('stale traffic reservations expire on simulation time rather than browser time',()=>{
+  const s=freshState();
+  const source={type:'Food',level:1,loading:0,logistics:0,stock:0,max:10};
+  const destination={contract:null};
+  s.roads.push(
+    {id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},
+    {id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},
+    {id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},
+    {id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0}
+  );
+  s.trafficClock=5;
+  s.trafficReservations={'0,0':{truckId:'old',until:4}};
+  s.trucks=[{
+    id:'new',
+    route:[{x:-100,y:0},{x:0,y:0},{x:100,y:0}],
+    routeKey:'new',
+    t:.45,
+    speed:.1,
+    value:0,
+    cargo:1,
+    source,
+    to:destination,
+    wait:0,
+    stage:'delivery'
+  }];
+  updateEconomy(s,0,()=>{});
+  assert.ok(s.trucks[0].t>.45);
+  assert.equal(s.trafficReservations['0,0']?.truckId,'new');
 });
