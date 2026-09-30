@@ -60,7 +60,7 @@ function projectRouteProgress(points,p){
     const u=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len2));
     const q={x:a.x+dx*u,y:a.y+dy*u};
     const d=dist(p,q);
-    if(!best||d<best.distance)best={distance:d,progress:(run+Math.sqrt(len2)*u)/total};
+    if(!best||d<best.distance)best={distance:d,progress:(run+Math.sqrt(len2)*u)/total,segmentIndex:i};
     run+=Math.sqrt(len2);
   }
   return best;
