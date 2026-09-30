@@ -542,9 +542,10 @@ export function editRoadSegment(s,p,action='delete'){
   if(!hit)return false;
   const {road,projection}=hit;
   if(action==='delete'){
-    const i=projection.segmentIndex;
-    if(!Number.isInteger(i)||i<1||i>=road.points.length)return false;
-    const left=road.points.slice(0,i);
+    const i=projection.segment;
+    if(!Number.isInteger(i)||i<0||i>=road.points.length-1)return false;
+    const removedStart=road.points[i],removedEnd=road.points[i+1];
+    const left=road.points.slice(0,i+1);
     const right=road.points.slice(i+1);
     const replacements=[];
     if(left.length>=2&&length(left)>=12)replacements.push({...road,points:left,id:newId()});
@@ -552,15 +553,17 @@ export function editRoadSegment(s,p,action='delete'){
     const idx=s.roads.indexOf(road);
     if(idx<0)return false;
     s.roads.splice(idx,1,...replacements);
-    invalidateTrucksForRoads(s,[road]);
+    for(const truck of s.trucks||[]){
+      if(routeTouchesRoad(truck.route,{points:[removedStart,removedEnd]}))truck.routeInvalidated=true;
+    }
     return {road,segments:replacements,point:projection.point,action:'delete'};
   }
   if(action!=='split')return false;
-  const i=projection.segmentIndex;
-  if(!Number.isInteger(i)||i<1||i>=road.points.length)return false;
+  const i=projection.segment;
+  if(!Number.isInteger(i)||i<0||i>=road.points.length-1)return false;
   const q=projection.point;
-  const left=[...road.points.slice(0,i),q];
-  const right=[q,...road.points.slice(i)];
+  const left=[...road.points.slice(0,i+1),q];
+  const right=[q,...road.points.slice(i+1)];
   if(length(left)<12||length(right)<12)return false;
   const replacement=[
     {...road,points:left,id:newId()},
@@ -569,7 +572,6 @@ export function editRoadSegment(s,p,action='delete'){
   const idx=s.roads.indexOf(road);
   if(idx<0)return false;
   s.roads.splice(idx,1,...replacement);
-  invalidateTrucksForRoads(s,[road]);
   return {road,segments:replacement,point:q};
 }
 
