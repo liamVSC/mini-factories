@@ -349,21 +349,30 @@ function addJunctionControlLines(group,center,connections,radius){
   for(const connection of connections){
     const d=roadDirection(connection.inner,connection.outer);
     if(!d)continue;
-    // The control line sits on the approach, before the junction. It is
-    // aligned with the lane used by left-hand traffic rather than the road
-    // centreline, so the visual rule matches the truck lane model.
+    // Stop lines sit on the approach in the actual left-hand travel lane.
     const travel={x:-d.x,y:-d.y};
     const left={x:-travel.y,y:travel.x};
-    const laneOffset=t.lane==='right'?-4.3:4.3;
+    const laneOffset=4.3;
     const distance=radius+9;
     const p={
       x:center.x+d.x*distance+left.x*laneOffset,
       y:center.y+d.y*distance+left.y*laneOffset
     };
-    const line=new THREE.Mesh(new THREE.BoxGeometry(7.2,.12,.85),lineMaterial);
+    const line=new THREE.Mesh(new THREE.BoxGeometry(.85,.12,7.2),lineMaterial);
     line.position.set(p.x,ROAD.markingY+.025,p.y);
     line.rotation.y=-Math.atan2(travel.y,travel.x);
     group.add(line);
+
+    // Small dashed approach marker gives a visible cue before the stop line.
+    const dash=new THREE.Mesh(new THREE.BoxGeometry(.55,.10,3.2),roadMaterials.edge);
+    const dashDistance=distance+7;
+    dash.position.set(
+      center.x+d.x*dashDistance+left.x*laneOffset,
+      ROAD.markingY+.024,
+      center.y+d.y*dashDistance+left.y*laneOffset
+    );
+    dash.rotation.y=-Math.atan2(travel.y,travel.x);
+    group.add(dash);
   }
 }
 function makeRoadJunctions(roads){
@@ -629,10 +638,11 @@ function drawTrucks(s){
     // UK-style left-hand traffic: keep each truck on the left side of its
     // travel direction instead of placing every vehicle on the centreline.
     const dx=p.next.x-p.x,dy=p.next.y-p.y,len=Math.hypot(dx,dy);
-    const laneOffset=4.3;
+    const laneOffset=t.lane==='right'?-4.3:4.3;
     const nx=len>1e-6?-dy/len:0,nz=len>1e-6?dx/len:0;
     g.position.set(p.x+nx*laneOffset,.86,p.y+nz*laneOffset);
     g.lookAt(p.next.x+nx*laneOffset,.86,p.next.y+nz*laneOffset);
+    g.userData.trafficState=t.trafficControl?.yielding?'yield':t.wait>0?'stopped':'moving';
   }
   for(const [id,g] of truckMeshes){
     if(active.has(id))continue;
