@@ -404,9 +404,26 @@ export function editRoadSegment(s,p,action='delete'){
 }
 function roadEndpointCandidate(s,p,maxDistance=24){if(!finitePoint(p))return null;let best=null;for(const road of s.roads||[]){if(!validRoadPoints(road?.points,0))continue;for(const index of [0,road.points.length-1]){const q=road.points[index],d=dist(q,p);if(d<=maxDistance&&(!best||d<best.distance))best={road,index,point:{x:q.x,y:q.y},distance:d}}}return best}
 export function roadEndpointAtPoint(s,p,tolerance=28){const hit=roadEndpointCandidate(s,p,tolerance);if(!hit)return null;return{road:hit.road,roadId:hit.road.id,index:hit.index,point:hit.point,distance:hit.distance}}
-function endpointTarget(s,p,road,index){const building=roadBuildingTarget(s,p);if(building){const q=buildingConnectionPoint(building,p);return{x:q.x,y:q.y,building}}const roadHit=snapRoadPoint(s,p,24);if(roadHit&&roadHit.road!==road)return{x:roadHit.x,y:roadHit.y,road:roadHit.road};const endpoint=roadEndpointCandidate(s,p,24);if(endpoint&&endpoint.road!==road)return{x:endpoint.point.x,y:endpoint.point.y,road:endpoint.road};const edge=snapToWorldEdge(p);if(edge)return edge;
-const grid=12;const snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
-return isInsideWorldBounds(snapped)?snapped:{x:Math.max(WORLD_BOUNDS.minX+WORLD_MARGIN,Math.min(WORLD_BOUNDS.maxX-WORLD_MARGIN,snapped.x)),y:Math.max(WORLD_BOUNDS.minY+WORLD_MARGIN,Math.min(WORLD_BOUNDS.maxY-WORLD_MARGIN,snapped.y))}}
+function endpointTarget(s,p,road,index){
+  const building=roadBuildingTarget(s,p);
+  const roadHit=snapRoadPoint(s,p,24);
+  const candidateRoad=roadHit&&roadHit.road!==road?roadHit:null;
+  if(building){
+    const hit=buildingHitbox(building,0);
+    const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
+    const buildingDistance=Math.hypot(dx,dy);
+    if(buildingDistance<=10||!candidateRoad||buildingDistance<candidateRoad.distance){
+      const q=buildingConnectionPoint(building,p);
+      return{x:q.x,y:q.y,building};
+    }
+  }
+  if(candidateRoad)return{x:candidateRoad.x,y:candidateRoad.y,road:candidateRoad.road};
+  const endpoint=roadEndpointCandidate(s,p,24);
+  if(endpoint&&endpoint.road!==road)return{x:endpoint.point.x,y:endpoint.point.y,road:endpoint.road};
+  const edge=snapToWorldEdge(p);if(edge)return edge;
+  const grid=12;const snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
+  return isInsideWorldBounds(snapped)?snapped:{x:Math.max(WORLD_BOUNDS.minX+WORLD_MARGIN,Math.min(WORLD_BOUNDS.maxX-WORLD_MARGIN,snapped.x)),y:Math.max(WORLD_BOUNDS.minY+WORLD_MARGIN,Math.min(WORLD_BOUNDS.maxY-WORLD_MARGIN,snapped.y))};
+}
 export function roadEndpointPreview(s,road,index,p){if(!road?.points||!Number.isInteger(index)||!road.points[index]||!finitePoint(p))return null;const target=endpointTarget(s,p,road,index),points=road.points.map(q=>safePoint(q));points[index]={x:target.x,y:target.y};const clean=simplifyRoad(points),boundary=validateRoadGeometry(clean),lengthValue=length(clean),meta={startBuilding:index===0?target.building:null,endBuilding:index===clean.length-1?target.building:null},blocked=clean.length<2||lengthValue<12||roadPathBlocked(s,clean,meta),otherRoads=(s.roads||[]).filter(r=>r!==road),duplicate=otherRoads.some(r=>roadsHaveMeaningfulOverlap(r,{points:clean}));return{road,roadId:road.id,index,target,point:target,edgeSnapped:!!target.edgeSnapped,path:clean,blocked:blocked||!boundary.ok,blockedReason:boundary.ok?null:boundary.reason,duplicate,length:lengthValue}}
 export function editRoadEndpoint(s,roadId,index,p){
   const road=(s.roads||[]).find(r=>r?.id===roadId);
