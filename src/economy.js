@@ -431,7 +431,11 @@ export function updateEconomy(s,dt,flash){
         if(t.stage==='warehouse'){
           t.source.stock=Math.min(t.source.max||Infinity,(t.source.stock||0)+(t.cargo||0));
         }else{
-          t.source.stock=Math.min(t.source.max||Infinity,(t.source.stock||0)+(t.cargo||0));
+          if(t.source?.kind==='warehouse'){
+            addToWarehouse(t.source,t.cargoType,t.cargo||0);
+          }else{
+            t.source.stock=Math.min(t.source.max||Infinity,(t.source.stock||0)+(t.cargo||0));
+          }
           if(t.contractId&&t.to.contract?.id===t.contractId){
             t.to.contract.inFlight=Math.max(0,(t.to.contract.inFlight||0)-(t.cargo||0));
           }
