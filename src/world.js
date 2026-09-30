@@ -202,12 +202,34 @@ function simplifyRoad(points){
   return out;
 }
 function candidateRoadPaths(start,end){
+  // Keep the natural direct route first. Only introduce 90-degree bends when
+  // the direct segment is obstructed; this makes dragging feel predictable.
   const mx=(start.x+end.x)/2,my=(start.y+end.y)/2;
-  return[
+  const candidates=[
     [start,end],
-    [start,{x:mx,y:start.y}, {x:mx,y:end.y},end],
-    [start,{x:start.x,y:my}, {x:end.x,y:my},end]
+    [start,{x:end.x,y:start.y},end],
+    [start,{x:start.x,y:end.y},end],
+    [start,{x:mx,y:start.y},{x:mx,y:end.y},end],
+    [start,{x:start.x,y:my},{x:end.x,y:my},end]
   ];
+  return candidates;
+}
+
+function routeBendPenalty(path){
+  return Math.max(0,path.length-2)*18;
+}
+
+function chooseRoadPath(s,start,end,endpointBuildings={}){
+  const candidates=candidateRoadPaths(start,end).map(simplifyRoad);
+  const clear=candidates.filter(path=>!roadPathBlocked(s,path,endpointBuildings));
+  if(clear.length){
+    return clear.sort((a,b)=>{
+      const scoreA=length(a)+routeBendPenalty(a);
+      const scoreB=length(b)+routeBendPenalty(b);
+      return scoreA-scoreB;
+    })[0];
+  }
+  return candidates.sort((a,b)=>length(a)-length(b))[0]||[start,end];
 }
 export function roadTarget(s,p){
   return roadTargetInternal(s,p);
@@ -243,9 +265,7 @@ export function roadPreview(s,a,b){
     const sa=buildingConnectionPoint(startBuilding,endBuilding);
     const eb=buildingConnectionPoint(endBuilding,startBuilding);
     const direct=[sa,eb];
-    const candidates=candidateRoadPaths(sa,eb).map(simplifyRoad);
-    const clear=candidates.filter(path=>!roadPathBlocked(s,path,{start:startBuilding,end:endBuilding}));
-    const path=(clear.length?clear:[direct]).sort((x,y)=>length(x)-length(y))[0];
+    const path=chooseRoadPath(s,sa,eb,{start:startBuilding,end:endBuilding});
     const roadLength=length(path);
     return{
       path,start:sa,end:eb,
@@ -257,9 +277,7 @@ export function roadPreview(s,a,b){
     };
   }
 
-  const candidates=candidateRoadPaths(start,end).map(simplifyRoad);
-  const clear=candidates.filter(path=>!roadPathBlocked(s,path,{start:startBuilding,end:endBuilding}));
-  const path=(clear.length?clear:candidates).sort((x,y)=>length(x)-length(y))[0]||[start,end];
+  const path=chooseRoadPath(s,start,end,{start:startBuilding,end:endBuilding});
   const blocked=roadPathBlocked(s,path,{start:startBuilding,end:endBuilding});
   const roadLength=length(path);
 
