@@ -166,6 +166,45 @@ function addRoadCurbs(group,points,width){
   }
 }
 
+function addFlatCurve(group,start,control,end,width,y,material,steps=8){
+  let prev=start;
+  for(let i=1;i<=steps;i++){
+    const t=i/steps,mt=1-t;
+    const next={x:mt*mt*start.x+2*mt*t*control.x+t*t*end.x,y:mt*mt*start.y+2*mt*t*control.y+t*t*end.y};
+    addRoadBox(group,prev,next,width,.11,y,material);
+    prev=next;
+  }
+}
+function addRoadRails(group,points,width){
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i],len=Math.hypot(b.x-a.x,b.y-a.y);
+    if(len<1)continue;
+    const angle=Math.atan2(b.y-a.y,b.x-a.x),nx=-Math.sin(angle),nz=Math.cos(angle);
+    for(const side of [-1,1]){
+      const rail=new THREE.Mesh(new THREE.BoxGeometry(len+.8,1.45,.75),roadMaterials.bridgeRail);
+      rail.position.set((a.x+b.x)/2+nx*side*(width/2),(ROAD.railY),(a.y+b.y)/2+nz*side*(width/2));
+      rail.rotation.y=-angle;
+      group.add(rail);
+    }
+  }
+}
+function addBridgeSupports(group,points){
+  const total=points.slice(1).reduce((n,p,i)=>n+Math.hypot(p.x-points[i].x,p.y-points[i].y),0);
+  if(total<55)return;
+  const count=Math.max(1,Math.floor(total/100));
+  for(let s=1;s<=count;s++){
+    const target=total*s/(count+1);let run=0;
+    for(let i=1;i<points.length;i++){
+      const a=points[i-1],b=points[i],seg=Math.hypot(b.x-a.x,b.y-a.y);
+      if(run+seg<target){run+=seg;continue}
+      const t=(target-run)/Math.max(1,seg);
+      const x=a.x+(b.x-a.x)*t,z=a.y+(b.y-a.y)*t;
+      const support=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.8,ROAD.bridgeY,10),roadMaterials.bridgeSupport);
+      support.position.set(x,ROAD.bridgeY/2,z);
+      group.add(support);break;
+    }
+  }
+}
 function makeRoad(points,bridge){
   if(!Array.isArray(points)||points.length<2)return new THREE.Group();
   const group=new THREE.Group();
@@ -179,28 +218,8 @@ function makeRoad(points,bridge){
     addRoadSurface(group,clean,shoulder,ROAD.bridgeY,roadMaterials.bridgeDeck);
     addRoadSurface(group,clean,width,ROAD.surfaceY,roadMaterials.asphalt);
     addRoadMarkings(group,clean,width);
-    const first=clean[0],last=clean.at(-1);
-    for(const [a,b] of [[first,clean[1]],[clean.at(-2),last]]){
-      const angle=Math.atan2(b.y-a.y,b.x-a.x),nx=-Math.sin(angle),nz=Math.cos(angle);
-      const railLen=Math.hypot(b.x-a.x,b.y-a.y)+4;
-      for(const side of [-1,1]){
-        const rail=new THREE.Mesh(new THREE.BoxGeometry(railLen,1.45,.75),roadMaterials.bridgeRail);
-        rail.position.set((a.x+b.x)/2+nx*side*(width/2),(ROAD.railY),((a.y+b.y)/2)+nz*side*(width/2));
-        rail.rotation.y=-angle;
-        group.add(rail);
-      }
-    }
-    const total=clean.slice(1).reduce((n,p,i)=>n+Math.hypot(p.x-clean[i].x,p.y-clean[i].y),0);
-    if(total>55){
-      const supportCount=Math.max(1,Math.floor(total/100));
-      for(let s=1;s<=supportCount;s++){
-        const t=s/(supportCount+1);
-        const x=clean[0].x+(clean.at(-1).x-clean[0].x)*t,z=clean[0].y+(clean.at(-1).y-clean[0].y)*t;
-        const support=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.8,ROAD.bridgeY,10));
-        support.position.set(x,ROAD.bridgeY/2,z);
-        group.add(support);
-      }
-    }
+    addRoadRails(group,clean,width);
+    addBridgeSupports(group,clean);
   }else{
     addRoadSurface(group,clean,shoulder,ROAD.shoulderY,roadMaterials.shoulder);
     addRoadSurface(group,clean,width,ROAD.surfaceY,roadMaterials.asphalt);
@@ -221,34 +240,47 @@ function roadDirection(a,b){
 
 function addLaneAwareJunction(group,center,connections){
   if(connections.length<2)return;
-  const radius=ROAD.width*.64+Math.min(8,connections.length*1.5);
-  const asphalt=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.15,40),roadMaterials.asphalt);
+  const radius=ROAD.width*.66+Math.min(9,connections.length*1.6);
+  const apronRadius=radius+ROAD.shoulderWidth*.18;
+  const apron=new THREE.Mesh(new THREE.CylinderGeometry(apronRadius,apronRadius,.10,48),roadMaterials.shoulder);
+  apron.position.set(center.x,ROAD.shoulderY-.015,center.y);
+  group.add(apron);
+  const asphalt=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.16,48),roadMaterials.asphalt);
   asphalt.position.set(center.x,ROAD.surfaceY-.015,center.y);
   group.add(asphalt);
 
-  // Blend the road mouths into the circular junction and create explicit turning radii.
-  for(const c of connections){
-    const d=roadDirection(c.inner,c.outer);
-    if(!d)continue;
-    const len=radius+ROAD.width*.75;
-    const end={x:center.x+d.x*len,y:center.y+d.y*len};
-    addRoadBox(group,center,end,ROAD.width,.12,ROAD.surfaceY,roadMaterials.asphalt);
+  const dirs=connections.map(c=>({c,d:roadDirection(c.inner,c.outer)})).filter(x=>x.d);
+  for(const {d} of dirs){
+    const len=radius+ROAD.width*.95;
+    addRoadBox(group,center,{x:center.x+d.x*len,y:center.y+d.y*len},ROAD.width,.12,ROAD.surfaceY,roadMaterials.asphalt);
   }
 
-  if(connections.length>=3){
-    const ring=new THREE.Mesh(new THREE.RingGeometry(radius-1.15,radius+.85,40),roadMaterials.curb);
-    ring.rotation.x=-Math.PI/2;
-    ring.position.set(center.x,ROAD.curbY+.01,center.y);
-    group.add(ring);
+  if(dirs.length>=3){
+    const ring=new THREE.Mesh(new THREE.RingGeometry(radius-1.1,radius+.95,48),roadMaterials.curb);
+    ring.rotation.x=-Math.PI/2;ring.position.set(center.x,ROAD.curbY+.01,center.y);group.add(ring);
+
+    // Flat curved corner connectors make the junction read as a continuous road
+    // instead of a square patch, while remaining mobile-GPU friendly.
+    const turnRadius=radius*.72;
+    for(let i=0;i<dirs.length;i++){
+      const a=dirs[i].d,b=dirs[(i+1)%dirs.length].d;
+      const angleA=Math.atan2(a.y,a.x),angleB=Math.atan2(b.y,b.x);
+      let delta=((angleB-angleA+Math.PI*3)%(Math.PI*2))-Math.PI;
+      if(Math.abs(delta)>.15&&Math.abs(delta)<Math.PI*0.92){
+        const mid=angleA+delta*.5;
+        const start={x:center.x+a.x*turnRadius,y:center.y+a.y*turnRadius};
+        const end={x:center.x+b.x*turnRadius,y:center.y+b.y*turnRadius};
+        const control={x:center.x+Math.cos(mid)*turnRadius*1.12,y:center.y+Math.sin(mid)*turnRadius*1.12};
+        addFlatCurve(group,start,control,end,ROAD.width*.82,ROAD.surfaceY,roadMaterials.asphalt,6);
+      }
+    }
   }
 
-  // At 3/4-way junctions, draw short lane separators aimed into each approach.
-  if(connections.length>=3){
-    for(const c of connections){
-      const d=roadDirection(c.inner,c.outer);
-      if(!d)continue;
+  // Short centre separators point toward the usable approach lanes.
+  if(dirs.length>=3){
+    for(const {d} of dirs){
       const marker=new THREE.Mesh(new THREE.BoxGeometry(5,.10,.85),roadMaterials.center);
-      marker.position.set(center.x+d.x*(radius*.62),ROAD.markingY+.02,center.y+d.y*(radius*.62));
+      marker.position.set(center.x+d.x*(radius*.66),ROAD.markingY+.02,center.y+d.y*(radius*.66));
       marker.rotation.y=-Math.atan2(d.y,d.x);
       group.add(marker);
     }
