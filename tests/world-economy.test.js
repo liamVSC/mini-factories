@@ -15,7 +15,8 @@ const {
   editRoadEndpoint,
   roadAttachment,
   routeOnRoadNetwork,
-  roadNetwork
+  roadNetwork,
+  cleanupRoadNetwork
 } = await import('../src/world.js');
 const {route, updateEconomy} = await import('../src/economy.js');
 
@@ -415,5 +416,47 @@ test('moving a road endpoint across the river recalculates bridge state', () => 
   s.roads.push(r);
   assert.equal(r.bridge,false);
   assert.ok(editRoadEndpoint(s,r.id,1,{x:100,y:500}));
+  assert.equal(s.roads[0].bridge,true);
+});
+
+
+test('road cleanup removes zero-length and tiny fragments without touching valid roads', () => {
+  const s = baseState();
+  const valid = road([{x:0,y:0},{x:100,y:0}]);
+  const zero = road([{x:200,y:0},{x:200,y:0}]);
+  const tiny = road([{x:300,y:0},{x:305,y:0}]);
+  s.roads.push(valid,zero,tiny);
+  const result = cleanupRoadNetwork(s);
+  assert.equal(result.removed.length,2);
+  assert.deepEqual(s.roads.map(r=>r.id),[valid.id]);
+});
+
+test('road cleanup collapses redundant collinear points', () => {
+  const s = baseState();
+  const r = road([{x:0,y:0},{x:40,y:0},{x:80,y:0},{x:120,y:0}]);
+  s.roads.push(r);
+  cleanupRoadNetwork(s);
+  assert.deepEqual(s.roads[0].points,[{x:0,y:0},{x:120,y:0}]);
+});
+
+test('road cleanup removes reversed duplicate pavement and invalidates its trucks', () => {
+  const s = baseState();
+  const kept = road([{x:0,y:0},{x:120,y:0}]);
+  const duplicate = road([{x:120,y:0},{x:0,y:0}]);
+  s.roads.push(kept,duplicate);
+  const truck = {route:[{x:0,y:0},{x:120,y:0}],t:.2};
+  s.trucks.push(truck);
+  cleanupRoadNetwork(s);
+  assert.equal(s.roads.length,1);
+  assert.equal(s.roads[0].id,kept.id);
+  assert.equal(truck.routeInvalidated,true);
+});
+
+test('road cleanup recalculates bridge state after geometry normalization', () => {
+  const s = baseState();
+  const r = road([{x:0,y:300},{x:0,y:420},{x:0,y:500}]);
+  r.bridge=false;
+  s.roads.push(r);
+  cleanupRoadNetwork(s);
   assert.equal(s.roads[0].bridge,true);
 });
