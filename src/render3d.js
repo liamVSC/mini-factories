@@ -27,89 +27,197 @@ function roadIntersection(a,b,c,d){
   if(t<0.0001||t>0.9999||u<0.0001||u>0.9999)return null;
   return{x:a.x+abx*t,y:a.y+aby*t};
 }
+
+const ROAD = Object.freeze({
+  width:18,
+  bridgeWidth:16,
+  shoulderWidth:23,
+  surfaceY:.68,
+  shoulderY:.59,
+  markingY:.80,
+  curbY:.79,
+  bridgeY:.72,
+  railY:1.48
+});
+const roadMaterials={
+  asphalt:roadMat('#343a3c'),
+  shoulder:roadMat('#697173'),
+  curb:roadMat('#9aa09f'),
+  center:mat('#e4c95f'),
+  edge:mat('#d6dcda'),
+  bridgeDeck:roadMat('#735334'),
+  bridgeRail:mat('#b58a52'),
+  bridgeSupport:mat('#5f4631')
+};
+
+function addRoadBox(group,a,b,width,height,y,material){
+  const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+  if(len<1)return null;
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(len,height,width),material);
+  mesh.position.set((a.x+b.x)/2,y,(a.y+b.y)/2);
+  mesh.rotation.y=-Math.atan2(dy,dx);
+  group.add(mesh);
+  return {mesh,len,dx,dy,angle:Math.atan2(dy,dx)};
+}
+
+function addRoadMarkings(group,a,b,len,dx,dy,angle,width=ROAD.width){
+  if(len<4)return;
+  const nx=-Math.sin(angle),nz=Math.cos(angle);
+
+  const edgeWidth=.72;
+  for(const side of [-1,1]){
+    const edge=new THREE.Mesh(new THREE.BoxGeometry(Math.max(1,len-2),.12,edgeWidth),roadMaterials.edge);
+    edge.position.set(
+      (a.x+b.x)/2+nx*side*(width/2-1.5),
+      ROAD.markingY,
+      (a.y+b.y)/2+nz*side*(width/2-1.5)
+    );
+    edge.rotation.y=-Math.atan2(dy,dx);
+    group.add(edge);
+  }
+
+  // Keep the centre line sparse enough to read clearly on a phone.
+  for(let along=10;along<len-6;along+=30){
+    const dashLen=Math.min(14,len-along-4);
+    if(dashLen<4)break;
+    const t=(along+dashLen/2)/len;
+    const dash=new THREE.Mesh(new THREE.BoxGeometry(dashLen,.12,1.05),roadMaterials.center);
+    dash.position.set(a.x+dx*t,ROAD.markingY+.015,a.y+dy*t);
+    dash.rotation.y=-Math.atan2(dy,dx);
+    group.add(dash);
+  }
+}
+
+function addRoadEndCap(group,p,radius,material,y){
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.11,24),material);
+  cap.position.set(p.x,y,p.y);
+  group.add(cap);
+}
+
 function makeRoadJunctions(roads){
   const group=new THREE.Group();
-  const material=roadMat('#3f4648');
   const seen=[];
-  const add=(p,radius=9)=>{
-    if(!p||seen.some(q=>Math.hypot(q.x-p.x,q.y-p.y)<2))return;
-    seen.push(p);
-    const mesh=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.12,24),material);
-    mesh.position.set(p.x,.71,p.y);
-    group.add(mesh);
-  };
   const segments=[];
+  const add=(p,radius=10)=>{
+    if(!p||!isInsideWorldBounds(p))return;
+    if(seen.some(q=>Math.hypot(q.x-p.x,q.y-p.y)<2))return;
+    seen.push({x:p.x,y:p.y});
+    const mesh=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.13,28),roadMaterials.asphalt);
+    mesh.position.set(p.x,ROAD.surfaceY-.01,p.y);
+    group.add(mesh);
+
+    // A thin curb ring visually stitches the separate segment meshes together.
+    const curb=new THREE.Mesh(new THREE.RingGeometry(radius-.9,radius+.9,28),roadMaterials.curb);
+    curb.rotation.x=-Math.PI/2;
+    curb.position.set(p.x,ROAD.curbY,p.y);
+    group.add(curb);
+  };
+
   for(const road of roads||[]){
-    if(road?.bridge)continue;
-    const points=(road.points||[]).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y)&&isInsideWorldBounds(p));
-    for(const p of points)add(p);
+    const points=(road?.points||[]).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y)&&isInsideWorldBounds(p));
+    if(points.length<2||road?.bridge)continue;
+    for(let i=0;i<points.length;i++){
+      // Endpoints and bends need a patch; intersections are added below.
+      if(i===0||i===points.length-1||i>0&&i<points.length-1)add(points[i],10.5);
+    }
     for(let i=1;i<points.length;i++)segments.push([points[i-1],points[i]]);
   }
+
+  // Fill true crossings so there is no visible square/triangular gap.
   for(let i=0;i<segments.length;i++){
     for(let j=i+1;j<segments.length;j++){
       const hit=roadIntersection(segments[i][0],segments[i][1],segments[j][0],segments[j][1]);
-      if(hit)add(hit,9.5);
+      if(hit)add(hit,11);
     }
   }
   return group;
 }
+
 function makeRoad(points,bridge){
   if(!Array.isArray(points)||points.length<2)return new THREE.Group();
   const group=new THREE.Group();
-  const clean=points.filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y));
+  const clean=[];
+  for(const p of points){
+    if(!Number.isFinite(p?.x)||!Number.isFinite(p?.y))continue;
+    const last=clean.at(-1);
+    if(last&&Math.hypot(last.x-p.x,last.y-p.y)<.5)continue;
+    clean.push({x:p.x,y:p.y});
+  }
   if(clean.length<2)return group;
 
-  const roadWidth=bridge?15:18;
-  const addSegment=(a,b,width,height,y,color)=>{
-    const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
-    if(len<1)return;
-    const mesh=new THREE.Mesh(new THREE.BoxGeometry(len,height,width),roadMat(color));
-    mesh.position.set((a.x+b.x)/2,y,(a.y+b.y)/2);
-    mesh.rotation.y=-Math.atan2(dy,dx);
-    group.add(mesh);
-  };
+  const width=bridge?ROAD.bridgeWidth:ROAD.width;
+  const shoulder=bridge?width+1.5:ROAD.shoulderWidth;
 
-  if(!bridge){
-    for(let i=1;i<clean.length;i++){
-      const a=clean[i-1],b=clean[i];
-      addSegment(a,b,roadWidth+2.4,.14,.56,'#62696a');
-      addSegment(a,b,roadWidth,.12,.64,'#3f4648');
+  for(let i=1;i<clean.length;i++){
+    const a=clean[i-1],b=clean[i];
+    const segment=addRoadBox(
+      group,a,b,
+      bridge?width:shoulder,
+      bridge?.20:.16,
+      bridge?ROAD.bridgeY:ROAD.shoulderY,
+      bridge?roadMaterials.bridgeDeck:roadMaterials.shoulder
+    );
+    if(!segment)continue;
 
-      const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
-      if(len<1)continue;
-      const angle=-Math.atan2(dy,dx);
-      const dashMaterial=mat('#d9c56d');
-      for(let along=6;along<len-1;along+=30){
-        const dashLen=Math.min(18,len-along);
-        if(dashLen<2)break;
-        const t=(along+dashLen/2)/len;
-        const dash=new THREE.Mesh(new THREE.BoxGeometry(dashLen,.16,1),dashMaterial);
-        dash.position.set(a.x+dx*t,.72,a.y+dy*t);
-        dash.rotation.y=angle;
-        group.add(dash);
-      }
-    }
-  }else{
-    for(let i=1;i<clean.length;i++){
-      const a=clean[i-1],b=clean[i];
-      addSegment(a,b,roadWidth,.18,.64,'#755638');
-      const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
-      if(len<1)continue;
-      const angle=Math.atan2(dy,dx);
-      const normalX=Math.cos(angle+Math.PI/2);
-      const normalZ=Math.sin(angle+Math.PI/2);
+    if(bridge){
+      addRoadBox(group,a,b,width,.13,ROAD.surfaceY,roadMaterials.asphalt);
+      addRoadMarkings(group,a,b,segment.len,segment.dx,segment.dy,segment.angle,width);
+
+      const nx=-Math.sin(segment.angle),nz=Math.cos(segment.angle);
       for(const side of [-1,1]){
-        const rail=box(len,1.5,.8,'#b58a52');
-        rail.position.set(
-          (a.x+b.x)/2+normalX*side*(roadWidth/2),
-          1.42,
-          (a.y+b.y)/2+normalZ*side*(roadWidth/2)
+        const rail=new THREE.Mesh(
+          new THREE.BoxGeometry(segment.len,1.45,.75),
+          roadMaterials.bridgeRail
         );
-        rail.rotation.y=-angle;
+        rail.position.set(
+          (a.x+b.x)/2+nx*side*(width/2),
+          ROAD.railY,
+          (a.y+b.y)/2+nz*side*(width/2)
+        );
+        rail.rotation.y=-segment.angle;
         group.add(rail);
+      }
+
+      // Short supports give the bridge a more intentional 3D silhouette.
+      if(segment.len>55){
+        const supportCount=Math.max(1,Math.floor(segment.len/100));
+        for(let s=1;s<=supportCount;s++){
+          const t=s/(supportCount+1);
+          const x=a.x+(b.x-a.x)*t,z=a.y+(b.y-a.y)*t;
+          const support=new THREE.Mesh(
+            new THREE.CylinderGeometry(2.2,2.8,ROAD.bridgeY,10),
+            roadMaterials.bridgeSupport
+          );
+          support.position.set(x,ROAD.bridgeY/2,z);
+          group.add(support);
+        }
+      }
+    }else{
+      addRoadBox(group,a,b,width,.12,ROAD.surfaceY,roadMaterials.asphalt);
+      addRoadMarkings(group,a,b,segment.len,segment.dx,segment.dy,segment.angle,width);
+
+      const nx=-Math.sin(segment.angle),nz=Math.cos(segment.angle);
+      for(const side of [-1,1]){
+        const curb=new THREE.Mesh(
+          new THREE.BoxGeometry(Math.max(1,segment.len-1),.20,1.05),
+          roadMaterials.curb
+        );
+        curb.position.set(
+          (a.x+b.x)/2+nx*side*(width/2+.45),
+          ROAD.curbY,
+          (a.y+b.y)/2+nz*side*(width/2+.45)
+        );
+        curb.rotation.y=-segment.angle;
+        group.add(curb);
       }
     }
   }
+
+  // Round caps make road endpoints and boundary connections look intentional.
+  const capRadius=(bridge?width:shoulder)/2;
+  addRoadEndCap(group,clean[0],capRadius,bridge?roadMaterials.bridgeDeck:roadMaterials.shoulder,bridge?ROAD.bridgeY:ROAD.shoulderY);
+  addRoadEndCap(group,clean.at(-1),capRadius,bridge?roadMaterials.bridgeDeck:roadMaterials.shoulder,bridge?ROAD.bridgeY:ROAD.shoulderY);
+
   return group;
 }
 function addBuilding(b){
