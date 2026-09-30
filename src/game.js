@@ -127,6 +127,7 @@ function showPanel(b){
 }
 let buildMenuOpen=false;
 let buildDrag=null;
+let lastRoadSegmentTap=null;
 
 function buildIcon(t){
   if(t.kind==='factory')return '🏭';
@@ -342,7 +343,11 @@ canvas.addEventListener('pointerdown',e=>{
   }
   const p=worldPos(e);
   if(s.mode==='build'){
-    if(s.buildMode&&placeBuilding(s,s.buildMode,p.x,p.y)){markWorldDirty();s.buildMode=null;s.mode='select';setMenuActive(null);save();sync();flash('Building constructed')}
+    if(!s.buildMode)return;
+    const reason=canPlaceBuildingAt(s,s.buildMode,p.x,p.y);
+    if(reason){flash(reason);return}
+    const built=placeBuilding(s,s.buildMode,p.x,p.y);
+    if(built){markWorldDirty();s.buildMode=null;s.mode='select';setMenuActive(null);save();sync();flash('Building constructed')}
     return;
   }
   if(s.mode==='road'){
@@ -352,9 +357,14 @@ canvas.addEventListener('pointerdown',e=>{
   }
   if(s.mode==='erase'){
     const endpoint=roadEndpointAtPoint(s,p);
-    if(endpoint){drag={road:endpoint.road,endpoint:endpoint.side};s.roadEditEndpointPreview=roadEndpointPreview(s,endpoint.road,endpoint.side,p);return;}
+    if(endpoint){drag={road:endpoint.road,endpoint:endpoint.index};s.roadEditEndpointPreview=roadEndpointPreview(s,endpoint.road,endpoint.index,p);return;}
     const hit=roadSegmentAtPoint(s,p);
-    if(hit){s.roadEditSelection=hit;drag={road:hit.road,segment:hit.segment};return;}
+    if(hit){
+      const now=performance.now();
+      const split=!!lastRoadSegmentTap&&lastRoadSegmentTap.roadId===hit.roadId&&lastRoadSegmentTap.segment===hit.segment&&now-lastRoadSegmentTap.time<320;
+      lastRoadSegmentTap=split?null:{roadId:hit.roadId,segment:hit.segment,time:now};
+      s.roadEditSelection=hit;drag={road:hit.road,segment:hit.segment,split};return;
+    }
   }
   if(s.mode==='select'){
     cameraGesture={multi:false,startX:sp.x,startY:sp.y,lastX:sp.x,lastY:sp.y,moved:false,pointerId:e.pointerId};
@@ -399,7 +409,7 @@ canvas.addEventListener('pointerup',e=>{
   if(pointers.size<2)pinch=null;
   if(s.mode==='road'&&drag){const d=drag;drag=null;const target=roadBuildingTarget(s,d.current)||roadTarget(s,d.current)||d.current;const preview=roadPreview(s,d.start,target);const path=preview?.path||roadPathSafe(s,d.start,target);const meta={startBuilding:preview?.start?.building||d.start?.building,endBuilding:preview?.end?.building||target?.building};const result=addRoad(s,path,meta);setPreview(null);document.querySelector('#tip').textContent=roadResultMessage(result,path);if(result===true){markWorldDirty();save();sync()}}
   else if(s.mode==='erase'&&drag?.endpoint){const d=drag;drag=null;const p=worldPos(e);const result=editRoadEndpoint(s,d.road,d.endpoint,p);s.roadEditEndpointPreview=null;setPreview(null);if(result){markWorldDirty();save();sync();flash('Road endpoint moved')}else flash('Invalid road endpoint')}
-  else if(s.mode==='erase'&&drag?.segment){const d=drag;drag=null;const p=worldPos(e);const now=performance.now();if(d.lastTap&&now-d.lastTap<320){const result=editRoadSegment(s,d.road,d.segment,p,true);d.lastTap=0;if(result){markWorldDirty();save();sync();flash('Road segment split')}else flash('Could not split road')}else{const result=eraseRoad(s,d.road,d.segment);if(result){markWorldDirty();save();sync();flash('Road segment removed')}}}
+  else if(s.mode==='erase'&&drag?.segment){const d=drag;drag=null;const p=worldPos(e);const now=performance.now();if(d.lastTap&&now-d.lastTap<320){const result=editRoadSegment(s,p,d.split?'split':'delete');if(result){markWorldDirty();save();sync();flash('Road segment split')}else flash('Could not split road')}else{const result=editRoadSegment(s,p,'delete');if(result){markWorldDirty();save();sync();flash('Road segment removed')}}}
   else if(s.mode==='select'&&cameraGesture&&!wasMulti&&cameraGesture.pointerId===e.pointerId){
     const g=cameraGesture;
     if(!g.moved){
@@ -411,7 +421,7 @@ canvas.addEventListener('pointerup',e=>{
   }
   cameraGesture=null;
 });
-canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);drag=null;pinch=null;cameraGesture=null;setPreview(null)});
+canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);drag=null;pinch=null;cameraGesture=null;lastRoadSegmentTap=null;s.roadEditEndpointPreview=null;s.roadEditSelection=null;setPreview(null)});
 canvas.addEventListener('wheel',e=>{e.preventDefault();const sp=screenPos(e);setZoomAt(sp,s.camera.zoom*(e.deltaY>0?.9:1.1))},{passive:false});
 function roadPathSafe(s,a,b){try{const preview=roadPreview(s,a,b);return preview?.path||[a,b]}catch{return[a,b]}}
 function tick(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);s.congestion=Math.min(1,(s.trucks.length/12)*.72+(s.roads.length/18)*.28);if(s.objective<s.goals.length&&s.goals[s.objective].done(s))s.objective=Math.min(s.goals.length,s.objective+1);if(s.cash<0)s.gameOver=true;save();sync()}render(s,W,H);requestAnimationFrame(tick)}
