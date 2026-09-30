@@ -238,7 +238,7 @@ function pointSegmentDistance(p,a,b){return projectSegment(p,a,b).distance}
 function normalizeRoadEndpoint(s,p){const b=nearestBuilding(s,p);if(!b||dist(b,p)>88)return p;return buildingConnectionPoint(b,p)}
 function cleanRoadPoints(points){return validRoadPoints(points,0)||[]}
 function segmentNearRiver(a,b,threshold=45){const span=Math.max(1,dist(a,b)),samples=Math.max(3,Math.ceil(span/24));for(let i=0;i<=samples;i++){const t=i/samples,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;if(Math.abs(y-riverY(x))<threshold)return true}return false}
-function roadPathBlocked(s,points,endpointBuildings={}){if(!validRoadPoints(points,0))return true;const startBuilding=endpointBuildings.start||null,endBuilding=endpointBuildings.end||null;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];for(const building of s.buildings||[]){const clearance=(building.r||25)+12,isStart=building===startBuilding&&i===1,isEnd=building===endBuilding&&i===points.length-1;if(isStart||isEnd){
+function roadPathBlocked(s,points,endpointBuildings={}){if(!validRoadPoints(points,0))return true;const startBuilding=endpointBuildings.start||null,endBuilding=endpointBuildings.end||null;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];for(const building of s.buildings||[]){const clearance=(building.r||25)+12,sameBuilding=(a,b)=>a===b||!!(a?.id&&b?.id&&a.id===b.id),isStart=sameBuilding(building,startBuilding)&&i===1,isEnd=sameBuilding(building,endBuilding)&&i===points.length-1;if(isStart||isEnd){
       const endpoint=isStart?a:b;
       if(dist(endpoint,{x:building.x,y:building.y})<=1)continue;
       if(endpointSegmentBlocked(building,a,b,isStart?'start':'end'))return true;
