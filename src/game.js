@@ -3,8 +3,9 @@ import {seed,nearestBuilding,buildingAtPoint,roadBuildingTarget,nearestRoad,road
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.31';
+const GAME_VERSION='1.0.32';
 const CHANGELOG=[
+  {version:'1.0.32',date:'1 Oct 2026',items:['Hardened road junction graph construction so duplicate discovered edges cannot inflate junction degrees or confuse routing.','Traffic junction reservations now use deterministic simulation time and automatically expire instead of relying on browser timing.','Stabilised 3-way and 4-way junction visuals by ordering approach geometry consistently before drawing curved lane transitions.']},
   {version:'1.0.31',date:'1 Oct 2026',items:['Built the first real warehouse supply-chain pipeline: factories feed connected warehouses before goods are distributed to shops.','Warehouse inventory now drives physical warehouse-to-shop truck deliveries, so warehouses are a meaningful part of the logistics loop instead of passive storage.','Added simple warehouse upgrades for storage capacity and logistics without adding manual truck management.']},
   {version:'1.0.30',date:'30 Sep 2026',items:['Fixed mobile panels so building, research and company UIs use the available screen width instead of staying as narrow centred cards.','Fixed the Upgrade shop control so it only appears for actual shop buildings and cannot be forced visible by the mobile layout CSS.']},
   {version:'1.0.29',date:'30 Sep 2026',items:['Improved same-lane truck following with progressive speed reduction and dynamic safe gaps.','Traffic queues now brake smoothly instead of bunching into abrupt stop-and-go chains.']},
