@@ -250,17 +250,40 @@ export function setPreview(path,start,end,blocked=false){
     previewGroup.add(mesh);
   }
 
-  const endpointMaterial=kind=>new THREE.MeshStandardMaterial({
+  const endpointMaterial=kind=>new THREE.MeshBasicMaterial({
     color:blocked?'#d85a52':kind==='building'?'#f4e5a8':kind==='road'?'#67d5e8':kind==='grid'?'#b8c7ff':'#ffffff',
     transparent:true,
-    opacity:.9,
-    depthWrite:false
+    opacity:.95,
+    depthWrite:false,
+    side:THREE.DoubleSide
   });
   for(const [q,kind] of [[start,snapStart],[end,snapEnd]]){
     if(!q)continue;
-    const m=new THREE.Mesh(new THREE.SphereGeometry(kind==='building'?6:5,16,10),endpointMaterial(kind));
-    m.position.set(q.x,.8,q.y);
-    previewGroup.add(m);
+    const ring=new THREE.Mesh(
+      new THREE.RingGeometry(kind==='building'?7:6,kind==='building'?9:8,24),
+      endpointMaterial(kind)
+    );
+    ring.rotation.x=-Math.PI/2;
+    ring.position.set(q.x,.7,q.y);
+    previewGroup.add(ring);
+    const core=new THREE.Mesh(
+      new THREE.CircleGeometry(kind==='building'?3.5:3,16),
+      endpointMaterial(kind)
+    );
+    core.rotation.x=-Math.PI/2;
+    core.position.set(q.x,.72,q.y);
+    previewGroup.add(core);
+  }
+  for(let i=1;i<path.length-1;i++){
+    const q=path[i];
+    if(!q)continue;
+    const turn=new THREE.Mesh(
+      new THREE.RingGeometry(3.5,4.5,16),
+      endpointMaterial('grid')
+    );
+    turn.rotation.x=-Math.PI/2;
+    turn.position.set(q.x,.66,q.y);
+    previewGroup.add(turn);
   }
 }
 export function render(ctx,s,W,H,canvas=document.querySelector('#game')){
