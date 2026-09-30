@@ -3,8 +3,9 @@ import {seed,nearestBuilding,buildingAtPoint,roadBuildingTarget,nearestRoad,road
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.0.27';
+const GAME_VERSION='1.0.28';
 const CHANGELOG=[
+  {version:'1.0.28',date:'30 Sep 2026',items:['Completed the road traffic control pass with progressive braking before junction conflicts instead of instant stopping.','Added visible lane-correct stop/approach markings and truck brake-light states for yielding, approaching and stopped traffic.']},
   {version:'1.0.27',date:'30 Sep 2026',items:['Fixed the mobile building palette so horizontal swipes scroll through all building cards instead of being captured as a drag.','Kept drag-and-drop building placement by treating vertical movement toward the map as the drag gesture.']},
   {version:'1.0.26',date:'30 Sep 2026',items:['Fixed junction movement classification so straight-through traffic is treated as straight instead of being misclassified by direction vectors.','Added visible junction control lines aligned to the active left-hand traffic lane and made spawned trucks explicitly lane-aware.']},
   {version:'1.0.25',date:'30 Sep 2026',items:['Hardened traffic right-of-way with explicit junction reservations so conflicting movements cannot enter the same junction together.','Added UK-style left-hand traffic lane positioning and crossing protection for routes whose junction point is not an explicit route vertex.']},
