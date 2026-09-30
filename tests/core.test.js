@@ -5,7 +5,7 @@ globalThis.innerWidth=1280;
 globalThis.innerHeight=720;
 
 const {freshState,makeBuilding,hydrate,serialise}=await import('../src/state.js');
-const {pointOnRoute,length,dist,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget,roadEndpointPreview,editRoadEndpoint,roadNetwork,WORLD_BOUNDS,WORLD_MARGIN}=await import('../src/world.js');
+const {pointOnRoute,length,dist,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget,roadEndpointPreview,editRoadEndpoint,editRoadSegment,roadNetwork,roadTopology,WORLD_BOUNDS,WORLD_MARGIN}=await import('../src/world.js');
 const {updateEconomy}=await import('../src/economy.js');
 
 const route=[{x:0,y:0},{x:100,y:0}];
@@ -617,6 +617,51 @@ test('junctions remain routable when created close to the world edge',()=>{
   assert.ok(snapped.road);
   assert.ok(Math.abs(snapped.x-1240)<2);
   assert.ok(Math.abs(snapped.y)<2);
+});
+
+test('canonical road topology identifies three-way and four-way junctions',()=>{
+  const s=freshState();
+  s.roads.push(
+    {id:'north',points:[{x:0,y:-180},{x:0,y:0}],bridge:false,condition:1,age:0},
+    {id:'south',points:[{x:0,y:0},{x:0,y:180}],bridge:false,condition:1,age:0},
+    {id:'east',points:[{x:0,y:0},{x:180,y:0}],bridge:false,condition:1,age:0}
+  );
+  const three=roadTopology(s);
+  assert.equal(three.threeWayJunctions.length,1);
+  assert.equal(three.fourWayJunctions.length,0);
+  assert.equal(three.topologyJunctions[0].degree,3);
+  assert.equal(three.topologyJunctions[0].type,'junction');
+
+  s.roads.push({id:'west',points:[{x:-180,y:0},{x:0,y:0}],bridge:false,condition:1,age:0});
+  const four=roadTopology(s);
+  assert.equal(four.threeWayJunctions.length,0);
+  assert.equal(four.fourWayJunctions.length,1);
+  assert.ok(four.fourWayJunctions[0].roadIds.includes('north'));
+  assert.ok(four.fourWayJunctions[0].roadIds.includes('west'));
+});
+
+test('canonical topology preserves boundary nodes separately from junction classification',()=>{
+  const s=freshState();
+  const edgeX=WORLD_BOUNDS.maxX-WORLD_MARGIN;
+  s.roads.push(
+    {id:'edge-main',points:[{x:1000,y:0},{x:edgeX,y:0}],bridge:false,condition:1,age:0},
+    {id:'edge-branch',points:[{x:edgeX,y:0},{x:edgeX,y:160}],bridge:false,condition:1,age:0}
+  );
+  const topology=roadTopology(s);
+  assert.ok(topology.boundaryNodes.length>=1);
+  assert.ok(topology.topologyJunctions.some(n=>n.type==='boundary-junction'));
+  assert.ok(topology.boundaryNodes.some(n=>Math.abs(n.x-edgeX)<1e-9));
+});
+
+test('splitting a road keeps both resulting segments valid and routable',()=>{
+  const s=freshState();
+  s.roads.push({id:'split-me',points:[{x:-120,y:0},{x:120,y:0}],bridge:false,condition:1,age:0});
+  const result=editRoadSegment(s,{x:0,y:0},'split');
+  assert.ok(result);
+  assert.equal(s.roads.length,2);
+  assert.ok(s.roads.every(r=>r.points.length>=2));
+  const topology=roadTopology(s);
+  assert.ok(topology.nodes.some(n=>Math.abs(n.x)<1e-9&&Math.abs(n.y)<1e-9));
 });
 
 test('road preview snaps to buildings, roads and the placement grid',()=>{
