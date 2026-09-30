@@ -609,3 +609,69 @@ test('junction traffic distinguishes straight-through movement from turning move
   assert.equal(turn.t,.45);
   assert.ok(turn.wait>0);
 });
+
+
+test('factory to shop remains direct when no warehouse is present',()=>{
+  const s=baseState();
+  const f=building('Food',0,0);
+  const shop=building('Market',220,0);
+  f.stock=3;shop.demand=3;
+  s.buildings.push(f,shop);
+  s.roads.push(road([{x:35,y:0},{x:185,y:0}]));
+  for(let i=0;i<120&&s.orders<1;i++)updateEconomy(s,.2,()=>{});
+  assert.ok(s.orders>=1);
+  assert.ok(s.cash>500);
+});
+
+test('factory uses warehouse then warehouse supplies the shop',()=>{
+  const s=baseState();
+  const f=building('Food',0,0);
+  const warehouse=building('Warehouse',110,0);
+  const shop=building('Market',220,0);
+  f.stock=3;shop.demand=3;
+  s.buildings.push(f,warehouse,shop);
+  s.roads.push(
+    road([{x:35,y:0},{x:62,y:0}]),
+    road([{x:62,y:0},{x:158,y:0}]),
+    road([{x:158,y:0},{x:185,y:0}])
+  );
+  let sawWarehouseTransfer=false;
+  let sawRetailDelivery=false;
+  for(let i=0;i<240&&s.orders<1;i++){
+    updateEconomy(s,.2,()=>{});
+    sawWarehouseTransfer ||= s.trucks.some(t=>t.stage==='warehouse');
+    sawRetailDelivery ||= s.trucks.some(t=>t.stage==='delivery'&&t.source?.kind==='warehouse');
+  }
+  assert.ok(sawWarehouseTransfer,'factory should dispatch into the warehouse');
+  assert.ok(sawRetailDelivery||s.orders>=1,'warehouse should dispatch toward the shop');
+  assert.ok(s.orders>=1);
+});
+
+test('a warehouse connected only to the shop does not break direct factory to shop supply',()=>{
+  const s=baseState();
+  const f=building('Food',0,0);
+  const shop=building('Market',220,0);
+  const warehouse=building('Warehouse',220,100);
+  f.stock=3;shop.demand=3;
+  s.buildings.push(f,shop,warehouse);
+  s.roads.push(
+    road([{x:35,y:0},{x:185,y:0}]),
+    road([{x:185,y:0},{x:220,y:100}])
+  );
+  for(let i=0;i<120&&s.orders<1;i++)updateEconomy(s,.2,()=>{});
+  assert.ok(s.orders>=1,'direct factory to shop delivery must remain available');
+  assert.equal(warehouse.storage||0,0,'unreachable warehouse should not receive cargo');
+});
+
+test('warehouse delivery respects total storage capacity',()=>{
+  const s=baseState();
+  const f=building('Food',0,0);
+  const warehouse=building('Warehouse',110,0);
+  f.stock=3;warehouse.max=1;warehouse.storage=1;warehouse.inventory={Food:1};
+  s.buildings.push(f,warehouse);
+  s.roads.push(road([{x:35,y:0},{x:185,y:0}]));
+  updateEconomy(s,2,()=>{});
+  assert.equal(s.trucks.length,0);
+  assert.equal(warehouse.storage,1);
+  assert.ok(f.stock>=3);
+});
