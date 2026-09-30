@@ -97,7 +97,8 @@ export function roadNetwork(s,extraPoints=[]){
   }
   const adjacency=new Map(nodes.map(n=>[n,[]]));
   for(const e of edges){adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});adjacency.get(e.b).push({node:e.a,d:e.d,road:e.road});}
-  return{nodes,edges,adjacency};
+  const junctions=nodes.filter(n=>(adjacency.get(n)?.length||0)>=3);
+  return{nodes,edges,adjacency,junctions};
 }
 function shortestRoadPath(network,a,b){
   const queue=[{node:a,d:0}],best=new Map([[a,0]]),prev=new Map();
