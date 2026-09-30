@@ -41,7 +41,21 @@ function renderChangeLog(){
   el.innerHTML=CHANGELOG.map(v=>'<section class="changelog-version"><div class="changelog-head"><b>v'+v.version+'</b><span>'+v.date+'</span></div><ul>'+v.items.map(x=>'<li>'+x+'</li>').join('')+'</ul></section>').join('');
 }
 renderChangeLog();
-function sync(){document.querySelector('#cash').textContent='£'+Math.floor(s.cash);document.querySelector('#orders').textContent=s.orders;document.querySelector('#companyLevel').textContent=s.companyLevel;const levelProgress=document.querySelector('#levelProgress');if(levelProgress)levelProgress.style.width=Math.min(100,Math.max(0,(s.xp/Math.max(1,s.xpToNext))*100))+'%';const traffic=document.querySelector('#traffic');if(traffic)traffic.textContent=Math.round(Math.max(0,Math.min(100,s.congestion||0)))+'%';const g=s.goals[s.objective];document.querySelector('#objective').innerHTML=g?`<b>Goal ${s.objective+1}/6</b> • ${g.text} <span>${Math.min(g.target,Math.floor(g.progress(s)))}/${g.target}</span>`:'All objectives complete';const p=document.querySelector('#panel');if(panelMode==='building'&&s.selected&&p.style.display!=='none')showPanel(s.selected);}
+function sync(){
+  document.querySelector('#cash').textContent='£'+Math.floor(s.cash);
+  document.querySelector('#orders').textContent=s.orders;
+  document.querySelector('#companyLevel').textContent=s.companyLevel;
+  const version=document.querySelector('#gameVersion');
+  if(version)version.textContent='v'+GAME_VERSION;
+  const levelProgress=document.querySelector('#levelProgress');
+  if(levelProgress)levelProgress.style.width=Math.min(100,Math.max(0,(s.xp/Math.max(1,s.xpToNext))*100))+'%';
+  const traffic=document.querySelector('#traffic');
+  if(traffic)traffic.textContent=Math.round(Math.max(0,Math.min(100,(s.congestion||0)*100)))+'%';
+  const g=s.goals[s.objective];
+  document.querySelector('#objective').innerHTML=g?`<b>Goal ${s.objective+1}/6</b> • ${g.text} <span>${Math.min(g.target,Math.floor(g.progress(s)))}/${g.target}</span>`:'All objectives complete';
+  const p=document.querySelector('#panel');
+  if(panelMode==='building'&&s.selected&&p.style.display!=='none')showPanel(s.selected);
+}
 function setMenuActive(id){document.querySelectorAll('.actions button').forEach(el=>el.classList.remove('active'));if(id)document.querySelector('#'+id)?.classList.add('active')}
 function clearDynamicBuildButtons(){
   document.querySelectorAll('#panel button[id^="build"]').forEach(el=>el.style.display='none');
@@ -192,156 +206,60 @@ canvas.addEventListener('pointerdown',e=>{
   const p=worldPos(e);
   if(s.mode==='build'){
     if(s.buildMode&&placeBuilding(s,s.buildMode,p.x,p.y)){markWorldDirty();s.buildMode=null;s.mode='select';setMenuActive(null);save();sync();flash('Building constructed')}
-    else flash('Too close to another building or river');
+    return;
+  }
+  if(s.mode==='road'){
+    const target=roadBuildingTarget(s,p)||roadTarget(s,p)||p;
+    if(!drag)drag={start:target,current:target};
     return;
   }
   if(s.mode==='erase'){
     const endpoint=roadEndpointAtPoint(s,p);
-    if(endpoint){
-      s.roadEditEndpoint={roadId:endpoint.roadId,index:endpoint.index,point:endpoint.point};
-      drag={roadEndpoint:true,roadId:endpoint.roadId,index:endpoint.index,startScreen:sp,moved:false,preview:null,last:sp};
-      return;
-    }
+    if(endpoint){drag={road:endpoint.road,endpoint:endpoint.side};s.roadEditEndpointPreview=roadEndpointPreview(s,endpoint.road,endpoint.side,p);return;}
     const hit=roadSegmentAtPoint(s,p);
-    if(!hit)return;
-    s.roadEditSelection={roadId:hit.roadId,segment:hit.segment,point:hit.point};
-    const action=e.detail>=2?'split':'delete';
-    const result=editRoadSegment(s,p,action);
-    if(result){s.roadEditSelection=null;s.roadEditHover=null;markWorldDirty();save();flash(action==='split'?'Road segment split':'Road segment removed')}
-    return;
+    if(hit){s.roadEditSelection=hit;drag={road:hit.road,segment:hit.segment};return;}
   }
-  if(s.mode==='select'){
-    const hit=nearestBuilding(s,p);
-    drag={pan:true,last:sp,start:sp,moved:false,hit};
-    return;
-  }
-  if(s.mode==='road'){
-    const target=roadTarget(s,p)||p;
-    drag={road:true,start:target,startScreen:sp,preview:null,previewStart:null,previewEnd:null,moved:false,last:sp};
-    return;
-  }
+  const b=nearestBuilding(s,p);
+  s.selected=b||null;
+  if(b)showPanel(b);else hidePanel();
 });
 canvas.addEventListener('pointermove',e=>{
-  const sp=screenPos(e);
-  if(pointers.has(e.pointerId))pointers.set(e.pointerId,sp);
-  if(drag?.roadEndpoint&&s.mode==='erase'&&!pinch){
-    if(Math.hypot(sp.x-drag.startScreen.x,sp.y-drag.startScreen.y)>6)drag.moved=true;
-    const wp=worldPos(e);
-    const road=(s.roads||[]).find(r=>r?.id===drag.roadId);
-    const preview=road?roadEndpointPreview(s,road,drag.index,wp):null;
-    drag.preview=preview;
-    s.roadEditEndpointPreview=preview?{roadId:preview.roadId,index:preview.index,point:preview.target}:null;
-    const tip=document.querySelector('#tip');
-    if(tip)tip.textContent=preview?(preview.blocked?'Invalid endpoint position':preview.duplicate?'Road overlaps existing pavement':'Release to move road endpoint'):'Invalid endpoint position';
-    drag.last=sp;
-    return;
-  }
-  if(s.mode==='erase'&&!pinch){
-    const wp=worldPos(e);
-    const endpoint=roadEndpointAtPoint(s,wp);
-    const hit=roadSegmentAtPoint(s,wp);
-    s.roadEditEndpoint=endpoint?{roadId:endpoint.roadId,index:endpoint.index,point:endpoint.point}:null;
-    s.roadEditHover=hit?{roadId:hit.roadId,segment:hit.segment,point:hit.point}:null;
-  }
-  if(pinch&&pointers.size>=2){
+  const sp=screenPos(e);pointers.set(e.pointerId,sp);
+  if(pointers.size===2){
     const [a,b]=[...pointers.values()];
-    const center={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
-    const d=Math.max(30,Math.hypot(b.x-a.x,b.y-a.y));
-    const ratio=d/pinch.d;
-    setZoomAt(pinchCenter,pinch.z*ratio);
-    panBy(center.x-pinchCenter.x,center.y-pinchCenter.y);
-    const angle=Math.atan2(b.y-a.y,b.x-a.x);
-    let da=angle-pinchAngle;
-    while(da>Math.PI)da-=Math.PI*2;
-    while(da<-Math.PI)da+=Math.PI*2;
-    controlCamera(0,0,0,-da,0);
-    pinch={d,z:s.camera.zoom};
-    pinchAngle=angle;
-    pinchCenter=center;
+    const d=Math.max(1,Math.hypot(b.x-a.x,b.y-a.y));
+    const c={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    if(pinch){setZoomAt(c,pinch.z*(d/pinch.d));panBy(c.x-pinchCenter.x,c.y-pinchCenter.y);pinchCenter=c}
     return;
   }
-  if(drag?.pan&&s.mode==='select'){
-    const dx=sp.x-drag.last.x,dy=sp.y-drag.last.y;
-    if(Math.hypot(sp.x-drag.start.x,sp.y-drag.start.y)>6)drag.moved=true;
-    if(drag.moved)panBy(dx,dy);
-    drag.last=sp;
-    return;
-  }
-  if(!drag?.road||s.mode!=='road')return;
   const p=worldPos(e);
-  if(drag?.roadEndpoint){
-    if(Math.hypot(sp.x-drag.startScreen.x,sp.y-drag.startScreen.y)>6)drag.moved=true;
-    drag.last=sp;
-    return;
-  }
-  if(Math.hypot(sp.x-drag.startScreen.x,sp.y-drag.startScreen.y)>8)drag.moved=true;
-  if(drag.moved){
-    const endTarget=roadTarget(s,p)||p;
-    const preview=roadPreview(s,drag.start,endTarget);
-    drag.preview=preview.path;
-    drag.previewStart=preview.start;
-    drag.previewEnd=preview.end;
-    drag.blocked=preview.blocked;
-    drag.previewInfo=preview;
-    const tip=document.querySelector('#tip');
-    if(tip)tip.textContent=roadPreviewTip(preview);
-  }
-  drag.last=sp;
+  if(s.mode==='road'&&drag){drag.current=roadBuildingTarget(s,p)||roadTarget(s,p)||p;const preview=roadPreview(s,drag.start,drag.current);setPreview(preview);document.querySelector('#tip').textContent=roadPreviewTip(preview);return;}
+  if(s.mode==='erase'&&drag?.endpoint){s.roadEditEndpointPreview=roadEndpointPreview(s,drag.road,drag.endpoint,p);setPreview(s.roadEditEndpointPreview);return;}
+  if(s.mode==='erase'){s.roadEditHover=roadSegmentAtPoint(s,p);setPreview(null);return;}
+  if(drag&&s.mode==='select'){panBy(e.movementX,e.movementY)}
 });
-function finish(e){
+canvas.addEventListener('pointerup',e=>{
   pointers.delete(e.pointerId);
-  if(s.mode==='erase'&&!pointers.size){s.roadEditHover=null;s.roadEditEndpointPreview=null;}
-  try{canvas.releasePointerCapture?.(e.pointerId)}catch{}
-  if(drag?.roadEndpoint&&s.mode==='erase'){
-    const preview=drag.preview;
-    if(drag.moved&&preview&&!preview.blocked&&!preview.duplicate){
-      const result=editRoadEndpoint(s,drag.roadId,drag.index,preview.target);
-      if(result){markWorldDirty();save();sync();flash('Road endpoint moved')}else flash('Endpoint move rejected');
-    }else if(drag.moved){
-      flash('Invalid endpoint position');
-    }
-    s.roadEditEndpoint=null;s.roadEditEndpointPreview=null;drag=null;
-    return;
-  }
-  if(pinch&&pointers.size<2){pinch=null;pinchCenter=null;pinchAngle=0;drag=null;return}
-  if(drag?.pan&&s.mode==='select'){
-    if(!drag.moved){
-      if(drag.hit)showPanel(drag.hit);else hidePanel();
-    }
-    drag=null;
-    return;
-  }
-  if(drag?.road&&s.mode==='road'){
-    if(drag.moved&&drag.preview?.length>=2){
-      const result=addRoad(s,drag.preview,{startBuilding:drag.previewStart?.building,endBuilding:drag.previewEnd?.building});
-      if(result===true){markWorldDirty();flash('Road built');save();sync()}else flash(roadResultMessage(result,drag.preview));
-    }else if(!drag.moved){
-      flash('Drag from one point to another to build a road');
-    }
-  }
-  drag=null;
-}
-canvas.addEventListener('pointerup',finish);
-canvas.addEventListener('pointercancel',e=>{
-  // Treat a cancelled single-pointer road gesture like pointerup so a
-  // browser gesture interruption cannot silently discard a valid road.
-  if(drag?.road&&!pinch){
-    finish(e);
-    return;
-  }
-  pointers.delete(e.pointerId);
-  try{canvas.releasePointerCapture?.(e.pointerId)}catch{}
-  pinch=null;pinchCenter=null;pinchAngle=0;drag=null;
+  if(pointers.size<2)pinch=null;
+  if(s.mode==='road'&&drag){const d=drag;drag=null;const target=roadBuildingTarget(s,d.current)||roadTarget(s,d.current)||d.current;const path=roadPathSafe(s,d.start,target);const result=addRoad(s,path);setPreview(null);document.querySelector('#tip').textContent=roadResultMessage(result,path);if(result===true){markWorldDirty();save();sync()}}
+  else if(s.mode==='erase'&&drag?.endpoint){const d=drag;drag=null;const p=worldPos(e);const result=editRoadEndpoint(s,d.road,d.endpoint,p);s.roadEditEndpointPreview=null;setPreview(null);if(result){markWorldDirty();save();sync();flash('Road endpoint moved')}else flash('Invalid road endpoint')}
+  else if(s.mode==='erase'&&drag?.segment){const d=drag;drag=null;const p=worldPos(e);const now=performance.now();if(d.lastTap&&now-d.lastTap<320){const result=editRoadSegment(s,d.road,d.segment,p,true);d.lastTap=0;if(result){markWorldDirty();save();sync();flash('Road segment split')}else flash('Could not split road')}else{const result=eraseRoad(s,d.road,d.segment);if(result){markWorldDirty();save();sync();flash('Road segment removed')}}}
+  else if(s.mode==='select'&&drag){drag=null}
 });
-canvas.addEventListener('wheel',e=>{
-  e.preventDefault();
-  const sp=screenPos(e);
-  setZoomAt(sp,s.camera.zoom*Math.exp(-e.deltaY*.0012));
-},{passive:false});
-document.querySelector('#gameVersion').textContent='v'+GAME_VERSION;
-document.querySelector('#panelClose')?.addEventListener('click',hidePanel);for(const [id,fn] of [['build',()=>showBuild()],['research',()=>showResearch()],['company',()=>showCompany()],["cameraHome",()=>{s.camera.zoom=1;resetCamera();flash('Camera reset')}],['settings',()=>{document.querySelector('#settingsMenu').style.display='grid';document.querySelector('#changeLog')?.style.removeProperty('display');s.paused=true}],['settingsClose',()=>{document.querySelector('#settingsMenu').style.display='none';s.paused=false}],['road',()=>toggleMode('road')],['erase',()=>toggleMode('erase')],['newgame',reset],['again',reset]])document.querySelector('#'+id)?.addEventListener('click',fn);
-for(let i=1;i<=4;i++){const el=document.querySelector('#u'+i);el.onclick=null}
-document.querySelector('#shop').onclick=null
-let uiTimer=0,saveTimer=0;
-function tick(dt){if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);for(const p of s.particles)p.t+=dt;s.particles=s.particles.filter(p=>p.t<1);saveTimer+=dt;if(saveTimer>=4){saveTimer=0;save()}}uiTimer-=dt;if(uiTimer<=0||s.gameOver){uiTimer=.08;sync()}if(s.gameOver){document.querySelector('#gameOver').style.display='grid';document.querySelector('#score').textContent=`${s.orders} deliveries • Company Level ${s.companyLevel}.`;save()}}
-function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tick(dt);render(null,s,W,H,canvas);if(drag?.road&&drag.preview)setPreview(drag.preview,drag.previewStart,drag.previewEnd,!!drag.blocked);else setPreview(null);requestAnimationFrame(loop)}window.addEventListener('error',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.message||'unknown error')}});window.addEventListener('unhandledrejection',e=>{const el=document.querySelector('#tip');if(el){el.style.display='block';el.textContent='Game error: '+(e.reason?.message||e.reason||'unknown error')}});sync();requestAnimationFrame(loop);
+function roadPathSafe(a,b,c){try{const r=roadTarget(a,b,c);return r?.points||r||[b,c]}catch{return[b,c]}}
+canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);drag=null;setPreview(null)});
+canvas.addEventListener('wheel',e=>{e.preventDefault();const sp=screenPos(e);setZoomAt(sp,s.camera.zoom*(e.deltaY>0?.9:1.1))},{passive:false});
+function tick(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!s.paused&&!s.gameOver){updateEconomy(s,dt,flash);s.congestion=Math.min(1,(s.trucks.length/12)*.72+(s.roads.length/18)*.28);if(s.objective<s.goals.length&&s.goals[s.objective].done(s))s.objective=Math.min(s.goals.length,s.objective+1);if(s.cash<0)s.gameOver=true;save();sync()}render(s,W,H);requestAnimationFrame(tick)}
+
+document.querySelector('#road').onclick=()=>toggleMode('road');
+document.querySelector('#erase').onclick=()=>toggleMode('erase');
+document.querySelector('#build').onclick=showBuild;
+document.querySelector('#research').onclick=showResearch;
+document.querySelector('#company').onclick=showCompany;
+document.querySelector('#panelClose').onclick=hidePanel;
+document.querySelector('#settings').onclick=()=>{s.paused=true;document.querySelector('#settingsMenu').style.display='flex'};
+document.querySelector('#settingsClose').onclick=()=>{s.paused=false;document.querySelector('#settingsMenu').style.display='none'};
+document.querySelector('#newgame').onclick=()=>reset();
+document.querySelector('#again').onclick=()=>reset();
+document.querySelector('#cameraHome').onclick=()=>{resetCamera(W,H);s.renderVersion=(s.renderVersion||0)+1};
+requestAnimationFrame(tick);
