@@ -1,5 +1,5 @@
 import {freshState,hydrate,serialise,TYPES} from './state.js';
-import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadPreview,addRoad,eraseRoad,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
+import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPreview,addRoad,eraseRoad,dist,buildingCost,buildingUnlock,canBuild,placeBuilding} from './world.js';
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
@@ -209,7 +209,7 @@ canvas.addEventListener('pointerdown',e=>{
     return;
   }
   if(s.mode==='road'){
-    const target=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
+    const target=roadTarget(s,p)||p;
     drag={road:true,start:target,startScreen:sp,preview:null,previewStart:null,previewEnd:null,moved:false,last:sp};
     return;
   }
@@ -245,7 +245,7 @@ canvas.addEventListener('pointermove',e=>{
   const p=worldPos(e);
   if(Math.hypot(sp.x-drag.startScreen.x,sp.y-drag.startScreen.y)>8)drag.moved=true;
   if(drag.moved){
-    const endTarget=nearestRoad(s,p)||roadBuildingTarget(s,p)||p;
+    const endTarget=roadTarget(s,p)||p;
     const preview=roadPreview(s,drag.start,endTarget);
     drag.preview=preview.path;
     drag.previewStart=preview.start;
