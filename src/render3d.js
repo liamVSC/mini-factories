@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm';
-import {riverY} from './world.js';
+import {riverY,isInsideWorldBounds} from './world.js';
 
 let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null,roadEditGroup=null,roadEndpointGroup=null;
 let target={x:0,z:0,yaw:0,pitch:.82,distance:620};
@@ -41,7 +41,7 @@ function makeRoadJunctions(roads){
   const segments=[];
   for(const road of roads||[]){
     if(road?.bridge)continue;
-    const points=(road.points||[]).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y));
+    const points=(road.points||[]).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y)&&isInsideWorldBounds(p));
     for(const p of points)add(p);
     for(let i=1;i<points.length;i++)segments.push([points[i-1],points[i]]);
   }
@@ -250,7 +250,7 @@ function resize(w,h){
 function syncWorld(s){
   if(!scene)return;clearDynamic();
   const pts=[];for(const b of s.buildings||[]){addBuilding(b);if(Number.isFinite(b.x)&&Number.isFinite(b.y))pts.push({x:b.x,z:b.y});}
-  for(const r of s.roads||[]){const g=makeRoad(r.points,!!r.bridge);scene.add(g);worldObjects.add(g);for(const p of r.points||[])if(Number.isFinite(p.x)&&Number.isFinite(p.y))pts.push({x:p.x,z:p.y});}
+  for(const r of s.roads||[]){const points=(r.points||[]).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y)&&isInsideWorldBounds(p));if(points.length<2)continue;const g=makeRoad(points,!!r.bridge);scene.add(g);worldObjects.add(g);for(const p of points)pts.push({x:p.x,z:p.y});}
   const junctions=makeRoadJunctions(s.roads||[]);
   scene.add(junctions);worldObjects.add(junctions);
   if(pts.length){home={x:pts.reduce((n,p)=>n+p.x,0)/pts.length,z:pts.reduce((n,p)=>n+p.z,0)/pts.length};if(!cameraReady){desired.x=home.x;desired.z=home.z;target.x=home.x;target.z=home.z;}}
