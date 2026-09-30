@@ -1,8 +1,8 @@
-const CACHE='mini-factories-v1.0.17';
+const CACHE='mini-factories-v1.0.18';
 const APP_SHELL=[
   './',
   './index.html',
-  './styles.css?v=1.0.16',
+  './styles.css?v=1.0.17',
   './src/game.js?v=1.0.16',
   './src/state.js',
   './src/world.js',
