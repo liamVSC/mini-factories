@@ -385,7 +385,7 @@ test('moving a road endpoint onto another road creates a routable junction', () 
   const shop = building('Market',0,150);
   s.buildings.push(f,shop);
   const main = road([{x:-85,y:0},{x:85,y:0}]);
-  const branch = road([{x:0,80},{x:0,150}]);
+  const branch = road([{x:0,y:80},{x:0,y:150}]);
   s.roads.push(main,branch);
   const result = editRoadEndpoint(s,branch.id,0,{x:0,y:3});
   assert.ok(result);
