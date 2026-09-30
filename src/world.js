@@ -424,7 +424,11 @@ function endpointTarget(s,p,road,index){
   const grid=12;const snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
   return isInsideWorldBounds(snapped)?snapped:{x:Math.max(WORLD_BOUNDS.minX+WORLD_MARGIN,Math.min(WORLD_BOUNDS.maxX-WORLD_MARGIN,snapped.x)),y:Math.max(WORLD_BOUNDS.minY+WORLD_MARGIN,Math.min(WORLD_BOUNDS.maxY-WORLD_MARGIN,snapped.y))};
 }
-export function roadEndpointPreview(s,road,index,p){if(!road?.points||!Number.isInteger(index)||!road.points[index]||!finitePoint(p))return null;const target=endpointTarget(s,p,road,index),points=road.points.map(q=>safePoint(q));points[index]={x:target.x,y:target.y};const clean=simplifyRoad(points),boundary=validateRoadGeometry(clean),lengthValue=length(clean),meta={startBuilding:index===0?(target.building||buildingAtPoint(s,clean[0],0)):buildingAtPoint(s,clean[0],0),endBuilding:index===clean.length-1?(target.building||buildingAtPoint(s,clean.at(-1),0)):buildingAtPoint(s,clean.at(-1),0)},blocked=clean.length<2||lengthValue<12||roadPathBlocked(s,clean,meta),otherRoads=(s.roads||[]).filter(r=>r!==road),duplicate=otherRoads.some(r=>roadsHaveMeaningfulOverlap(r,{points:clean}));return{road,roadId:road.id,index,target,point:target,edgeSnapped:!!target.edgeSnapped,path:clean,blocked:blocked||!boundary.ok,blockedReason:boundary.ok?null:boundary.reason,duplicate,length:lengthValue}}
+export function roadEndpointPreview(s,road,index,p){if(!road?.points||!Number.isInteger(index)||!road.points[index]||!finitePoint(p))return null;const target=endpointTarget(s,p,road,index),points=road.points.map(q=>safePoint(q));points[index]={x:target.x,y:target.y};
+const clean=simplifyRoad(points),boundary=validateRoadGeometry(clean),lengthValue=length(clean);
+const meta={startBuilding:index===0?target.building:null,endBuilding:index===clean.length-1?target.building:null};
+const blocked=clean.length<2||lengthValue<12||roadPathBlocked(s,clean,meta),otherRoads=(s.roads||[]).filter(r=>r!==road),duplicate=otherRoads.some(r=>roadsHaveMeaningfulOverlap(r,{points:clean}));
+return{road,roadId:road.id,index,target,point:target,edgeSnapped:!!target.edgeSnapped,path:clean,blocked:blocked||!boundary.ok,blockedReason:boundary.ok?null:boundary.reason,duplicate,length:lengthValue}}
 export function editRoadEndpoint(s,roadId,index,p){
   const road=(s.roads||[]).find(r=>r?.id===roadId);
   if(!road?.points||!Number.isInteger(index)||index<0||index>=road.points.length)return false;
