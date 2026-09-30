@@ -591,3 +591,21 @@ test('opposing traffic is not forced to stop on the same straight road', () => {
   assert.ok(first.t>.45);
   assert.ok(second.t>.45);
 });
+
+test('junction traffic distinguishes straight-through movement from turning movement', () => {
+  const s = baseState();
+  s.roads.push(
+    road([{x:-120,y:0},{x:0,y:0}]),
+    road([{x:0,y:0},{x:120,y:0}]),
+    road([{x:0,y:-120},{x:0,y:0}])
+  );
+  const source = {type:'Food',level:1,loading:0,logistics:0,stock:0,max:10};
+  const destination = {contract:null};
+  const straight = {id:'straight',route:[{x:-100,y:0},{x:0,y:0},{x:100,y:0}],routeKey:'straight',t:.45,speed:.1,value:0,cargo:1,source,to:destination,wait:0,stage:'delivery'};
+  const turn = {id:'turn',route:[{x:0,y:-100},{x:0,y:0},{x:100,y:0}],routeKey:'turn',t:.45,speed:.1,value:0,cargo:1,source,to:destination,wait:0,stage:'delivery'};
+  s.trucks=[straight,turn];
+  updateEconomy(s,.1,()=>{});
+  assert.ok(straight.t>.45);
+  assert.equal(turn.t,.45);
+  assert.ok(turn.wait>0);
+});
