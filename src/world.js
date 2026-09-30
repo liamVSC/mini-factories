@@ -173,7 +173,6 @@ const boundary=validateRoadGeometry(path||[start,end]);
 const blocked=!boundary.ok||!path||roadPathBlocked(s,path,{start:startBuilding,end:endBuilding});
 const roadLength=path?length(path):Infinity;
 return{path:path||[start,end],start,end,snappedStart:Number.isFinite(start.distance),snappedEnd:Number.isFinite(end.distance),edgeSnappedStart:!!start.edgeSnapped,edgeSnappedEnd:!!end.edgeSnapped,gridSnappedStart:!!start.gridSnapped,gridSnappedEnd:!!end.gridSnapped,connectsBuilding:!!start.building||!!end.building,connectsRoad:!!start.road||!!end.road,blocked,blockedReason:!boundary.ok?boundary.reason:null,length:roadLength,cost:Number.isFinite(roadLength)?Math.max(1,Math.ceil(roadLength/180))*2:Infinity}}
-function splitRoadAtPoint(s,road,p,tolerance=6){if(!road?.points||road.points.length<2||!finitePoint(p))return false;for(let i=1;i<road.points.length;i++){const a=road.points[i-1],b=road.points[i],q=projectSegment(p,a,b);if(q.distance>tolerance)continue;if(dist(q.point,a)<=tolerance||dist(q.point,b)<=tolerance)return false;const left=[...road.points.slice(0,i),q.point],right=[q.point,...road.points.slice(i)];if(!validRoadPoints(left)||!validRoadPoints(right))return false;road.points=left;s.roads.push({id:newId(),points:right,age:road.age||0,bridge:road.bridge||false,condition:Number.isFinite(road.condition)?road.condition:1});return true}return false}
 function reconcileRoadJunctions(s,points,meta={}){
   const endpoints=[{index:0,building:meta.startBuilding},{index:points.length-1,building:meta.endBuilding}];
   for(const endpoint of endpoints){
@@ -189,7 +188,6 @@ function reconcileRoadJunctions(s,points,meta={}){
     }
     if(best&&best.distance<=6){
       points[endpoint.index]={x:best.point.x,y:best.point.y};
-      splitRoadAtPoint(s,best.road,best.point,6);
     }
   }
 }
@@ -258,24 +256,12 @@ export function editRoadSegment(s,p,action='delete'){
   const hit=roadAtPoint(s,p);if(!hit)return false;
   const{road,projection}=hit,i=projection.segment;
   if(!Number.isInteger(i)||i<0||i>=road.points.length-1)return false;
-  if(action==='delete'){
-    const removedStart=safePoint(road.points[i]),removedEnd=safePoint(road.points[i+1]);
-    const left=road.points.slice(0,i+1),right=road.points.slice(i+1),replacements=[];
-    if(left.length>=2&&length(left)>=12)replacements.push({...road,points:left,id:newId()});
-    if(right.length>=2&&length(right)>=12)replacements.push({...road,points:right,id:newId()});
-    const idx=s.roads.indexOf(road);if(idx<0)return false;
-    const ok=commitRoadMutation(s,()=>s.roads.splice(idx,1,...replacements));
-    if(!ok)return false;
-    for(const truck of s.trucks||[])if(routeTouchesRoad(truck.route,{points:[removedStart,removedEnd]}))truck.routeInvalidated=true;
-    return{road,segments:replacements,point:projection.point,action:'delete'};
-  }
-  if(action!=='split')return false;
-  const q=safePoint(projection.point),left=[...road.points.slice(0,i+1),q],right=[q,...road.points.slice(i+1)];
-  if(!validRoadPoints(left)||!validRoadPoints(right))return false;
-  const replacement=[{...road,points:left,id:newId()},{...road,points:right,id:newId()}],idx=s.roads.indexOf(road);
-  if(idx<0)return false;
-  if(!commitRoadMutation(s,()=>s.roads.splice(idx,1,...replacement)))return false;
-  return{road,segments:replacement,point:q,action:'split'};
+  if(action!=='delete')return false;
+  const idx=s.roads.indexOf(road);if(idx<0)return false;
+  const removed=cloneRoadState([road])[0];
+  if(!commitRoadMutation(s,()=>s.roads.splice(idx,1)))return false;
+  for(const truck of s.trucks||[])if(routeTouchesRoad(truck.route,removed,4))truck.routeInvalidated=true;
+  return{road:removed,segments:[],point:projection.point,action:'delete'};
 }
 function roadEndpointCandidate(s,p,maxDistance=24){if(!finitePoint(p))return null;let best=null;for(const road of s.roads||[]){if(!validRoadPoints(road?.points,0))continue;for(const index of [0,road.points.length-1]){const q=road.points[index],d=dist(q,p);if(d<=maxDistance&&(!best||d<best.distance))best={road,index,point:{x:q.x,y:q.y},distance:d}}}return best}
 export function roadEndpointAtPoint(s,p,tolerance=28){const hit=roadEndpointCandidate(s,p,tolerance);if(!hit)return null;return{road:hit.road,roadId:hit.road.id,index:hit.index,point:hit.point,distance:hit.distance}}
@@ -299,7 +285,6 @@ export function editRoadEndpoint(s,roadId,index,p){
     s.roads.splice(idx,1,next);
     const liveTarget=targetRoad&&s.roads.includes(targetRoad)?targetRoad:null;
     if(liveTarget){
-      splitRoadAtPoint(s,liveTarget,junctionPoint,6);
       next.points[index]=junctionPoint;
     }else if(preview.target?.road){
       next.points[index]=junctionPoint;
