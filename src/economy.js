@@ -277,6 +277,15 @@ export function upgrade(s,b,n){
     else return false;
     s.cash-=price;return true;
   }
+  if(b.kind==='warehouse'){
+    const price=b.level===1?180:b.level===2?320:0;
+    if(b.level>=3||s.cash<price)return false;
+    s.cash-=price;
+    b.level++;
+    b.max+=b.level===2?10:14;
+    b.logistics=Math.min(2,(b.logistics||0)+1);
+    return true;
+  }
   const price=220*b.level;
   if(b.kind==='shop'&&b.level<3&&s.cash>=price){
     s.cash-=price;b.level++;b.max=Math.min(14,b.max+2);b.demand=Math.min(14,b.demand+2);return true;
@@ -310,7 +319,7 @@ function addToWarehouse(warehouse,type,n){
   warehouse.storage=(warehouse.storage||0)+take;
   return take;
 }
-function dispatchTruck(s,{route,source,destination,cargo,contractId=0,longDistance=false,valuePerUnit=0,stage='delivery'}){
+function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,contractId=0,longDistance=false,valuePerUnit=0,stage='delivery'}){
   if(!route||!cargo)return false;
   // Final hard gate: both buildings must still be physically attached
   // to the saved road network when the truck is spawned.
@@ -336,11 +345,30 @@ export function updateEconomy(s,dt,flash){
   for(const f of s.buildings.filter(b=>b.kind==='factory')){
     f.dispatchTimer=(f.dispatchTimer||0)+dt;
     if(f.dispatchTimer<Math.max(.65,1.15-f.level*.12))continue;
+    // Warehouses are the default supply-chain path whenever a connected
+    // warehouse exists. Factories feed the hub first; the hub then distributes
+    // to shops. Direct factory-to-shop delivery is only used when no connected
+    // warehouse exists, keeping the warehouse strategically meaningful without
+    // adding manual dispatch controls.
+    const connectedHubs=s.buildings
+      .filter(b=>b.kind==='warehouse')
+      .map(hub=>({hub,route:route(s,f,hub)}))
+      .filter(x=>x.route)
+      .sort((a,b)=>a.route.distance-b.route.distance);
+    const supplyHub=connectedHubs[0]?.hub||null;
+    if(supplyHub&&f.stock>0&&warehouseCapacity(supplyHub,f.type)>0){
+      const toHub=connectedHubs[0].route;
+      const cargo=Math.min(3,f.stock,warehouseCapacity(supplyHub,f.type));
+      if(cargo>0){
+        const dispatched=dispatchTruck(s,{route:toHub,source:f,destination:supplyHub,cargo,cargoType:f.type,stage:'warehouse'});
+        if(dispatched){f.stock-=cargo;f.dispatchTimer=0;continue;}
+      }
+    }
     const shops=s.buildings.filter(b=>b.kind==='shop'&&b.need===f.type&&b.demand>0);
     let choice=null,best=Infinity,choiceRoute=null,choiceHub=null,choicePriority=-Infinity;
     for(const shop of shops){
       const hub2=warehouseFor(s,shop);
-      const direct=route(s,f,shop);
+      const direct=hub2?null:route(s,f,shop);
       const via=hub2&&hub2.inventory?.[f.type]>0?route(s,hub2,shop):null;
       const candidate=via||direct;
       if(!candidate)continue;
@@ -365,35 +393,24 @@ export function updateEconomy(s,dt,flash){
     let cargo=0,source=f,routeToUse=choiceRoute,stage='delivery',fromWarehouse=false;
     if(choiceHub&&choiceHub.inventory?.[f.type]>0&&routeToUse){
       cargo=Math.min(capacity,choiceHub.inventory[f.type],Math.max(1,needed||capacity));
-      if(cargo>0){source=f;stage='delivery';fromWarehouse=true}
+      if(cargo>0){source=choiceHub;stage='delivery';fromWarehouse=true}
     }else{
+      // A connected warehouse with no stock is a real supply-chain shortage,
+      // not permission to bypass the hub. The factory-to-hub pass above will
+      // replenish it on the next dispatch cycle.
+      if(choiceHub)continue;
       if(!f.stock)continue;
-      const hubForShop=choiceHub||null;
-      if(hubForShop){
-        const toHub=route(s,f,hubForShop);
-        const toShop=route(s,hubForShop,shop);
-        if(toHub&&toShop){
-          const free=warehouseCapacity(hubForShop,f.type);
-          cargo=Math.min(capacity,f.stock,Math.max(1,needed||capacity),free);
-          if(cargo>0){
-            const dispatched=dispatchTruck(s,{route:toHub,source:f,destination:hubForShop,cargo,stage:'warehouse'});
-            if(dispatched){f.stock-=cargo;f.dispatchTimer=0;continue;}
-          }
-        }
-      }
-      if(cargo===0){
-        const directRoute=route(s,f,shop);
-        if(!directRoute)continue;
-        cargo=Math.min(capacity,f.stock,Math.max(1,needed||capacity));
-        if(cargo>0){routeToUse=directRoute;}
-      }
+      const directRoute=route(s,f,shop);
+      if(!directRoute)continue;
+      cargo=Math.min(capacity,f.stock,Math.max(1,needed||capacity));
+      if(cargo>0){routeToUse=directRoute;}
     }
     if(cargo<=0||!routeToUse)continue;
     const sp=spec(f.type);
     const valueBase=sp.price*sp.value*(1+Math.min(1.2,routeToUse.distance/650)*.45)*(1+(f.level-1)*.07+f.loading*.08)*(1+(f.logistics||0)*.04+(s.research?.logistics||0)*.04);
     if(!Number.isFinite(valueBase))continue;
     const valuePerUnit=Math.max(1,Math.round(valueBase));
-    const dispatched=dispatchTruck(s,{route:routeToUse,source:f,destination:shop,cargo,contractId:contract?.id||0,longDistance:routeToUse.distance>650,valuePerUnit,stage:'delivery'});
+    const dispatched=dispatchTruck(s,{route:routeToUse,source,cargoType:f.type,destination:shop,cargo,contractId:contract?.id||0,longDistance:routeToUse.distance>650,valuePerUnit,stage:'delivery'});
     if(!dispatched)continue;
     if(fromWarehouse){
       takeFromWarehouse(choiceHub,f.type,cargo);
@@ -482,7 +499,7 @@ export function updateEconomy(s,dt,flash){
         t.dead=true;continue;
       }
       const units=Math.max(1,t.cargo||1);
-      s.cash+=t.value;s.deliveryIncome+=t.value;s.orders+=units;s.xp+=Math.max(2,Math.round(t.value*.08));t.to.served=(t.to.served||0)+units;t.to.satisfaction=Math.min(100,(t.to.satisfaction||50)+4*units);s.deliveredBy[t.source.type]=(s.deliveredBy[t.source.type]||0)+units;
+      s.cash+=t.value;s.deliveryIncome+=t.value;s.orders+=units;s.xp+=Math.max(2,Math.round(t.value*.08));t.to.served=(t.to.served||0)+units;t.to.satisfaction=Math.min(100,(t.to.satisfaction||50)+4*units);s.deliveredBy[t.cargoType||t.source?.type]=(s.deliveredBy[t.cargoType||t.source?.type]||0)+units;
       if(t.contractId&&t.to.contract?.id===t.contractId){const c=t.to.contract;c.remaining=Math.max(0,c.remaining-units);c.inFlight=Math.max(0,(c.inFlight||0)-units);if(c.remaining<=0){const bonus=c.urgent?Math.round(c.reward*.18):0;s.cash+=c.reward+bonus;s.reputation=Math.min(100,s.reputation+2);if(t.longDistance)s.longContracts++;t.to.contract=null;flash('Contract complete • £'+(c.reward+bonus))}}
       t.dead=true;
     }
