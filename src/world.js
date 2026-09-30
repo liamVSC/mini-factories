@@ -461,16 +461,16 @@ export function editRoadEndpoint(s,roadId,index,p){
   const idx=s.roads.indexOf(road);if(idx<0)return false;
   const targetRoad=preview.target?.road||null,targetBefore=targetRoad?targetRoad.points.map(safePoint):null;
   const junctionPoint={x:preview.target.x,y:preview.target.y};
-  const ok=commitRoadMutation(s,()=>{
+  const beforeRoads=cloneRoadState(s.roads);
+  try{
     s.roads.splice(idx,1,next);
     const liveTarget=targetRoad&&s.roads.includes(targetRoad)?targetRoad:null;
-    if(liveTarget){
-      next.points[index]=junctionPoint;
-    }else if(preview.target?.road){
-      next.points[index]=junctionPoint;
-    }
-  });
-  if(!ok)return false;
+    if(liveTarget||preview.target?.road)next.points[index]=junctionPoint;
+    if(!validateRoadNetworkState(s))throw new Error('invalid-road-network');
+  }catch{
+    s.roads=beforeRoads;
+    return false;
+  }
   for(const truck of s.trucks||[]){
     if(routeTouchesRoad(truck.route,{points:oldPoints},4))truck.routeInvalidated=true;
     if(targetBefore&&routeTouchesRoad(truck.route,{points:targetBefore},4))truck.routeInvalidated=true;
