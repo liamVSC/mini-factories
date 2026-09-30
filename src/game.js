@@ -3,39 +3,14 @@ import {seed,nearestBuilding,roadBuildingTarget,nearestRoad,roadTarget,roadPrevi
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.6';
+const GAME_VERSION='1.0';
 const CHANGELOG=[
-  {version:'1.6',date:'30 Sep 2026',items:[
-    'Tightened road endpoint snapping to avoid accidental building or road capture.',
-    'Centralised road placement endpoint targeting.',
-    'Improved placement markers for snapped endpoints and route bends.',
-    'Improved live road placement feedback.'
-  ]},
-  {version:'1.4',date:'29 Sep 2026',items:[
-    'Unified screen-to-world input around the 3D camera projection.',
-    'Improved zoom-at-cursor, pan and pinch camera behaviour.',
-    'Cleaned up camera reset, resize and input state handling.',
-    'Added syntax checks to the automated test command.'
-  ]},
-  {version:'1.3',date:'29 Sep 2026',items:[
-    'Rebuilt the map renderer as a real-time 3D scene.',
-    'Added 3D factories, warehouses, shops and trucks.',
-    'Added 3D roads, bridges, lighting and depth.',
-    'Added a 3D road construction preview.',
-    'Kept the existing logistics and economy systems intact.'
-  ]},
-  {version:'1.2',date:'29 Sep 2026',items:[
-    'Rebuilt road routing around the physical road network.',
-    'Buildings now attach to real road segments.',
-    'Road intersections now work as proper junctions.',
-    'Fixed truck dispatch and delivery routing.',
-    'Added automated road and delivery regression tests.',
-    'Improved road drag handling on mobile.'
-  ]},
-  {version:'1.1',date:'28 Sep 2026',items:[
-    'Improved building visuals and road presentation.',
-    'Added clearer placement and erase feedback.',
-    'Improved mobile controls and compact panels.'
+  {version:'1.0',date:'30 Sep 2026',items:[
+    'Completed the first mobile-focused UI pass with touch-friendly controls and compact bottom sheets.',
+    'Improved road placement, snapping, endpoint editing and road cleanup.',
+    'Improved mobile build mode, toolbar layout and touch spacing.',
+    'Added clearer HUD progress, traffic and company information.',
+    'Hardened road editing and routing with automated regression coverage.'
   ]}
 ];
 
