@@ -135,9 +135,9 @@ function junctionForTruck(network,t){
 }
 function movementConflict(a,b){
   if(!a?.movement||!b?.movement)return true;
-  // Same movement shares one lane and is handled by the following-distance rule.
   const ai=a.movement,bi=b.movement;
-  if(a.junction===b.junction&&Math.abs(a.index-b.index)===0){
+  const sameJunction=dist(a.junction,b.junction)<1.5;
+  if(sameJunction&&a.index===b.index){
     if(ai.straight&&bi.straight){
       const opposing=ai.incoming.x*bi.incoming.x+ai.incoming.y*bi.incoming.y<-.7;
       if(opposing)return false;
@@ -149,7 +149,6 @@ function movementConflict(a,b){
   return true;
 }
 function trafficConflict(s,t,network){
-  if(t.wait>0)return false;
   const p=pointOnRoute(t.route,t.t);
   if(!p)return false;
 
@@ -214,10 +213,14 @@ function trafficConflict(s,t,network){
   // Claim the junction briefly. This prevents a second movement entering while
   // the first truck is physically occupying the conflict zone.
   s.trafficReservations=s.trafficReservations||{};
+  const now=s.trafficClock||0;
+  for(const [reservationKey,reservationValue] of Object.entries(s.trafficReservations)){
+    if(!reservationValue||reservationValue.until<=now)delete s.trafficReservations[reservationKey];
+  }
   const key=`${Math.round(here.junction.x*10)/10},${Math.round(here.junction.y*10)/10}`;
   const reservation=s.trafficReservations[key];
-  if(reservation&&reservation.truckId!==t.id&&reservation.until>performance.now())return true;
-  s.trafficReservations[key]={truckId:t.id,until:performance.now()+900};
+  if(reservation&&reservation.truckId!==t.id&&reservation.until>now)return true;
+  s.trafficReservations[key]={truckId:t.id,until:now+.9};
   return false;
 }
 function rerouteTruck(s,t){
@@ -347,6 +350,8 @@ function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,
 }
 
 export function updateEconomy(s,dt,flash){
+  const elapsed=Number.isFinite(dt)?Math.max(0,dt):0;
+  s.trafficClock=(s.trafficClock||0)+elapsed;
   for(const b of s.buildings){
     if(b.kind==='factory'){
       const f=spec(b.type);
