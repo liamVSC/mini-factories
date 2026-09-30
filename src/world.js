@@ -409,4 +409,39 @@ export function addRoad(s,points,meta={}){
   s.roads.push({id:newId(),points:clean,age:0,bridge,condition:1});
   return true;
 }
-export function eraseRoad(s,p){let hit=null,bd=24;for(const r of s.roads||[]){const q=projectOnPolyline(r.points,p);if(q&&q.distance<bd){bd=q.distance;hit=r}}if(!hit)return false;s.roads=s.roads.filter(r=>r!==hit);return true}
+function routeTouchesRoad(route,road,tolerance=3){
+  if(!Array.isArray(route)||route.length<2||!road?.points||road.points.length<2)return false;
+  for(let i=1;i<route.length;i++){
+    const a=route[i-1],b=route[i];
+    for(let j=1;j<road.points.length;j++){
+      if(segmentDistance(a,b,road.points[j-1],road.points[j])<=tolerance)return true;
+    }
+  }
+  return false;
+}
+function segmentDistance(a,b,c,d){
+  const cross=(u,v)=>u.x*v.y-u.y*v.x;
+  const ab={x:b.x-a.x,y:b.y-a.y};
+  const cd={x:d.x-c.x,y:d.y-c.y};
+  const ac={x:c.x-a.x,y:c.y-a.y};
+  const den=cross(ab,cd);
+  if(Math.abs(den)>1e-9){
+    const t=cross(ac,cd)/den;
+    const u=cross(ac,ab)/den;
+    if(t>=0&&t<=1&&u>=0&&u<=1)return 0;
+  }
+  return Math.min(pointSegmentDistance(a,c,d),pointSegmentDistance(b,c,d),pointSegmentDistance(c,a,b),pointSegmentDistance(d,a,b));
+}
+export function eraseRoad(s,p){
+  let hit=null,bd=24;
+  for(const r of s.roads||[]){
+    const q=projectOnPolyline(r.points,p);
+    if(q&&q.distance<bd){bd=q.distance;hit=r}
+  }
+  if(!hit)return false;
+  s.roads=s.roads.filter(r=>r!==hit);
+  for(const truck of s.trucks||[]){
+    if(routeTouchesRoad(truck.route,hit))truck.routeInvalidated=true;
+  }
+  return true;
+}
