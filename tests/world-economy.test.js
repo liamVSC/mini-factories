@@ -9,6 +9,7 @@ const {
   addRoad,
   eraseRoad,
   editRoadSegment,
+  roadSegmentAtPoint,
   roadAttachment,
   routeOnRoadNetwork,
   roadNetwork
@@ -273,6 +274,24 @@ test('deleting a branch invalidates only trucks whose saved route used that bran
   assert.equal(eraseRoad(s, {x:0,y:80}), true);
   assert.ok(!truck.routeInvalidated);
   assert.ok(routeOnRoadNetwork(s,f,shop));
+});
+
+test('road segment hit-testing identifies the nearest editable segment', () => {
+  const s = baseState();
+  const r = road([{x:0,y:0},{x:100,y:0},{x:100,y:100}]);
+  s.roads.push(r);
+  const hit = roadSegmentAtPoint(s, {x:96,y:45});
+  assert.ok(hit);
+  assert.equal(hit.roadId, r.id);
+  assert.equal(hit.segment, 1);
+  assert.ok(Math.abs(hit.point.x-100)<1e-9);
+  assert.ok(Math.abs(hit.point.y-45)<1e-9);
+});
+
+test('road segment hit-testing rejects points outside the edit tolerance', () => {
+  const s = baseState();
+  s.roads.push(road([{x:0,y:0},{x:100,y:0}]));
+  assert.equal(roadSegmentAtPoint(s, {x:50,y:30}), null);
 });
 
 test('editing a road segment can split it while preserving its geometry', () => {
