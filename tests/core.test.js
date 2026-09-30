@@ -323,6 +323,30 @@ test('road endpoint targeting uses tight building and road snap zones',()=>{
   assert.equal(free.y%12,0);
 });
 
+test('road snapping stays stable at building edges and road intersections',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  s.buildings.push(factory);
+  s.roads.push(
+    {id:'road-a',points:[{x:120,y:-80},{x:120,y:80}],bridge:false,condition:1,age:0},
+    {id:'road-b',points:[{x:40,y:0},{x:200,y:0}],bridge:false,condition:1,age:0}
+  );
+
+  const building=roadTarget(s,{x:42,y:0});
+  assert.equal(building.building,factory);
+  assert.ok(Number.isFinite(building.x)&&Number.isFinite(building.y));
+
+  const intersection=roadTarget(s,{x:121,y:1});
+  assert.ok(intersection.road);
+  assert.ok(Math.abs(intersection.x-120)<2);
+  assert.ok(Math.abs(intersection.y)<2);
+
+  const preview=roadPreview(s,{x:121,y:1},{x:300,y:0});
+  assert.equal(preview.start.road.id,'road-a');
+  assert.ok(preview.path.length>=2);
+  assert.equal(preview.blocked,false);
+});
+
 test('road preview snaps to buildings, roads and the placement grid',()=>{
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
