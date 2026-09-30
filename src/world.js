@@ -225,7 +225,7 @@ export function routeOnRoadNetwork(s,a,b){const aa=roadAttachment(s,a),bb=roadAt
   for(const junction of canonical){
     for(let i=1;i<routePoints.length;i++){
       const a=routePoints[i-1],b=routePoints[i],q=projectSegment(junction,a,b);
-      if(q.distance>2.5||q.t<=1e-6||q.t>=1-1e-6)continue;
+      if(q.distance>8||q.t<=1e-6||q.t>=1-1e-6)continue;
       routePoints.splice(i,0,{x:junction.x,y:junction.y});
       break;
     }
