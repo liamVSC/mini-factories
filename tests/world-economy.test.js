@@ -20,7 +20,10 @@ const {
   cleanupRoadNetwork,
   roadPreview,
   buildingPhysicalPlacementReason,
-  seed
+  seed,
+  FACTORY_MIN_DISTANCE,
+  validateBuildingLayout,
+  layoutIsValid
 } = await import('../src/world.js');
 const {route, updateEconomy} = await import('../src/economy.js');
 const buildingModule = await import('../src/world/buildings/index.js');
@@ -59,8 +62,8 @@ test('factories keep a full visual footprint clearance from each other',()=>{
   const s=baseState();
   const type=TYPES.find(t=>t.name==='Steel');
   s.buildings.push(makeBuilding(type,0,0,'existing'));
-  assert.equal(buildingPhysicalPlacementReason(s,type,160,0),null);
-  assert.equal(buildingPhysicalPlacementReason(s,type,120,0),'Too close to another factory');
+  assert.equal(buildingPhysicalPlacementReason(s,type,260,0),null);
+  assert.equal(buildingPhysicalPlacementReason(s,type,249,0),'Too close to another factory');
 });
 
 test('initial factory seeding produces separated factories',()=>{
@@ -68,11 +71,38 @@ test('initial factory seeding produces separated factories',()=>{
   seed(s);
   const factories=s.buildings.filter(b=>b.kind==='factory');
   assert.equal(factories.length,3);
+  assert.equal(validateBuildingLayout(s.buildings).length,0,JSON.stringify(validateBuildingLayout(s.buildings)));
+  assert.equal(layoutIsValid(s.buildings),true);
   for(let i=0;i<factories.length;i++)for(let j=i+1;j<factories.length;j++){
-    const a=factories[i],b=factories[j];
-    const overlapX=Math.abs(a.x-b.x)<78+72+0;
-    const overlapY=Math.abs(a.y-b.y)<62+72+0;
-    assert.equal(overlapX&&overlapY,false,JSON.stringify({a,b}));
+    assert.ok(Math.hypot(factories[i].x-factories[j].x,factories[i].y-factories[j].y)>=FACTORY_MIN_DISTANCE);
+  }
+});
+
+
+test('global layout validator reports duplicate ids, bounds, river and factory spacing conflicts',()=>{
+  const type=TYPES.find(t=>t.name==='Steel');
+  const a=makeBuilding(type,0,0,'same');
+  const b=makeBuilding(type,100,0,'same');
+  const issues=validateBuildingLayout([a,b]);
+  assert.ok(issues.some(issue=>issue.type==='factory-spacing'));
+  assert.ok(issues.some(issue=>issue.type==='duplicate-id'));
+  assert.equal(issues.length>0,true);
+});
+
+test('loading a severely clustered factory save relocates factories to separated layout positions',()=>{
+  const type=TYPES.find(t=>t.name==='Steel');
+  const buildings=[
+    makeBuilding(type,0,0,'factory-a'),
+    makeBuilding(type,10,10,'factory-b'),
+    makeBuilding(type,20,20,'factory-c')
+  ];
+  const s=hydrate({version:6,gameSeed:7,layoutSeed:11,buildings,roads:[],cash:1000});
+  assert.ok(s);
+  assert.equal(s.buildings.length,3);
+  assert.equal(layoutIsValid(s.buildings),true,JSON.stringify(validateBuildingLayout(s.buildings)));
+  const factories=s.buildings;
+  for(let i=0;i<factories.length;i++)for(let j=i+1;j<factories.length;j++){
+    assert.ok(Math.hypot(factories[i].x-factories[j].x,factories[i].y-factories[j].y)>=FACTORY_MIN_DISTANCE);
   }
 });
 
@@ -124,8 +154,8 @@ test('building placement uses the same factory clearance as save repair',()=>{
   const s=baseState();
   const type=TYPES.find(t=>t.name==='Steel');
   s.buildings.push(makeBuilding(type,0,0,'existing'));
-  assert.equal(buildingPhysicalPlacementReason(s,type,160,0),null);
-  assert.equal(buildingPhysicalPlacementReason(s,type,149,0),'Too close to another factory');
+  assert.equal(buildingPhysicalPlacementReason(s,type,260,0),null);
+  assert.equal(buildingPhysicalPlacementReason(s,type,249,0),'Too close to another factory');
 });
 
 test('road routing avoids a warehouse physical footprint',()=>{
