@@ -29,16 +29,16 @@ function reconcileRoadJunctions(s,points,meta={}){
 export function addRoad(s,points,meta={}){
   if(!Array.isArray(points)||points.length<2)return'invalid';
   const normalized=points.map(q=>safePoint(q));
-  const inferredStart=buildingAtPoint(s,normalized[0],0);
-  const inferredEnd=buildingAtPoint(s,normalized.at(-1),0);
-  const startBuilding=meta.startBuilding||inferredStart;
-  const endBuilding=meta.endBuilding||inferredEnd;
+  const startConnection=resolveBuildingRoadEndpoint(s,normalized[0],meta.startBuilding);
+  const endConnection=resolveBuildingRoadEndpoint(s,normalized.at(-1),meta.endBuilding);
+  const startBuilding=startConnection?.building||null;
+  const endBuilding=endConnection?.building||null;
   if(startBuilding&&endBuilding&&startBuilding===endBuilding)return'blocked';
   // Explicit building connections use facade endpoints. Legacy direct addRoad
   // calls may still provide a building centre as an endpoint; keep those
   // coordinates intact and let the endpoint collision rules validate them.
-  if(meta.startBuilding)normalized[0]=buildingConnectionPoint(meta.startBuilding,normalized.at(-1));
-  if(meta.endBuilding)normalized[normalized.length-1]=buildingConnectionPoint(meta.endBuilding,normalized[0]);
+  if(startConnection)normalized[0]=startConnection.point;
+  if(endConnection)normalized[normalized.length-1]=endConnection.point;
   points=normalized;
   const validation=validateRoadGeometry(points);
   if(!validation.ok){
