@@ -24,7 +24,6 @@ export {
   roadPathBlocked,
   roadPathIntersectsBuildingFootprint,
   simplifyRoad,
-  chooseRoadPath,
   snapToWorldEdge,
   roadTargetInternal,
   roadTarget,
