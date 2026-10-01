@@ -731,3 +731,222 @@ function resize(w,h){
   if(changed)renderer.setSize(viewport.width,viewport.height,false);
   if(camera3d)camera3d.updateProjectionMatrix();
 }
+
+function ensureCamera(){
+  if(!camera3d){
+    camera3d=new THREE.PerspectiveCamera(48,viewport.width/Math.max(1,viewport.height),1,5000);
+    cameraReady=false;
+  }
+  const yaw=target.yaw;
+  const pitch=Math.max(.35,Math.min(1.35,target.pitch));
+  const horizontal=Math.cos(pitch)*target.distance;
+  camera3d.position.set(
+    target.x+Math.sin(yaw)*horizontal,
+    Math.sin(pitch)*target.distance,
+    target.z+Math.cos(yaw)*horizontal
+  );
+  camera3d.lookAt(target.x,0,target.z);
+  camera3d.updateProjectionMatrix();
+  cameraReady=true;
+}
+
+function syncCamera(){
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  target.x=lerp(target.x,desired.x,.16);
+  target.z=lerp(target.z,desired.z,.16);
+  target.yaw=lerp(target.yaw,desired.yaw,.16);
+  target.pitch=lerp(target.pitch,desired.pitch,.16);
+  target.distance=lerp(target.distance,desired.distance,.16);
+  ensureCamera();
+}
+
+function clearPreview(group){
+  while(group.children.length){
+    const child=group.children[0];
+    group.remove(child);
+    disposeObject(child);
+  }
+}
+
+function addPolylinePreview(group,points,color='#ffd45a'){
+  if(!Array.isArray(points)||points.length<2)return;
+  const material=roadMat(color);
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i];
+    addRoadBox(group,a,b,ROAD.width*.72,.18,ROAD.surfaceY+.25,material);
+  }
+}
+
+function setPreview(path,start,end,blocked=false){
+  if(!previewGroup)return;
+  const key=JSON.stringify([path||null,start?.x,start?.y,end?.x,end?.y,!!blocked]);
+  if(key===previewKey)return;
+  previewKey=key;
+  clearPreview(previewGroup);
+  if(Array.isArray(path)&&path.length>1){
+    addPolylinePreview(previewGroup,path,blocked?'#d85a52':'#ffd45a');
+  }
+}
+
+function setBuildingPreview(type,point,blocked=false){
+  if(!buildingPreviewGroup)return;
+  clearPreview(buildingPreviewGroup);
+  if(!point||!type)return;
+  const fp=type.kind==='warehouse'?{w:96,d:66}:type.kind==='factory'?{w:78,d:62}:{w:70,d:56};
+  const material=new THREE.MeshBasicMaterial({
+    color:blocked?'#d85a52':'#7fd8a8',
+    transparent:true,
+    opacity:.38,
+    depthWrite:false
+  });
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(fp.w,8,fp.d),material);
+  mesh.position.set(point.x,4,point.y);
+  buildingPreviewGroup.add(mesh);
+}
+
+function updateWorld(s){
+  clearDynamic();
+  root.clear();
+  for(const road of s.roads||[]){
+    const g=makeRoad(road.points,!!road.bridge,s);
+    g.userData.road=road;
+    root.add(g);
+    worldObjects.add(g);
+  }
+  const junctions=makeRoadJunctions(s.roads||[]);
+  root.add(junctions);
+  worldObjects.add(junctions);
+  for(const building of s.buildings||[])addBuilding(building);
+}
+
+function truckPoint(truck){
+  const route=Array.isArray(truck?.route)?truck.route:truck?.route?.points;
+  if(!Array.isArray(route)||route.length<2)return null;
+  const progress=Number.isFinite(truck.progress)?truck.progress:0;
+  return pointOnRoute(route,Math.max(0,Math.min(1,progress)));
+}
+
+function updateTrucks(s){
+  const live=new Set();
+  for(const truck of s.trucks||[]){
+    if(!truck?.id)continue;
+    live.add(truck.id);
+    let mesh=truckMeshes.get(truck.id);
+    if(!mesh){
+      mesh=new THREE.Group();
+      const body=new THREE.Mesh(new THREE.BoxGeometry(13,7,7),mat('#d97b45'));
+      body.position.y=5;
+      const cab=new THREE.Mesh(new THREE.BoxGeometry(5,6.5,7.2),mat('#9ec5d8'));
+      cab.position.set(4,6,0);
+      mesh.add(body,cab);
+      mesh.userData.truck=truck;
+      scene.add(mesh);
+      truckMeshes.set(truck.id,mesh);
+    }
+    const p=truckPoint(truck);
+    if(!p)continue;
+    const route=Array.isArray(truck.route)?truck.route:truck.route?.points;
+    const q=pointOnRoute(route,Math.min(1,(Number(truck.progress)||0)+.002));
+    mesh.position.set(p.x,0,p.y);
+    if(q){
+      mesh.rotation.y=-Math.atan2(q.y-p.y,q.x-p.x);
+    }
+  }
+  for(const [id,mesh] of truckMeshes){
+    if(live.has(id))continue;
+    scene.remove(mesh);
+    disposeObject(mesh);
+    truckMeshes.delete(id);
+  }
+}
+
+function updateCameraBounds(){
+  const limit=WORLD_HALF_SIZE-WORLD_MARGIN;
+  desired.x=Math.max(-limit,Math.min(limit,desired.x));
+  desired.z=Math.max(-limit,Math.min(limit,desired.z));
+}
+
+function render(s,W,H,canvas=document.querySelector('#game')){
+  if(!canvas)return;
+  if(!renderer)init(canvas);
+  resize(W||innerWidth,H||innerHeight);
+  if(!scene)return;
+  ensureCamera();
+  if(render.lastVersion!==s.renderVersion){
+    updateWorld(s);
+    render.lastVersion=s.renderVersion;
+  }
+  updateTrucks(s);
+  updateSelectionVisual(s);
+  updateRoadEditVisual(s);
+  updateRoadEndpointVisual(s);
+  syncCamera();
+  renderer.render(scene,camera3d);
+}
+
+function screenToWorld(x,y,w=viewport.width,h=viewport.height){
+  ensureCamera();
+  const ndc=new THREE.Vector2((x/w)*2-1,-(y/h)*2+1);
+  const raycaster=new THREE.Raycaster();
+  raycaster.setFromCamera(ndc,camera3d);
+  const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+  const hit=new THREE.Vector3();
+  return raycaster.ray.intersectPlane(plane,hit)?{x:hit.x,y:hit.z}:{x:0,y:0};
+}
+
+function worldToScreen(x,y,w=viewport.width,h=viewport.height){
+  ensureCamera();
+  const p=new THREE.Vector3(x,0,y).project(camera3d);
+  return{x:(p.x+1)*.5*w,y:(1-p.y)*.5*h};
+}
+
+function panScreen(dx,dy,w=viewport.width,h=viewport.height){
+  const a=screenToWorld(w*.5,h*.5,w,h);
+  const b=screenToWorld(w*.5-dx,h*.5-dy,w,h);
+  desired.x+=b.x-a.x;
+  desired.z+=b.y-a.y;
+  updateCameraBounds();
+}
+
+function zoomAtScreen(x,y,nextZoom,w=viewport.width,h=viewport.height){
+  const before=screenToWorld(x,y,w,h);
+  desired.distance=Math.max(180,Math.min(1250,620/Math.max(.55,Math.min(2.4,nextZoom))));
+  ensureCamera();
+  const after=screenToWorld(x,y,w,h);
+  desired.x+=before.x-after.x;
+  desired.z+=before.y-after.y;
+  updateCameraBounds();
+}
+
+function controlCamera(dx,dy,distanceDelta=0,yawDelta=0,pitchDelta=0){
+  desired.x+=dx;
+  desired.z+=dy;
+  desired.distance=Math.max(180,Math.min(1250,desired.distance+distanceDelta));
+  desired.yaw+=yawDelta;
+  desired.pitch=Math.max(.35,Math.min(1.35,desired.pitch+pitchDelta));
+  updateCameraBounds();
+}
+
+function resetCamera(){
+  desired={x:0,z:0,yaw:0,pitch:.82,distance:620};
+}
+
+function focusCamera(x,y){
+  desired.x=Number(x)||0;
+  desired.z=Number(y)||0;
+  updateCameraBounds();
+}
+
+export {
+  render,
+  setPreview,
+  setBuildingPreview,
+  resize,
+  controlCamera,
+  screenToWorld,
+  worldToScreen,
+  panScreen,
+  zoomAtScreen,
+  resetCamera,
+  focusCamera
+};
