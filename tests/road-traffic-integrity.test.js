@@ -26,7 +26,7 @@ test('road mutations advance the topology revision and rebuild lane graph safely
   assert.equal(s.roadNetworkRevision,0);
   assert.equal(addRoad(s,[{x:-180,y:0},{x:0,y:0}]),true);
   assert.equal(s.roadNetworkRevision,1);
-  assert.equal(addRoad(s,[{x:0,y:0},{x:180,y:0}]),true);
+  assert.equal(addRoad(s,[{x:0,y:0},{x:0,y:180}]),true);
   assert.equal(s.roadNetworkRevision,2);
 
   const before=buildLaneGraph(roadNetwork(s));
