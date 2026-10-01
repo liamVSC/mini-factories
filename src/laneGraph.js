@@ -38,11 +38,11 @@ export function buildLaneGraph(network,{lanesPerDirection=2}={}){
     for(let laneIndex=0;laneIndex<Math.max(1,lanesPerDirection);laneIndex++){
       const width=7;
       const laneCount=Math.max(1,lanesPerDirection);
-      // Left-hand traffic: each travel direction occupies its own half of the road.
-      const carriagewayCenter=reverse?7:-7;
-      const lateral=carriagewayCenter+(laneIndex-(laneCount-1)/2)*width;
       const create=(from,to,direction,reverse)=>{
         const id='lane-'+lanes.length;
+        // Left-hand traffic: each travel direction occupies its own half of the road.
+        const carriagewayCenter=reverse?7:-7;
+        const lateral=carriagewayCenter+(laneIndex-(laneCount-1)/2)*width;
         const lane={
           id,
           roadId:edge.road?.id||null,
