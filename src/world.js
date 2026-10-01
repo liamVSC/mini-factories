@@ -43,6 +43,35 @@ export function buildingCost(s,type){const base={Steel:260,Food:220,Parts:320,Ma
 export function buildingUnlock(t,s){if(t.unlock&&(s.research?.[t.unlock]||0)<t.unlockLevel)return'Requires '+t.unlock+' research Lv '+t.unlockLevel;const min={Steel:1,Food:1,Parts:2,Market:1,Garage:2,Builder:1,Plastics:1,Glass:2,Electronics:1,Furniture:2,Warehouse:2}[t.name]||1;if(s.companyLevel<min)return'Requires Company Level '+min;return null}
 export function canBuild(s,type){const reason=buildingUnlock(type,s);if(reason)return reason;const cap=10+(s.research?.industry||0)*2;if(s.buildings.length>=cap)return'Company building capacity reached ('+cap+')';if(s.cash<buildingCost(s,type))return'Costs £'+buildingCost(s,type);return null}
 export function canPlaceBuildingAt(s,type,x,y){const reason=canBuild(s,type);if(reason)return reason;if(!Number.isFinite(x)||!Number.isFinite(y))return'Invalid placement';if(s.buildings.some(b=>dist(b,{x,y})<145))return'Too close to another building';if(Math.abs(y-riverY(x))<105)return'Too close to the river';return null}
+export function buildingPlacementTarget(s,type,p){
+  if(!finitePoint(p)||!type)return null;
+  const f=buildingFootprint({kind:type.kind}), raw={x:Number(p.x),y:Number(p.y)};
+  const road=nearestRoad(s,raw), building=nearestBuilding(s,raw), candidates=[];
+  if(road){
+    const vx=raw.x-road.x,vy=raw.y-road.y,len=Math.hypot(vx,vy)||1,ux=vx/len,uy=vy/len;
+    const support=Math.abs(ux)>Math.abs(uy)?f.halfWidth:f.halfDepth;
+    candidates.push({point:{x:road.x+ux*(support+10),y:road.y+uy*(support+10)},snapType:'road',road:road.road,roadPoint:{x:road.x,y:road.y},distance:road.distance});
+  }
+  if(building){
+    const vx=raw.x-building.x,vy=raw.y-building.y,len=Math.hypot(vx,vy)||1,ux=vx/len,uy=vy/len,of=buildingFootprint(building);
+    const support=Math.abs(ux)>Math.abs(uy)?f.halfWidth:f.halfDepth,other=Math.abs(ux)>Math.abs(uy)?of.halfWidth:of.halfDepth;
+    candidates.push({point:{x:building.x+ux*(other+support+12),y:building.y+uy*(other+support+12)},snapType:'building',building,distance:dist(raw,building)});
+  }
+  const snap=candidates.sort((a,b)=>a.distance-b.distance)[0], snapped=!!snap&&snap.distance<=58, point=snapped?snap.point:raw;
+  const accessPoints=[
+    {side:'north',x:point.x,y:point.y-f.halfDepth,active:false},{side:'east',x:point.x+f.halfWidth,y:point.y,active:false},
+    {side:'south',x:point.x,y:point.y+f.halfDepth,active:false},{side:'west',x:point.x-f.halfWidth,y:point.y,active:false}
+  ];
+  let connection=null;
+  if(snapped){
+    let best=accessPoints[0],bd=Infinity,target=snap.roadPoint||{x:snap.building.x,y:snap.building.y};
+    for(const a of accessPoints){const d=dist(a,target);if(d<bd){bd=d;best=a}}
+    best.active=true; connection={from:snap.roadPoint||best,to:best};
+    if(snap.snapType==='building')connection.to=buildingConnectionPoint(snap.building,point);
+  }
+  return{point,snapType:snapped?snap.snapType:null,road:snap?.road||null,building:snap?.building||null,roadPoint:snap?.roadPoint||null,accessPoints,connection};
+}
+
 export function placeBuilding(s,type,x,y){if(canPlaceBuildingAt(s,type,x,y))return false;const b=makeBuilding(type,x,y,newId());b.district=district(x,y);s.cash-=buildingCost(s,type);s.buildings.push(b);return b}
 export function spawn(s,kind,forced){const pool=TYPES.filter(t=>t.kind===kind&&(!forced||t.name===forced)&&(!t.unlock||(s.research?.[t.unlock]||0)>=t.unlockLevel));if(!pool.length)return null;let candidates=pool;if(!forced&&pool.length>1){const recent=s.buildings.slice(-2).map(b=>b.type);const filtered=pool.filter(t=>!recent.includes(t.name));if(filtered.length)candidates=filtered}const type=candidates[Math.floor(Math.random()*candidates.length)];let x=0,y=0,ok=false;const count=s.buildings.length,minRadius=count<6?170:280,maxRadius=count<6?430:Math.min(760,430+s.companyLevel*22);for(let n=0;n<300&&!ok;n++){const angle=Math.random()*Math.PI*2,radius=minRadius+Math.random()*(maxRadius-minRadius);x=Math.cos(angle)*radius+(Math.random()-.5)*90;y=Math.sin(angle)*radius+(Math.random()-.5)*90;const river=riverY(x);if(Math.abs(y-river)<105)y+=y<river?-120:120;ok=s.buildings.every(b=>dist(b,{x,y})>145)}if(!ok)return null;const b=makeBuilding(type,x,y,newId());b.district=district(x,y);s.buildings.push(b);return b}
 export function seed(s){for(const t of['Steel','Food','Parts'])spawn(s,'factory',t);for(const t of['Market','Garage','Builder'])spawn(s,'shop',t)}
@@ -52,7 +81,7 @@ const ROAD_BUILDING_SNAP_TOLERANCE=46;
 export function roadBuildingTarget(s,p){if(!finitePoint(p))return null;let best=null,bd=Infinity;for(const b of s.buildings||[]){const hit=buildingHitbox(b,ROAD_BUILDING_SNAP_TOLERANCE),dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY),d=Math.hypot(dx,dy);if(d<bd){bd=d;best=b}}return bd<=ROAD_BUILDING_SNAP_TOLERANCE?best:null}
 function projectOnPolyline(points,p){let best=null,run=0;for(let i=1;i<points.length;i++){const q=projectSegment(p,points[i-1],points[i]);if(!best||q.distance<best.distance)best={...q,segment:i-1,along:run+dist(points[i-1],q.point)};run+=dist(points[i-1],points[i])}return best}
 export function nearestRoad(s,p){let best=null;for(const road of s.roads||[]){const points=validRoadPoints(road?.points,0);if(!points)continue;const q=projectOnPolyline(points,p);if(q&&(!best||q.distance<best.distance))best={x:q.point.x,y:q.point.y,road,distance:q.distance,segment:q.segment,along:q.along}}return best&&best.distance<=46?best:null}
-function buildingFootprint(building){
+export function buildingFootprint(building){
   if(building?.kind==='warehouse')return{halfWidth:48,halfDepth:33};
   if(building?.kind==='factory')return{halfWidth:39,halfDepth:31};
   return{halfWidth:35,halfDepth:28};
