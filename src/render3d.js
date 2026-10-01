@@ -140,7 +140,7 @@ function addJunctionControlLines(group,center,connections,radius){
 function disposeMaterial(material){if(Array.isArray(material)){material.forEach(disposeMaterial);return;}if(!material||sharedMaterials.has(material))return;material.dispose?.();}
 function disposeObject(g){g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)disposeMaterial(o.material);});}
 function clearDynamic(){for(const g of worldObjects){scene.remove(g);disposeObject(g);}worldObjects.clear();meshes.clear();for(const g of truckMeshes.values()){scene.remove(g);disposeObject(g);}truckMeshes.clear();}
-function init(canvas){if(renderer)return;renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio||1,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;scene=new THREE.Scene();scene.background=new THREE.Color('#aeb3b0');root=new THREE.Group();scene.add(root);previewGroup=new THREE.Group();scene.add(previewGroup);buildingPreviewGroup=new THREE.Group();scene.add(buildingPreviewGroup);roadEditGroup=new THREE.Group();scene.add(roadEditGroup);roadEndpointGroup=new THREE.Group();scene.add(roadEndpointGroup);scene.add(new THREE.HemisphereLight('#e7e9e6','#59605e',1.7));const sun=new THREE.DirectionalLight('#fffdf4',2.6);sun.position.set(-240,320,180);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);const ground=box(2600,2,2600,'#8f9692');ground.position.y=-1;ground.receiveShadow=true;scene.add(ground);const river=new THREE.Group(),riverWidth=82,riverStart=-1300,riverStep=44;for(let x=riverStart;x<=1300;x+=riverStep){const x2=Math.min(1300,x+riverStep+8),mid=(x+x2)/2,dy=riverY(x2)-riverY(x),angle=Math.atan2(dy,x2-x),segment=box(Math.hypot(x2-x,dy)+10,.7,riverWidth ,'#647f87');segment.position.set(mid,.1,(riverY(x)+riverY(x2))/2);segment.rotation.y=-angle;river.add(segment);}scene.add(river);addEnvironment();resize(canvas.clientWidth||innerWidth,canvas.clientHeight||innerHeight);}
+function init(canvas){if(renderer)return;renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio||1,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=true;scene=new THREE.Scene();scene.background=new THREE.Color('#aeb3b0');root=new THREE.Group();scene.add(root);previewGroup=new THREE.Group();scene.add(previewGroup);buildingPreviewGroup=new THREE.Group();scene.add(buildingPreviewGroup);roadEditGroup=new THREE.Group();scene.add(roadEditGroup);roadEndpointGroup=new THREE.Group();scene.add(roadEndpointGroup);scene.add(new THREE.HemisphereLight('#e7e9e6','#59605e',1.7));const sun=new THREE.DirectionalLight('#fffdf4',2.6);sun.position.set(-240,320,180);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);const ground=box(2600,2,2600,'#8f9692');ground.position.y=-1;ground.receiveShadow=true;scene.add(ground);const river=new THREE.Group(),riverWidth=82,riverStart=-1300,riverStep=44;for(let x=riverStart;x<=1300;x+=riverStep){const x2=Math.min(1300,x+riverStep+8),mid=(x+x2)/2,dy=riverY(x2)-riverY(x),angle=Math.atan2(dy,x2-x),segment=box(Math.hypot(x2-x,dy)+10,.7,riverWidth,'#647f87');segment.position.set(mid,.1,(riverY(x)+riverY(x2))/2);segment.rotation.y=-angle;river.add(segment);}scene.add(river);addEnvironment();resize(canvas.clientWidth||innerWidth,canvas.clientHeight||innerHeight);}
 function resize(w,h){if(!renderer)return;viewport.width=Math.max(1,w);viewport.height=Math.max(1,h);renderer.setSize(viewport.width,viewport.height,false);if(camera3d){camera3d.aspect=viewport.width/viewport.height;camera3d.updateProjectionMatrix();}}
 function ensureCamera(){if(!camera3d)camera3d=new THREE.PerspectiveCamera(48,viewport.width/Math.max(1,viewport.height),1,5000);const yaw=target.yaw,pitch=Math.max(.35,Math.min(1.35,target.pitch)),horizontal=Math.cos(pitch)*target.distance;camera3d.position.set(target.x+Math.sin(yaw)*horizontal,Math.sin(pitch)*target.distance,target.z+Math.cos(yaw)*horizontal);camera3d.lookAt(target.x,0,target.z);camera3d.updateProjectionMatrix();cameraReady=true;}
 function updateCameraBounds(){const limit=WORLD_HALF_SIZE-WORLD_MARGIN;desired.x=Math.max(-limit,Math.min(limit,desired.x));desired.z=Math.max(-limit,Math.min(limit,desired.z));}
@@ -216,8 +216,9 @@ function updateTrucks(s){
 function addEnvironment(){
   if(scene.getObjectByName('environment'))return;
   const g=new THREE.Group();g.name='environment';
-  const treeMat=mat('#586158'),trunkMat=mat('#57524a'),lampMat=mat('#343638');
+  const treeMat=mat('#586158',.94),trunkMat=mat('#57524a',.96),lampMat=mat('#343638',.95),roadsideMat=mat('#676c68',.95);
   const treeGeo=new THREE.ConeGeometry(5.5,18,8),trunkGeo=new THREE.CylinderGeometry(1.1,1.4,7,8),lampGeo=new THREE.CylinderGeometry(.45,.55,10,8),headGeo=new THREE.SphereGeometry(1.2,8,6);
+  const bollardGeo=new THREE.CylinderGeometry(.55,.7,2.8,8);
   for(let x=-1200;x<=1200;x+=160)for(let z=-1200;z<=1200;z+=160){
     if(Math.abs(x)<300&&Math.abs(z)<300)continue;
     const trunk=new THREE.Mesh(trunkGeo,trunkMat);trunk.position.set(x,3.5,z);trunk.castShadow=true;g.add(trunk);
@@ -226,6 +227,9 @@ function addEnvironment(){
   for(let x=-1000;x<=1000;x+=200)for(const z of[-WORLD_HALF_SIZE+60,WORLD_HALF_SIZE-60]){
     const pole=new THREE.Mesh(lampGeo,lampMat);pole.position.set(x,5,z);pole.castShadow=true;g.add(pole);
     const head=new THREE.Mesh(headGeo,mat('#c6c9c4',.4));head.position.set(x,10,z);g.add(head);
+  }
+  for(let x=-900;x<=900;x+=90)for(const z of[-WORLD_HALF_SIZE+42,WORLD_HALF_SIZE-42]){
+    const b=new THREE.Mesh(bollardGeo,roadsideMat);b.position.set(x,1.4,z);b.castShadow=true;g.add(b);
   }
   scene.add(g);
 }
