@@ -209,7 +209,7 @@ function updateTruckSpeed(t,targetFactor,dt){
   return t.currentSpeed;
 }
 
-function trafficConflict(s,t,network,laneGraph){
+function trafficConflict(s,t,network,laneGraph,controls){
   const p=pointOnRoute(t.route,t.t);
   if(!p)return false;
 
@@ -219,7 +219,7 @@ function trafficConflict(s,t,network,laneGraph){
     if(o.routeKey===t.routeKey&&o.t>t.t&&dist(p,q)<34)return true;
   }
 
-  const controls=buildJunctionControls(network,laneGraph);
+  controls=controls||buildJunctionControls(network,laneGraph);
   const controlRoute=t.centerlineRoute||t.route;
   const here=junctionForTruck(network,t);
   if(!here){
@@ -554,6 +554,7 @@ export function updateEconomy(s,dt,flash){
 
   const trafficNetwork=roadNetwork(s);
   const laneGraph=trafficNetwork?.edges?.length?buildLaneGraph(trafficNetwork):null;
+  const junctionControls=trafficNetwork&&laneGraph?buildJunctionControls(trafficNetwork,laneGraph):null;
   for(const t of s.trucks){
     // Every road mutation rebuilds the derived lane graph. A revision mismatch
     // invalidates even routes whose old geometry happens to overlap the new
@@ -604,7 +605,7 @@ export function updateEconomy(s,dt,flash){
       const gap=Math.max(0,routeGap);
       if(gap<nearestGap){nearestGap=gap;queueAhead=o;}
     }
-    const trafficBlocked=trafficConflict(s,t,trafficNetwork,laneGraph);
+    const trafficBlocked=trafficConflict(s,t,trafficNetwork,laneGraph,junctionControls);
     if(Array.isArray(t.laneIds)&&t.laneIds.length){
       t.currentLaneIndex=Math.min(t.laneIds.length-1,Math.max(0,Math.floor(t.t*t.laneIds.length)));
       t.currentLaneId=t.laneIds[t.currentLaneIndex];
