@@ -1,4 +1,4 @@
-import {WORLD_BOUNDS,WORLD_MARGIN} from './terrain.js';
+import {WORLD_BOUNDS,WORLD_MARGIN} from '../terrain.js';
 import {finitePoint,validRoadPoints} from './geometry.js';
 
 export function isInsideWorldBounds(p,margin=WORLD_MARGIN){
