@@ -6,8 +6,15 @@ import {updateEconomy,upgrade,newContract,research,researchCost} from './economy
 import {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand,executeCommand} from './commands.js';
 
-const GAME_VERSION='2';
+const GAME_VERSION='3';
 const CHANGELOG=[
+  {version:'3',date:'2 Oct 2026',items:[
+    'Starter layouts now deliberately distribute factories around the map.',
+    'Starter shops are positioned relative to seeded factories instead of using any district system.',
+    'Building seeding is restricted to new-game initialization; normal simulation no longer auto-spawns buildings.',
+    'Starter building placement is validated against physical spacing, world bounds and river clearance.',
+    'Starter layout regression coverage now checks deterministic, valid and district-free layouts.'
+  ]},
   {version:'2',date:'1 Oct 2026',items:[
     'Factories now spawn across separate map sectors instead of clustering together.',
     'Starter factories have a dedicated minimum spacing target of 250 units.',
