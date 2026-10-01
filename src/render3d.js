@@ -295,6 +295,27 @@ function roadDirection(a,b){
   return len?{x:dx/len,y:dy/len}:null;
 }
 
+function addLaneEntryExitPaths(group,center,connections){
+  if(connections.length<3)return;
+  const radius=ROAD.width*.66+Math.min(9,connections.length*1.6);
+  for(const from of connections){
+    const a=roadDirection(from.inner,from.outer); if(!a)continue;
+    for(const to of connections){
+      if(to===from)continue;
+      const b=roadDirection(to.inner,to.outer); if(!b)continue;
+      const cross=a.x*b.y-a.y*b.x, dot=a.x*b.x+a.y*b.y;
+      // Only draw the visible corner path for genuine turns; straight-through
+      // traffic stays on the normal centreline.
+      if(Math.abs(cross)<.18||dot<-.9)continue;
+      const turnRadius=radius*.72;
+      const start={x:center.x+a.x*turnRadius,y:center.y+a.y*turnRadius};
+      const end={x:center.x-b.x*turnRadius,y:center.y-b.y*turnRadius};
+      const control={x:center.x+(a.x-b.x)*turnRadius*.42,y:center.y+(a.y-b.y)*turnRadius*.42};
+      addFlatCurve(group,start,control,end,2.1,ROAD.markingY+.03,roadMaterials.edge,8);
+    }
+  }
+}
+
 function addDedicatedApproachLanes(group,center,connections){
   if(connections.length<3)return;
   const L=58,W=ROAD.width*1.5,lane=W/3;
@@ -474,7 +495,7 @@ function makeRoadJunctions(roads){
     for(const connection of connections){
       if(!unique.some(existing=>Math.abs(existing.outer.x-connection.outer.x)<8&&Math.abs(existing.outer.y-connection.outer.y)<8))unique.push(connection);
     }
-    if(unique.length>=3){const active=unique.slice(0,4);const center={x:node.x,y:node.y};const junctionRadius=ROAD.width*.66+Math.min(9,active.length*1.6);addDedicatedApproachLanes(group,center,active);addLaneAwareJunction(group,center,active);addJunctionControlLines(group,center,active,junctionRadius);}
+    if(unique.length>=3){const active=unique.slice(0,4);const center={x:node.x,y:node.y};const junctionRadius=ROAD.width*.66+Math.min(9,active.length*1.6);addDedicatedApproachLanes(group,center,active);addLaneAwareJunction(group,center,active);addLaneEntryExitPaths(group,center,active);addJunctionControlLines(group,center,active,junctionRadius);}
   }
   return group;
 }
