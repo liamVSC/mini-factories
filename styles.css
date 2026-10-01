@@ -172,7 +172,7 @@ body{background:#789661;}
 button{-webkit-appearance:none;appearance:none;-webkit-touch-callout:none;}
 .card,.build-menu,.road-editor,.actions{ -webkit-backdrop-filter:blur(14px) saturate(1.05); }
 @media (max-width:700px){
-  #game{position:fixed;inset:0;width:100vw;height:100dvh;height:100svh;}
+  #game{position:fixed;inset:0;width:100vw;height:100dvh;min-height:100svh;}
   #ui{height:100dvh;min-height:100svh;}
   .top{padding-top:max(7px,calc(7px + env(safe-area-inset-top)));padding-left:max(6px,env(safe-area-inset-left));padding-right:max(6px,env(safe-area-inset-right));}
   .stat{background:rgba(255,249,235,.88);border-color:rgba(87,67,42,.16);box-shadow:0 3px 12px rgba(35,45,38,.12);}
