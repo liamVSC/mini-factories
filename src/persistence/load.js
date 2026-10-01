@@ -2,6 +2,9 @@ import {freshState,goalList} from '../state.js';
 import {buildingFootprint} from '../world/buildings/geometry.js';
 import {isInsideWorldBounds} from '../world/roads/validation.js';
 import {riverY} from '../world/terrain.js';
+import {buildingFootprint} from '../world/buildings/geometry.js';
+import {isInsideWorldBounds} from '../world/roads/validation.js';
+import {riverY} from '../world/terrain.js';
 
 const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
 const clampNumber=(value,min,max,fallback=min)=>Math.max(min,Math.min(max,finite(value,fallback)));
