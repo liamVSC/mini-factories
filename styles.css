@@ -165,3 +165,30 @@
 .build-categories{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 1px 7px;overscroll-behavior-x:contain}.build-categories::-webkit-scrollbar{display:none}.build-category{flex:0 0 auto;min-height:34px;padding:6px 11px;border:1px solid rgba(66,54,38,.16);border-radius:999px;background:#f4ead7;color:#675b4c;font-size:10px;font-weight:850;touch-action:manipulation;white-space:nowrap}.build-category.active{background:#26353c;color:#fff;border-color:#26353c}.build-category:active{transform:scale(.97)}
 @media(max-width:700px){.build-categories{gap:5px;padding-bottom:6px}.build-category{min-height:32px;padding:5px 10px;font-size:9px}.build-cards{padding-top:1px}}
 @media(max-width:390px){.build-category{min-height:30px;padding:4px 9px;font-size:8px}}
+
+/* iOS Safari / PWA final mobile polish */
+html,body,#game{overscroll-behavior:none;-webkit-overflow-scrolling:auto;}
+body{background:#789661;}
+button{-webkit-appearance:none;appearance:none;-webkit-touch-callout:none;}
+.card,.build-menu,.road-editor,.actions{ -webkit-backdrop-filter:blur(14px) saturate(1.05); }
+@media (max-width:700px){
+  #game{position:fixed;inset:0;width:100vw;height:100dvh;height:100svh;}
+  #ui{height:100dvh;min-height:100svh;}
+  .top{padding-top:max(7px,calc(7px + env(safe-area-inset-top)));padding-left:max(6px,env(safe-area-inset-left));padding-right:max(6px,env(safe-area-inset-right));}
+  .stat{background:rgba(255,249,235,.88);border-color:rgba(87,67,42,.16);box-shadow:0 3px 12px rgba(35,45,38,.12);}
+  .actions{height:calc(58px + env(safe-area-inset-bottom));padding-left:max(6px,env(safe-area-inset-left));padding-right:max(6px,env(safe-area-inset-right));padding-bottom:max(6px,env(safe-area-inset-bottom));background:rgba(244,237,220,.88);border-top-color:rgba(70,82,66,.16);}
+  .actions button{min-height:44px;height:44px;background:rgba(255,250,239,.92);border-color:rgba(66,54,38,.14);box-shadow:0 2px 8px rgba(35,45,38,.10);font-weight:800;}
+  .actions button.active{background:#d8edf3!important;}
+  .panel,.road-editor{background:rgba(255,249,235,.96);border-color:rgba(87,67,42,.16);}
+  .build-menu{background:rgba(255,249,235,.97);border-color:rgba(87,67,42,.16);}
+  #tip{background:rgba(255,249,235,.92);border-color:rgba(87,67,42,.14);box-shadow:0 4px 14px rgba(35,45,38,.12);}
+  #objective{background:rgba(255,249,235,.88);border-color:rgba(87,67,42,.14);box-shadow:0 3px 12px rgba(35,45,38,.10);}
+}
+@media (max-width:390px){
+  .top{padding-top:max(5px,calc(5px + env(safe-area-inset-top)));}
+  .actions{height:calc(56px + env(safe-area-inset-bottom));}
+  .actions button{height:42px;min-height:42px;font-size:8.5px;}
+}
+@media (prefers-reduced-motion:reduce){
+  .build-menu.open,.road-editor.open{animation:none!important;}
+}
