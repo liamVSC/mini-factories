@@ -1,11 +1,12 @@
 import {dist,finitePoint,validRoadPoints,cleanRoadPoints,projectSegment,projectOnPolyline,segmentIntersection,length,endpointSegmentBlocked as endpointSegmentBlockedGeometry} from './geometry.js';
 import {validateRoadGeometry} from './validation.js';
 import {riverY,WORLD_BOUNDS,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from '../terrain.js';
-import {buildingHitbox,nearestBuilding,buildingConnectionPoint,buildingFootprintRadius} from '../buildings/geometry.js';
+import {buildingHitbox,nearestBuilding} from '../buildings/geometry.js';
+import {resolveBuildingRoadEndpoint,resolveBuildingRoadTarget,buildingRoadEndpointClearance} from '../buildings/connections.js';
 
 const ROAD_BUILDING_SNAP_TOLERANCE=46;
 
-export function roadBuildingTarget(s,p){if(!finitePoint(p))return null;let best=null,bd=Infinity;for(const b of s.buildings||[]){const hit=buildingHitbox(b,ROAD_BUILDING_SNAP_TOLERANCE),dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY),d=Math.hypot(dx,dy);if(d<bd){bd=d;best=b}}return bd<=ROAD_BUILDING_SNAP_TOLERANCE?best:null}
+export function roadBuildingTarget(s,p){const target=resolveBuildingRoadTarget(s,p,ROAD_BUILDING_SNAP_TOLERANCE);return target?.building||null}
 
 export function nearestRoad(s,p){let best=null;for(const road of s.roads||[]){const points=validRoadPoints(road?.points,0);if(!points)continue;const q=projectOnPolyline(points,p);if(q&&(!best||q.distance<best.distance))best={x:q.point.x,y:q.point.y,road,distance:q.distance,segment:q.segment,along:q.along}}return best&&best.distance<=46?best:null}
 
@@ -29,7 +30,7 @@ export function roadPathBlocked(s,points,endpointBuildings={}){
       if(isStart||isEnd){
         const endpoint=isStart?a:b;
         if(dist(endpoint,{x:building.x,y:building.y})<=1)continue;
-        if(endpointSegmentBlockedGeometry(building,a,b,isStart?'start':'end',buildingFootprintRadius(building)))return true;
+        if(endpointSegmentBlockedGeometry(building,a,b,isStart?'start':'end',buildingRoadEndpointClearance(building)))return true;
         continue;
       }
       // Keep roads outside the rendered building footprint. Use the canonical
@@ -99,27 +100,22 @@ export function snapToWorldEdge(p){
 
 function roadTargetInternal(s,p){
   if(!finitePoint(p))return null;
-  if(p.building&&Number.isFinite(p.building.x))return buildingConnectionPoint(p.building,p);
+  if(p.building&&Number.isFinite(p.building.x)){
+    const resolved=resolveBuildingRoadEndpoint(s,p,p.building,p);
+    return resolved?{...resolved.point,building:resolved.building,distance:0}:null;
+  }
   if(p.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))return{x:p.x,y:p.y,road:p.road,distance:0};
-  const building=roadBuildingTarget(s,p);
+  const buildingTarget=resolveBuildingRoadTarget(s,p,ROAD_BUILDING_SNAP_TOLERANCE);
   const road=nearestRoad(s,p);
-  if(building&&road){
-    const hit=buildingHitbox(building,0);
-    const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
-    const buildingDistance=Math.hypot(dx,dy);
-    if(buildingDistance<=10||road.distance<=buildingDistance)return buildingDistance<=10
-      ? {...buildingConnectionPoint(building,p),building,distance:buildingDistance}
-      : {x:road.x,y:road.y,road:road.road,distance:road.distance};
-    const q=buildingConnectionPoint(building,p);
-    return{...q,building,distance:buildingDistance};
+  if(buildingTarget&&road){
+    if(buildingTarget.distance<=10||road.distance<=buildingTarget.distance){
+      return buildingTarget.distance<=10
+        ?{...buildingTarget.point,building:buildingTarget.building,distance:buildingTarget.distance}
+        :{x:road.x,y:road.y,road:road.road,distance:road.distance};
+    }
+    return{...buildingTarget.point,building:buildingTarget.building,distance:buildingTarget.distance};
   }
-  if(building){
-    const hit=buildingHitbox(building,0);
-    const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
-    const buildingDistance=Math.hypot(dx,dy);
-    const q=buildingConnectionPoint(building,p);
-    return{...q,building,distance:buildingDistance};
-  }
+  if(buildingTarget)return{...buildingTarget.point,building:buildingTarget.building,distance:buildingTarget.distance};
   if(road)return{x:road.x,y:road.y,road:road.road,distance:road.distance};
   const edge=snapToWorldEdge(p);if(edge)return edge;
   const grid=12,snapped={x:Math.round(p.x/grid)*grid,y:Math.round(p.y/grid)*grid};
@@ -129,8 +125,14 @@ function roadTargetInternal(s,p){
 export function roadTarget(s,p){return roadTargetInternal(s,p)}
 
 export function roadPreview(s,a,b){let start=roadTargetInternal(s,a),end=roadTargetInternal(s,b);if(!start||!end)return null;const startBuilding=start.building,endBuilding=end.building;
-if(startBuilding)start=buildingConnectionPoint(startBuilding,endBuilding||end);
-if(endBuilding)end=buildingConnectionPoint(endBuilding,startBuilding||start);if(startBuilding&&endBuilding&&startBuilding!==endBuilding){const sa=buildingConnectionPoint(startBuilding,endBuilding),eb=buildingConnectionPoint(endBuilding,startBuilding),path=chooseRoadPath(s,sa,eb,{start:startBuilding,end:endBuilding});if(!path)return{path:[sa,eb],start:sa,end:eb,snappedStart:true,snappedEnd:true,connectsBuilding:true,connectsRoad:false,blocked:true,length:Infinity,cost:Infinity};const boundary=validateRoadGeometry(path);
+if(startBuilding){
+  const resolved=resolveBuildingRoadEndpoint(s,start,startBuilding,endBuilding||end);
+  if(resolved)start={...resolved.point,building:startBuilding,distance:start.distance};
+}
+if(endBuilding){
+  const resolved=resolveBuildingRoadEndpoint(s,end,endBuilding,startBuilding||start);
+  if(resolved)end={...resolved.point,building:endBuilding,distance:end.distance};
+}if(startBuilding&&endBuilding&&startBuilding!==endBuilding){const sa=resolveBuildingRoadEndpoint(s,start,startBuilding,endBuilding)?.point,eb=resolveBuildingRoadEndpoint(s,end,endBuilding,startBuilding)?.point,path=sa&&eb?chooseRoadPath(s,sa,eb,{start:startBuilding,end:endBuilding}):null;if(!path)return{path:[sa,eb],start:sa,end:eb,snappedStart:true,snappedEnd:true,connectsBuilding:true,connectsRoad:false,blocked:true,length:Infinity,cost:Infinity};const boundary=validateRoadGeometry(path);
     const roadLength=length(path);
     return{path,start:{...sa,building:startBuilding},end:{...eb,building:endBuilding},snappedStart:true,snappedEnd:true,connectsBuilding:true,connectsRoad:false,blocked:!boundary.ok,length:roadLength,blockedReason:boundary.ok?null:boundary.reason,cost:boundary.ok?Math.max(1,Math.ceil(roadLength/180))*2:Infinity}}
 const path=chooseRoadPath(s,start,end,{start:startBuilding,end:endBuilding});
