@@ -496,7 +496,7 @@ function createBuildingModel(building){
   if(building.kind==='factory')addFactorySmoke(g,78,62,25);
   return g;
 }
-function updateWorld(s){clearDynamic();root.clear();addEnvironment(s);for(const road of s.roads||[]){const g=makeRoad(road.points,!!road.bridge,s);g.userData.road=road;root.add(g);worldObjects.add(g);}root.add(makeRoadJunctions(s.roads||[]));for(const building of s.buildings||[]){const g=createBuildingModel(building);g.position.set(Number(building.x)||0,0,Number(building.y)||0);g.userData.building=building;scene.add(g);meshes.set(building.id,g);worldObjects.add(g);}}
+function updateWorld(s){ws=s;clearDynamic();root.clear();addEnvironment(s);for(const road of s.roads||[]){const g=makeRoad(road.points,!!road.bridge,s);g.userData.road=road;root.add(g);worldObjects.add(g);}root.add(makeRoadJunctions(s.roads||[]));for(const building of s.buildings||[]){const g=createBuildingModel(building);g.position.set(Number(building.x)||0,0,Number(building.y)||0);g.userData.building=building;scene.add(g);meshes.set(building.id,g);worldObjects.add(g);}}
 function createTruckMesh(){
   const g=new THREE.Group(),cabMat=mat('#59615f',.88),trailerMat=mat('#aeb2ae',.92),dark=mat('#242829',.98),glass=mat('#3f5155',.22,.08),metal=mat('#68706d',.82);
   addBoxPart(g,new THREE.BoxGeometry(6.8,6.3,7),cabMat,4.1,4.2,0);
