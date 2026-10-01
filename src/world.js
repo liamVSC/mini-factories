@@ -1,7 +1,8 @@
 import {makeBuilding} from './state.js';
-import {TYPES} from './core/types.js';
-import {createRng,seedFromState} from './core/rng.js';
 import {newId} from './core/ids.js';
+import {riverY,district,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
+import {spawnBuilding,seedBuildings} from './world/buildings/spawning.js';
+export {riverY,district,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from './laneGraph.js';
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export const length=pts=>pts.reduce((n,p,i)=>i?n+dist(pts[i-1],p):0,0);
