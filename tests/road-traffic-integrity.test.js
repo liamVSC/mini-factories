@@ -12,7 +12,6 @@ import {
   connectedRoadComponents,
   isRouteStale,
   buildingPhysicalPlacementReason,
-  spawn,
   seed
 } from '../src/world.js';
 import {buildLaneGraph,laneRouteGeometry,laneChangeRequired} from '../src/laneGraph.js';
@@ -178,17 +177,11 @@ test('factories keep a dedicated separation buffer during placement and procedur
   assert.equal(buildingPhysicalPlacementReason(s,foodType,120,0),'Too close to another factory');
   assert.equal(buildingPhysicalPlacementReason(s,foodType,260,0),null);
 
-  const generated=freshState();
-  generated.cash=5000;
-  const steel=spawn(generated,'factory','Steel');
-  const food=spawn(generated,'factory','Food');
-  assert.ok(steel&&food);
-  assert.ok(Math.hypot(steel.x-food.x,steel.y-food.y)>=250);
-
   const seeded=freshState();
   seeded.cash=5000;
-  const factories=['Steel','Food','Parts'].map(type=>spawn(seeded,'factory',type));
-  assert.ok(factories.every(Boolean));
+  seed(seeded);
+  const factories=seeded.buildings.filter(building=>building.kind==='factory');
+  assert.equal(factories.length,3);
   for(let i=0;i<factories.length;i++)for(let j=i+1;j<factories.length;j++){
     assert.ok(Math.hypot(factories[i].x-factories[j].x,factories[i].y-factories[j].y)>=250);
   }
