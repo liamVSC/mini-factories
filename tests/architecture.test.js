@@ -46,7 +46,7 @@ test('command history makes road/building mutations pass through one execution p
   const placed=history.execute(s,new PlaceBuildingCommand(factoryType,0,300));
   assert.equal(placed.ok,true);
   assert.equal(s.buildings.length,1);
-  const road=history.execute(s,new AddRoadCommand([{x:0,300},{x:300,300}],{startBuilding:s.buildings[0]}));
+  const road=history.execute(s,new AddRoadCommand([{x:0,y:300},{x:300,y:300}],{startBuilding:s.buildings[0]}));
   assert.equal(road.ok,true);
   assert.equal(s.roads.length,1);
   const deleted=history.execute(s,new DeleteRoadCommand({x:150,300}));
