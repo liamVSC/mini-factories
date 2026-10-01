@@ -30,6 +30,9 @@ export function buildingPhysicalPlacementReason(s,type,x,y){
   const candidate={kind:type.kind,x:px,y:py,footprint:buildingFootprint({kind:type.kind})};
   for(const building of s.buildings||[]){
     if(!finitePoint(building))continue;
+    if(candidate.kind==='factory'&&building.kind==='factory'&&Math.hypot(px-Number(building.x),py-Number(building.y))<250){
+      return'Too close to another factory';
+    }
     if(overlapsBuilding(candidate,building,buildingClearance(candidate,building))){
       return candidate.kind==='factory'&&building.kind==='factory'
         ?'Too close to another factory'
