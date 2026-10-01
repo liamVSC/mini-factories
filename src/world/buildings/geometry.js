@@ -1,4 +1,4 @@
-import {dist,finitePoint} from '../roads/geometry.js';
+import {finitePoint} from '../roads/geometry.js';
 import {isInsideWorldBounds} from '../roads/validation.js';
 import {riverY,WORLD_MARGIN} from '../terrain.js';
 
