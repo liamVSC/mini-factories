@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm';
-import {riverY,isInsideWorldBounds,WORLD_BOUNDS,WORLD_MARGIN,WORLD_HALF_SIZE,roadTopology,buildingConnectionPoint} from './world.js';
+import {riverY,isInsideWorldBounds,WORLD_BOUNDS,WORLD_MARGIN,WORLD_HALF_SIZE,roadTopology,buildingConnectionPoint,buildingHitbox} from './world.js';
 
 let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null,buildingPreviewGroup=null,roadEditGroup=null,roadEndpointGroup=null;
 let target={x:0,z:0,yaw:0,pitch:.82,distance:620};
@@ -407,7 +407,7 @@ function createBuildingModel(building){
   if(building.kind==='factory')addFactorySmoke(g,78,62,25);
   return g;
 }
-function updateWorld(s){clearDynamic();root.clear();for(const road of s.roads||[]){const g=makeRoad(road.points,!!road.bridge,s);g.userData.road=road;root.add(g);worldObjects.add(g);}root.add(makeRoadJunctions(s.roads||[]));for(const building of s.buildings||[]){const g=createBuildingModel(building);g.position.set(Number(building.x)||0,0,Number(building.y)||0);g.userData.building=building;scene.add(g);meshes.set(building.id,g);worldObjects.add(g);}}
+function updateWorld(s){clearDynamic();root.clear();addEnvironment(s);for(const road of s.roads||[]){const g=makeRoad(road.points,!!road.bridge,s);g.userData.road=road;root.add(g);worldObjects.add(g);}root.add(makeRoadJunctions(s.roads||[]));for(const building of s.buildings||[]){const g=createBuildingModel(building);g.position.set(Number(building.x)||0,0,Number(building.y)||0);g.userData.building=building;scene.add(g);meshes.set(building.id,g);worldObjects.add(g);}}
 function createTruckMesh(){
   const g=new THREE.Group(),cabMat=mat('#59615f',.88),trailerMat=mat('#aeb2ae',.92),dark=mat('#242829',.98),glass=mat('#3f5155',.22,.08),metal=mat('#68706d',.82);
   addBoxPart(g,new THREE.BoxGeometry(6.8,6.3,7),cabMat,4.1,4.2,0);
@@ -489,14 +489,27 @@ function updateTrucks(s){
   }
   for(const[id,mesh]of truckMeshes)if(!live.has(id)){scene.remove(mesh);disposeObject(mesh);truckMeshes.delete(id);}
 }
-function addEnvironment(){
-  if(scene.getObjectByName('environment'))return;
+function addEnvironment(s={buildings:[]}){
+  const existing=scene.getObjectByName('environment');
+  if(existing){scene.remove(existing);disposeObject(existing);}
   const g=new THREE.Group();g.name='environment';
+  const buildings=s.buildings||[];
+  const treeClearance=42;
+  const waterClearance=72;
+  const treeAllowed=(x,z)=>{
+    if(Math.abs(z-riverY(x))<waterClearance)return false;
+    for(const building of buildings){
+      const hit=buildingHitbox(building,treeClearance);
+      if(x>=hit.minX&&x<=hit.maxX&&z>=hit.minY&&z<=hit.maxY)return false;
+    }
+    return true;
+  };
   const treeMat=mat('#586158',.94),trunkMat=mat('#57524a',.96),lampMat=mat('#343638',.95),roadsideMat=mat('#676c68',.95);
   const treeGeo=new THREE.ConeGeometry(5.5,18,8),trunkGeo=new THREE.CylinderGeometry(1.1,1.4,7,8),lampGeo=new THREE.CylinderGeometry(.45,.55,10,8),headGeo=new THREE.SphereGeometry(1.2,8,6);
   const bollardGeo=new THREE.CylinderGeometry(.55,.7,2.8,8);
   for(let x=-1200;x<=1200;x+=160)for(let z=-1200;z<=1200;z+=160){
     if(Math.abs(x)<300&&Math.abs(z)<300)continue;
+    if(!treeAllowed(x,z))continue;
     const trunk=new THREE.Mesh(trunkGeo,trunkMat);trunk.position.set(x,3.5,z);trunk.castShadow=true;g.add(trunk);
     const tree=new THREE.Mesh(treeGeo,treeMat);tree.position.set(x,14,z);tree.castShadow=true;g.add(tree);
   }
