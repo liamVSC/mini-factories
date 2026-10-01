@@ -27,22 +27,9 @@ export {
   snapToWorldEdge,
   roadTargetInternal,
   roadTarget,
-  roadPreview,
-  endpointSegmentBlocked
+  roadPreview
 } from './placement.js';
 
-export {
-  roadNetwork,
-  roadTopology,
-  roadAttachment,
-  routeOnRoadNetwork,
-  roadPath,
-  cleanupRoadNetwork,
-  addRoad,
-  roadSegmentAtPoint,
-  editRoadSegment,
-  roadEndpointAtPoint,
-  roadEndpointPreview,
-  editRoadEndpoint,
-  eraseRoad
-} from '../../world.js';
+export {roadNetwork,roadTopology,roadAttachment,routeOnRoadNetwork,roadPath,addRoad} from '../../world.js';
+export {roadAtPoint,roadSegmentAtPoint,roadEndpointCandidate,roadEndpointAtPoint,endpointTarget,roadEndpointPreview,editRoadSegment,editRoadEndpoint,endpointSegmentBlocked,cleanupRoadNetwork,bumpRoadNetworkRevision,eraseRoad} from './editing.js';
+export {roadsExactlyDuplicate,roadsHaveMeaningfulOverlap,buildRoadIntersections} from './intersections.js';
