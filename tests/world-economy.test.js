@@ -76,6 +76,23 @@ test('loading an old save repairs factory overlaps using current visual clearanc
   assert.equal(separated,true,JSON.stringify({af,bf}));
 });
 
+test('building placement uses the same factory clearance as save repair',()=>{
+  const s=baseState();
+  const type=TYPES.find(t=>t.name==='Steel');
+  s.buildings.push(makeBuilding(type,0,0,'existing'));
+  assert.equal(buildingPhysicalPlacementReason(s,type,140,0),null);
+  assert.equal(buildingPhysicalPlacementReason(s,type,149,0),'Too close to another factory');
+});
+
+test('roads cannot pass through a warehouse physical footprint',()=>{
+  const s=baseState();
+  const warehouse=building('Warehouse',100,100);
+  s.buildings.push(warehouse);
+  const preview=roadPreview(s,{x:0,y:100},{x:200,y:100});
+  assert.ok(preview);
+  assert.equal(preview.blocked,true);
+});
+
 test('building attaches to the nearest physical road segment', () => {
   const s = baseState();
   const f = building('Food', 0, 0);
