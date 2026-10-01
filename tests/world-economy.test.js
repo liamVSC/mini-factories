@@ -378,6 +378,62 @@ test('building logistics access recomputes after its attached road is deleted', 
   assert.equal(after, null);
 });
 
+test('building logistics access never returns a removed building or deleted road attachment', () => {
+  const s = baseState();
+  const buildings = [
+    building('Food', 0, 0),
+    building('Warehouse', 0, 120),
+    building('Market', 0, 240)
+  ];
+  const roads = [
+    road([{x:35,y:0},{x:140,y:0}]),
+    road([{x:35,y:120},{x:140,y:120}]),
+    road([{x:35,y:240},{x:140,y:240}])
+  ];
+  s.buildings.push(...buildings);
+  s.roads.push(...roads);
+
+  for (const building of buildings) {
+    const access = buildingLogisticsAccess(s, building);
+    assert.ok(access);
+    assert.equal(access.road, roads[buildings.indexOf(building)]);
+    assert.equal(access.roadNetworkRevision, s.roadNetworkRevision);
+  }
+
+  const removedBuilding = buildings[0];
+  s.buildings.splice(s.buildings.indexOf(removedBuilding), 1);
+  assert.equal(buildingLogisticsAccess(s, removedBuilding), null);
+
+  assert.equal(eraseRoad(s, {x:90,y:120}), true);
+  assert.equal(buildingLogisticsAccess(s, buildings[1]), null);
+
+  const replacement = road([{x:35,y:240},{x:140,y:240}]);
+  s.roads.push(replacement);
+  const refreshed = buildingLogisticsAccess(s, buildings[2]);
+  assert.ok(refreshed);
+  assert.equal(refreshed.road, replacement);
+  assert.equal(refreshed.roadNetworkRevision, s.roadNetworkRevision);
+});
+
+test('building logistics access refreshes after an attached road endpoint edit', () => {
+  const s = baseState();
+  const factory = building('Food', 0, 0);
+  s.buildings.push(factory);
+  const attached = road([{x:35,y:0},{x:140,y:0}]);
+  s.roads.push(attached);
+
+  const before = buildingLogisticsAccess(s, factory);
+  assert.ok(before);
+  assert.equal(before.road, attached);
+  const revision = s.roadNetworkRevision;
+
+  assert.ok(editRoadEndpoint(s, attached.id, 0, {x:35,y:80}));
+
+  const after = buildingLogisticsAccess(s, factory);
+  assert.equal(after, null);
+  assert.ok(s.roadNetworkRevision>revision);
+});
+
 test('rerouted trucks replace lane road references after a road mutation', () => {
   const s = baseState();
   const factory = building('Food', -160, 0);
