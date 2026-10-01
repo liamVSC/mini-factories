@@ -24,6 +24,7 @@ const {
 } = await import('../src/world.js');
 const {route, updateEconomy} = await import('../src/economy.js');
 const {hydrate} = await import('../src/persistence/load.js');
+const {serialise} = await import('../src/persistence/save.js');
 const {roadPathIntersectsBuildingFootprint,roadPathBlocked} = await import('../src/world/roads/placement.js');
 const {routeNetworkValid} = await import('../src/world/roads/routing.js');
 
@@ -64,6 +65,37 @@ test('initial factory seeding produces separated factories',()=>{
     const overlapY=Math.abs(a.y-b.y)<62+72+0;
     assert.equal(overlapX&&overlapY,false,JSON.stringify({a,b}));
   }
+});
+
+test('save/load does not persist stale truck or building logistics route references',()=>{
+  const s=baseState();
+  const f=building('Food',0,0);
+  const shop=building('Market',220,0);
+  s.buildings.push(f,shop);
+  s.roads.push(road([{x:35,y:0},{x:185,y:0}]));
+  const r=route(s,f,shop);
+  assert.ok(r);
+  s.trucks.push({
+    id:'persisted-route-should-not-survive',
+    route:r.points,
+    laneIds:r.laneIds,
+    laneRoadIds:r.laneRoadIds,
+    source:f,
+    to:shop,
+    t:.5
+  });
+
+  const saved=serialise(s);
+  assert.deepEqual(saved.trucks,[]);
+  assert.equal(Object.hasOwn(saved.buildings[0],'route'),false);
+  assert.equal(Object.hasOwn(saved.buildings[0],'road'),false);
+  assert.equal(Object.hasOwn(saved.buildings[0],'laneIds'),false);
+  assert.equal(Object.hasOwn(saved.buildings[0],'laneRoadIds'),false);
+
+  const loaded=hydrate(saved);
+  assert.ok(loaded);
+  assert.deepEqual(loaded.trucks,[]);
+  assert.equal(route(loaded,loaded.buildings[0],loaded.buildings[1])?.roadNetworkRevision,loaded.roadNetworkRevision);
 });
 
 test('loading an old save repairs factory overlaps using current visual clearance',()=>{
