@@ -4,7 +4,7 @@ import {validateRoadGeometry} from './validation.js';
 import {roadBuildingTarget,roadPathBlocked,segmentNearRiver} from './placement.js';
 import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate} from './intersections.js';
 import {cleanupRoadNetwork} from './editing.js';
-import {buildingAtPoint,buildingConnectionPoint} from '../buildings/geometry.js';
+import {resolveBuildingRoadEndpoint} from '../buildings/connections.js';
 import {bumpRoadNetworkRevision} from './topology.js';
 
 function reconcileRoadJunctions(s,points,meta={}){
