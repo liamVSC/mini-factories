@@ -73,7 +73,7 @@ function addJunctionControlLines(group,center,connections,radius){for(const conn
 function disposeMaterial(material){if(Array.isArray(material))material.forEach(disposeMaterial);else material?.dispose?.();}
 function disposeObject(g){g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)disposeMaterial(o.material);});}
 function clearDynamic(){for(const g of worldObjects){scene.remove(g);disposeObject(g);}worldObjects.clear();meshes.clear();for(const g of truckMeshes.values()){scene.remove(g);disposeObject(g);}truckMeshes.clear();}
-function init(canvas){if(renderer)return;renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio||1,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;scene=new THREE.Scene();scene.background=new THREE.Color('#9eaf88');root=new THREE.Group();scene.add(root);previewGroup=new THREE.Group();scene.add(previewGroup);buildingPreviewGroup=new THREE.Group();scene.add(buildingPreviewGroup);roadEditGroup=new THREE.Group();scene.add(roadEditGroup);roadEndpointGroup=new THREE.Group();scene.add(roadEndpointGroup);scene.add(new THREE.HemisphereLight('#f7f2df','#68745e',2.1));const sun=new THREE.DirectionalLight('#fff1cf',3.2);sun.position.set(-240,320,180);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);const ground=box(2600,2,2600,'#b7c79d');ground.position.y=-1;ground.receiveShadow=true;scene.add(ground);const river=new THREE.Group(),riverWidth=82,riverStart=-1300,riverStep=44;for(let x=riverStart;x<=1300;x+=riverStep){const x2=Math.min(1300,x+riverStep+8),mid=(x+x2)/2,dy=riverY(x2)-riverY(x),angle=Math.atan2(dy,x2-x),segment=box(Math.hypot(x2-x,dy)+10,.7,riverWidth,'#5f9db3');segment.position.set(mid,.1,(riverY(x)+riverY(x2))/2);segment.rotation.y=-angle;river.add(segment);}scene.add(river);resize(canvas.clientWidth||innerWidth,canvas.clientHeight||innerHeight);}
+function init(canvas){if(renderer)return;renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio||1,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;scene=new THREE.Scene();scene.background=new THREE.Color('#9eaf88');root=new THREE.Group();scene.add(root);previewGroup=new THREE.Group();scene.add(previewGroup);buildingPreviewGroup=new THREE.Group();scene.add(buildingPreviewGroup);roadEditGroup=new THREE.Group();scene.add(roadEditGroup);roadEndpointGroup=new THREE.Group();scene.add(roadEndpointGroup);scene.add(new THREE.HemisphereLight('#f7f2df','#68745e',2.1));const sun=new THREE.DirectionalLight('#fff1cf',3.2);sun.position.set(-240,320,180);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);const ground=box(2600,2,2600,'#b7c79d');ground.position.y=-1;ground.receiveShadow=true;scene.add(ground);const river=new THREE.Group(),riverWidth=82,riverStart=-1300,riverStep=44;for(let x=riverStart;x<=1300;x+=riverStep){const x2=Math.min(1300,x+riverStep+8),mid=(x+x2)/2,dy=riverY(x2)-riverY(x),angle=Math.atan2(dy,x2-x),segment=box(Math.hypot(x2-x,dy)+10,.7,riverWidth,'#5f9db3');segment.position.set(mid,.1,(riverY(x)+riverY(x2))/2);segment.rotation.y=-angle;river.add(segment);}scene.add(river);addEnvironment();resize(canvas.clientWidth||innerWidth,canvas.clientHeight||innerHeight);}
 function resize(w,h){if(!renderer)return;viewport.width=Math.max(1,w);viewport.height=Math.max(1,h);renderer.setSize(viewport.width,viewport.height,false);if(camera3d){camera3d.aspect=viewport.width/viewport.height;camera3d.updateProjectionMatrix();}}
 function ensureCamera(){if(!camera3d)camera3d=new THREE.PerspectiveCamera(48,viewport.width/Math.max(1,viewport.height),1,5000);const yaw=target.yaw,pitch=Math.max(.35,Math.min(1.35,target.pitch)),horizontal=Math.cos(pitch)*target.distance;camera3d.position.set(target.x+Math.sin(yaw)*horizontal,Math.sin(pitch)*target.distance,target.z+Math.cos(yaw)*horizontal);camera3d.lookAt(target.x,0,target.z);camera3d.updateProjectionMatrix();cameraReady=true;}
 function updateCameraBounds(){const limit=WORLD_HALF_SIZE-WORLD_MARGIN;desired.x=Math.max(-limit,Math.min(limit,desired.x));desired.z=Math.max(-limit,Math.min(limit,desired.z));}
@@ -95,7 +95,49 @@ function updateWorld(s){clearDynamic();root.clear();for(const road of s.roads||[
   if(building.kind==='warehouse'){const skylight=new THREE.Mesh(new THREE.BoxGeometry(w*.48,2.2,d*.35),mat('#9ba7a9',.45,.05));skylight.position.y=h+4.5;g.add(skylight);}
   if(building.kind==='shop'){const sign=new THREE.Mesh(new THREE.BoxGeometry(w*.58,3,.8),mat('#d8a74a'));sign.position.set(0,h*.72+2,d/2+.7);g.add(sign);}
   g.position.set(Number(building.x)||0,0,Number(building.y)||0);g.userData.building=building;scene.add(g);meshes.set(building.id,g);worldObjects.add(g);}}
-function updateTrucks(s){const live=new Set();for(const truck of s.trucks||[]){if(!truck?.id)continue;live.add(truck.id);let mesh=truckMeshes.get(truck.id);if(!mesh){mesh=new THREE.Group();const body=box(13,7,7,'#d97b45');body.position.y=5;mesh.add(body);scene.add(mesh);truckMeshes.set(truck.id,mesh);}const route=Array.isArray(truck.route)?truck.route:truck.route?.points;if(!route?.length)continue;const p=pointOnRoute(route,Number(truck.progress)||0),q=pointOnRoute(route,Math.min(1,(Number(truck.progress)||0)+.002));mesh.position.set(p.x,0,p.y);if(q)mesh.rotation.y=-Math.atan2(q.y-p.y,q.x-p.x);}for(const[id,mesh]of truckMeshes)if(!live.has(id)){scene.remove(mesh);disposeObject(mesh);truckMeshes.delete(id);}}
+function createTruckMesh(){
+  const g=new THREE.Group(),cabMat=mat('#c86d3c'),trailerMat=mat('#b7bdba'),dark=mat('#252a2b'),glass=mat('#45656c',.35);
+  const cab=new THREE.Mesh(new THREE.BoxGeometry(6.5,6.2,7),cabMat);cab.position.set(4.2,4.1,0);cab.castShadow=true;g.add(cab);
+  const hood=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.6,6.4),cabMat);hood.position.set(7.8,2.8,0);hood.castShadow=true;g.add(hood);
+  const windshield=new THREE.Mesh(new THREE.BoxGeometry(.25,2.3,5.2),glass);windshield.position.set(7.5,5.2,0);g.add(windshield);
+  const trailer=new THREE.Mesh(new THREE.BoxGeometry(11,7.5,7.4),trailerMat);trailer.position.set(-4.3,4.6,0);trailer.castShadow=true;g.add(trailer);
+  const wheels=[];
+  for(const x of[-7,-2.8,3.8,6.2])for(const z of[-3.75,3.75]){
+    const w=new THREE.Mesh(new THREE.CylinderGeometry(1.55,1.55,1.1,12),dark);
+    w.rotation.x=Math.PI/2;w.position.set(x,1.65,z);w.castShadow=true;g.add(w);wheels.push(w);
+  }
+  g.userData.wheels=wheels;return g;
+}
+function updateTrucks(s){
+  const live=new Set();
+  for(const truck of s.trucks||[]){
+    if(!truck?.id)continue;live.add(truck.id);
+    let mesh=truckMeshes.get(truck.id);
+    if(!mesh){mesh=createTruckMesh();scene.add(mesh);truckMeshes.set(truck.id,mesh);}
+    const route=Array.isArray(truck.route)?truck.route:truck.route?.points;if(!route?.length)continue;
+    const progress=Math.max(0,Math.min(1,Number(truck.progress)||0)),p=pointOnRoute(route,progress),q=pointOnRoute(route,Math.min(1,progress+.002));
+    mesh.position.set(p.x,0,p.y);
+    if(q)mesh.rotation.y=-Math.atan2(q.y-p.y,q.x-p.x);
+    for(const wheel of mesh.userData.wheels||[])wheel.rotation.z-=(Number(truck.speed)||8)*.05;
+  }
+  for(const[id,mesh]of truckMeshes)if(!live.has(id)){scene.remove(mesh);disposeObject(mesh);truckMeshes.delete(id);}
+}
+function addEnvironment(){
+  if(scene.getObjectByName('environment'))return;
+  const g=new THREE.Group();g.name='environment';
+  const treeMat=mat('#4f6b43'),trunkMat=mat('#66513e'),lampMat=mat('#34393b');
+  const treeGeo=new THREE.ConeGeometry(5.5,18,8),trunkGeo=new THREE.CylinderGeometry(1.1,1.4,7,8),lampGeo=new THREE.CylinderGeometry(.45,.55,10,8),headGeo=new THREE.SphereGeometry(1.2,8,6);
+  for(let x=-1200;x<=1200;x+=160)for(let z=-1200;z<=1200;z+=160){
+    if(Math.abs(x)<300&&Math.abs(z)<300)continue;
+    const trunk=new THREE.Mesh(trunkGeo,trunkMat);trunk.position.set(x,3.5,z);trunk.castShadow=true;g.add(trunk);
+    const tree=new THREE.Mesh(treeGeo,treeMat);tree.position.set(x,14,z);tree.castShadow=true;g.add(tree);
+  }
+  for(let x=-1000;x<=1000;x+=200)for(const z of[-WORLD_HALF_SIZE+60,WORLD_HALF_SIZE-60]){
+    const pole=new THREE.Mesh(lampGeo,lampMat);pole.position.set(x,5,z);pole.castShadow=true;g.add(pole);
+    const head=new THREE.Mesh(headGeo,mat('#f2d27a',.35));head.position.set(x,10,z);g.add(head);
+  }
+  scene.add(g);
+}
 function updateSelectionVisual(s){const selected=s.selected?.id||null;if(selected===lastBuildingSelection)return;for(const[id,g]of meshes){const scale=id===selected?1.035:1;g.scale.setScalar(scale);}lastBuildingSelection=selected;}
 function updateRoadEditVisual(){if(roadEditGroup)roadEditGroup.visible=true;}
 function updateRoadEndpointVisual(){if(roadEndpointGroup)roadEndpointGroup.visible=true;}
