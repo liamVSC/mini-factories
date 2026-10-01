@@ -61,9 +61,12 @@ export function seed(s){return seedBuildings(s,buildingPhysicalPlacementReason)}
 
 
 export function buildingLogisticsAccess(s,building){
-  if(!building)return null;
+  // Logistics access is derived state: never trust a cached building/road
+  // reference from an older network revision or from a building no longer in
+  // the current world. Recompute the attachment against the live state.
+  if(!building||!Array.isArray(s?.buildings)||!s.buildings.includes(building))return null;
   const attachment=roadAttachment(s,building);
-  if(!attachment)return null;
+  if(!attachment||!s.roads?.includes(attachment.road))return null;
   const docks=buildingDockPoints(building);
   const dock=docks.reduce((best,current)=>{
     const score=dist(attachment.point,current.approach);
@@ -71,7 +74,14 @@ export function buildingLogisticsAccess(s,building){
   },null);
   if(!dock)return null;
   const driveway=[{x:attachment.point.x,y:attachment.point.y},{x:dock.approach.x,y:dock.approach.y}];
-  return{road:attachment.road,roadPoint:{...attachment.point},dock,driveway,connected:!roadPathBlocked(s,driveway,{end:building})};
+  return{
+    road:attachment.road,
+    roadPoint:{...attachment.point},
+    dock,
+    driveway,
+    connected:!roadPathBlocked(s,driveway,{end:building}),
+    roadNetworkRevision:Math.max(0,Math.floor(Number(s.roadNetworkRevision)||0))
+  };
 }
 
 
