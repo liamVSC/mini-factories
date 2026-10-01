@@ -2,13 +2,18 @@
 (()=> {
  const guard=document.querySelector('#startupGuard');
  const retry=document.querySelector('#startupRetry');
- const fail=(message)=>{
+ let recoveryAttempted=false;
+ const fail=async(message)=>{
    if(!guard)return;
    guard.style.display='grid';
    const text=document.querySelector('#startupText');
    const detail=document.querySelector('#startupDetail');
-   if(text)text.textContent='Game failed to start';
-   if(detail)detail.textContent=message||'Reload the page to try again.';
+   if(text)text.textContent=recoveryAttempted?'Game could not start':'Restoring your last saved game…';
+   if(detail)detail.textContent=recoveryAttempted?(message||'Tap Retry to try again.'):'Refreshing the app shell and restoring the local save.';
+   if(recoveryAttempted)return;
+   recoveryAttempted=true;
+   try{const reg=await navigator.serviceWorker?.ready;await reg?.update()}catch{}
+   setTimeout(()=>{if(document.visibilityState==='visible')location.reload()},700);
  };
  window.addEventListener('mini-factories-ready',()=>{if(guard)guard.style.display='none'});
  window.addEventListener('error',e=>{if(e.error||e.message)fail(e.message||'Runtime error')});
