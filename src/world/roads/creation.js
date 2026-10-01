@@ -29,8 +29,8 @@ function reconcileRoadJunctions(s,points,meta={}){
 export function addRoad(s,points,meta={}){
   if(!Array.isArray(points)||points.length<2)return'invalid';
   const normalized=points.map(q=>safePoint(q));
-  const startConnection=resolveBuildingRoadEndpoint(s,normalized[0],meta.startBuilding);
-  const endConnection=resolveBuildingRoadEndpoint(s,normalized.at(-1),meta.endBuilding);
+  const startConnection=resolveBuildingRoadEndpoint(s,normalized[0],meta.startBuilding,normalized.at(-1));
+  const endConnection=resolveBuildingRoadEndpoint(s,normalized.at(-1),meta.endBuilding,normalized[0]);
   const startBuilding=startConnection?.building||null;
   const endBuilding=endConnection?.building||null;
   if(startBuilding&&endBuilding&&startBuilding===endBuilding)return'blocked';
