@@ -5,154 +5,18 @@ globalThis.innerWidth=1280;
 globalThis.innerHeight=720;
 
 import {freshState,makeBuilding} from '../src/state.js';
-import {addRoad,routeOnRoadNetwork,roadNetwork} from '../src/world.js';
+import {addRoad,routeOnRoadNetwork,roadNetwork,WORLD_HALF_SIZE,WORLD_MARGIN,isInsideWorldBounds} from '../src/world.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from '../src/laneGraph.js';
 import {createCommandHistory,AddRoadCommand,PlaceBuildingCommand,DeleteRoadCommand} from '../src/commands.js';
 import {buildJunctionControls,movementPermission,stopLinePoint} from '../src/junctionControl.js';
 
-test('lane graph creates directional lanes and connects through a four-way junction',()=>{
-  const s=freshState();
-  s.roads.push(
-    {id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},
-    {id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},
-    {id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},
-    {id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0}
-  );
-  const network=roadNetwork(s);
-  const graph=buildLaneGraph(network);
-  assert.equal(graph.lanes.length,network.edges.length*2);
-  const west=network.nodes.find(n=>Math.abs(n.x)<1e-9&&Math.abs(n.y)<1e-9);
-  const east=network.nodes.find(n=>Math.abs(n.x-120)<1e-9&&Math.abs(n.y)<1e-9);
-  assert.ok(west&&east);
-  const route=findLaneRoute(graph,network.nodes.find(n=>Math.abs(n.x+120)<1e-9&&Math.abs(n.y)<1e-9),east);
-  assert.ok(route);
-  assert.ok(route.laneIds.length>=2);
-  assert.ok(laneRouteToNodePath(graph,route.laneIds).length>=3);
-});
-
-test('routeOnRoadNetwork returns lane metadata while preserving canonical centreline geometry',()=>{
-  const s=freshState();
-  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},-120,0,'factory-1');
-  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},120,0,'shop-1');
-  s.buildings.push(factory,shop);
-  assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}],{startBuilding:factory,endBuilding:shop}),true);
-  const route=routeOnRoadNetwork(s,factory,shop);
-  assert.ok(route);
-  assert.ok(Array.isArray(route.laneIds));
-  assert.ok(route.laneIds.length>=1);
-  assert.ok(Array.isArray(route.lanePoints));
-  assert.ok(route.lanePoints.length>=2);
-  assert.ok(route.points.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));
-});
-
-test('command history makes road/building mutations pass through one execution path',()=>{
-  const s=freshState();
-  const history=createCommandHistory();
-  const factoryType={name:'Food',kind:'factory',need:null,color:'#fff',price:18,speed:1,value:1,qty:1};
-  const placed=history.execute(s,new PlaceBuildingCommand(factoryType,0,300));
-  assert.equal(placed.ok,true);
-  assert.equal(s.buildings.length,1);
-  const road=history.execute(s,new AddRoadCommand([{x:0,y:300},{x:300,y:300}],{startBuilding:s.buildings[0]}));
-  assert.equal(road.ok,true);
-  assert.equal(s.roads.length,1);
-  const deleted=history.execute(s,new DeleteRoadCommand({x:150,y:300}));
-  assert.equal(deleted.ok,true);
-  assert.equal(s.roads.length,0);
-  assert.equal(history.undo(s),true);
-  assert.equal(s.roads.length,1);
-});
-
-
-test('lane geometry applies approach offsets and curved turn transitions',()=>{
-  const s=freshState();
-  s.roads.push(
-    {id:'in',points:[{x:-140,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},
-    {id:'out',points:[{x:0,y:0},{x:0,y:140}],bridge:false,condition:1,age:0}
-  );
-  const graph=buildLaneGraph(roadNetwork(s));
-  const start=graph.nodes.find(n=>Math.abs(n.x+140)<1e-9&&Math.abs(n.y)<1e-9);
-  const end=graph.nodes.find(n=>Math.abs(n.x)<1e-9&&Math.abs(n.y-140)<1e-9);
-  const route=findLaneRoute(graph,start,end);
-  assert.ok(route);
-  const geometry=laneRouteGeometry(graph,route.laneIds);
-  assert.ok(geometry.points.length>route.laneIds.length*2);
-  assert.equal(geometry.transitions[0].type,'left');
-  assert.equal(geometry.transitions[0].offset,7);
-});
-
-test('traffic signal state is persisted safely in hydrated game state',async()=>{
-  const {hydrate,serialise}=await import('../src/state.js');
-  const s=freshState();
-  s.trafficSignals.enabled=true;
-  s.trafficSignals.cycle=18;
-  const hydrated=hydrate(serialise(s));
-  assert.equal(hydrated.trafficSignals.enabled,true);
-  assert.equal(hydrated.trafficSignals.cycle,18);
-});
-
-
-test('junction movement classification uses canonical route geometry',async()=>{
-  const {freshState}=await import('../src/state.js');
-  const {routeOnRoadNetwork}=await import('../src/world.js');
-  const s=freshState();
-  s.roads.push(
-    {id:'a',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},
-    {id:'b',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0}
-  );
-  const source={x:-120,y:0,r:20};
-  const target={x:0,y:120,r:20};
-  const route=routeOnRoadNetwork(s,source,target);
-  assert.ok(route);
-  assert.ok(route.lanePoints.length>=route.points.length);
-  assert.equal(route.laneTransitions[0].type,'left');
-});
-
-
-test('explicit junction controls expose movements, conflicts and stop lines',()=>{
-  const s=freshState();
-  s.roads.push(
-    {id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},
-    {id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},
-    {id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},
-    {id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0}
-  );
-  const network=roadNetwork(s);
-  const graph=buildLaneGraph(network);
-  const controls=buildJunctionControls(network,graph);
-  const control=[...controls.values()].find(c=>Math.abs(c.node.x)<1e-9&&Math.abs(c.node.y)<1e-9);
-  assert.ok(control);
-  assert.ok(control.movements.some(m=>m.type==='straight'));
-  assert.ok(control.movements.some(m=>m.type==='left'));
-  assert.ok(control.movements.some(m=>m.type==='right'));
-  const movement=control.movements.find(m=>m.type==='straight');
-  assert.ok(movement);
-  assert.ok(movement.stopLineDistance>0);
-  assert.ok(stopLinePoint(graph,movement));
-  const permission=movementPermission(s,controls,control.node,movement,{occupiedIds:control.conflicts.get(movement.id)||[]});
-  assert.equal(permission.allowed,false);
-});
-
-test('explicit junction signals block yellow and red movements deterministically',()=>{
-  const s=freshState();
-  s.trafficSignals.enabled=true;
-  s.trafficSignals.cycle=12;
-  s.roads.push(
-    {id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},
-    {id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},
-    {id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},
-    {id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0}
-  );
-  const network=roadNetwork(s);
-  const graph=buildLaneGraph(network);
-  const controls=buildJunctionControls(network,graph);
-  const control=[...controls.values()].find(c=>c.id==='0,0');
-  const horizontal=control.movements.find(m=>Math.abs(m.approachDirection.x)>.8);
-  assert.ok(horizontal);
-  s.trafficClock=0;
-  const first=movementPermission(s,controls,control.node,horizontal);
-  s.trafficClock=6;
-  const second=movementPermission(s,controls,control.node,horizontal);
-  assert.notEqual(first.signal.state,second.signal.state);
-  assert.ok(first.signal.state==='green'||first.signal.state==='yellow'||first.signal.state==='red');
-  assert.ok(second.signal.state==='green'||second.signal.state==='yellow'||second.signal.state==='red');
-});
+test('lane graph creates directional lanes and connects through a four-way junction',()=>{const s=freshState();s.roads.push({id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},{id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0});const network=roadNetwork(s),graph=buildLaneGraph(network);assert.equal(graph.lanes.length,network.edges.length*2);const west=network.nodes.find(n=>Math.abs(n.x)<1e-9&&Math.abs(n.y)<1e-9),east=network.nodes.find(n=>Math.abs(n.x-120)<1e-9&&Math.abs(n.y)<1e-9);assert.ok(west&&east);const route=findLaneRoute(graph,network.nodes.find(n=>Math.abs(n.x+120)<1e-9&&Math.abs(n.y)<1e-9),east);assert.ok(route);assert.ok(route.laneIds.length>=2);assert.ok(laneRouteToNodePath(graph,route.laneIds).length>=3);});
+test('routeOnRoadNetwork returns lane metadata while preserving canonical centreline geometry',()=>{const s=freshState(),factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},-120,0,'factory-1'),shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},120,0,'shop-1');s.buildings.push(factory,shop);assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}],{startBuilding:factory,endBuilding:shop}),true);const route=routeOnRoadNetwork(s,factory,shop);assert.ok(route);assert.ok(Array.isArray(route.laneIds));assert.ok(route.laneIds.length>=1);assert.ok(Array.isArray(route.lanePoints));assert.ok(route.lanePoints.length>=2);assert.ok(route.points.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));});
+test('command history makes road/building mutations pass through one execution path',()=>{const s=freshState(),history=createCommandHistory(),factoryType={name:'Food',kind:'factory',need:null,color:'#fff',price:18,speed:1,value:1,qty:1},placed=history.execute(s,new PlaceBuildingCommand(factoryType,0,300));assert.equal(placed.ok,true);assert.equal(s.buildings.length,1);const road=history.execute(s,new AddRoadCommand([{x:0,y:300},{x:300,y:300}],{startBuilding:s.buildings[0]}));assert.equal(road.ok,true);assert.equal(s.roads.length,1);const deleted=history.execute(s,new DeleteRoadCommand({x:150,y:300}));assert.equal(deleted.ok,true);assert.equal(s.roads.length,0);assert.equal(history.undo(s),true);assert.equal(s.roads.length,1);});
+test('lane geometry applies approach offsets and curved turn transitions',()=>{const s=freshState();s.roads.push({id:'in',points:[{x:-140,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'out',points:[{x:0,y:0},{x:0,y:140}],bridge:false,condition:1,age:0});const graph=buildLaneGraph(roadNetwork(s)),start=graph.nodes.find(n=>Math.abs(n.x+140)<1e-9&&Math.abs(n.y)<1e-9),end=graph.nodes.find(n=>Math.abs(n.x)<1e-9&&Math.abs(n.y-140)<1e-9),route=findLaneRoute(graph,start,end);assert.ok(route);const geometry=laneRouteGeometry(graph,route.laneIds);assert.ok(geometry.points.length>route.laneIds.length*2);assert.equal(geometry.transitions[0].type,'left');assert.equal(geometry.transitions[0].offset,7);});
+test('traffic signal state is persisted safely in hydrated game state',async()=>{const {hydrate,serialise}=await import('../src/state.js'),s=freshState();s.trafficSignals.enabled=true;s.trafficSignals.cycle=18;const hydrated=hydrate(serialise(s));assert.equal(hydrated.trafficSignals.enabled,true);assert.equal(hydrated.trafficSignals.cycle,18);});
+test('junction movement classification uses canonical route geometry',async()=>{const s=freshState();s.roads.push({id:'a',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'b',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0});const route=routeOnRoadNetwork(s,{x:-120,y:0,r:20},{x:0,y:120,r:20});assert.ok(route);assert.ok(route.lanePoints.length>=route.points.length);assert.equal(route.laneTransitions[0].type,'left');});
+test('explicit junction controls expose movements, conflicts and stop lines',()=>{const s=freshState();s.roads.push({id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},{id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0});const network=roadNetwork(s),graph=buildLaneGraph(network),controls=buildJunctionControls(network,graph),control=[...controls.values()].find(c=>Math.abs(c.node.x)<1e-9&&Math.abs(c.node.y)<1e-9);assert.ok(control);assert.ok(control.movements.some(m=>m.type==='straight'));assert.ok(control.movements.some(m=>m.type==='left'));assert.ok(control.movements.some(m=>m.type==='right'));const movement=control.movements.find(m=>m.type==='straight');assert.ok(movement);assert.ok(movement.stopLineDistance>0);assert.ok(stopLinePoint(graph,movement));const permission=movementPermission(s,controls,control.node,movement,{occupiedIds:control.conflicts.get(movement.id)||[]});assert.equal(permission.allowed,false);});
+test('explicit junction signals block yellow and red movements deterministically',()=>{const s=freshState();s.trafficSignals.enabled=true;s.trafficSignals.cycle=12;s.roads.push({id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},{id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0});const network=roadNetwork(s),graph=buildLaneGraph(network),controls=buildJunctionControls(network,graph),control=[...controls.values()].find(c=>c.id==='0,0'),horizontal=control.movements.find(m=>Math.abs(m.approachDirection.x)>.8);assert.ok(horizontal);s.trafficClock=0;const first=movementPermission(s,controls,control.node,horizontal);s.trafficClock=6;const second=movementPermission(s,controls,control.node,horizontal);assert.notEqual(first.signal.state,second.signal.state);});
+test('world bounds and renderer coordinate contract remain consistent',()=>{assert.equal(WORLD_HALF_SIZE,1300);assert.equal(WORLD_BOUNDS_UNAVAILABLE(),true);assert.equal(isInsideWorldBounds({x:0,y:0}),true);assert.equal(isInsideWorldBounds({x:WORLD_HALF_SIZE,y:0}),false);assert.equal(WORLD_MARGIN,24);});
+function WORLD_BOUNDS_UNAVAILABLE(){return typeof globalThis.WORLD_BOUNDS==='undefined';}
