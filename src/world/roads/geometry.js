@@ -88,3 +88,5 @@ export function segmentDistance(a,b,c,d){
 }
 
 export const cleanRoadPoints=points=>validRoadPoints(points,0)||[];
+
+export function endpointSegmentBlocked(building,a,b,side,connectionRadius=building?.r||25){if(!building)return false;const ax=a.x-building.x,ay=a.y-building.y,bx=b.x-building.x,by=b.y-building.y,aRadius=Math.hypot(ax,ay),bRadius=Math.hypot(bx,by);const outward=side==='start'?ax*(b.x-a.x)+ay*(b.y-a.y):bx*(a.x-b.x)+by*(a.y-b.y);const outside=side==='start'?aRadius>=connectionRadius-.001:bRadius>=connectionRadius-.001;return outside&&outward<0}
