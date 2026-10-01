@@ -3,6 +3,7 @@ import {isInsideWorldBounds} from '../roads/validation.js';
 import {riverY,WORLD_MARGIN} from '../terrain.js';
 
 export const FACTORY_MIN_DISTANCE=250;
+export const FACTORY_MIN_SPAWN_RADIUS=720;
 
 const distance=(a,b)=>Math.hypot(Number(a.x)-Number(b.x),Number(a.y)-Number(b.y));
 
@@ -68,7 +69,9 @@ function layoutRotation(seed){
 
 export function factorySpawnCandidates(seed,attempt=0){
   const rotation=layoutRotation(seed);
-  const radius=620+Math.floor(attempt/6)*90;
+  // Keep starter factories decisively outside the central play area. The old 620-unit
+  // ring still looked central on the default camera, so the new ring starts at 900.
+  const radius=900+Math.floor(attempt/6)*85;
   const phase=attempt%6;
   const candidates=[];
 
@@ -101,7 +104,8 @@ export function repairBuildingLayout(buildings,seed=1){
   for(let index=0;index<factories.length;index++){
     const original=factories[index];
     const current={...original};
-    if(validCandidate(current,accepted)){
+    const centralSpawn=Math.hypot(Number(current.x),Number(current.y))<FACTORY_MIN_SPAWN_RADIUS;
+    if(validCandidate(current,accepted)&&!centralSpawn){
       accepted.push(current);
       continue;
     }
