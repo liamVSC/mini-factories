@@ -227,6 +227,7 @@ function addPallet(g,x,z,metal,dark){
   addBoxPart(g,new THREE.BoxGeometry(5,.45,4),wood,x,.55,z,0,false);
   for(const px of[-1.8,0,1.8])addBoxPart(g,new THREE.BoxGeometry(.45,.65,3.4),wood,x+px,.35,z,0,false);
   for(const pz of[-1.35,1.35])addBoxPart(g,new THREE.BoxGeometry(4.8,.35,.35),metal,x,.8,z+pz,0,false);
+  const load=new THREE.Mesh(new THREE.BoxGeometry(4.4,1.8,3.2),mat('#8a8f8b',.92));load.position.set(x,1.65,z);load.castShadow=true;g.add(load);return load;
 }
 function addDumpster(g,x,z,metal,dark){
   const body=mat('#4e5553',.94),lid=mat('#363c3b',.96);
@@ -259,6 +260,7 @@ function addForklift(g,x,z,metal,dark){
   addBoxPart(g,new THREE.BoxGeometry(2.8,.3,.5),forkMat,x+3.2,1.05,z-.85);
   addBoxPart(g,new THREE.BoxGeometry(2.8,.3,.5),forkMat,x+3.2,1.05,z+.85);
   for(const px of[-1.3,1.5])for(const pz of[-1.35,1.35])addCylinderPart(g,.65,1.0,dark,x+px,1,z+pz,10);
+  g.userData.baseX=x;g.userData.baseZ=z;g.userData.forklift=true;return g;
 }
 function addFenceLine(g,x1,z1,x2,z2,metal,postSpacing=9){
   const fenceMat=mat('#4b514f',.9,.25),dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),count=Math.max(1,Math.ceil(len/postSpacing));
@@ -306,9 +308,9 @@ function addTruckTurningPad(g,x,z,radius,metal){
 function addIndustrialSite(g,w,d,h,metal,dark,kind){
   const yardZ=d/2+35, yardD=38;
   addTruckTurningPad(g,0,yardZ+8,24,metal);
-  addForklift(g,-w*.28,yardZ-4,metal,dark);
-  addForklift(g,w*.28,yardZ-4,metal,dark);
-  addPallet(g,-w*.35,yardZ+17,metal,dark);addPallet(g,-w*.18,yardZ+17,metal,dark);addPallet(g,w*.34,yardZ+17,metal,dark);
+  const forklifts=[addForklift(g,-w*.28,yardZ-4,metal,dark),addForklift(g,w*.28,yardZ-4,metal,dark)];
+  const pallets=[addPallet(g,-w*.35,yardZ+17,metal,dark),addPallet(g,-w*.18,yardZ+17,metal,dark),addPallet(g,w*.34,yardZ+17,metal,dark)];
+  g.userData.siteForklifts=forklifts.filter(Boolean);g.userData.sitePallets=pallets.filter(Boolean);
   addDumpster(g,w*.48,d*.42,metal,dark);
   addFuelTank(g,-w*.42,d*.42,metal,dark);
   addStaffParking(g,w*.22,-d/2-24,34,15,metal,dark);
@@ -378,10 +380,32 @@ function createShopModel(){
   addFenceLine(g,-w/2-8,-d/2-4,-w/2-8,d/2+8,metal);addGate(g,0,d/2+38,16,metal);
   return g;
 }
+function addBuildingStatusVisual(g,building){
+  const dims=building.kind==='warehouse'?{w:96,d:66,h:21}:building.kind==='factory'?{w:78,d:62,h:25}:{w:70,d:56,h:17};
+  const statusMat=new THREE.MeshStandardMaterial({color:'#7b8581',roughness:.45,metalness:.15,emissive:'#26302d',emissiveIntensity:.15});
+  const beacon=addBoxPart(g,new THREE.BoxGeometry(2.2,1.2,2.2),statusMat,dims.w*.38,dims.h+11,0);
+  beacon.userData.statusMaterial=statusMat;
+  const dockLightMat=new THREE.MeshStandardMaterial({color:'#777d79',roughness:.35,emissive:'#222827',emissiveIntensity:.12});
+  const dockLight=addBoxPart(g,new THREE.BoxGeometry(3.5,1.2,.5),dockLightMat,0,dims.kind==='shop'?10:14,dims.d/2+1.4,false);
+  dockLight.userData.statusMaterial=dockLightMat;
+  const statusRing=new THREE.Mesh(new THREE.TorusGeometry(2.2,.25,6,16),new THREE.MeshStandardMaterial({color:'#5d6562',roughness:.5,emissive:'#222827',emissiveIntensity:.1}));
+  statusRing.rotation.x=Math.PI/2;statusRing.position.set(0,.35,dims.d/2+1.8);statusRing.userData.statusMaterial=statusRing.material;g.add(statusRing);
+  g.userData.statusBeacon=beacon;g.userData.dockLight=dockLight;g.userData.statusRing=statusRing;g.userData.buildingId=building.id;
+}
+function addFactorySmoke(g,w,d,h){
+  const smokeMat=new THREE.MeshStandardMaterial({color:'#7f8582',transparent:true,opacity:.12,roughness:1});
+  const puffs=[];
+  for(const x of[-w*.28,w*.28])for(let i=0;i<3;i++){
+    const puff=new THREE.Mesh(new THREE.SphereGeometry(2.2+i*.5,8,6),smokeMat);
+    puff.position.set(x,h+22+i*4,0);puff.visible=false;g.add(puff);puffs.push(puff);
+  }
+  g.userData.smokePuffs=puffs;
+}
 function createBuildingModel(building){
-  if(building.kind==='factory')return createFactoryModel(building);
-  if(building.kind==='warehouse')return createWarehouseModel(building);
-  return createShopModel(building);
+  const g=building.kind==='factory'?createFactoryModel(building):building.kind==='warehouse'?createWarehouseModel(building):createShopModel(building);
+  addBuildingStatusVisual(g,building);
+  if(building.kind==='factory')addFactorySmoke(g,78,62,25);
+  return g;
 }
 function updateWorld(s){clearDynamic();root.clear();for(const road of s.roads||[]){const g=makeRoad(road.points,!!road.bridge,s);g.userData.road=road;root.add(g);worldObjects.add(g);}root.add(makeRoadJunctions(s.roads||[]));for(const building of s.buildings||[]){const g=createBuildingModel(building);g.position.set(Number(building.x)||0,0,Number(building.y)||0);g.userData.building=building;scene.add(g);meshes.set(building.id,g);worldObjects.add(g);}}
 function createTruckMesh(){
@@ -395,6 +419,50 @@ function createTruckMesh(){
   for(const x of[5.8,7.7])for(const z of[-2.3,2.3])addBoxPart(g,new THREE.BoxGeometry(.35,1.1,.5),mat('#b8b7a7',.55),x,3,z,false);
   g.userData.wheels=g.children.filter(o=>o.isMesh&&o.geometry.type==='CylinderGeometry');return g;
 }
+function updateBuildingActivity(s){
+  const now=performance.now()*.001;
+  for(const b of s.buildings||[]){
+    const g=meshes.get(b.id);if(!g)continue;
+    const activeTrucks=(s.trucks||[]).filter(t=>!t.dead&&(t.source===b||t.to===b));
+    const loading=activeTrucks.some(t=>t.to===b&&t.stage==='delivery'&&t.t>.78);
+    const producing=b.kind==='factory'&&(Number(b.active)||0)>.15;
+    const active=loading||producing||activeTrucks.length>0;
+    const level=loading?1:producing?.65:.25;
+    const beaconMat=g.userData.statusBeacon?.userData.statusMaterial;
+    const dockMat=g.userData.dockLight?.userData.statusMaterial;
+    const ringMat=g.userData.statusRing?.userData.statusMaterial;
+    if(beaconMat){
+      beaconMat.emissive.setHex(loading?0x8a5d25:producing?0x3f6d55:0x26302d);
+      beaconMat.emissiveIntensity=active?(.45+.35*Math.sin(now*5)):0.12;
+    }
+    if(dockMat){
+      dockMat.emissive.setHex(loading?0x8a5d25:producing?0x4b705f:0x222827);
+      dockMat.emissiveIntensity=loading?.8:producing?.35:.08;
+    }
+    if(ringMat){
+      ringMat.emissive.setHex(loading?0x8a5d25:producing?0x4b705f:0x222827);
+      ringMat.emissiveIntensity=loading?.65:producing?.25:.06;
+    }
+    if(g.userData.statusRing)g.userData.statusRing.rotation.z=now*.5;
+    for(const[fi,fork]of(g.userData.siteForklifts||[]).entries()){
+      const baseX=Number(fork.userData.baseX)||0,baseZ=Number(fork.userData.baseZ)||0;
+      const motion=activeTrucks.length?Math.sin(now*(1.3+fi*.2))*10:0;
+      fork.position.x=baseX+motion;
+      fork.position.z=baseZ+(activeTrucks.length?Math.cos(now*1.1+fi)*2:0);
+      fork.rotation.y=activeTrucks.length?Math.sin(now*.65+fi)*.12:0;
+    }
+    for(const[palletIndex,pallet]of(g.userData.sitePallets||[]).entries()){
+      pallet.position.y=activeTrucks.length?Math.sin(now*2+palletIndex)*.12:0;
+    }
+    for(const[puffIndex,puff]of(g.userData.smokePuffs||[]).entries()){
+      const t=(now*.18+puffIndex*.23)%1;
+      puff.visible=producing;
+      puff.position.y=47+puffIndex*4+t*8;
+      puff.scale.setScalar(.7+t*.7);
+      puff.material.opacity=producing?.14*(1-t):0;
+    }
+  }
+}
 function updateTrucks(s){
   const live=new Set();
   for(const truck of s.trucks||[]){
@@ -402,9 +470,21 @@ function updateTrucks(s){
     let mesh=truckMeshes.get(truck.id);
     if(!mesh){mesh=createTruckMesh();scene.add(mesh);truckMeshes.set(truck.id,mesh);}
     const route=Array.isArray(truck.route)?truck.route:truck.route?.points;if(!route?.length)continue;
-    const progress=Math.max(0,Math.min(1,Number(truck.progress)||0)),p=pointOnRoute(route,progress),q=pointOnRoute(route,Math.min(1,progress+.002));
-    mesh.position.set(p.x,0,p.y);
+    const progress=Math.max(0,Math.min(1,Number(truck.t)||0)),p=pointOnRoute(route,progress),q=pointOnRoute(route,Math.min(1,progress+.002));
+    let visual={x:p.x,y:p.y};
+    const destination=truck.to;
+    if(destination&&progress>.78){
+      const dims=destination.kind==='warehouse'?{d:66}:destination.kind==='factory'?{d:62}:{d:56};
+      const dockX=(Number(destination.x)||0)+((truck.id?.toString().charCodeAt(0)||0)%3-1)*7;
+      const dockZ=(Number(destination.y)||0)+dims.d/2+6;
+      const approach=Math.max(0,Math.min(1,(progress-.78)/.18));
+      visual={x:p.x+(dockX-p.x)*approach,y:p.y+(dockZ-p.y)*approach};
+    }
+    mesh.position.set(visual.x,0,visual.y);
     if(q)mesh.rotation.y=-Math.atan2(q.y-p.y,q.x-p.x);
+    if(destination&&progress>.9)mesh.rotation.y=-Math.PI/2;
+    if(Number(truck.wait)>0)mesh.position.y=.08;
+
     for(const wheel of mesh.userData.wheels||[])wheel.rotation.z-=(Number(truck.speed)||8)*.05;
   }
   for(const[id,mesh]of truckMeshes)if(!live.has(id)){scene.remove(mesh);disposeObject(mesh);truckMeshes.delete(id);}
@@ -432,7 +512,7 @@ function addEnvironment(){
 function updateSelectionVisual(s){const selected=s.selected?.id||null;if(selected===lastBuildingSelection)return;for(const[id,g]of meshes){const scale=id===selected?1.035:1;g.scale.setScalar(scale);}lastBuildingSelection=selected;}
 function updateRoadEditVisual(){if(roadEditGroup)roadEditGroup.visible=true;}
 function updateRoadEndpointVisual(){if(roadEndpointGroup)roadEndpointGroup.visible=true;}
-function render(s,W,H,canvas=document.querySelector('#game')){if(!canvas)return;if(!renderer)init(canvas);resize(W||innerWidth,H||innerHeight);if(!scene)return;ensureCamera();if(render.lastVersion!==s.renderVersion){updateWorld(s);render.lastVersion=s.renderVersion;}updateTrucks(s);updateSelectionVisual(s);updateRoadEditVisual(s);updateRoadEndpointVisual(s);syncCamera();renderer.render(scene,camera3d);}
+function render(s,W,H,canvas=document.querySelector('#game')){if(!canvas)return;if(!renderer)init(canvas);resize(W||innerWidth,H||innerHeight);if(!scene)return;ensureCamera();if(render.lastVersion!==s.renderVersion){updateWorld(s);render.lastVersion=s.renderVersion;}updateBuildingActivity(s);updateTrucks(s);updateSelectionVisual(s);updateRoadEditVisual(s);updateRoadEndpointVisual(s);syncCamera();renderer.render(scene,camera3d);}
 function screenToWorld(x,y,w=viewport.width,h=viewport.height){ensureCamera();const ndc=new THREE.Vector2(x/w*2-1,-(y/h)*2+1),raycaster=new THREE.Raycaster();raycaster.setFromCamera(ndc,camera3d);const hit=new THREE.Vector3();return raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),0),hit)?{x:hit.x,y:hit.z}:{x:0,y:0};}
 function worldToScreen(x,y,w=viewport.width,h=viewport.height){ensureCamera();const p=new THREE.Vector3(x,0,y).project(camera3d);return{x:(p.x+1)*.5*w,y:(1-p.y)*.5*h};}
 function panScreen(dx,dy,w=viewport.width,h=viewport.height){const a=screenToWorld(w*.5,h*.5,w,h),b=screenToWorld(w*.5-dx,h*.5-dy,w,h);desired.x+=b.x-a.x;desired.z+=b.y-a.y;updateCameraBounds();}
