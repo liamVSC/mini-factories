@@ -13,8 +13,8 @@ export {isInsideWorldBounds} from './world/roads/validation.js';
 export {dist,length,pointOnRoute};
 export {buildingPhysicalPlacementReason,buildingHitbox,buildingAtPoint,nearestBuilding,buildingFootprint,buildingDockPoints,buildingConnectionPoint};
 export {roadBuildingTarget,nearestRoad,snapRoadPoint,snap,segmentNearRiver,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,snapToWorldEdge,roadTarget,roadPreview};
-import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from './laneGraph.js';
-import {roadNetwork,nearestGraphNode,bumpRoadNetworkRevision} from './world/roads/topology.js';
+import {roadAttachment,routeOnRoadNetwork,roadPath} from './world/roads/routing.js';
+import {roadNetwork,bumpRoadNetworkRevision} from './world/roads/topology.js';
 
 
 export function buildingCost(s,type){const base={Steel:260,Food:220,Parts:320,Market:180,Garage:240,Builder:220,Plastics:420,Glass:500,Electronics:520,Furniture:600,Warehouse:700};return Math.round((base[type.name]||300)*Math.pow(1.12,s.buildings.length))}
@@ -81,48 +81,6 @@ function resolveRoadEndpoint(s,value){if(value?.building&&Number.isFinite(value.
 
 
 
-export function roadAttachment(s,building){if(!building)return null;const footprint=buildingFootprint(building);const limit=Math.max(48,Math.hypot(footprint.halfWidth,footprint.halfDepth)+6,(building.r||25)+18);let best=null;for(const road of s.roads||[]){const points=validRoadPoints(road?.points,0);if(!points)continue;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],q=projectSegment(building,a,b);if(q.distance<=limit&&(!best||q.distance<best.distance))best={road,point:{x:q.point.x,y:q.point.y},distance:q.distance,segment:i-1}}}return best}
-export function routeOnRoadNetwork(s,a,b){
-  const aa=roadAttachment(s,a),bb=roadAttachment(s,b);
-  if(!aa||!bb)return null;
-  const network=roadNetwork(s,[aa.point,bb.point]);
-  const start=nearestGraphNode(network,aa.point),end=nearestGraphNode(network,bb.point);
-  if(!start||!end)return null;
-  const laneGraph=buildLaneGraph(network,{lanesPerDirection:1});
-  const laneResult=findLaneRoute(laneGraph,start,end);
-  if(!laneResult)return null;
-  const laneNodes=laneRouteToNodePath(laneGraph,laneResult.laneIds);
-  if(laneNodes.length<2)return null;
-  const routePoints=laneNodes.map(p=>({x:p.x,y:p.y}));
-  const laneGeometry=laneRouteGeometry(laneGraph,laneResult.laneIds);
-  const lanePoints=laneGeometry.points.length>=2?laneGeometry.points:routePoints;
-  const result={path:laneNodes,distance:laneResult.distance,laneIds:laneResult.laneIds};
-  // Keep canonical junction coordinates in the returned route even when a
-  // graph connection is represented by a virtual endpoint-to-road edge.
-  const canonical=network.junctions||[];
-  for(const junction of canonical){
-    for(let i=1;i<routePoints.length;i++){
-      const a=routePoints[i-1],b=routePoints[i],q=projectSegment(junction,a,b);
-      if(q.distance>8||q.t<=1e-6||q.t>=1-1e-6)continue;
-      routePoints.splice(i,0,{x:junction.x,y:junction.y});
-      break;
-    }
-  }
-  return{
-    points:routePoints,
-    distance:result.distance,
-    networkDistance:result.distance,
-    laneIds:result.laneIds,
-    graphNodeCount:network.nodes.length,
-    laneCount:laneGraph.lanes.length,
-    lanePoints,
-    laneTransitions:laneGeometry.transitions,
-    start:{x:aa.point.x,y:aa.point.y},
-    end:{x:bb.point.x,y:bb.point.y}
-  }
-}
-function nearestGraphNode(network,p){let best=null,bd=Infinity;for(const n of network.nodes){const d=dist(n,p);if(d<bd){bd=d;best=n}}return best&&bd<=2.5?best:null}
-export function roadPath(s,a,b){const start=snap(s,a),end=snap(s,b);if(dist(start,end)<8)return[start,end];const existing=routeOnRoadNetwork(s,start,end);return existing?existing.points:null}
 function normalizeRoadEndpoint(s,p){const b=nearestBuilding(s,p);if(!b||dist(b,p)>88)return p;return buildingConnectionPoint(b,p)}
 
 
@@ -205,3 +163,4 @@ export function addRoad(s,points,meta={}){
 
 export {roadAtPoint,roadSegmentAtPoint,roadEndpointCandidate,roadEndpointAtPoint,endpointTarget,roadEndpointPreview,editRoadSegment,editRoadEndpoint,endpointSegmentBlocked,eraseRoad,cleanupRoadNetwork} from './world/roads/editing.js';
 export {roadNetwork,roadTopology,nearestGraphNode,shortestRoadPath,bumpRoadNetworkRevision} from './world/roads/topology.js';
+export {roadAttachment,routeOnRoadNetwork,roadPath} from './world/roads/routing.js';
