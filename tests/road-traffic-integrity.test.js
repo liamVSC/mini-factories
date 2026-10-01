@@ -122,3 +122,29 @@ test('factories keep a dedicated separation buffer during placement and procedur
     assert.ok(Math.hypot(factories[i].x-factories[j].x,factories[i].y-factories[j].y)>=250);
   }
 });
+
+
+test('procedural layout uses its own seed without mutating the saved game seed',()=>{
+  const first=freshState();
+  const second=freshState();
+  first.cash=5000;
+  second.cash=5000;
+  first.gameSeed=111;
+  second.gameSeed=222;
+  first.layoutSeed=333;
+  second.layoutSeed=444;
+
+  const firstGameSeed=first.gameSeed;
+  const secondGameSeed=second.gameSeed;
+  seed(first);
+  seed(second);
+
+  assert.equal(first.gameSeed,firstGameSeed);
+  assert.equal(second.gameSeed,secondGameSeed);
+  assert.ok(first.buildings.length>=6);
+  assert.ok(second.buildings.length>=6);
+  assert.notDeepEqual(
+    first.buildings.map(b=>[b.type,Math.round(b.x),Math.round(b.y)]),
+    second.buildings.map(b=>[b.type,Math.round(b.x),Math.round(b.y)])
+  );
+});
