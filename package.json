@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/*.test.js && node --check src/commands.js && node --check src/laneGraph.js && node --check src/game.js && node --check src/render3d.js && node --check src/render.js && node --check src/state.js && node --check src/world.js && node --check src/world/terrain.js && node --check src/world/buildings/spawning.js && node --check src/core/rng.js && node --check src/core/ids.js && node --check src/core/types.js && node --check src/persistence/save.js && node --check src/persistence/load.js && node --check src/world/buildings/index.js && node --check src/world/roads/index.js && node --check src/economy.js"
+    "test": "node --test tests/*.test.js && node --check src/commands.js && node --check src/laneGraph.js && node --check src/game.js && node --check src/render3d.js && node --check src/render.js && node --check src/state.js && node --check src/world.js && node --check src/world/roads/geometry.js && node --check src/world/roads/validation.js && node --check src/world/terrain.js && node --check src/world/buildings/spawning.js && node --check src/core/rng.js && node --check src/core/ids.js && node --check src/core/types.js && node --check src/persistence/save.js && node --check src/persistence/load.js && node --check src/world/buildings/index.js && node --check src/world/roads/index.js && node --check src/economy.js"
   },
   "engines": {
     "node": ">=20"
