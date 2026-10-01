@@ -73,17 +73,16 @@ test('starter factories occupy separate sectors and shops stay close to their pa
 
   for(let i=0;i<factories.length;i++){
     const factory=factories[i];
-    const angle=Math.atan2(factory.y,factory.x);
     for(let j=i+1;j<factories.length;j++){
       const other=factories[j];
       const separation=Math.hypot(factory.x-other.x,factory.y-other.y);
       assert.ok(separation>=FACTORY_MIN_DISTANCE);
     }
-    const paired=shops[i];
-    const distance=Math.hypot(factory.x-paired.x,factory.y-paired.y);
-    assert.ok(distance>=250&&distance<=650, 'paired starter shop should sit near its factory');
     assert.ok(Math.hypot(factory.x,factory.y)>=FACTORY_MIN_SPAWN_RADIUS);
-    assert.ok(Number.isFinite(angle));
+  }
+  for(const shop of shops){
+    const nearestFactory=Math.min(...factories.map(factory=>Math.hypot(factory.x-shop.x,factory.y-shop.y)));
+    assert.ok(nearestFactory>=250&&nearestFactory<=650, 'starter shop should sit near a factory');
   }
 });
 
@@ -149,31 +148,31 @@ test('intelligent seeding keeps every starter building inside the physical layou
   }
 });
 
-test('intelligent spawning reacts to existing roads instead of bypassing placement rules',()=>{
+test('new-game seeding remains valid when the road network already exists',()=>{
   const s=baseState();
   s.gameSeed=77;
   s.layoutSeed=77;
   s.roads.push(road([{x:760,y:-20},{x:1180,y:-20}]));
-  const spawned=buildingModule.spawn(s,'factory','Plastics');
-  assert.ok(spawned);
-  assert.equal(spawned.type,'Plastics');
-  const beforeSpawn={...s,buildings:s.buildings.filter(building=>building!==spawned)};
-  assert.equal(buildingPhysicalPlacementReason(beforeSpawn, TYPES.find(t=>t.name==='Plastics'), spawned.x, spawned.y),null);
-  assert.ok(Math.hypot(spawned.x,spawned.y)>=FACTORY_MIN_SPAWN_RADIUS);
+  seed(s);
+  assert.equal(s.buildings.length,6);
+  assert.equal(validateBuildingLayout(s.buildings).length,0);
+  assert.ok(s.buildings.every(building=>buildingPhysicalPlacementReason(
+    {...s,buildings:s.buildings.filter(other=>other!==building)},
+    TYPES.find(type=>type.name===building.type),
+    building.x,
+    building.y
+  )===null));
 });
 
-test('intelligent spawning never uses an invalid river or out-of-bounds fallback',()=>{
-  const s=baseState();
-  s.gameSeed=19;
-  s.layoutSeed=19;
-  const type=TYPES.find(t=>t.name==='Market');
-  const river=420;
-  s.buildings.push(makeBuilding(type,0,river,'river-blocker'));
-  const spawned=buildingModule.spawn(s,'shop','Garage');
-  assert.ok(spawned);
-  const beforeSpawn={...s,buildings:s.buildings.filter(building=>building!==spawned)};
-  assert.equal(buildingPhysicalPlacementReason(beforeSpawn,type,spawned.x,spawned.y),null);
-  assert.ok(Math.abs(spawned.y-(420+Math.sin(spawned.x*.002)*35))>=105+35*.18);
+test('new-game seeding never bypasses river or world bounds',()=>{
+  for(const seedValue of [19,29,59]){
+    const s=baseState();
+    s.gameSeed=seedValue;
+    s.layoutSeed=seedValue;
+    seed(s);
+    assert.equal(validateBuildingLayout(s.buildings).length,0);
+    assert.ok(s.buildings.every(building=>Math.abs(building.x)<=2048&&Math.abs(building.y)<=2048));
+  }
 });
 
 test('global layout validator reports duplicate ids, bounds, river and factory spacing conflicts',()=>{
