@@ -1,6 +1,6 @@
-const CACHE='mini-factories-v3';
-const VERSION='3';
-const APP_SHELL=['./','./index.html','./styles.css?v=1','./src/game.js?v=1','./src/state.js','./src/world.js','./src/economy.js','./src/render.js?v=1','./src/render3d.js?v=1','./icon.svg','./manifest.webmanifest','https://cdn.jsdelivr.net/npm/three@0.180.0/+esm'];
+const CACHE='mini-factories-v4';
+const VERSION='2';
+const APP_SHELL=['./','./index.html','./styles.css?v=1','./src/game.js?v=2','./src/state.js','./src/world.js','./src/economy.js','./src/render.js?v=1','./src/render3d.js?v=1','./icon.svg','./manifest.webmanifest','https://cdn.jsdelivr.net/npm/three@0.180.0/+esm'];
 const EXTERNAL_ASSETS=new Set(['https://cdn.jsdelivr.net/npm/three@0.180.0/+esm']);
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(async cache=>{await Promise.allSettled(APP_SHELL.map(url=>cache.add(url)));}).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()).then(async()=>{const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});for(const client of clients)client.postMessage({type:'mini-factories-update',version:VERSION});}));});
