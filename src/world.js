@@ -10,23 +10,6 @@ const safePoint=p=>({x:Number(p.x),y:Number(p.y)});
 const validRoadPoints=(points,minLength=12)=>{const clean=[];for(const p of points||[]){if(!finitePoint(p))continue;const q=safePoint(p);if(!clean.length||dist(clean.at(-1),q)>2)clean.push(q)}return clean.length>=2&&length(clean)>=minLength?clean:null};
 function projectSegment(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)return{point:{x:a.x,y:a.y},distance:dist(p,a)};const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));const point={x:a.x+dx*t,y:a.y+dy*t};return{point,distance:dist(p,point)}}
 function nearestPointOnRoad(road,p){let best=null,bd=Infinity;for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(q.distance<bd){bd=q.distance;best=q.point}}return best}
-export const riverY=x=>420+Math.sin(x*.002)*35;
-
-// The renderer defines the actual playable ground as a 2600 x 2600 plane
-// centred on the world origin. The river geometry is also generated from
-// -1300 to +1300, so ±1300 is the authoritative world edge.
-// Keep all world/build tools on this single coordinate system.
-export const WORLD_SIZE=2600;
-export const WORLD_HALF_SIZE=WORLD_SIZE/2;
-export const WORLD_BOUNDS=Object.freeze({
-  minX:-WORLD_HALF_SIZE,maxX:WORLD_HALF_SIZE,minY:-WORLD_HALF_SIZE,maxY:WORLD_HALF_SIZE
-});
-// Construction needs a small clearance so road/building geometry does not sit
-// half outside the rendered ground.
-export const WORLD_CONSTRUCTION_MARGIN=24;
-export const WORLD_MARGIN=WORLD_CONSTRUCTION_MARGIN;
-export const WORLD_EDGE_SNAP_DISTANCE=52;
-
 export function isInsideWorldBounds(p,margin=WORLD_MARGIN){
   return finitePoint(p)&&Number(p.x)>=WORLD_BOUNDS.minX+margin&&Number(p.x)<=WORLD_BOUNDS.maxX-margin&&Number(p.y)>=WORLD_BOUNDS.minY+margin&&Number(p.y)<=WORLD_BOUNDS.maxY-margin;
 }
@@ -77,48 +60,8 @@ export function buildingPlacementTarget(s,type,p){
 }
 
 export function placeBuilding(s,type,x,y){if(canPlaceBuildingAt(s,type,x,y))return false;const b=makeBuilding(type,x,y,newId());b.district=district(x,y);s.cash-=buildingCost(s,type);s.buildings.push(b);return b}
-export function spawn(s,kind,forced){
-  const random=createRng(seedFromState(s));
-  const layoutSeed=seedFromState(s);
-  const layoutRotation=(layoutSeed/4294967296)*Math.PI*2;
-  const pool=TYPES.filter(t=>t.kind===kind&&(!forced||t.name===forced));
-  if(!pool.length)return null;
-  let candidates=pool;
-  if(!forced&&pool.length>1){
-    const recent=s.buildings.slice(-2).map(b=>b.type);
-    const filtered=pool.filter(t=>!recent.includes(t.name));
-    if(filtered.length)candidates=filtered;
-  }
-  const type=candidates[Math.floor(random()*candidates.length)];
-  const count=s.buildings.length;
-  const factoryCount=(s.buildings||[]).filter(b=>b.kind==='factory').length;
-  const factorySlot=kind==='factory'?factoryCount:-1;
-  const minRadius=count<6?170:280;
-  const maxRadius=count<6?430:Math.min(760,430+s.companyLevel*22);
-  for(let n=0;n<500;n++){
-    // Starter factories use separate sectors of the map so the three production
-    // sites are visibly distributed instead of clustering around one random point.
-    const sectorAngle=factorySlot>=0
-      ?layoutRotation+factorySlot*(Math.PI*2/3)+(random()-.5)*.42+(n%5)*.08
-      :random()*Math.PI*2;
-    const angle=factorySlot>=0?sectorAngle:layoutRotation+random()*Math.PI*2;
-    const radius=factorySlot>=0
-      ?Math.max(250,Math.min(maxRadius,310+random()*170))
-      :minRadius+random()*Math.max(1,maxRadius-minRadius);
-    let x=Math.cos(angle)*radius+(random()-.5)*90;
-    let y=Math.sin(angle)*radius+(random()-.5)*90;
-    const river=riverY(x);
-    if(Math.abs(y-river)<105)y+=y<river?-120:120;
-    if(!buildingPhysicalPlacementReason(s,type,x,y)){
-      const building=makeBuilding(type,x,y,newId());
-      building.district=district(x,y);
-      s.buildings.push(building);
-      return building;
-    }
-  }
-  return null;
-}
-export function seed(s){for(const t of['Steel','Food','Parts'])spawn(s,'factory',t);for(const t of['Market','Garage','Builder'])spawn(s,'shop',t)}
+export function spawn(s,kind,forced){return spawnBuilding(s,kind,forced,buildingPhysicalPlacementReason)}
+export function seed(s){return seedBuildings(s,buildingPhysicalPlacementReason)}
 export function pointOnRoute(points,t){const total=length(points);if(!total)return points[0];let want=total*Math.max(0,Math.min(1,t)),run=0;for(let i=1;i<points.length;i++){const seg=dist(points[i-1],points[i]);if(run+seg>=want){const q=(want-run)/seg;return{x:points[i-1].x+(points[i].x-points[i-1].x)*q,y:points[i-1].y+(points[i].y-points[i-1].y)*q}}run+=seg}return points.at(-1)}
 export function buildingHitbox(building,tolerance=0){const footprint=buildingFootprint(building);return{minX:building.x-footprint.halfWidth-tolerance,maxX:building.x+footprint.halfWidth+tolerance,minY:building.y-footprint.halfDepth-tolerance,maxY:building.y+footprint.halfDepth+tolerance}}export function buildingAtPoint(s,p,tolerance=10){if(!finitePoint(p))return null;let best=null,bestDistance=Infinity;for(const b of s.buildings||[]){const hit=buildingHitbox(b,tolerance);const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY),d=Math.hypot(dx,dy);if(d<=tolerance&&d<bestDistance){best=b;bestDistance=d}}return best}export function nearestBuilding(s,p){return buildingAtPoint(s,p,18)}
 const ROAD_BUILDING_SNAP_TOLERANCE=46;
