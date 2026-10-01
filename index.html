@@ -14,6 +14,6 @@
  window.addEventListener('error',e=>{if(e.error||e.message)fail(e.message||'Runtime error')});
  window.addEventListener('unhandledrejection',e=>fail(e.reason?.message||String(e.reason||'Runtime error')));
  retry?.addEventListener('click',()=>location.reload());
- setTimeout(()=>{if(guard&&guard.style.display!=='none')fail('The game did not finish starting.');},10000);
+ setTimeout(()=>{if(guard&&guard.style.display!=='none')fail('The game did not finish starting.');},15000);
 })();
 </script></body></html>
