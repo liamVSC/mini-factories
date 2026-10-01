@@ -1,4 +1,4 @@
-import {TYPES} from './state.js';
+import {TYPES} from './core/types.js';
 import {newId} from './core/ids.js';
 
 import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment,roadNetwork} from './world.js';
