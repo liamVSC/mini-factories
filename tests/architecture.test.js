@@ -8,6 +8,7 @@ import {freshState,makeBuilding} from '../src/state.js';
 import {addRoad,routeOnRoadNetwork,roadNetwork} from '../src/world.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from '../src/laneGraph.js';
 import {createCommandHistory,AddRoadCommand,PlaceBuildingCommand,DeleteRoadCommand} from '../src/commands.js';
+import {buildJunctionControls,movementPermission,stopLinePoint} from '../src/junctionControl.js';
 
 test('lane graph creates directional lanes and connects through a four-way junction',()=>{
   const s=freshState();
@@ -104,4 +105,54 @@ test('junction movement classification uses canonical route geometry',async()=>{
   assert.ok(route);
   assert.ok(route.lanePoints.length>=route.points.length);
   assert.equal(route.laneTransitions[0].type,'left');
+});
+
+
+test('explicit junction controls expose movements, conflicts and stop lines',()=>{
+  const s=freshState();
+  s.roads.push(
+    {id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},
+    {id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},
+    {id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},
+    {id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0}
+  );
+  const network=roadNetwork(s);
+  const graph=buildLaneGraph(network);
+  const controls=buildJunctionControls(network,graph);
+  const control=[...controls.values()].find(c=>Math.abs(c.node.x)<1e-9&&Math.abs(c.node.y)<1e-9);
+  assert.ok(control);
+  assert.ok(control.movements.some(m=>m.type==='straight'));
+  assert.ok(control.movements.some(m=>m.type==='left'));
+  assert.ok(control.movements.some(m=>m.type==='right'));
+  const movement=control.movements.find(m=>m.type==='straight');
+  assert.ok(movement);
+  assert.ok(movement.stopLineDistance>0);
+  assert.ok(stopLinePoint(graph,movement));
+  const permission=movementPermission(s,controls,control.node,movement,{occupiedIds:control.conflicts.get(movement.id)||[]});
+  assert.equal(permission.allowed,false);
+});
+
+test('explicit junction signals block yellow and red movements deterministically',()=>{
+  const s=freshState();
+  s.trafficSignals.enabled=true;
+  s.trafficSignals.cycle=12;
+  s.roads.push(
+    {id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},
+    {id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},
+    {id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},
+    {id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0}
+  );
+  const network=roadNetwork(s);
+  const graph=buildLaneGraph(network);
+  const controls=buildJunctionControls(network,graph);
+  const control=[...controls.values()].find(c=>c.id==='0,0');
+  const horizontal=control.movements.find(m=>Math.abs(m.approachDirection.x)>.8);
+  assert.ok(horizontal);
+  s.trafficClock=0;
+  const first=movementPermission(s,controls,control.node,horizontal);
+  s.trafficClock=6;
+  const second=movementPermission(s,controls,control.node,horizontal);
+  assert.notEqual(first.signal.state,second.signal.state);
+  assert.ok(first.signal.state==='green'||first.signal.state==='yellow'||first.signal.state==='red');
+  assert.ok(second.signal.state==='green'||second.signal.state==='yellow'||second.signal.state==='red');
 });
