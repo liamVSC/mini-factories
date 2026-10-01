@@ -37,7 +37,7 @@ export function addRoad(s,points,meta={}){
   // Explicit building connections use facade endpoints. Legacy direct addRoad
   // calls may still provide a building centre as an endpoint; keep those
   // coordinates intact and let the endpoint collision rules validate them.
-  if(startConnection)normalized[0]=startConnection.point;
+  if(meta.startBuilding&&startConnection)normalized[0]=startConnection.point;
   if(endConnection)normalized[normalized.length-1]=endConnection.point;
   points=normalized;
   const validation=validateRoadGeometry(points);
