@@ -15,7 +15,7 @@ const meshes=new Map();
 const worldObjects=new Set();
 const truckMeshes=new Map();
 const routeMetrics=new WeakMap();
-let worldState=null;
+let ws=null;
 
 function mat(color,roughness=.8,metalness=0){return new THREE.MeshStandardMaterial({color,roughness,metalness});}
 function box(w,h,d,color){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));}
