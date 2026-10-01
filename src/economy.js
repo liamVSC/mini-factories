@@ -151,6 +151,44 @@ function movementConflict(a,b){
   }
   return true;
 }
+function routeCurveFactor(route,t){
+  if(!Array.isArray(route)||route.length<3)return 1;
+  const p=pointOnRoute(route,t),total=length(route);
+  if(!p||!total)return 1;
+  let best=null,run=0;
+  for(let i=1;i<route.length;i++){
+    const a=route[i-1],b=route[i],seg=dist(a,b);
+    if(!seg)continue;
+    const q=Math.max(0,Math.min(1,((p.x-a.x)*(b.x-a.x)+(p.y-a.y)*(b.y-a.y))/(seg*seg)));
+    const d=run+seg*q;
+    if(best===null||Math.abs(d-total*t)<Math.abs(best-total*t))best=i;
+    run+=seg;
+  }
+  const index=Math.max(1,Math.min(route.length-2,best||1));
+  let maxTurn=0;
+  const start=Math.max(1,index-1),end=Math.min(route.length-2,index+3);
+  for(let i=start;i<=end;i++){
+    const a=route[i-1],b=route[i],c=route[i+1];
+    const ab={x:b.x-a.x,y:b.y-a.y},bc={x:c.x-b.x,y:c.y-b.y};
+    const al=Math.hypot(ab.x,ab.y),bl=Math.hypot(bc.x,bc.y);
+    if(!al||!bl)continue;
+    const dot=Math.max(-1,Math.min(1,(ab.x*bc.x+ab.y*bc.y)/(al*bl)));
+    maxTurn=Math.max(maxTurn,Math.acos(dot));
+  }
+  if(maxTurn>.95)return .48;
+  if(maxTurn>.58)return .64;
+  if(maxTurn>.30)return .80;
+  return 1;
+}
+function updateTruckSpeed(t,targetFactor,dt){
+  const target=Math.max(0,t.speed*Math.max(0,Math.min(1,targetFactor)));
+  const current=Number.isFinite(t.currentSpeed)?t.currentSpeed:t.speed;
+  const acceleration=target<current?.34:.20;
+  const step=Math.max(.001,acceleration*dt);
+  t.currentSpeed=current+Math.max(-step,Math.min(step,target-current));
+  if(t.currentSpeed<.001)t.currentSpeed=0;
+  return t.currentSpeed;
+}
 function trafficConflict(s,t,network){
   const p=pointOnRoute(t.route,t.t);
   if(!p)return false;
@@ -503,7 +541,9 @@ export function updateEconomy(s,dt,flash){
       const q=pointOnRoute(o.route,o.t);
       const ahead=o.t>t.t;
       if(!ahead)continue;
-      const gap=Math.max(0,dist(p,q));
+      const routeLen=length(t.route);
+      const routeGap=o.routeKey===t.routeKey&&routeLen>0?Math.max(0,(o.t-t.t)*routeLen):dist(p,q);
+      const gap=Math.max(0,routeGap);
       if(gap<nearestGap){nearestGap=gap;queueAhead=o;}
     }
     const trafficNetwork=roadNetwork(s);
@@ -543,8 +583,14 @@ export function updateEconomy(s,dt,flash){
       t.trafficControl=null;
       t.wait=Math.max(0,t.wait-dt*.75);
     }
-    if(blocked)continue;
-    t.t+=dt*t.speed*Math.max(.65,1-(s.congestion*.18))*trafficSpeedFactor;
+    const curveFactor=routeCurveFactor(t.route,t.t);
+    trafficSpeedFactor=Math.min(trafficSpeedFactor,curveFactor);
+    const congestionFactor=Math.max(.55,1-(s.congestion*.18));
+    const movementSpeedFactor=t.trafficControl?.movement==='right'?.94:t.trafficControl?.movement==='left'?.97:1;
+    const targetFactor=blocked?0:trafficSpeedFactor*congestionFactor*movementSpeedFactor;
+    const actualSpeed=updateTruckSpeed(t,targetFactor,dt);
+    if(actualSpeed<=0)continue;
+    t.t+=dt*actualSpeed;
     if(t.t>=1){
       if(t.stage==='warehouse'){
         const accepted=addToWarehouse(t.to,t.source.type,t.cargo);
