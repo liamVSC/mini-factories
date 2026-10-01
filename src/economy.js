@@ -70,6 +70,10 @@ function projectRouteProgress(points,p){
 }
 
 export function route(s,a,b){
+  // Route endpoints must still belong to the live world. This prevents a
+  // retained building object from remaining routable after deletion/move
+  // logic replaces the instance in state.
+  if(!s?.buildings?.includes(a)||!s?.buildings?.includes(b))return null;
   if(!roadAttachment(s,a)||!roadAttachment(s,b))return null;
   const r=routeOnRoadNetwork(s,a,b);
   if(!r||!Array.isArray(r.points)||r.points.length<2)return null;
@@ -567,6 +571,16 @@ export function updateEconomy(s,dt,flash){
   const laneGraph=trafficNetwork?.edges?.length?buildLaneGraph(trafficNetwork,{lanesPerDirection:2}):null;
   const junctionControls=trafficNetwork&&laneGraph?buildJunctionControls(trafficNetwork,laneGraph):null;
   for(const t of s.trucks){
+    // Buildings are live state, not stable object identities. If a building
+    // was deleted/replaced while a truck still references the old object,
+    // retire the truck before any route, junction, or delivery logic can use
+    // that stale reference.
+    const sourceLive=s.buildings.includes(t.source);
+    const destinationLive=s.buildings.includes(t.to);
+    if(!sourceLive||!destinationLive){
+      t.dead=true;
+      continue;
+    }
     // Every road mutation rebuilds the derived lane graph. A revision mismatch
     // invalidates even routes whose old geometry happens to overlap the new
     // network, preventing stale lane transitions after edits/junction changes.
