@@ -26,9 +26,40 @@ function addRoadBox(group,a,b,width,height,y,material){const dx=b.x-a.x,dy=b.y-a
 function addRoadMarkings(group,points,width=ROAD.width,markingY=ROAD.markingY){if(!Array.isArray(points)||points.length<2)return;const segments=[];let total=0;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],len=Math.hypot(b.x-a.x,b.y-a.y);if(len<.5)continue;segments.push({a,b,len,start:total});total+=len;}if(total<4)return;for(const side of[-1,1])for(const s of segments){const angle=Math.atan2(s.b.y-s.a.y,s.b.x-s.a.x),nx=-Math.sin(angle),nz=Math.cos(angle),edge=new THREE.Mesh(new THREE.BoxGeometry(Math.max(1,s.len),.10,.62),roadMaterials.edge);edge.position.set((s.a.x+s.b.x)/2+nx*side*(width/2-1.5),markingY,(s.a.y+s.b.y)/2+nz*side*(width/2-1.5));edge.rotation.y=-angle;group.add(edge);}const dashLen=12,gap=18;for(let along=10;along<total-6;along+=dashLen+gap){const wanted=Math.min(total-3,along+dashLen/2);let seg=segments.at(-1);for(const candidate of segments){if(wanted<=candidate.start+candidate.len){seg=candidate;break;}}const q=(wanted-seg.start)/seg.len,x=seg.a.x+(seg.b.x-seg.a.x)*q,z=seg.a.y+(seg.b.y-seg.a.y)*q,angle=Math.atan2(seg.b.y-seg.a.y,seg.b.x-seg.a.x),dash=new THREE.Mesh(new THREE.BoxGeometry(dashLen,.11,1.02),roadMaterials.center);dash.position.set(x,markingY+.015,z);dash.rotation.y=-angle;group.add(dash);}}
 function addRoadEndCap(group,p,radius,material,y){const cap=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.11,28),material);cap.position.set(p.x,y,p.y);group.add(cap);}
 function roundedRoadPoints(points){const clean=[];for(const p of points||[]){if(!Number.isFinite(p?.x)||!Number.isFinite(p?.y))continue;const last=clean.at(-1);if(last&&Math.hypot(last.x-p.x,last.y-p.y)<.5)continue;clean.push({x:p.x,y:p.y});}if(clean.length<3)return clean;const result=[clean[0]],radius=Math.min(30,Math.max(10,ROAD.width*1.35));for(let i=1;i<clean.length-1;i++){const prev=clean[i-1],cur=clean[i],next=clean[i+1],inLen=Math.hypot(cur.x-prev.x,cur.y-prev.y),outLen=Math.hypot(next.x-cur.x,next.y-cur.y);if(inLen<1||outLen<1){result.push(cur);continue;}const trim=Math.min(radius,inLen*.32,outLen*.32),inT={x:cur.x+(prev.x-cur.x)*(trim/inLen),y:cur.y+(prev.y-cur.y)*(trim/inLen)},outT={x:cur.x+(next.x-cur.x)*(trim/outLen),y:cur.y+(next.y-cur.y)*(trim/outLen)};result.push(inT);for(let s=1;s<=Math.max(3,Math.min(10,Math.ceil(trim/5)));s++){const t=s/Math.max(3,Math.min(10,Math.ceil(trim/5))),mt=1-t;result.push({x:mt*mt*inT.x+2*mt*t*cur.x+t*t*outT.x,y:mt*mt*inT.y+2*mt*t*cur.y+t*t*outT.y});}}result.push(clean.at(-1));return result;}
-function addRoadSurface(group,points,width,y,material){for(let i=1;i<points.length;i++)addRoadBox(group,points[i-1],points[i],width,.12,y,material);}
-function addRoadCurbs(group,points,width){for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],len=Math.hypot(b.x-a.x,b.y-a.y);if(len<.5)continue;const angle=Math.atan2(b.y-a.y,b.x-a.x),nx=-Math.sin(angle),nz=Math.cos(angle);for(const side of[-1,1]){const curb=new THREE.Mesh(new THREE.BoxGeometry(Math.max(1,len),.20,1.05),roadMaterials.curb);curb.position.set((a.x+b.x)/2+nx*side*(width/2+.45),ROAD.curbY,(a.y+b.y)/2+nz*side*(width/2+.45));curb.rotation.y=-angle;group.add(curb);}}}
-function addFlatCurve(group,start,control,end,width,y,material,steps=8){let prev=start;for(let i=1;i<=steps;i++){const t=i/steps,mt=1-t,next={x:mt*mt*start.x+2*mt*t*control.x+t*t*end.x,y:mt*mt*start.y+2*mt*t*control.y+t*t*end.y};addRoadBox(group,prev,next,width,.11,y,material);prev=next;}}
+function ribbonGeometry(points,width,y,thickness=.12){
+  const verts=[],indices=[];
+  for(let i=0;i<points.length;i++){
+    const p=points[i],prev=points[Math.max(0,i-1)],next=points[Math.min(points.length-1,i+1)];
+    let tx=next.x-prev.x,tz=next.y-prev.y,len=Math.hypot(tx,tz)||1;tx/=len;tz/=len;
+    const nx=-tz,nz=tx;
+    verts.push(p.x+nx*width/2,y-thickness/2,p.y+nz*width/2,p.x-nx*width/2,y-thickness/2,p.y-nz*width/2);
+    if(i<points.length-1){const j=i*2;indices.push(j,j+1,j+2,j+1,j+3,j+2);}
+  }
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));g.setIndex(indices);g.computeVertexNormals();return g;
+}
+function addRoadSurface(group,points,width,y,material){
+  if(points.length<2)return;
+  const mesh=new THREE.Mesh(ribbonGeometry(points,width,y,.14),material);
+  mesh.receiveShadow=true;group.add(mesh);
+}
+function offsetPath(points,offset){
+  return points.map((p,i)=>{const prev=points[Math.max(0,i-1)],next=points[Math.min(points.length-1,i+1)];
+    let tx=next.x-prev.x,tz=next.y-prev.y,len=Math.hypot(tx,tz)||1;tx/=len;tz/=len;
+    return{x:p.x-tz*offset,y:p.y+tx*offset};
+  });
+}
+function addRoadCurbs(group,points,width){
+  for(const side of[-1,1]){
+    const curbPoints=offsetPath(points,side*(width/2+.45));
+    const mesh=new THREE.Mesh(ribbonGeometry(curbPoints,1.05,ROAD.curbY,.20),roadMaterials.curb);
+    mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);
+  }
+}
+function addFlatCurve(group,start,control,end,width,y,material,steps=8){
+  const points=[];
+  for(let i=0;i<=steps;i++){const t=i/steps,mt=1-t;points.push({x:mt*mt*start.x+2*mt*t*control.x+t*t*end.x,y:mt*mt*start.y+2*mt*t*control.y+t*t*end.y});}
+  addRoadSurface(group,points,width,y,material);
+}
 function addRoadRails(group,points,width){for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],len=Math.hypot(b.x-a.x,b.y-a.y);if(len<1)continue;const angle=Math.atan2(b.y-a.y,b.x-a.x),nx=-Math.sin(angle),nz=Math.cos(angle);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(len+.8,1.45,.75),roadMaterials.bridgeRail);rail.position.set((a.x+b.x)/2+nx*side*(width/2),ROAD.railY,(a.y+b.y)/2+nz*side*(width/2));rail.rotation.y=-angle;group.add(rail);}}}
 function addBridgeSupports(group,points){const total=points.slice(1).reduce((n,p,i)=>n+Math.hypot(p.x-points[i].x,p.y-points[i].y),0);if(total<55)return;const count=Math.max(1,Math.floor(total/100));for(let s=1;s<=count;s++){const target=total*s/(count+1);let run=0;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],seg=Math.hypot(b.x-a.x,b.y-a.y);if(run+seg<target){run+=seg;continue;}const t=(target-run)/Math.max(1,seg),x=a.x+(b.x-a.x)*t,z=a.y+(b.y-a.y)*t,support=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.8,ROAD.bridgeY,10),roadMaterials.bridgeSupport);support.position.set(x,ROAD.bridgeY/2,z);group.add(support);break;}}}
 function addBoundaryRoadEnd(group,p,width,y){const minX=WORLD_BOUNDS.minX+WORLD_MARGIN,maxX=WORLD_BOUNDS.maxX-WORLD_MARGIN,minY=WORLD_BOUNDS.minY+WORLD_MARGIN,maxY=WORLD_BOUNDS.maxY-WORLD_MARGIN,nearX=Math.abs(p.x-minX)<2||Math.abs(p.x-maxX)<2,nearY=Math.abs(p.y-minY)<2||Math.abs(p.y-maxY)<2;if(!nearX&&!nearY)return;const line=new THREE.Mesh(new THREE.BoxGeometry(width+.8,.12,1.2),roadMaterials.edge);line.position.set(p.x,y+.06,p.y);line.rotation.y=nearY?0:Math.PI/2;group.add(line);for(const side of[-1,1]){const post=new THREE.Mesh(new THREE.BoxGeometry(1.4,7,1.4),roadMaterials.edge);if(nearY)post.position.set(p.x+side*Math.min(7,width*.35),y+3.5,p.y);else post.position.set(p.x,y+3.5,p.y+side*Math.min(7,width*.35));group.add(post);}}
@@ -52,7 +83,18 @@ function addPolylinePreview(group,points,color='#ffd45a'){if(!Array.isArray(poin
 function setPreview(path,start,end,blocked=false){if(!previewGroup)return;const key=JSON.stringify([path||null,start?.x,start?.y,end?.x,end?.y,!!blocked]);if(key===previewKey)return;previewKey=key;clearPreview(previewGroup);if(Array.isArray(path)&&path.length>1)addPolylinePreview(previewGroup,path,blocked?'#d85a52':'#ffd45a');}
 function setBuildingPreview(type,point,blocked=false){if(!buildingPreviewGroup)return;clearPreview(buildingPreviewGroup);if(!point||!type)return;const fp=type.kind==='warehouse'?{w:96,d:66}:type.kind==='factory'?{w:78,d:62}:{w:70,d:56},material=new THREE.MeshBasicMaterial({color:blocked?'#d85a52':'#7fd8a8',transparent:true,opacity:.38,depthWrite:false}),mesh=new THREE.Mesh(new THREE.BoxGeometry(fp.w,8,fp.d),material);mesh.position.set(point.x,4,point.y);buildingPreviewGroup.add(mesh);}
 function pointOnRoute(points,t){const total=points.reduce((n,p,i)=>i?n+Math.hypot(p.x-points[i-1].x,p.y-points[i-1].y):0,0);if(!total)return points[0];let want=total*Math.max(0,Math.min(1,t)),run=0;for(let i=1;i<points.length;i++){const seg=Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y);if(run+seg>=want){const q=(want-run)/seg;return{x:points[i-1].x+(points[i].x-points[i-1].x)*q,y:points[i-1].y+(points[i].y-points[i-1].y)*q};}run+=seg;}return points.at(-1);}
-function updateWorld(s){clearDynamic();root.clear();for(const road of s.roads||[]){const g=makeRoad(road.points,!!road.bridge,s);g.userData.road=road;root.add(g);worldObjects.add(g);}root.add(makeRoadJunctions(s.roads||[]));for(const building of s.buildings||[]){const g=new THREE.Group();const w=building.kind==='factory'?78:building.kind==='warehouse'?96:70,d=building.kind==='factory'?62:building.kind==='warehouse'?66:56,h=building.kind==='factory'?22:building.kind==='warehouse'?18:14;const base=box(w,h,d,building.color||'#aeb7b2');base.position.y=h/2+2;g.add(base);g.position.set(Number(building.x)||0,0,Number(building.y)||0);g.userData.building=building;scene.add(g);meshes.set(building.id,g);worldObjects.add(g);}}
+function updateWorld(s){clearDynamic();root.clear();for(const road of s.roads||[]){const g=makeRoad(road.points,!!road.bridge,s);g.userData.road=road;root.add(g);worldObjects.add(g);}root.add(makeRoadJunctions(s.roads||[]));for(const building of s.buildings||[]){const g=new THREE.Group();
+  const w=building.kind==='factory'?78:building.kind==='warehouse'?96:70,d=building.kind==='factory'?62:building.kind==='warehouse'?66:56,h=building.kind==='factory'?22:building.kind==='warehouse'?18:14;
+  const base=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(building.color||'#aeb7b2'));base.position.y=h/2+2;base.castShadow=true;base.receiveShadow=true;g.add(base);
+  const roof=new THREE.Mesh(new THREE.BoxGeometry(w+4,1.8,d+4),mat(building.kind==='factory'?'#596166':building.kind==='warehouse'?'#6b7478':'#777d80'));roof.position.y=h+3;roof.castShadow=true;g.add(roof);
+  const door=new THREE.Mesh(new THREE.BoxGeometry(building.kind==='warehouse'?14:10,Math.min(10,h*.65),.7),mat('#34383a'));door.position.set(0,Math.min(7,h*.36)+2,d/2+.4);g.add(door);
+  const glass=mat('#79aeb9',.32,.05);
+  const windowCount=building.kind==='shop'?4:5;
+  for(let i=0;i<windowCount;i++){const x=-w*.34+i*(w*.68/Math.max(1,windowCount-1)),win=new THREE.Mesh(new THREE.BoxGeometry(building.kind==='shop'?10:8,4,.45),glass);win.position.set(x,Math.min(h-4,h*.62)+2,-d/2-.3);g.add(win);}
+  if(building.kind==='factory'){for(const x of[-w*.25,w*.25]){const stack=new THREE.Mesh(new THREE.CylinderGeometry(2.8,3.6,18,10),mat('#555b5d'));stack.position.set(x,h+11,0);stack.castShadow=true;g.add(stack);}}
+  if(building.kind==='warehouse'){const skylight=new THREE.Mesh(new THREE.BoxGeometry(w*.48,2.2,d*.35),mat('#9ba7a9',.45,.05));skylight.position.y=h+4.5;g.add(skylight);}
+  if(building.kind==='shop'){const sign=new THREE.Mesh(new THREE.BoxGeometry(w*.58,3,.8),mat('#d8a74a'));sign.position.set(0,h*.72+2,d/2+.7);g.add(sign);}
+  g.position.set(Number(building.x)||0,0,Number(building.y)||0);g.userData.building=building;scene.add(g);meshes.set(building.id,g);worldObjects.add(g);}}
 function updateTrucks(s){const live=new Set();for(const truck of s.trucks||[]){if(!truck?.id)continue;live.add(truck.id);let mesh=truckMeshes.get(truck.id);if(!mesh){mesh=new THREE.Group();const body=box(13,7,7,'#d97b45');body.position.y=5;mesh.add(body);scene.add(mesh);truckMeshes.set(truck.id,mesh);}const route=Array.isArray(truck.route)?truck.route:truck.route?.points;if(!route?.length)continue;const p=pointOnRoute(route,Number(truck.progress)||0),q=pointOnRoute(route,Math.min(1,(Number(truck.progress)||0)+.002));mesh.position.set(p.x,0,p.y);if(q)mesh.rotation.y=-Math.atan2(q.y-p.y,q.x-p.x);}for(const[id,mesh]of truckMeshes)if(!live.has(id)){scene.remove(mesh);disposeObject(mesh);truckMeshes.delete(id);}}
 function updateSelectionVisual(s){const selected=s.selected?.id||null;if(selected===lastBuildingSelection)return;for(const[id,g]of meshes){const scale=id===selected?1.035:1;g.scale.setScalar(scale);}lastBuildingSelection=selected;}
 function updateRoadEditVisual(){if(roadEditGroup)roadEditGroup.visible=true;}
