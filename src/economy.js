@@ -1,7 +1,7 @@
 import {TYPES} from './core/types.js';
 import {newId} from './core/ids.js';
 
-import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment,roadNetwork} from './world/roads/index.js';
+import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment,roadNetwork,routeNetworkValid} from './world/roads/index.js';
 import {buildLaneGraph} from './laneGraph.js';
 import {buildJunctionControls,laneIndexForJunction,movementForLaneRoute,movementPermission,stopLinePoint} from './junctionControl.js';
 
@@ -441,7 +441,7 @@ function addToWarehouse(warehouse,type,n){
   return take;
 }
 function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,contractId=0,longDistance=false,valuePerUnit=0,stage='delivery'}){
-  if(!route||!cargo)return false;
+  if(!route||!cargo||!routeNetworkValid(s,route))return false;
   // Keep the simulation bounded under sustained demand. Finished trucks are
   // removed each tick, so this only limits genuinely in-flight congestion.
   if((s.trucks||[]).length>=80)return false;
