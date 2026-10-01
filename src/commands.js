@@ -85,14 +85,6 @@ export class PlaceBuildingCommand extends MutationCommand{
   apply(state){return placeBuilding(state,this.type,this.x,this.y)||false}
 }
 
-export class SelectBuildingCommand{
-  execute(state,buildingId){
-    const building=(state.buildings||[]).find(b=>b?.id===buildingId)||null;
-    state.selected=building;
-    return building;
-  }
-}
-
 export function executeCommand(history,state,command){
   return history.execute(state,command);
 }
