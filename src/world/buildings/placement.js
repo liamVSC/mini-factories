@@ -1,11 +1,11 @@
 import {dist,finitePoint} from '../roads/geometry.js';
 import {nearestRoad,roadPathBlocked} from '../roads/placement.js';
 import {roadAttachment} from '../roads/routing.js';
+import {resolveBuildingRoadEndpoint} from './connections.js';
 import {
   buildingFootprint,
   nearestBuilding,
-  buildingConnectionPoint,
-  buildingDockPoints
+    buildingDockPoints
 } from './geometry.js';
 
 export function buildingPlacementTarget(s,type,p){
@@ -90,7 +90,8 @@ export function buildingPlacementTarget(s,type,p){
     };
 
     if(snap.snapType==='building'){
-      connection.to=buildingConnectionPoint(snap.building,point);
+      const resolved=resolveBuildingRoadEndpoint(s,point,snap.building);
+      connection.to=resolved?.point||connection.to;
     }
   }
 
