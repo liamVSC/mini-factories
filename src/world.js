@@ -82,6 +82,8 @@ function layoutRandom(s){
   return seed/4294967296;
 }
 export function spawn(s,kind,forced){
+  const layoutSeed=Math.max(1,Math.floor(Number(s.layoutSeed)||Number(s.gameSeed)||1));
+  const layoutRotation=(layoutSeed/4294967296)*Math.PI*2;
   const pool=TYPES.filter(t=>t.kind===kind&&(!forced||t.name===forced));
   if(!pool.length)return null;
   let candidates=pool;
@@ -100,9 +102,9 @@ export function spawn(s,kind,forced){
     // Starter factories use separate sectors of the map so the three production
     // sites are visibly distributed instead of clustering around one random point.
     const sectorAngle=factorySlot>=0
-      ?factorySlot*(Math.PI*2/3)+(layoutRandom(s)-.5)*.42+(n%5)*.08
+      ?layoutRotation+factorySlot*(Math.PI*2/3)+(layoutRandom(s)-.5)*.42+(n%5)*.08
       :layoutRandom(s)*Math.PI*2;
-    const angle=factorySlot>=0?sectorAngle:layoutRandom(s)*Math.PI*2;
+    const angle=factorySlot>=0?sectorAngle:layoutRotation+layoutRandom(s)*Math.PI*2;
     const radius=factorySlot>=0
       ?Math.max(250,Math.min(maxRadius,310+layoutRandom(s)*170))
       :minRadius+layoutRandom(s)*Math.max(1,maxRadius-minRadius);
