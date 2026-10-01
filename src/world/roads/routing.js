@@ -54,6 +54,19 @@ export function isRouteStale(state,route){
   return !route||route.roadNetworkRevision!==Math.max(0,Math.floor(Number(state?.roadNetworkRevision)||0));
 }
 
+/**
+ * Validate both the route revision and the persisted road references behind
+ * its derived lane IDs. A matching revision alone is not enough for routes
+ * loaded from older/hand-built state where lane references may be incomplete.
+ */
+export function routeNetworkValid(state,route){
+  if(isRouteStale(state,route))return false;
+  if(!Array.isArray(route.laneIds)||!route.laneIds.length)return false;
+  if(!Array.isArray(route.laneRoadIds)||route.laneRoadIds.length!==route.laneIds.length)return false;
+  const roadIds=new Set((state?.roads||[]).map(road=>road?.id).filter(Boolean));
+  return route.laneRoadIds.every(id=>roadIds.has(id));
+}
+
 export function routeOnRoadNetwork(s,a,b){
   const aa=roadAttachment(s,a),bb=roadAttachment(s,b);
   if(!aa||!bb)return null;
