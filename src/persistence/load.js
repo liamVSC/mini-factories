@@ -1,5 +1,5 @@
 import {freshState,goalList} from '../state.js';
-import {buildingFootprint} from '../world/buildings/geometry.js';
+import {buildingFootprint,buildingClearance} from '../world/buildings/geometry.js';
 import {isInsideWorldBounds} from '../world/roads/validation.js';
 import {riverY} from '../world/terrain.js';
 
@@ -8,7 +8,7 @@ const clampNumber=(value,min,max,fallback=min)=>Math.max(min,Math.min(max,finite
 
 function buildingOverlaps(a,b){
   const af=buildingFootprint(a),bf=buildingFootprint(b);
-  const clearance=a.kind==='factory'&&b.kind==='factory'?72:(a.kind==='factory'||b.kind==='factory'?36:18);
+  const clearance=buildingClearance(a,b);
   return Math.abs(Number(a.x)-Number(b.x))<af.halfWidth+bf.halfWidth+clearance&&Math.abs(Number(a.y)-Number(b.y))<af.halfDepth+bf.halfDepth+clearance;
 }
 
