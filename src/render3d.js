@@ -151,35 +151,83 @@ function setPreview(path,start,end,blocked=false){if(!previewGroup)return;const 
 function setBuildingPreview(type,point,blocked=false){if(!buildingPreviewGroup)return;clearPreview(buildingPreviewGroup);if(!point||!type)return;const fp=type.kind==='warehouse'?{w:96,d:66}:type.kind==='factory'?{w:78,d:62}:{w:70,d:56},material=new THREE.MeshBasicMaterial({color:blocked?'#d85a52':'#7fd8a8',transparent:true,opacity:.38,depthWrite:false}),mesh=new THREE.Mesh(new THREE.BoxGeometry(fp.w,8,fp.d),material);mesh.position.set(point.x,4,point.y);buildingPreviewGroup.add(mesh);}
 function pointOnRoute(points,t){const total=points.reduce((n,p,i)=>i?n+Math.hypot(p.x-points[i-1].x,p.y-points[i-1].y):0,0);if(!total)return points[0];let want=total*Math.max(0,Math.min(1,t)),run=0;for(let i=1;i<points.length;i++){const seg=Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y);if(run+seg>=want){const q=(want-run)/seg;return{x:points[i-1].x+(points[i].x-points[i-1].x)*q,y:points[i-1].y+(points[i].y-points[i-1].y)*q};}run+=seg;}return points.at(-1);}
 function addBoxPart(g,geo,material,x,y,z,rotationY=0,cast=true){const m=new THREE.Mesh(geo,material);m.position.set(x,y,z);m.rotation.y=rotationY;m.castShadow=cast;m.receiveShadow=true;g.add(m);return m;}
-function addWindowBand(g,w,d,h,glass,frame){const count=Math.max(3,Math.round(w/14));for(let i=0;i<count;i++){const x=-w*.38+i*(w*.76/(count-1));addBoxPart(g,new THREE.BoxGeometry(8,3.8,.32),glass,x,h*.62+2,-d/2-.18);addBoxPart(g,new THREE.BoxGeometry(8.7,.28,.45),frame,x,h*.62+4.0,-d/2-.36);}}
-function createFactoryModel(building){
-  const g=new THREE.Group(),w=78,d=62,h=22,body=mat('#747b7b',.92),dark=mat('#414746',.96),metal=mat('#5b6160',.9),glass=mat('#4f6468',.24,.08);
+function addFacadeWindows(g,w,d,y,glass,frame,side=false){
+  const count=Math.max(3,Math.floor((side?w:d)/13));
+  for(let i=0;i<count;i++){
+    const t=(i+.5)/count;
+    if(side){
+      const z=-d/2+t*d;
+      for(const x of[-w/2-.18,w/2+.18]){
+        addBoxPart(g,new THREE.BoxGeometry(.35,4.2,6.2),glass,x,y,z,false);
+        addBoxPart(g,new THREE.BoxGeometry(.48,4.6,.35),frame,x,y,z-3.2);
+        addBoxPart(g,new THREE.BoxGeometry(.48,4.6,.35),frame,x,y,z+3.2);
+      }
+    }else{
+      const x=-w/2+t*w;
+      for(const z of[-d/2-.18,d/2+.18]){
+        addBoxPart(g,new THREE.BoxGeometry(6.2,4.2,.35),glass,x,y,z,false);
+        addBoxPart(g,new THREE.BoxGeometry(6.6,.35,.48),frame,x,y-2.35,z);
+        addBoxPart(g,new THREE.BoxGeometry(6.6,.35,.48),frame,x,y+2.35,z);
+      }
+    }
+  }
+}
+function addIndustrialRoof(g,w,d,h,roof,metal){
+  addBoxPart(g,new THREE.BoxGeometry(w+6,1.4,d+6),roof,0,h+1,0);
+  const ridge=new THREE.Mesh(new THREE.BoxGeometry(w+7,1.1,3.4),metal);
+  ridge.position.set(0,h+3.2,0);ridge.castShadow=true;ridge.receiveShadow=true;g.add(ridge);
+  for(const x of[-w*.35,-w*.12,w*.12,w*.35])addBoxPart(g,new THREE.BoxGeometry(2,1.4,d+2),metal,x,h+2.1,0);
+}
+function addLoadingBay(g,x,z,w,h,dark,metal){
+  addBoxPart(g,new THREE.BoxGeometry(w,h,.8),dark,x,h/2+2,z);
+  addBoxPart(g,new THREE.BoxGeometry(w+2,.7,2),metal,x,h+3,z-1);
+  for(const side of[-1,1])addBoxPart(g,new THREE.BoxGeometry(1.2,h+1,2),metal,x+side*(w/2+1),h/2+2,z-1);
+}
+function createFactoryModel(){
+  const g=new THREE.Group(),w=78,d=62,h=25;
+  const body=mat('#747b7b',.9),dark=mat('#3f4443',.96),metal=mat('#59605e',.84),glass=mat('#3d5559',.3,.12),roof=mat('#4e5453',.96);
   addBoxPart(g,new THREE.BoxGeometry(w,h,d),body,0,h/2+2,0);
-  addBoxPart(g,new THREE.BoxGeometry(w+4,1.8,d+4),metal,0,h+3,0);
-  addBoxPart(g,new THREE.BoxGeometry(18,12,.8),dark,0,8,d/2+.45);
-  addWindowBand(g,w,d,h,glass,dark);
-  for(const x of[-w*.25,w*.25]){addBoxPart(g,new THREE.CylinderGeometry(3.2,4,20,12),dark,x,h+12,0);addBoxPart(g,new THREE.CylinderGeometry(3.6,3.6,1,12),metal,x,h+22,0);addBoxPart(g,new THREE.BoxGeometry(10,1.2,8),metal,x,h+3.9,12);}
-  for(const x of[-w*.38,w*.38])addBoxPart(g,new THREE.BoxGeometry(9,7,.7),dark,x,7,-d/2-.4);
+  addBoxPart(g,new THREE.BoxGeometry(w*.58,3,d+.8),dark,0,7,d/2+.45);
+  addFacadeWindows(g,w,d,16,glass,dark,false);
+  addFacadeWindows(g,w,d,16,glass,dark,true);
+  addLoadingBay(g,0,d/2+.65,20,13,dark,metal);
+  addLoadingBay(g,-w*.31,-d/2-.65,11,9,dark,metal);
+  addIndustrialRoof(g,w,d,h,roof,metal);
+  for(const x of[-w*.28,w*.28]){
+    addBoxPart(g,new THREE.CylinderGeometry(3.2,4.1,20,14),dark,x,h+12,0);
+    addBoxPart(g,new THREE.CylinderGeometry(3.7,3.7,1.4,14),metal,x,h+22.5,0);
+  }
+  for(const x of[-w*.36,w*.36])addBoxPart(g,new THREE.BoxGeometry(10,5,.8),dark,x,5,-d/2-.5);
   return g;
 }
-function createWarehouseModel(building){
-  const g=new THREE.Group(),w=96,d=66,h=18,body=mat('#858b89',.95),roof=mat('#555b5b',.96),dark=mat('#454a49',.95),glass=mat('#5b696b',.25,.06);
+function createWarehouseModel(){
+  const g=new THREE.Group(),w=96,d=66,h=21;
+  const body=mat('#858b89',.94),roof=mat('#535957',.97),dark=mat('#414746',.97),glass=mat('#43585b',.3,.1),metal=mat('#656b68',.86);
   addBoxPart(g,new THREE.BoxGeometry(w,h,d),body,0,h/2+2,0);
-  addBoxPart(g,new THREE.BoxGeometry(w+4,2,d+4),roof,0,h+3,0);
-  addBoxPart(g,new THREE.BoxGeometry(18,11,.8),dark,0,7,d/2+.45);
-  addWindowBand(g,w,d,h,glass,dark);
-  for(const x of[-w*.27,0,w*.27])addBoxPart(g,new THREE.BoxGeometry(9,2.5,6),dark,x,h+4.3,0);
-  for(const x of[-w*.34,w*.34])addBoxPart(g,new THREE.BoxGeometry(12,7,.7),dark,x,6,-d/2-.4);
+  addFacadeWindows(g,w,d,14,glass,dark,false);
+  addFacadeWindows(g,w,d,14,glass,dark,true);
+  addLoadingBay(g,0,d/2+.65,22,12,dark,metal);
+  addLoadingBay(g,-w*.34,d/2+.65,12,9,dark,metal);
+  addLoadingBay(g,w*.34,-d/2-.65,12,9,dark,metal);
+  addIndustrialRoof(g,w,d,h,roof,metal);
+  for(const x of[-w*.3,0,w*.3]){
+    addBoxPart(g,new THREE.BoxGeometry(10,3.2,7),dark,x,h+4.5,0);
+    addBoxPart(g,new THREE.BoxGeometry(7,1,5),metal,x,h+6.3,0);
+  }
   return g;
 }
-function createShopModel(building){
-  const g=new THREE.Group(),w=70,d=56,h=14,body=mat('#777c7a',.9),roof=mat('#535858',.95),glass=mat('#4f6468',.22,.08),dark=mat('#3d4241',.95);
+function createShopModel(){
+  const g=new THREE.Group(),w=70,d=56,h=17;
+  const body=mat('#777d7a',.9),roof=mat('#505655',.96),glass=mat('#354b4f',.25,.12),dark=mat('#3c4241',.96),metal=mat('#6b706d',.82);
   addBoxPart(g,new THREE.BoxGeometry(w,h,d),body,0,h/2+2,0);
-  addBoxPart(g,new THREE.BoxGeometry(w+4,1.8,d+4),roof,0,h+3,0);
-  addBoxPart(g,new THREE.BoxGeometry(w*.65,7,.5),glass,0,6,d/2+.32,false);
-  addBoxPart(g,new THREE.BoxGeometry(10,8,.6),dark,0,6,d/2+.7);
-  addBoxPart(g,new THREE.BoxGeometry(w*.72,1.2,3),dark,0,h*.48+2,d/2+1.5);
-  addBoxPart(g,new THREE.BoxGeometry(w*.58,3,.8),mat('#8b908d',.8),0,h*.72+2,d/2+.7);
+  addBoxPart(g,new THREE.BoxGeometry(w+5,1.8,d+5),roof,0,h+3,0);
+  addBoxPart(g,new THREE.BoxGeometry(w*.78,7,.5),glass,0,7,d/2+.35,false);
+  for(const x of[-w*.39,w*.39])addBoxPart(g,new THREE.BoxGeometry(5,7,.6),dark,x,7,d/2+.6);
+  addBoxPart(g,new THREE.BoxGeometry(9,8,.7),dark,0,7,d/2+.7);
+  addBoxPart(g,new THREE.BoxGeometry(w*.82,1.1,3),metal,0,11,d/2+1.5);
+  addBoxPart(g,new THREE.BoxGeometry(w*.55,2.8,.8),dark,0,14,d/2+.7);
+  addFacadeWindows(g,w,d,11,glass,dark,true);
+  for(const x of[-w*.32,w*.32])addBoxPart(g,new THREE.BoxGeometry(5,2,4),metal,x,h+3.5,0);
   return g;
 }
 function createBuildingModel(building){
