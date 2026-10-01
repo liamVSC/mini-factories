@@ -1,10 +1,9 @@
 import {makeBuilding} from '../../state.js';
 import {newId} from '../../core/ids.js';
-import {district} from '../terrain.js';
 import {buildingPhysicalPlacementReason} from './geometry.js';
 import {buildingPlacementTarget} from './placement.js';
 import {layoutIsValid} from './layout.js';
-import {spawnBuilding,seedBuildings} from './spawning.js';
+import {seedBuildings} from './spawning.js';
 
 export function buildingCost(s,type){
   const base={
@@ -68,7 +67,6 @@ export function placeBuilding(s,type,x,y){
   if(canPlaceBuildingAt(s,type,x,y))return false;
 
   const building=makeBuilding(type,x,y,newId());
-  building.district=district(x,y);
   const cost=buildingCost(s,type);
   s.cash-=cost;
   s.buildings.push(building);
@@ -80,9 +78,6 @@ export function placeBuilding(s,type,x,y){
   return building;
 }
 
-export function spawn(s,kind,forced){
-  return spawnBuilding(s,kind,forced,buildingPhysicalPlacementReason);
-}
 
 export function seed(s){
   return seedBuildings(s,buildingPhysicalPlacementReason);
