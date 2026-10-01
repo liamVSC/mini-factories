@@ -84,6 +84,7 @@ function neighbourhoodScore(s,x,y,type){
 }
 
 function candidateScore(s,type,x,y,random){
+  let score=0;
   if(!insideBounds(x,y))return -Infinity;
 
   const footprint=buildingFootprint({kind:type.kind});
@@ -150,7 +151,7 @@ function findBestPosition(s,type,random){
   return best;
 }
 
-export function spawnBuilding(s,kind,forced,placementReason){
+function spawnBuilding(s,kind,forced,placementReason){
   // Derive each spawn decision from the stable map seed plus the current world
   // shape. This keeps new-game seeding deterministic without replaying the exact same
   // random stream for every building created during a session.
