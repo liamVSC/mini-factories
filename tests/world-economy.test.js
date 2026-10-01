@@ -309,17 +309,17 @@ test('deleting one junction branch preserves the remaining road graph', () => {
 
 test('live reroute keeps the truck at its physical position instead of teleporting to route start',()=>{
   const s=baseState();
-  const f=building('Food',-300,0),shop=building('Market',300,0);
+  const f=building('Food',-300,200),shop=building('Market',300,200);
   s.buildings.push(f,shop);
-  const main=road([{x:-255,y:0},{x:0,y:0},{x:255,y:0}]);
-  const upper=road([{x:-255,y:0},{x:-255,y:80},{x:255,y:80},{x:255,y:0}]);
+  const main=road([{x:-255,y:200},{x:0,y:200},{x:255,y:200}]);
+  const upper=road([{x:-255,y:200},{x:-255,y:280},{x:255,y:280},{x:255,y:200}]);
   s.roads.push(main,upper);
   const routed=routeOnRoadNetwork(s,f,shop);
   assert.ok(routed);
   const truck={id:'reroute-position',route:routed.points,centerlineRoute:routed.points,laneRoute:routed.lanePoints||routed.points,laneIds:routed.laneIds,t:.5,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10,routeNetworkRevision:s.roadNetworkRevision,wait:0};
   s.trucks.push(truck);
   const physical=pointOnRouteForTest(truck.route,truck.t);
-  assert.ok(editRoadEndpoint(s,main.id,1,{x:0,y:45}));
+  assert.ok(editRoadEndpoint(s,main.id,1,{x:0,y:245}));
   updateEconomy(s,0,()=>{});
   assert.equal(truck.routeNetworkRevision,s.roadNetworkRevision);
   assert.ok(truck.route.length>=2);
@@ -551,16 +551,16 @@ test('moving a road endpoint onto another road creates a routable junction', () 
 
 test('moving a road endpoint invalidates trucks using the old geometry', () => {
   const s = baseState();
-  const f = building('Food',-300,0);
-  const shop = building('Market',300,0);
+  const f = building('Food',-300,200);
+  const shop = building('Market',300,200);
   s.buildings.push(f,shop);
-  const r = road([{x:-255,y:0},{x:255,y:0}]);
+  const r = road([{x:-255,y:200},{x:255,y:200}]);
   s.roads.push(r);
   const routed = routeOnRoadNetwork(s,f,shop);
   assert.ok(routed);
   const truck = {id:'endpoint-edit-truck',route:routed.points,t:.4,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10};
   s.trucks.push(truck);
-  assert.ok(editRoadEndpoint(s,r.id,1,{x:85,y:80}));
+  assert.ok(editRoadEndpoint(s,r.id,1,{x:85,y:280}));
   assert.equal(truck.routeInvalidated,true);
 });
 
