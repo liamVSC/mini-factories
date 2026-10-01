@@ -577,8 +577,7 @@ function updateTrucks(s){
       nextVisual=destinationAccess.dock.point;
     }
     mesh.position.set(visual.x,0,visual.y);
-    if(q)mesh.rotation.y=-Math.atan2(q.y-p.y,q.x-p.x);
-    if(destination&&progress>.9)mesh.rotation.y=-Math.PI/2;
+    if(nextVisual)mesh.rotation.y=-Math.atan2(nextVisual.y-visual.y,nextVisual.x-visual.x);
     if(Number(truck.wait)>0)mesh.position.y=.08;
 
     for(const wheel of mesh.userData.wheels||[])wheel.rotation.z-=(Number(truck.speed)||8)*.05;
