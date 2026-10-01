@@ -22,7 +22,7 @@ function spawnSearchRadius(s){
   return{minRadius,maxRadius};
 }
 
-function candidatePosition(s,kind,factorySlot,rotation,random,maxRadius,minRadius,index){
+function candidatePosition(factorySlot,rotation,random,maxRadius,minRadius,index){
   const sectorAngle=factorySlot>=0
     ?rotation+factorySlot*(Math.PI*2/3)+(random()-.5)*.24+(index%5)*.045
     :random()*Math.PI*2;
@@ -54,7 +54,7 @@ export function spawnBuilding(s,kind,forced,placementReason){
 
   for(let attempt=0;attempt<500;attempt++){
     const {x,y}=candidatePosition(
-      s,kind,factorySlot,rotation,random,maxRadius,minRadius,attempt
+      factorySlot,rotation,random,maxRadius,minRadius,attempt
     );
     if(placementReason(s,type,x,y))continue;
 
