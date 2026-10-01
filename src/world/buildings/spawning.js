@@ -80,7 +80,7 @@ function neighbourhoodScore(s,x,y,type){
     }
   }
 
-  if(buildings.length&&nearest<type.kind==='factory'?260:100)score-=600;
+  if(buildings.length&&nearest<(type.kind==='factory'?260:100))score-=600;
   return score;
 }
 
