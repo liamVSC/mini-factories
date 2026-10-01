@@ -15,11 +15,13 @@ import {
   spawn,
   seed
 } from '../src/world.js';
-import {buildLaneGraph} from '../src/laneGraph.js';
+import {buildLaneGraph,laneRouteGeometry,laneChangeRequired} from '../src/laneGraph.js';
 import {
   buildJunctionControls,
   laneIndexForJunction,
-  movementForLaneRoute
+  movementForLaneRoute,
+  movementPermission,
+  signalForMovement
 } from '../src/junctionControl.js';
 
 function roadState(){
@@ -117,6 +119,50 @@ test('junction controls expose explicit turning state for lane transitions',()=>
   const laneIndex=laneIndexForJunction(lanes,[movement.incomingLaneId,movement.outgoingLaneId],junction);
   assert.equal(laneIndex,0);
   assert.equal(movementForLaneRoute(lanes,controls,[movement.incomingLaneId,movement.outgoingLaneId],0)?.id,movement.id);
+});
+
+test('lane graph keeps opposing traffic in separate carriageways and prefers turning lanes',()=>{
+  const s=roadState();
+  assert.equal(addRoad(s,[{x:-160,y:0},{x:0,y:0}]),true);
+  assert.equal(addRoad(s,[{x:0,y:0},{x:0,y:160}]),true);
+  const network=roadNetwork(s);
+  const graph=buildLaneGraph(network,{lanesPerDirection:2});
+  assert.equal(graph.lanes.length,8);
+  const horizontal=graph.edges.find(e=>Math.abs(e.a.y)<1e-6&&Math.abs(e.b.y)<1e-6);
+  assert.ok(horizontal);
+  const forward=graph.lanes.filter(l=>l.edge===horizontal&&l.from===horizontal.a);
+  const reverse=graph.lanes.filter(l=>l.edge===horizontal&&l.from===horizontal.b);
+  assert.deepEqual(forward.map(l=>l.lateralOffset),[-10.5,-3.5]);
+  assert.deepEqual(reverse.map(l=>l.lateralOffset),[3.5,10.5]);
+
+  const route=routeOnRoadNetwork(s,{id:'a',x:-140,y:0,kind:'factory',r:25},{id:'b',x:0,y:140,kind:'shop',r:25});
+  assert.ok(route);
+  assert.ok(route.laneTransitions.some(t=>t.type==='left'));
+  const turn=route.laneTransitions.find(t=>t.type==='left');
+  assert.ok(turn);
+  assert.equal(turn.offset,7);
+  const geometry=laneRouteGeometry(graph,route.laneIds);
+  assert.ok(geometry.points.length>route.laneIds.length);
+  assert.ok(geometry.transitions.some(t=>t.type==='left'));
+});
+
+test('lane-change metadata and junction signals/priority expose deterministic state',()=>{
+  const s=roadState();
+  assert.equal(addRoad(s,[{x:-160,y:0},{x:0,y:0}]),true);
+  assert.equal(addRoad(s,[{x:0,y:0},{x:0,y:160}]),true);
+  const network=roadNetwork(s),graph=buildLaneGraph(network,{lanesPerDirection:2}),controls=buildJunctionControls(network,graph);
+  const junction=network.junctions[0];
+  assert.ok(junction);
+  const incoming=graph.incoming.get(junction)||[];
+  const outgoing=graph.outgoing.get(junction)||[];
+  const left=controls.get('0,0')?.movements.find(m=>m.type==='left');
+  assert.ok(left);
+  assert.equal(signalForMovement({...s,trafficSignals:{enabled:true,cycle:12},trafficClock:0},controls.get('0,0'),left).state,'green');
+  const blocked=movementPermission({...s,trafficSignals:{enabled:true,cycle:12},trafficClock:6.2},controls,junction,left,{occupiedIds:[]});
+  assert.equal(blocked.allowed,false);
+  const conflict=movementPermission(s,controls,junction,left,{occupiedIds:controls.get('0,0').conflicts.get(left.id)});
+  assert.equal(conflict.allowed,false);
+  if(incoming.length&&outgoing.length)assert.equal(laneChangeRequired(graph,incoming[0].id,outgoing[0].id),incoming[0].laneIndex!==outgoing[0].laneIndex);
 });
 
 test('factories keep a dedicated separation buffer during placement and procedural spawning',()=>{
