@@ -101,12 +101,44 @@ function candidatePoints(s,type,random){
   const rotation=(seedFromState(s)/4294967296)*Math.PI*2;
 
   if(type.kind==='factory'){
+    const factoryIndex=(s.buildings||[]).filter(building=>building.kind==='factory').length;
+    // Give each starter factory its own sector instead of letting the scorer pick
+    // whichever ring slot happens to be best. This keeps the opening layout spread
+    // across the map while still allowing a bounded fallback for awkward terrain.
+    for(let attempt=0;attempt<18;attempt++){
+      const candidates=factorySpawnCandidates(seedFromState(s)+attempt*97,attempt);
+      const primary=candidates[factoryIndex%3];
+      if(primary)points.push(primary);
+    }
     for(let attempt=0;attempt<18;attempt++){
       for(const point of factorySpawnCandidates(seedFromState(s)+attempt*97,attempt)){
         points.push(point);
       }
     }
   }else{
+    const factories=(s.buildings||[]).filter(building=>building.kind==='factory');
+    const shopIndex=(s.buildings||[]).filter(building=>building.kind==='shop').length;
+
+    // Starter shops are paired with the factories created immediately before them.
+    // The first candidates sit on a deterministic ring around that factory, keeping
+    // shops close enough for logistics without introducing any district concept.
+    if(factories.length){
+      const anchor=factories[shopIndex%factories.length];
+      const anchorAngle=rotation+(shopIndex%factories.length)*(Math.PI*2/3);
+      for(let ring=0;ring<5;ring++){
+        const radius=260+ring*55;
+        for(let side=0;side<8;side++){
+          const angle=anchorAngle+(side/8)*Math.PI*2;
+          points.push({
+            x:Number(anchor.x)+Math.cos(angle)*radius,
+            y:Number(anchor.y)+Math.sin(angle)*radius
+          });
+        }
+      }
+    }
+
+    // Keep the broader search as a fallback so custom terrain can still produce a
+    // valid starter shop if the preferred factory-relative positions are blocked.
     for(let attempt=0;attempt<420;attempt++){
       const angle=rotation+random()*Math.PI*2;
       const radius=90+random()*BUILDING_SEARCH_RADIUS;
