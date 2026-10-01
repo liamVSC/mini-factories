@@ -70,7 +70,7 @@ test('disconnected road components do not produce a lane route',()=>{
 test('junction controls expose explicit turning state for lane transitions',()=>{
   const s=roadState();
   assert.equal(addRoad(s,[{x:-160,y:0},{x:160,y:0}]),true);
-  assert.equal(addRoad(s,[{x:0,-160},{x:0,y:160}]),true);
+  assert.equal(addRoad(s,[{x:0,y:-160},{x:0,y:160}]),true);
   const network=roadNetwork(s);
   const lanes=buildLaneGraph(network);
   const controls=buildJunctionControls(network,lanes);
