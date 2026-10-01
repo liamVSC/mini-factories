@@ -39,6 +39,8 @@ test('routeOnRoadNetwork returns lane metadata while preserving canonical centre
   assert.ok(route);
   assert.ok(Array.isArray(route.laneIds));
   assert.ok(route.laneIds.length>=1);
+  assert.ok(Array.isArray(route.lanePoints));
+  assert.ok(route.lanePoints.length>=2);
   assert.ok(route.points.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));
 });
 
