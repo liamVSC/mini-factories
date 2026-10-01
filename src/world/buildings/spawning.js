@@ -1,4 +1,4 @@
-import {TYPES,makeBuilding} from '../state.js';
+import {TYPES,makeBuilding} from '../../state.js';
 import {createRng,seedFromState} from '../../core/rng.js';
 import {newId} from '../../core/ids.js';
 import {district,riverY} from '../terrain.js';
