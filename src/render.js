@@ -10,7 +10,7 @@ export function setPreview(path,start,end,blocked=false){
   previewState={path,start,end,blocked,points:path};
   renderer3d.setPreview(path,start,end,blocked);
 }
-export function resizeRenderer(W,H){renderer3d.resizeRenderer(W,H)}
+export function resizeRenderer(W,H){renderer3d.resize(W,H)}
 export function controlCamera(dx,dy,distanceDelta=0,yawDelta=0,pitchDelta=0){renderer3d.controlCamera(dx,dy,distanceDelta,yawDelta,pitchDelta)}
 export function screenToWorld(x,y){return renderer3d.screenToWorld(x,y,innerWidth,innerHeight)}
 export function worldToScreen(x,y){return renderer3d.worldToScreen(x,y,innerWidth,innerHeight)}
