@@ -40,6 +40,7 @@ export function hydrate(d){
     b.served=Math.max(0,finite(b.served,0));b.satisfaction=clampNumber(b.satisfaction,0,100,b.kind==='shop'?100:0);
     b.loading=Math.max(0,Math.floor(finite(b.loading,0)));b.logistics=Math.max(0,Math.floor(finite(b.logistics,0)));
     b.active=clampNumber(b.active,0,1,0);b.pulse=finite(b.pulse,Math.random()*6.28);
+    delete b.district;
     if(b.kind==='warehouse'){b.storage=Math.max(0,finite(b.storage,0));b.storage=Math.min(b.storage,b.max);b.inventory=b.inventory&&typeof b.inventory==='object'?b.inventory:{}}
     return b;
   });
