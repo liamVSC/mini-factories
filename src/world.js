@@ -1,6 +1,7 @@
 import {TYPES,makeBuilding} from './state.js';
+import {createRng,seedFromState} from './core/rng.js';
+import {newId} from './core/ids.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from './laneGraph.js';
-const newId=()=>globalThis.crypto?.randomUUID?.()||'id-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export const length=pts=>pts.reduce((n,p,i)=>i?n+dist(pts[i-1],p):0,0);
 const finitePoint=p=>p&&Number.isFinite(Number(p.x))&&Number.isFinite(Number(p.y));
@@ -75,14 +76,9 @@ export function buildingPlacementTarget(s,type,p){
 }
 
 export function placeBuilding(s,type,x,y){if(canPlaceBuildingAt(s,type,x,y))return false;const b=makeBuilding(type,x,y,newId());b.district=district(x,y);s.cash-=buildingCost(s,type);s.buildings.push(b);return b}
-function layoutRandom(s){
-  let seed=Math.max(1,Math.floor(Number(s.gameSeed)||1));
-  seed=(seed*1664525+1013904223)>>>0;
-  s.gameSeed=seed;
-  return seed/4294967296;
-}
 export function spawn(s,kind,forced){
-  const layoutSeed=Math.max(1,Math.floor(Number(s.layoutSeed)||Number(s.gameSeed)||1));
+  const random=createRng(seedFromState(s));
+  const layoutSeed=seedFromState(s);
   const layoutRotation=(layoutSeed/4294967296)*Math.PI*2;
   const pool=TYPES.filter(t=>t.kind===kind&&(!forced||t.name===forced));
   if(!pool.length)return null;
@@ -92,7 +88,7 @@ export function spawn(s,kind,forced){
     const filtered=pool.filter(t=>!recent.includes(t.name));
     if(filtered.length)candidates=filtered;
   }
-  const type=candidates[Math.floor(layoutRandom(s)*candidates.length)];
+  const type=candidates[Math.floor(random()*candidates.length)];
   const count=s.buildings.length;
   const factoryCount=(s.buildings||[]).filter(b=>b.kind==='factory').length;
   const factorySlot=kind==='factory'?factoryCount:-1;
@@ -102,14 +98,14 @@ export function spawn(s,kind,forced){
     // Starter factories use separate sectors of the map so the three production
     // sites are visibly distributed instead of clustering around one random point.
     const sectorAngle=factorySlot>=0
-      ?layoutRotation+factorySlot*(Math.PI*2/3)+(layoutRandom(s)-.5)*.42+(n%5)*.08
-      :layoutRandom(s)*Math.PI*2;
-    const angle=factorySlot>=0?sectorAngle:layoutRotation+layoutRandom(s)*Math.PI*2;
+      ?layoutRotation+factorySlot*(Math.PI*2/3)+(random()-.5)*.42+(n%5)*.08
+      :random()*Math.PI*2;
+    const angle=factorySlot>=0?sectorAngle:layoutRotation+random()*Math.PI*2;
     const radius=factorySlot>=0
-      ?Math.max(250,Math.min(maxRadius,310+layoutRandom(s)*170))
-      :minRadius+layoutRandom(s)*Math.max(1,maxRadius-minRadius);
-    let x=Math.cos(angle)*radius+(layoutRandom(s)-.5)*90;
-    let y=Math.sin(angle)*radius+(layoutRandom(s)-.5)*90;
+      ?Math.max(250,Math.min(maxRadius,310+random()*170))
+      :minRadius+random()*Math.max(1,maxRadius-minRadius);
+    let x=Math.cos(angle)*radius+(random()-.5)*90;
+    let y=Math.sin(angle)*radius+(random()-.5)*90;
     const river=riverY(x);
     if(Math.abs(y-river)<105)y+=y<river?-120:120;
     if(!buildingPhysicalPlacementReason(s,type,x,y)){
