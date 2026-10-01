@@ -9,6 +9,8 @@ import {
   roadTopology,
   nearestGraphNode,
   routeOnRoadNetwork,
+  connectedRoadComponents,
+  isRouteStale,
   buildingPhysicalPlacementReason,
   spawn,
   seed
@@ -204,4 +206,32 @@ test('topology revision is invalidated by road mutation without rebuilding persi
   assert.equal(s.roadNetworkRevision,1);
   assert.ok(topology.nodes.length>=2);
   assert.deepEqual(s.roads[0].points,before);
+});
+
+
+test('routing exposes connected components and rejects disconnected endpoints before lane search',()=>{
+  const s=roadState();
+  const a={id:'a',x:-120,y:0,kind:'factory',r:25};
+  const b={id:'b',x:120,y:200,kind:'shop',r:25};
+  s.buildings=[a,b];
+  assert.equal(addRoad(s,[{x:-120,y:0},{x:0,y:0}]),true);
+  assert.equal(addRoad(s,[{x:120,y:200},{x:260,y:200}]),true);
+  const network=roadNetwork(s);
+  const components=connectedRoadComponents(network);
+  assert.equal(components.length,2);
+  assert.equal(routeOnRoadNetwork(s,a,b),null);
+});
+
+test('routing carries the road-network revision and detects stale derived routes',()=>{
+  const s=roadState();
+  const a={id:'a',x:-120,y:0,kind:'factory',r:25};
+  const b={id:'b',x:120,y:0,kind:'shop',r:25};
+  s.buildings=[a,b];
+  assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
+  const route=routeOnRoadNetwork(s,a,b);
+  assert.ok(route);
+  assert.equal(route.roadNetworkRevision,s.roadNetworkRevision);
+  assert.equal(isRouteStale(s,route),false);
+  assert.equal(eraseRoad(s,{x:0,y:0}),true);
+  assert.equal(isRouteStale(s,route),true);
 });
