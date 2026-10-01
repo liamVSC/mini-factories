@@ -22,6 +22,7 @@ const {
   buildingPhysicalPlacementReason,
   seed,
   FACTORY_MIN_DISTANCE,
+  FACTORY_MIN_SPAWN_RADIUS,
   validateBuildingLayout,
   layoutIsValid
 } = await import('../src/world.js');
@@ -75,6 +76,9 @@ test('initial factory seeding produces separated factories',()=>{
   assert.equal(layoutIsValid(s.buildings),true);
   for(let i=0;i<factories.length;i++)for(let j=i+1;j<factories.length;j++){
     assert.ok(Math.hypot(factories[i].x-factories[j].x,factories[i].y-factories[j].y)>=FACTORY_MIN_DISTANCE);
+  }
+  for(const factory of factories){
+    assert.ok(Math.hypot(factory.x,factory.y)>=FACTORY_MIN_SPAWN_RADIUS);
   }
 });
 
