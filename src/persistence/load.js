@@ -16,7 +16,7 @@ function repairBuildingLayout(buildings){
   const accepted=[];
   for(const b of buildings){
     let candidate=b;
-    const conflict=accepted.some(other=>buildingOverlaps(candidate,other));
+    const conflict=accepted.some(other=>buildingOverlaps(candidate,other)||(candidate.kind==='factory'&&other.kind==='factory'&&Math.hypot(Number(candidate.x)-Number(other.x),Number(candidate.y)-Number(other.y))<250));
     if(conflict){
       let found=null;
       for(let ring=1;ring<=14&&!found;ring++){
