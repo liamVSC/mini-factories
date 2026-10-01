@@ -7,7 +7,8 @@ globalThis.innerHeight=720;
 import {freshState,makeBuilding} from '../src/state.js';
 import {serialise} from '../src/persistence/save.js';
 import {hydrate} from '../src/persistence/load.js';
-import {addRoad,routeOnRoadNetwork,roadNetwork,WORLD_HALF_SIZE,WORLD_MARGIN,WORLD_BOUNDS,isInsideWorldBounds} from '../src/world.js';
+import {addRoad,routeOnRoadNetwork,roadNetwork,roadAttachment,buildingRoadAttachment,buildingLogisticsAccess,endpointTarget,WORLD_HALF_SIZE,WORLD_MARGIN,WORLD_BOUNDS,isInsideWorldBounds} from '../src/world.js';
+import {resolveBuildingRoadEndpoint} from '../src/world/buildings/connections.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from '../src/laneGraph.js';
 import {createCommandHistory,AddRoadCommand,PlaceBuildingCommand,DeleteRoadCommand} from '../src/commands.js';
 import {buildJunctionControls,movementPermission,stopLinePoint} from '../src/junctionControl.js';
@@ -34,4 +35,70 @@ test('building-road attachment has one canonical source shared by routing compat
   assert.equal(compatibility.road.id,'road-1');
   assert.ok(Number.isFinite(compatibility.point.x));
   assert.ok(Number.isFinite(compatibility.point.y));
+});
+
+test('road creation uses the canonical building endpoint connection',()=>{
+  const s=freshState();
+  s.cash=5000;
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  s.buildings.push(factory);
+  const expected=resolveBuildingRoadEndpoint(s,{x:0,y:0},factory,{x:180,y:0});
+  assert.ok(expected);
+  assert.equal(addRoad(s,[{x:0,y:0},{x:180,y:0}],{startBuilding:factory}),true);
+  assert.deepEqual(s.roads[0].points[0],{x:expected.point.x,y:expected.point.y});
+});
+
+test('road endpoint editing uses the canonical building target',()=>{
+  const s=freshState();
+  s.cash=5000;
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  s.buildings.push(factory);
+  assert.equal(addRoad(s,[{x:100,y:0},{x:260,y:0}]),true);
+  const target=endpointTarget(s,{x:42,y:0},s.roads[0],0);
+  assert.equal(target.building,factory);
+  assert.ok(Number.isFinite(target.x)&&Number.isFinite(target.y));
+});
+
+test('building logistics uses the same canonical road attachment',()=>{
+  const s=freshState();
+  s.cash=5000;
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  s.buildings.push(factory);
+  s.roads.push({id:'road-1',points:[{x:40,y:0},{x:180,y:0}],bridge:false,condition:1,age:0});
+  const attachment=buildingRoadAttachment(s,factory);
+  const logistics=buildingLogisticsAccess(s,factory);
+  assert.ok(attachment);
+  assert.ok(logistics);
+  assert.equal(logistics.road,attachment.road);
+  assert.deepEqual(logistics.roadPoint,attachment.point);
+});
+
+test('disconnected and deleted roads produce no stale building logistics relationship',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},500,0,'shop-1');
+  s.buildings.push(factory,shop);
+  s.roads.push({id:'road-a',points:[{x:40,y:0},{x:180,y:0}],bridge:false,condition:1,age:0});
+  s.roads.push({id:'road-b',points:[{x:540,y:0},{x:680,y:0}],bridge:false,condition:1,age:0});
+  assert.ok(buildingRoadAttachment(s,factory));
+  assert.ok(buildingRoadAttachment(s,shop));
+  const before=buildingLogisticsAccess(s,factory);
+  assert.ok(before);
+  s.roads=s.roads.filter(r=>r.id!=='road-a');
+  assert.equal(buildingRoadAttachment(s,factory),null);
+  assert.equal(buildingLogisticsAccess(s,factory),null);
+});
+
+test('save/load preserves valid derived building-road relationships and drops stale ones',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  s.buildings.push(factory);
+  s.roads.push({id:'road-1',points:[{x:40,y:0},{x:180,y:0}],bridge:false,condition:1,age:0});
+  const loaded=hydrate(serialise(s));
+  assert.ok(loaded);
+  assert.ok(buildingRoadAttachment(loaded,loaded.buildings[0]));
+  assert.ok(buildingLogisticsAccess(loaded,loaded.buildings[0]));
+  loaded.roads=[];
+  assert.equal(buildingRoadAttachment(loaded,loaded.buildings[0]),null);
+  assert.equal(buildingLogisticsAccess(loaded,loaded.buildings[0]),null);
 });
