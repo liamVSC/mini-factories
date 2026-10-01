@@ -1,5 +1,5 @@
-const CACHE='mini-factories-v1';
-const VERSION='1';
+const CACHE='mini-factories-v2';
+const VERSION='2';
 const APP_SHELL=['./','./index.html','./styles.css?v=1','./src/game.js?v=1','./src/state.js','./src/world.js','./src/economy.js','./src/render.js?v=1','./src/render3d.js?v=1','./icon.svg','./manifest.webmanifest','https://cdn.jsdelivr.net/npm/three@0.180.0/+esm'];
 const EXTERNAL_ASSETS=new Set(['https://cdn.jsdelivr.net/npm/three@0.180.0/+esm']);
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(async cache=>{await Promise.allSettled(APP_SHELL.map(url=>cache.add(url)));}).then(()=>self.skipWaiting()));});
