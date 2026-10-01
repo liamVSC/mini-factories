@@ -31,6 +31,6 @@ export {
 
 export {roadNetwork,roadTopology,nearestGraphNode,shortestRoadPath,bumpRoadNetworkRevision} from './topology.js';
 export {roadAttachment,routeOnRoadNetwork,roadPath,connectedRoadComponents,isRouteStale,routeNetworkValid} from './routing.js';
-export {addRoad} from '../../world.js';
+export {addRoad} from './creation.js';
 export {roadAtPoint,roadSegmentAtPoint,roadEndpointCandidate,roadEndpointAtPoint,endpointTarget,roadEndpointPreview,editRoadSegment,editRoadEndpoint,endpointSegmentBlocked,cleanupRoadNetwork,eraseRoad} from './editing.js';
 export {roadsExactlyDuplicate,roadsHaveMeaningfulOverlap,buildRoadIntersections} from './intersections.js';
