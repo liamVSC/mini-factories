@@ -113,4 +113,12 @@ test('factories keep a dedicated separation buffer during placement and procedur
   const separatedX=Math.abs(steel.x-food.x)>=39+39+48;
   const separatedY=Math.abs(steel.y-food.y)>=31+31+48;
   assert.ok(separatedX||separatedY);
+
+  const seeded=freshState();
+  seeded.cash=5000;
+  const factories=['Steel','Food','Parts'].map(type=>spawn(seeded,'factory',type));
+  assert.ok(factories.every(Boolean));
+  for(let i=0;i<factories.length;i++)for(let j=i+1;j<factories.length;j++){
+    assert.ok(Math.hypot(factories[i].x-factories[j].x,factories[i].y-factories[j].y)>=250);
+  }
 });
