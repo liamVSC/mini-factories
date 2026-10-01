@@ -1,3 +1,4 @@
+import {newId} from './core/ids.js';
 import {dist,length,safePoint,validRoadPoints,projectSegment,pointOnRoute} from './world/roads/geometry.js';
 import {isInsideWorldBounds,validateRoadGeometry} from './world/roads/validation.js';
 import {riverY,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
@@ -13,27 +14,6 @@ import {routeOnRoadNetwork} from './world/roads/routing.js';
 import {roadNetwork,bumpRoadNetworkRevision} from './world/roads/topology.js';
 import {buildingAtPoint,buildingConnectionPoint,buildingPhysicalPlacementReason,buildingHitbox,nearestBuilding,buildingFootprint,buildingDockPoints} from './world/buildings/geometry.js';
 import {buildingCost,buildingUnlock,canBuild,canPlaceBuildingAt,buildingPlacementTarget,placeBuilding,spawn,seed,buildingLogisticsAccess} from './world/buildings/operations.js';
-
-
-function resolveRoadEndpoint(s,value){if(value?.building&&Number.isFinite(value.building.x))return buildingConnectionPoint(value.building,value);const building=nearestBuilding(s,value);if(building&&dist(building,value)<=88)return buildingConnectionPoint(building,value);const road=snapRoadPoint(s,value,42);return road||{x:value.x,y:value.y,distance:Infinity}}
-
-
-
-
-
-function normalizeRoadEndpoint(s,p){const b=nearestBuilding(s,p);if(!b||dist(b,p)>88)return p;return buildingConnectionPoint(b,p)}
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 function reconcileRoadJunctions(s,points,meta={}){
