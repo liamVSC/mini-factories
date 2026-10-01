@@ -324,7 +324,7 @@ function rerouteTruck(s,t){
   const join=pointOnRoute(physical,physicalProjected.progress);
   if(!join)return false;
   const physicalRemaining=physical.slice(Math.max(0,physicalProjected.segmentIndex-1));
-  const physicalCompact=[p,...physicalRemaining].filter((q,i)=>i===0||dist(q,physicalCompact?.[i-1]||q)>.01);
+  const physicalCompact=[]; for(const q of [p,...physicalRemaining])if(!physicalCompact.length||dist(q,physicalCompact.at(-1))>.01)physicalCompact.push(q);
   const centerProjected=projectRouteProgress(next.points,p);
   if(!centerProjected||centerProjected.distance>160)return false;
   const centerRemaining=next.points.slice(Math.max(0,centerProjected.segmentIndex-1));
