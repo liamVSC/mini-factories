@@ -449,6 +449,46 @@ function addFactorySmoke(g,w,d,h){
   }
   g.userData.smokePuffs=puffs;
 }
+function segmentHitsBuilding(a,b,building){
+  const hit=buildingHitbox(building,1);
+  const inside=p=>p.x>=hit.minX&&p.x<=hit.maxX&&p.y>=hit.minY&&p.y<=hit.maxY;
+  if(inside(a)||inside(b))return true;
+  const cross=(u,v)=>u.x*v.y-u.y*v.x;
+  const ab={x:b.x-a.x,y:b.y-a.y};
+  const edgeHit=(c,d)=>{
+    const cd={x:d.x-c.x,y:d.y-c.y},ac={x:c.x-a.x,y:c.y-a.y},den=cross(ab,cd);
+    if(Math.abs(den)<1e-8)return false;
+    const t=cross(ac,cd)/den,u=cross(ac,ab)/den;
+    return t>0&&t<1&&u>0&&u<1;
+  };
+  const edges=[
+    [{x:hit.minX,y:hit.minY},{x:hit.maxX,y:hit.minY}],
+    [{x:hit.maxX,y:hit.minY},{x:hit.maxX,y:hit.maxY}],
+    [{x:hit.maxX,y:hit.maxY},{x:hit.minX,y:hit.maxY}],
+    [{x:hit.minX,y:hit.maxY},{x:hit.minX,y:hit.minY}]
+  ];
+  return edges.some(([c,d])=>edgeHit(c,d));
+}
+function addBuildingAccess(g,building){
+  const attachment=roadAttachment(g.userData.state||{},building);
+  if(!attachment)return null;
+  const docks=buildingDockPoints(building);
+  if(!docks.length)return null;
+  const dock=docks.reduce((best,current)=>{
+    const score=Math.hypot(attachment.point.x-current.approach.x,attachment.point.y-current.approach.y);
+    return !best||score<best.score?{...current,score}:best;
+  },null);
+  if(!dock)return null;
+  const a={x:attachment.point.x,y:attachment.point.y},b={x:dock.approach.x,y:dock.approach.y};
+  if(segmentHitsBuilding(a,b,building))return null;
+  const la={x:a.x-building.x,y:a.y-building.y},lb={x:b.x-building.x,y:b.y-building.y};
+  addRoadBox(g,la,lb,16,.16,.6,roadMaterials.asphalt);
+  addRoadBox(g,la,lb,17.5,.10,.7,roadMaterials.curb);
+  const marker=new THREE.Mesh(new THREE.BoxGeometry(Math.max(6,dock.width),.12,5),roadMaterials.edge);
+  marker.position.set(dock.x,.8,dock.y);g.add(marker);
+  g.userData.buildingAccess={roadPoint:a,dock,connected:true};
+  return g.userData.buildingAccess;
+}
 function createBuildingModel(building){
   const g=building.kind==='factory'?createFactoryModel(building):building.kind==='warehouse'?createWarehouseModel(building):createShopModel(building);
   addBuildingStatusVisual(g,building);
