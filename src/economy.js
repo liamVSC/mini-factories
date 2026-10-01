@@ -1,7 +1,7 @@
 import {TYPES} from './state.js';
 import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment,roadNetwork} from './world.js';
 import {buildLaneGraph} from './laneGraph.js';
-import {buildJunctionControls,getMovementControl,movementForLaneRoute,movementPermission,stopLinePoint} from './junctionControl.js';
+import {buildJunctionControls,movementForLaneRoute,movementPermission,stopLinePoint} from './junctionControl.js';
 const newId=()=>globalThis.crypto?.randomUUID?.()||'id-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
 
 export function spec(type){return TYPES.find(t=>t.name===type)||TYPES[0]}
@@ -208,9 +208,7 @@ function updateTruckSpeed(t,targetFactor,dt){
   return t.currentSpeed;
 }
 
-function awaitableLaneGraph(network){return network?buildLaneGraph(network):null}
-
-function trafficConflict(s,t,network){
+function trafficConflict(s,t,network,laneGraph){
   const p=pointOnRoute(t.route,t.t);
   if(!p)return false;
 
@@ -220,7 +218,7 @@ function trafficConflict(s,t,network){
     if(o.routeKey===t.routeKey&&o.t>t.t&&dist(p,q)<34)return true;
   }
 
-  const controls=buildJunctionControls(network,s._laneGraph||null);
+  const controls=buildJunctionControls(network,laneGraph);
   const controlRoute=t.centerlineRoute||t.route;
   const here=junctionForTruck(network,t);
   if(!here){
@@ -248,7 +246,7 @@ function trafficConflict(s,t,network){
   const laneIndex=Array.isArray(t.laneIds)&&t.laneIds.length
     ?Math.min(t.laneIds.length-2,Math.max(0,Math.floor(t.t*t.laneIds.length)))
     :0;
-  const movement=movementForLaneRoute(s._laneGraph||null,controls,t.laneIds,laneIndex);
+  const movement=movementForLaneRoute(laneGraph,controls,t.laneIds,laneIndex);
   const contenders=[];
   for(const o of s.trucks||[]){
     if(o===t||o.dead||o.wait>0||!Array.isArray(o.route)||o.route.length<2)continue;
@@ -257,7 +255,7 @@ function trafficConflict(s,t,network){
     const otherLaneIndex=Array.isArray(o.laneIds)&&o.laneIds.length
       ?Math.min(o.laneIds.length-2,Math.max(0,Math.floor(o.t*o.laneIds.length)))
       :0;
-    const otherMovement=movementForLaneRoute(s._laneGraph||null,controls,o.laneIds,otherLaneIndex);
+    const otherMovement=movementForLaneRoute(laneGraph,controls,o.laneIds,otherLaneIndex);
     if(!otherMovement||!movement)continue;
     const permissionConflict=movementPermission(s,controls,here.junction,movement,{occupiedIds:[otherMovement.id]});
     if(permissionConflict.allowed)continue;
@@ -276,13 +274,14 @@ function trafficConflict(s,t,network){
   const yielding=winner!==t;
 
   const laneTarget=here.movement?.direction==='left'?7:here.movement?.direction==='right'?1.8:4.5;
-  const stopPoint=movement?stopLinePoint(s._laneGraph,movement):null;
+  const stopPoint=movement?stopLinePoint(laneGraph,movement):null;
   t.trafficControl={
     junction:{x:here.junction.x,y:here.junction.y},
     metresAhead:here.metresAhead,
     yielding,
     movement:movement?.type||here.movement?.direction||t.lane||'straight',
     laneTarget,
+    laneChangeAllowed:here.metresAhead>(movement?.conflictZoneDistance??18),
     stopLineDistance:movement?.stopLineDistance??30,
     conflictZoneDistance:movement?.conflictZoneDistance??18,
     stopLine:stopPoint,
@@ -541,8 +540,7 @@ export function updateEconomy(s,dt,flash){
   }
 
   const trafficNetwork=roadNetwork(s);
-  const laneGraph=trafficNetwork?.edges?.length?awaitableLaneGraph(trafficNetwork):null;
-  s._laneGraph=laneGraph;
+  const laneGraph=trafficNetwork?.edges?.length?buildLaneGraph(trafficNetwork):null;
   for(const t of s.trucks){
     // Road deletion can invalidate a live truck route. Re-route from the
     // truck's current physical position when an alternate network path exists.
@@ -589,14 +587,16 @@ export function updateEconomy(s,dt,flash){
       const gap=Math.max(0,routeGap);
       if(gap<nearestGap){nearestGap=gap;queueAhead=o;}
     }
-    const trafficBlocked=trafficConflict(s,t,trafficNetwork);
+    const trafficBlocked=trafficConflict(s,t,trafficNetwork,laneGraph);
     if(Array.isArray(t.laneIds)&&t.laneIds.length){
       t.currentLaneIndex=Math.min(t.laneIds.length-1,Math.max(0,Math.floor(t.t*t.laneIds.length)));
       t.currentLaneId=t.laneIds[t.currentLaneIndex];
     }
     const laneTarget=Number.isFinite(t.trafficControl?.laneTarget)?t.trafficControl.laneTarget:0;
+    const laneChangeAllowed=t.trafficControl?.laneChangeAllowed!==false;
+    const effectiveLaneTarget=laneChangeAllowed?laneTarget:(Number.isFinite(t.laneOffset)?t.laneOffset:0);
     const laneApproach=Math.max(0,Math.min(1,1-(t.trafficControl?.metresAhead??999)/42));
-    t.laneOffset=(Number.isFinite(t.laneOffset)?t.laneOffset:0)+(laneTarget-(Number.isFinite(t.laneOffset)?t.laneOffset:0))*Math.min(1,dt*3.8*laneApproach);
+    t.laneOffset=(Number.isFinite(t.laneOffset)?t.laneOffset:0)+(effectiveLaneTarget-(Number.isFinite(t.laneOffset)?t.laneOffset:0))*Math.min(1,dt*3.8*laneApproach);
     let trafficSpeedFactor=1;
     t.queueAheadId=queueAhead?.id||null;
     t.queueGap=Number.isFinite(nearestGap)?nearestGap:null;
@@ -653,7 +653,6 @@ export function updateEconomy(s,dt,flash){
     }
   }
   s.trucks=s.trucks.filter(t=>!t.dead);
-  delete s._laneGraph;
   while(s.xp>=s.xpToNext){s.xp-=s.xpToNext;s.companyLevel++;s.xpToNext=Math.round(100*Math.pow(1.22,s.companyLevel-1));flash('Company Level '+s.companyLevel)}
   s.congestion=Math.min(1,(s.trucks.length+s.trucks.filter(t=>t.wait>0).length*1.5)/Math.max(3,s.roads.length*2));
   const reduction=s.trucks.reduce((n,t)=>n+(t.source?.logistics||0),0)/Math.max(1,s.trucks.length);
