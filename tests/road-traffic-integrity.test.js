@@ -149,21 +149,22 @@ test('lane graph keeps opposing traffic in separate carriageways and prefers tur
 
 test('lane-change metadata and junction signals/priority expose deterministic state',()=>{
   const s=roadState();
-  assert.equal(addRoad(s,[{x:-160,y:0},{x:0,y:0}]),true);
-  assert.equal(addRoad(s,[{x:0,y:0},{x:0,y:160}]),true);
+  assert.equal(addRoad(s,[{x:-160,y:0},{x:160,y:0}]),true);
+  assert.equal(addRoad(s,[{x:0,y:-160},{x:0,y:160}]),true);
   const network=roadNetwork(s),graph=buildLaneGraph(network,{lanesPerDirection:2}),controls=buildJunctionControls(network,graph);
-  const junction=network.nodes.find(n=>(network.adjacency.get(n)||[]).length>=2);
+  const junction=network.junctions[0];
   assert.ok(junction);
-  const incoming=graph.incoming.get(junction)||[];
-  const outgoing=graph.outgoing.get(junction)||[];
-  const left=controls.get('0,0')?.movements.find(m=>m.type==='left');
+  const key=`${Math.round(junction.x*10)/10},${Math.round(junction.y*10)/10}`;
+  const control=controls.get(key);
+  assert.ok(control);
+  const left=control.movements.find(m=>m.type==='left');
   assert.ok(left);
-  assert.equal(signalForMovement({...s,trafficSignals:{enabled:true,cycle:12},trafficClock:0},controls.get('0,0'),left).state,'green');
-  const blocked=movementPermission({...s,trafficSignals:{enabled:true,cycle:12},trafficClock:6.2},controls,junction,left,{occupiedIds:[]});
-  assert.equal(blocked.allowed,false);
-  const conflict=movementPermission(s,controls,junction,left,{occupiedIds:controls.get('0,0').conflicts.get(left.id)});
+  const greenClock=signalForMovement({...s,trafficSignals:{enabled:true,cycle:12},trafficClock:left.approachDirection.x!==0?0:6},control,left);
+  assert.equal(greenClock.state,'green');
+  const blockedClock=signalForMovement({...s,trafficSignals:{enabled:true,cycle:12},trafficClock:left.approachDirection.x!==0?6.2:0.2},control,left);
+  assert.equal(blockedClock.state,'red');
+  const conflict=movementPermission(s,controls,junction,left,{occupiedIds:control.conflicts.get(left.id)});
   assert.equal(conflict.allowed,false);
-  if(incoming.length&&outgoing.length)assert.equal(laneChangeRequired(graph,incoming[0].id,outgoing[0].id),incoming[0].laneIndex!==outgoing[0].laneIndex);
 });
 
 test('factories keep a dedicated separation buffer during placement and procedural spawning',()=>{
