@@ -327,6 +327,7 @@ function rerouteTruck(s,t){
   t.route=compact;
   t.routeKey=next.points.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
   t.laneIds=Array.isArray(next.laneIds)?[...next.laneIds]:[];
+  t.routeNetworkRevision=Number(s.roadNetworkRevision)||0;
   t.currentLaneIndex=0;
   t.currentLaneId=t.laneIds[0]||null;
   t.t=0;
@@ -438,6 +439,7 @@ function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,
   s.trucks.push({
     id:newId(),route:physicalRoute,centerlineRoute:route.points,
     routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),
+    routeNetworkRevision:Number(s.roadNetworkRevision)||0,
     laneIds:Array.isArray(route.laneIds)?[...route.laneIds]:[],
     currentLaneIndex:0,currentLaneId:route.laneIds?.[0]||null,
     t:0,
@@ -549,6 +551,10 @@ export function updateEconomy(s,dt,flash){
   const trafficNetwork=roadNetwork(s);
   const laneGraph=trafficNetwork?.edges?.length?buildLaneGraph(trafficNetwork):null;
   for(const t of s.trucks){
+    // Every road mutation rebuilds the derived lane graph. A revision mismatch
+    // invalidates even routes whose old geometry happens to overlap the new
+    // network, preventing stale lane transitions after edits/junction changes.
+    if(Number(t.routeNetworkRevision)||0!==(Number(s.roadNetworkRevision)||0))t.routeInvalidated=true;
     // Road deletion can invalidate a live truck route. Re-route from the
     // truck's current physical position when an alternate network path exists.
     // If the endpoints are now disconnected, safely return the cargo instead
