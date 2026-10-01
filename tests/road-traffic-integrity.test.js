@@ -149,3 +149,21 @@ test('procedural layout uses its own seed without mutating the saved game seed',
     second.buildings.map(b=>[b.type,Math.round(b.x),Math.round(b.y)])
   );
 });
+
+
+test('road editing helpers are exported from the editing module without world dependency',async()=>{
+  const editing=await import('../src/world/roads/editing.js');
+  for(const name of ['roadAtPoint','roadSegmentAtPoint','roadEndpointCandidate','roadEndpointAtPoint','endpointTarget','roadEndpointPreview','editRoadSegment','editRoadEndpoint','endpointSegmentBlocked'])assert.equal(typeof editing[name],'function',name);
+});
+
+test('road intersections preserve exact duplicate rejection, meaningful overlap rejection and perpendicular junction reuse',()=>{
+  const s=roadState();
+  assert.equal(addRoad(s,[{x:-160,y:0},{x:160,y:0}]),true);
+  assert.equal(addRoad(s,[{x:-160,y:0},{x:160,y:0}]),'duplicate');
+  assert.equal(addRoad(s,[{x:-100,y:0},{x:100,y:0}]),'duplicate');
+  assert.equal(addRoad(s,[{x:0,y:-160},{x:0,y:160}]),true);
+  const network=roadNetwork(s);
+  const junction=network.junctions.find(n=>Math.abs(n.x)<1e-6&&Math.abs(n.y)<1e-6);
+  assert.ok(junction);
+  assert.ok((network.adjacency.get(junction)||[]).length>=4);
+});
