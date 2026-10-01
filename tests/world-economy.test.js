@@ -33,7 +33,7 @@ function baseState() {
   return s;
 }
 
-function building(typeName, x, y) {
+function pointOnRouteForTest(points,t){const total=points.reduce((n,p,i)=>i?n+Math.hypot(p.x-points[i-1].x,p.y-points[i-1].y):0,0);let target=total*t,run=0;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],seg=Math.hypot(b.x-a.x,b.y-a.y);if(target<=run+seg){const u=seg?Math.max(0,Math.min(1,(target-run)/seg)):0;return{x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u}}run+=seg}return points.at(-1)}
   const type = TYPES.find(t => t.name === typeName);
   return makeBuilding(type, x, y, crypto.randomUUID());
 }
@@ -247,6 +247,42 @@ test('deleting one junction branch preserves the remaining road graph', () => {
   const shop = building('Market', 120, 0);
   s.buildings.push(f,shop);
   assert.ok(routeOnRoadNetwork(s,f,shop));
+});
+
+test('live reroute keeps the truck at its physical position instead of teleporting to route start',()=>{
+  const s=baseState();
+  const f=building('Food',-160,0),shop=building('Market',160,0);
+  s.buildings.push(f,shop);
+  const main=road([{x:-125,y:0},{x:0,y:0},{x:125,y:0}]);
+  const upper=road([{x:-125,y:0},{x:-125,y:80},{x:125,y:80},{x:125,y:0}]);
+  s.roads.push(main,upper);
+  const routed=routeOnRoadNetwork(s,f,shop);
+  assert.ok(routed);
+  const truck={id:'reroute-position',route:routed.points,centerlineRoute:routed.points,laneRoute:routed.lanePoints||routed.points,laneIds:routed.laneIds,t:.5,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10,routeNetworkRevision:s.roadNetworkRevision,wait:0};
+  s.trucks.push(truck);
+  const physical=pointOnRouteForTest(truck.route,truck.t);
+  assert.ok(editRoadEndpoint(s,main.id,1,{x:0,y:25}));
+  updateEconomy(s,0,()=>{});
+  assert.equal(truck.routeNetworkRevision,s.roadNetworkRevision);
+  assert.ok(truck.route.length>=2);
+  assert.ok(Math.hypot(truck.route[0].x-physical.x,truck.route[0].y-physical.y)<1);
+  assert.ok(Math.hypot(truck.laneRoute[0].x-physical.x,truck.laneRoute[0].y-physical.y)<1);
+});
+
+test('disconnected reroute returns cargo instead of leaving a stale truck alive',()=>{
+  const s=baseState();
+  const f=building('Food',0,0),shop=building('Market',220,0);
+  s.buildings.push(f,shop);
+  const r=road([{x:35,y:0},{x:185,y:0}]);
+  s.roads.push(r);
+  const routed=routeOnRoadNetwork(s,f,shop);
+  assert.ok(routed);
+  const truck={id:'stale-truck',route:routed.points,centerlineRoute:routed.points,laneRoute:routed.lanePoints||routed.points,laneIds:routed.laneIds,t:.3,speed:.05,cargo:2,source:f,to:shop,stage:'delivery',value:20,routeNetworkRevision:s.roadNetworkRevision,wait:0};
+  s.trucks.push(truck);
+  assert.equal(eraseRoad(s,{x:100,y:0}),true);
+  updateEconomy(s,0,()=>{});
+  assert.equal(s.trucks.length,0);
+  assert.equal(f.stock,2);
 });
 
 test('deleting a branch invalidates only trucks whose saved route used that branch', () => {
