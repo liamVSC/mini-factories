@@ -66,7 +66,7 @@ export function routeOnRoadNetwork(s,a,b){
   const endComponent=components.get(end);
   if(startComponent===undefined||endComponent===undefined||startComponent!==endComponent)return null;
 
-  const laneGraph=buildLaneGraph(network,{lanesPerDirection:1});
+  const laneGraph=buildLaneGraph(network,{lanesPerDirection:2});
   const laneResult=findLaneRoute(laneGraph,start,end);
   if(!laneResult)return null;
   const laneNodes=laneRouteToNodePath(laneGraph,laneResult.laneIds);
