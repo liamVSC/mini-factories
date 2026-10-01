@@ -22,6 +22,7 @@ const {
   seed
 } = await import('../src/world.js');
 const {route, updateEconomy} = await import('../src/economy.js');
+const {hydrate} = await import('../src/persistence/load.js');
 
 function road(points) {
   return {id: crypto.randomUUID(), points, age:0, bridge:false, condition:1};
@@ -60,6 +61,19 @@ test('initial factory seeding produces separated factories',()=>{
     const overlapY=Math.abs(a.y-b.y)<62+72+0;
     assert.equal(overlapX&&overlapY,false,JSON.stringify({a,b}));
   }
+});
+
+test('loading an old save repairs factory overlaps using current visual clearance',()=>{
+  const type=TYPES.find(t=>t.name==='Steel');
+  const a=makeBuilding(type,0,0,'a');
+  const b=makeBuilding(type,130,0,'b');
+  const data={version:6,buildings:[a,b],roads:[],cash:1000};
+  const s=hydrate(data);
+  assert.ok(s);
+  assert.equal(s.buildings.length,2);
+  const af=s.buildings[0],bf=s.buildings[1];
+  const separated=Math.abs(af.x-bf.x)>=150||Math.abs(af.y-bf.y)>=134;
+  assert.equal(separated,true,JSON.stringify({af,bf}));
 });
 
 test('building attaches to the nearest physical road segment', () => {
