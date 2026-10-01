@@ -91,7 +91,28 @@ function buildingFootprintRadius(building){
   const footprint=buildingFootprint(building);
   return Math.max(26,(building?.r||25)+9,Math.min(footprint.halfWidth,footprint.halfDepth));
 }
-export function buildingDockPoints(building){return []}
+export function buildingDockPoints(building){
+  const x=Number(building?.x)||0,y=Number(building?.y)||0;
+  const specs=building?.kind==='factory'
+    ?[{name:'north-loading',x:0,y:31.5,normal:{x:0,y:1},width:22},{name:'south-loading',x:-23.4,y:-31.5,normal:{x:0,y:-1},width:13}]
+    :building?.kind==='warehouse'
+      ?[{name:'north-main',x:0,y:33.5,normal:{x:0,y:1},width:24},{name:'north-secondary',x:-30.7,y:33.5,normal:{x:0,y:1},width:14},{name:'south-secondary',x:30.7,y:-33.5,normal:{x:0,y:-1},width:14}]
+      :[{name:'front-entrance',x:0,y:-28.5,normal:{x:0,y:-1},width:12}];
+  return specs.map(dock=>({...dock,point:{x:x+dock.x,y:y+dock.y},approach:{x:x+dock.x+dock.normal.x*10,y:y+dock.y+dock.normal.y*10}}));
+}
+export function buildingLogisticsAccess(s,building){
+  if(!building)return null;
+  const attachment=roadAttachment(s,building);
+  if(!attachment)return null;
+  const docks=buildingDockPoints(building);
+  const dock=docks.reduce((best,current)=>{
+    const score=dist(attachment.point,current.approach);
+    return !best||score<best.score?{...current,score}:best;
+  },null);
+  if(!dock)return null;
+  const driveway=[{x:attachment.point.x,y:attachment.point.y},{x:dock.approach.x,y:dock.approach.y}];
+  return{road:attachment.road,roadPoint:{...attachment.point},dock,driveway,connected:!roadPathBlocked(s,driveway,{end:building})};
+}
 export function buildingConnectionPoint(building,target,exteriorOffset=2.5){
   const dx=Number(target?.x)-Number(building?.x),dy=Number(target?.y)-Number(building?.y);
   const len=Math.hypot(dx,dy)||1;
