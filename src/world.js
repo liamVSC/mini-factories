@@ -91,6 +91,7 @@ function buildingFootprintRadius(building){
   const footprint=buildingFootprint(building);
   return Math.max(26,(building?.r||25)+9,Math.min(footprint.halfWidth,footprint.halfDepth));
 }
+export function buildingDockPoints(building){return []}
 export function buildingConnectionPoint(building,target,exteriorOffset=2.5){
   const dx=Number(target?.x)-Number(building?.x),dy=Number(target?.y)-Number(building?.y);
   const len=Math.hypot(dx,dy)||1;
