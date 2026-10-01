@@ -1,4 +1,5 @@
-import {TYPES,makeBuilding} from './state.js';
+import {makeBuilding} from './state.js';
+import {TYPES} from './core/types.js';
 import {createRng,seedFromState} from './core/rng.js';
 import {newId} from './core/ids.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from './laneGraph.js';
