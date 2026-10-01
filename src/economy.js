@@ -330,7 +330,10 @@ function rerouteTruck(s,t){
   const centerRemaining=next.points.slice(Math.max(1,centerProjected.segmentIndex));
   const routePoints=[p,...centerRemaining];
   const compact=routePoints.filter((q,i)=>i===0||dist(q,routePoints[i-1])>.01);
-  const laneStart=Math.max(0,physicalProjected.segmentIndex-1);
+  // laneIds correspond to centerline road edges, not sampled lane geometry points.
+  // Use the projected centerline edge so a reroute never resumes on a stale or
+  // off-by-one lane after a road edit/deletion.
+  const laneStart=Math.max(0,Math.min(Array.isArray(next.laneIds)?next.laneIds.length:0,centerProjected.segmentIndex));
   const remainingLaneIds=Array.isArray(next.laneIds)?next.laneIds.slice(laneStart):[];
   t.centerlineRoute=compact;
   t.route=compact;
