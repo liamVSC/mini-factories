@@ -9,14 +9,16 @@ export {
 } from './geometry.js';
 
 export {
+  buildingPlacementTarget,
+  buildingLogisticsAccess
+} from './placement.js';
+
+export {
   buildingCost,
   buildingUnlock,
   canBuild,
   canPlaceBuildingAt,
-  buildingPlacementTarget,
   placeBuilding,
   spawn,
-  seed,
-  buildingLogisticsAccess
-} from '../../world.js';
-
+  seed
+} from './operations.js';
