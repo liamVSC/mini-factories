@@ -309,10 +309,10 @@ test('deleting one junction branch preserves the remaining road graph', () => {
 
 test('live reroute keeps the truck at its physical position instead of teleporting to route start',()=>{
   const s=baseState();
-  const f=building('Food',-160,0),shop=building('Market',160,0);
+  const f=building('Food',-200,0),shop=building('Market',200,0);
   s.buildings.push(f,shop);
-  const main=road([{x:-125,y:0},{x:0,y:0},{x:125,y:0}]);
-  const upper=road([{x:-125,y:0},{x:-125,y:80},{x:125,y:80},{x:125,y:0}]);
+  const main=road([{x:-165,y:0},{x:0,y:0},{x:165,y:0}]);
+  const upper=road([{x:-165,y:0},{x:-165,y:80},{x:165,y:80},{x:165,y:0}]);
   s.roads.push(main,upper);
   const routed=routeOnRoadNetwork(s,f,shop);
   assert.ok(routed);
@@ -554,7 +554,7 @@ test('moving a road endpoint invalidates trucks using the old geometry', () => {
   const f = building('Food',-120,0);
   const shop = building('Market',120,0);
   s.buildings.push(f,shop);
-  const r = road([{x:-85,y:0},{x:85,y:0}]);
+  const r = road([{x:-165,y:0},{x:165,y:0}]);
   s.roads.push(r);
   const routed = routeOnRoadNetwork(s,f,shop);
   assert.ok(routed);
