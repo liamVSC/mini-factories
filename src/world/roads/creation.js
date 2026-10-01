@@ -38,7 +38,7 @@ export function addRoad(s,points,meta={}){
   // calls may still provide a building centre as an endpoint; keep those
   // coordinates intact and let the endpoint collision rules validate them.
   if(meta.startBuilding&&startConnection)normalized[0]=startConnection.point;
-  if(endConnection)normalized[normalized.length-1]=endConnection.point;
+  if(meta.endBuilding&&endConnection)normalized[normalized.length-1]=endConnection.point;
   points=normalized;
   const validation=validateRoadGeometry(points);
   if(!validation.ok){
