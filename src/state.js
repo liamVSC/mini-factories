@@ -11,7 +11,7 @@ export const TYPES=[
  {name:'Furniture',kind:'shop',need:'Glass',color:'#90d9b4',icon:'F',role:'Furniture retailer',desc:'Consumes glass for furniture demand.',unlock:'industry',unlockLevel:2},
  {name:'Warehouse',kind:'warehouse',need:null,color:'#e9c46a',icon:'W',role:'Storage hub',desc:'Stores goods and connects production to retail.',unlock:'logistics',unlockLevel:1}
 ];
-export function freshState(){return{cash:500,orders:0,companyLevel:1,xp:0,xpToNext:100,reputation:100,roads:[],buildings:[],trucks:[],particles:[],selected:null,mode:'select',paused:false,gameOver:false,congestion:0,objective:0,goals:goalList(),deliveryIncome:0,deliveredBy:{},longContracts:0,contractId:1,renderVersion:0,research:{automation:0,logistics:0,industry:0},trafficSignals:{enabled:false,cycle:12},buildMode:null,camera:{x:innerWidth/2,y:innerHeight/2,zoom:1}}}
+export function freshState(){return{gameSeed:Math.floor(Math.random()*0x7fffffff),cash:500,orders:0,companyLevel:1,xp:0,xpToNext:100,reputation:100,roads:[],buildings:[],trucks:[],particles:[],selected:null,mode:'select',paused:false,gameOver:false,congestion:0,objective:0,goals:goalList(),deliveryIncome:0,deliveredBy:{},longContracts:0,contractId:1,renderVersion:0,research:{automation:0,logistics:0,industry:0},trafficSignals:{enabled:false,cycle:12},buildMode:null,camera:{x:innerWidth/2,y:innerHeight/2,zoom:1}}}
 export function goalList(){return[
  {text:'Deliver 10 Food orders',target:10,progress:s=>s.deliveredBy.Food||0,done:s=>(s.deliveredBy.Food||0)>=10},
  {text:'Earn £1,000 from deliveries',target:1000,progress:s=>s.deliveryIncome,done:s=>s.deliveryIncome>=1000},
@@ -24,7 +24,7 @@ export function makeBuilding(type,x,y,id){return{id,x,y,r:25,storage:type.kind==
 export function serialise(s){const d={...s};delete d.week;delete d.weekTime;delete d.version;return{version:6,...d,selected:null,trucks:[],particles:[]}}
 const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
 function clampNumber(value,min,max,fallback=min){return Math.max(min,Math.min(max,finite(value,fallback)))}
-export function hydrate(d){if(!d||d.version<2||!Array.isArray(d.buildings)||!Array.isArray(d.roads))return null;const s=freshState();const keys=Object.keys(s);for(const k of keys)if(Object.prototype.hasOwnProperty.call(d,k)&&k!=='week'&&k!=='weekTime'&&k!=='version')s[k]=d[k];s.version=6;s.renderVersion=Math.max(0,Math.floor(finite(s.renderVersion,0)));s.selected=null;s.trucks=[];s.particles=[];s.goals=goalList();
+export function hydrate(d){if(!d||d.version<2||!Array.isArray(d.buildings)||!Array.isArray(d.roads))return null;const s=freshState();s.gameSeed=Math.max(1,Math.floor(finite(s.gameSeed,Math.floor(Math.random()*0x7fffffff)||1)));const keys=Object.keys(s);for(const k of keys)if(Object.prototype.hasOwnProperty.call(d,k)&&k!=='week'&&k!=='weekTime'&&k!=='version')s[k]=d[k];s.version=6;s.renderVersion=Math.max(0,Math.floor(finite(s.renderVersion,0)));s.selected=null;s.trucks=[];s.particles=[];s.goals=goalList();
 s.cash=clampNumber(s.cash,0,Number.MAX_SAFE_INTEGER,500);
 s.orders=Math.max(0,Math.floor(finite(s.orders,0)));
 s.companyLevel=Math.max(1,Math.floor(finite(s.companyLevel,1)));
