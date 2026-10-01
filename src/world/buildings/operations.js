@@ -3,6 +3,7 @@ import {newId} from '../../core/ids.js';
 import {district} from '../terrain.js';
 import {buildingPhysicalPlacementReason} from './geometry.js';
 import {buildingPlacementTarget} from './placement.js';
+import {layoutIsValid} from './layout.js';
 import {spawnBuilding,seedBuildings} from './spawning.js';
 
 export function buildingCost(s,type){
@@ -68,8 +69,14 @@ export function placeBuilding(s,type,x,y){
 
   const building=makeBuilding(type,x,y,newId());
   building.district=district(x,y);
-  s.cash-=buildingCost(s,type);
+  const cost=buildingCost(s,type);
+  s.cash-=cost;
   s.buildings.push(building);
+  if(!layoutIsValid(s.buildings)){
+    s.buildings.pop();
+    s.cash+=cost;
+    return false;
+  }
   return building;
 }
 
