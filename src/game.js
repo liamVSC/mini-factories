@@ -3,8 +3,9 @@ import {seed,nearestBuilding,buildingAtPoint,roadBuildingTarget,nearestRoad,road
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 
-const GAME_VERSION='1.1';
+const GAME_VERSION='1.2';
 const CHANGELOG=[
+  {version:'1.2',date:'1 Oct 2026',items:['Improved procedural factory, warehouse and shop models with stronger silhouettes, roof equipment, loading areas and storefront details.','Updated road editing highlights to match the wider roads.']},
   {version:'1.1',date:'1 Oct 2026',items:['Dedicated junction approach lanes and gradual road tapers.','Left, straight and right movement is selected before junctions and trucks position for the intended movement.','Truck queues now use physical following gaps and progressive braking.','Turning trucks follow smoother lane-specific arcs through junctions.','Junction road markings and directional arrows follow the new turning paths.','Factory → warehouse → shop logistics remains compatible with direct factory → shop deliveries.','Improved mobile road/building interaction and road editing.']},
   {version:'1.0',date:'1 Oct 2026',items:['Stable mobile-first release.','Road network, junctions, traffic, factories, warehouses and shops are now part of the core game.']}
 ];
