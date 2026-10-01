@@ -5,7 +5,7 @@ import {resolveBuildingRoadEndpoint} from './connections.js';
 import {
   buildingFootprint,
   nearestBuilding,
-    buildingDockPoints
+  buildingDockPoints
 } from './geometry.js';
 
 export function buildingPlacementTarget(s,type,p){
