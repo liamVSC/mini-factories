@@ -1,9 +1,9 @@
 import {TYPES} from './state.js';
+import {newId} from './core/ids.js';
 
 import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment,roadNetwork} from './world.js';
 import {buildLaneGraph} from './laneGraph.js';
 import {buildJunctionControls,laneIndexForJunction,movementForLaneRoute,movementPermission,stopLinePoint} from './junctionControl.js';
-const newId=()=>globalThis.crypto?.randomUUID?.()||'id-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
 
 export function spec(type){return TYPES.find(t=>t.name===type)||TYPES[0]}
 
