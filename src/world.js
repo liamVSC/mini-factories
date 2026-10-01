@@ -92,11 +92,20 @@ export function spawn(s,kind,forced){
   }
   const type=candidates[Math.floor(layoutRandom(s)*candidates.length)];
   const count=s.buildings.length;
+  const factoryCount=(s.buildings||[]).filter(b=>b.kind==='factory').length;
+  const factorySlot=kind==='factory'?factoryCount:-1;
   const minRadius=count<6?170:280;
   const maxRadius=count<6?430:Math.min(760,430+s.companyLevel*22);
   for(let n=0;n<500;n++){
-    const angle=layoutRandom(s)*Math.PI*2;
-    const radius=minRadius+layoutRandom(s)*Math.max(1,maxRadius-minRadius);
+    // Starter factories use separate sectors of the map so the three production
+    // sites are visibly distributed instead of clustering around one random point.
+    const sectorAngle=factorySlot>=0
+      ?factorySlot*(Math.PI*2/3)+(layoutRandom(s)-.5)*.42+(n%5)*.08
+      :layoutRandom(s)*Math.PI*2;
+    const angle=factorySlot>=0?sectorAngle:layoutRandom(s)*Math.PI*2;
+    const radius=factorySlot>=0
+      ?Math.max(250,Math.min(maxRadius,310+layoutRandom(s)*170))
+      :minRadius+layoutRandom(s)*Math.max(1,maxRadius-minRadius);
     let x=Math.cos(angle)*radius+(layoutRandom(s)-.5)*90;
     let y=Math.sin(angle)*radius+(layoutRandom(s)-.5)*90;
     const river=riverY(x);
