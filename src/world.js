@@ -1,6 +1,6 @@
-import {dist,length,finitePoint,safePoint,validRoadPoints,projectSegment,projectOnPolyline,pointOnRoute} from './world/roads/geometry.js';
+import {dist,length,safePoint,validRoadPoints,projectSegment,pointOnRoute} from './world/roads/geometry.js';
 import {isInsideWorldBounds,validateRoadGeometry} from './world/roads/validation.js';
-import {riverY,district,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
+import {riverY,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
 import {roadBuildingTarget,nearestRoad,snapRoadPoint,snap,segmentNearRiver,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,snapToWorldEdge,roadTarget,roadPreview} from './world/roads/placement.js';
 import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate} from './world/roads/intersections.js';
 import {cleanupRoadNetwork} from './world/roads/editing.js';
@@ -9,7 +9,7 @@ export {riverY,district,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTI
 export {isInsideWorldBounds} from './world/roads/validation.js';
 export {dist,length,pointOnRoute};
 export {roadBuildingTarget,nearestRoad,snapRoadPoint,snap,segmentNearRiver,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,snapToWorldEdge,roadTarget,roadPreview};
-import {roadAttachment,routeOnRoadNetwork,roadPath} from './world/roads/routing.js';
+import {routeOnRoadNetwork} from './world/roads/routing.js';
 import {roadNetwork,bumpRoadNetworkRevision} from './world/roads/topology.js';
 import {buildingAtPoint,buildingConnectionPoint,buildingPhysicalPlacementReason,buildingHitbox,nearestBuilding,buildingFootprint,buildingDockPoints} from './world/buildings/geometry.js';
 import {buildingCost,buildingUnlock,canBuild,canPlaceBuildingAt,buildingPlacementTarget,placeBuilding,spawn,seed,buildingLogisticsAccess} from './world/buildings/operations.js';
