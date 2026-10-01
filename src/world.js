@@ -1,5 +1,5 @@
 import {TYPES,makeBuilding} from './state.js';
-import {buildLaneGraph,findLaneRoute,laneRouteToNodePath} from './laneGraph.js';
+import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from './laneGraph.js';
 const newId=()=>globalThis.crypto?.randomUUID?.()||'id-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export const length=pts=>pts.reduce((n,p,i)=>i?n+dist(pts[i-1],p):0,0);
@@ -274,6 +274,8 @@ export function routeOnRoadNetwork(s,a,b){
   const laneNodes=laneRouteToNodePath(laneGraph,laneResult.laneIds);
   if(laneNodes.length<2)return null;
   const routePoints=laneNodes.map(p=>({x:p.x,y:p.y}));
+  const laneGeometry=laneRouteGeometry(laneGraph,laneResult.laneIds);
+  const lanePoints=laneGeometry.points.length>=2?laneGeometry.points:routePoints;
   const result={path:laneNodes,distance:laneResult.distance,laneIds:laneResult.laneIds};
   // Keep canonical junction coordinates in the returned route even when a
   // graph connection is represented by a virtual endpoint-to-road edge.
@@ -293,6 +295,8 @@ export function routeOnRoadNetwork(s,a,b){
     laneIds:result.laneIds,
     graphNodeCount:network.nodes.length,
     laneCount:laneGraph.lanes.length,
+    lanePoints,
+    laneTransitions:laneGeometry.transitions,
     start:{x:aa.point.x,y:aa.point.y},
     end:{x:bb.point.x,y:bb.point.y}
   }
