@@ -169,7 +169,13 @@ function findBestPosition(s,type,random){
 }
 
 export function spawnBuilding(s,kind,forced,placementReason){
-  const random=createRng(seedFromState(s));
+  // Derive each spawn decision from the stable map seed plus the current world
+  // shape. This keeps saves deterministic without replaying the exact same
+  // random stream for every building created during a session.
+  const kindSeed=kind==='factory'?0x9e3779b9:0x7f4a7c15;
+  const typeSeed=forced?Array.from(String(forced)).reduce((sum,char)=>sum+char.charCodeAt(0),0):0;
+  const spawnSeed=(seedFromState(s)+Math.imul((s.buildings?.length||0)+1,0x45d9f3b)+kindSeed+typeSeed)>>>0;
+  const random=createRng(spawnSeed);
   const type=chooseBuildingType(s,kind,forced,random);
   if(!type)return null;
 
@@ -190,7 +196,11 @@ export function spawnBuilding(s,kind,forced,placementReason){
       ?FACTORY_RADIUS_MIN+random()*(FACTORY_RADIUS_MAX-FACTORY_RADIUS_MIN)
       :90+random()*BUILDING_SEARCH_RADIUS;
     const point={x:Math.cos(angle)*radius,y:Math.sin(angle)*radius};
-    if(!placementReason(s,type,point.x,point.y)){
+    // The fallback must obey the same hard world constraints as the scored
+    // candidates; otherwise a crowded/custom map could bypass river or bounds
+    // rules merely because the primary search found no usable candidate.
+    if(candidateScore(s,type,point.x,point.y,()=>0)>-Infinity&&
+      !placementReason(s,type,point.x,point.y)){
       return addBuilding(s,type,point.x,point.y);
     }
   }
