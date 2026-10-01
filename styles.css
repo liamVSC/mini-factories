@@ -34,3 +34,36 @@
   #objective{left:164px;right:8px;top:8px}
 }
 .changelog-page-box{width:min(620px,92vw);max-height:min(760px,88vh);overflow:auto;text-align:left;padding:20px}.changelog-page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.changelog-page-head h1{margin:0;color:#26353c}.changelog-page-head small{display:block;margin-top:3px;color:#81725f}.changelog-page-box .changelog-list{gap:10px}.changelog-page-box .changelog-version{padding:11px 12px}.changelog-page-box .changelog-head b{font-size:13px}.changelog-page-box .changelog-version li{font-size:11px;line-height:1.4}@media(max-width:700px){.changelog-page-box{width:calc(100% - 20px);max-height:calc(100% - 24px);padding:14px}.changelog-page-head h1{font-size:21px}.changelog-page-box .changelog-version{padding:9px}.changelog-page-box .changelog-version li{font-size:10px;line-height:1.35}}
+
+/* Mobile UI polish v1.1.2 */
+@media(max-width:700px){
+  .actions{grid-template-columns:repeat(5,minmax(0,1fr));}
+  .actions button{font-size:10px;min-height:46px;height:46px;padding:4px 2px;display:flex;align-items:center;justify-content:center;gap:2px;}
+  .panel{bottom:calc(66px + env(safe-area-inset-bottom));max-height:calc(100% - 158px);}
+  .panel.shop-panel,.panel.factory-panel,.panel.warehouse-panel,.panel.build-panel,.panel.research-panel,.panel.company-panel{bottom:calc(66px + env(safe-area-inset-bottom));}
+  .road-editor{bottom:calc(66px + env(safe-area-inset-bottom));max-height:calc(100% - 78px);overflow:auto;}
+  .road-editor-actions{grid-template-columns:1fr 1fr;}
+  .road-editor-action{min-height:62px;height:auto;grid-template-columns:30px 1fr;grid-template-rows:auto auto;}
+  .road-editor-cancel{min-height:44px;}
+  #tip{bottom:calc(72px + env(safe-area-inset-bottom));max-width:calc(100% - 14px);}
+  .build-menu{bottom:calc(66px + env(safe-area-inset-bottom));}
+  .build-road-tools{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 2px 7px;}
+  .build-road-tool{min-height:48px;height:48px;padding:5px 7px;font-size:11px;line-height:1.05;}
+  .build-road-tool small{display:block;font-size:7px;line-height:1.1;margin-top:2px;color:#766a5b;}
+}
+@media(max-width:390px){
+  .actions{gap:2px;padding-left:3px;padding-right:3px;}
+  .actions button{font-size:8px;min-height:44px;height:44px;padding:3px 1px;}
+  .panel{left:5px;right:5px;bottom:calc(64px + env(safe-area-inset-bottom));max-height:calc(100% - 150px);}
+  .road-editor{left:5px;right:5px;bottom:calc(64px + env(safe-area-inset-bottom));padding:8px;}
+  .road-editor-actions{grid-template-columns:1fr;gap:5px;}
+  .road-editor-action{min-height:50px;height:50px;}
+  .build-menu{bottom:calc(64px + env(safe-area-inset-bottom));}
+  #tip{bottom:calc(69px + env(safe-area-inset-bottom));font-size:8px;}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .actions{grid-template-columns:repeat(5,minmax(0,1fr));}
+  .panel{left:8px;right:164px;bottom:8px;top:auto;max-height:calc(100% - 16px);}
+  .road-editor{left:8px;right:164px;bottom:8px;width:auto;max-height:calc(100% - 16px);}
+  .build-menu{left:164px;right:0;bottom:0;width:auto;border-radius:16px 0 0 0;}
+}
