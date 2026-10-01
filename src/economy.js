@@ -2,7 +2,7 @@ import {TYPES} from './state.js';
 
 import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment,roadNetwork} from './world.js';
 import {buildLaneGraph} from './laneGraph.js';
-import {buildJunctionControls,movementForLaneRoute,movementPermission,stopLinePoint} from './junctionControl.js';
+import {buildJunctionControls,laneIndexForJunction,movementForLaneRoute,movementPermission,stopLinePoint} from './junctionControl.js';
 const newId=()=>globalThis.crypto?.randomUUID?.()||'id-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
 
 export function spec(type){return TYPES.find(t=>t.name===type)||TYPES[0]}
@@ -244,9 +244,10 @@ function trafficConflict(s,t,network,laneGraph){
     return false;
   }
 
-  const laneIndex=Array.isArray(t.laneIds)&&t.laneIds.length
+  const junctionLaneIndex=Array.isArray(t.laneIds)&&t.laneIds.length?laneIndexForJunction(laneGraph,t.laneIds,here.junction):-1;
+  const laneIndex=junctionLaneIndex>=0?junctionLaneIndex:(Array.isArray(t.laneIds)&&t.laneIds.length
     ?Math.min(t.laneIds.length-2,Math.max(0,Math.floor(t.t*t.laneIds.length)))
-    :0;
+    :0);
   const movement=movementForLaneRoute(laneGraph,controls,t.laneIds,laneIndex);
   const contenders=[];
   for(const o of s.trucks||[]){
@@ -254,7 +255,7 @@ function trafficConflict(s,t,network,laneGraph){
     const other=junctionForTruck(network,o);
     if(!other||dist(here.junction,other.junction)>1.5)continue;
     const otherLaneIndex=Array.isArray(o.laneIds)&&o.laneIds.length
-      ?Math.min(o.laneIds.length-2,Math.max(0,Math.floor(o.t*o.laneIds.length)))
+      ?(laneIndexForJunction(laneGraph,o.laneIds,other.junction)>=0?laneIndexForJunction(laneGraph,o.laneIds,other.junction):Math.min(o.laneIds.length-2,Math.max(0,Math.floor(o.t*o.laneIds.length))))
       :0;
     const otherMovement=movementForLaneRoute(laneGraph,controls,o.laneIds,otherLaneIndex);
     if(!otherMovement||!movement)continue;
@@ -280,6 +281,8 @@ function trafficConflict(s,t,network,laneGraph){
     junction:{x:here.junction.x,y:here.junction.y},
     metresAhead:here.metresAhead,
     yielding,
+    priorityState:signal.allowed?(yielding?'yield':'proceed'):'signal-stop',
+    yieldReason:!signal.allowed?signal.state:(yielding?'conflicting-movement':null),
     movement:movement?.type||here.movement?.direction||t.lane||'straight',
     laneTarget,
     laneChangeAllowed:here.metresAhead>(movement?.conflictZoneDistance??18),
