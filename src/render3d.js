@@ -471,7 +471,7 @@ function segmentHitsBuilding(a,b,building){
   return edges.some(([c,d])=>edgeHit(c,d));
 }
 function addBuildingAccess(g,building){
-  const attachment=roadAttachment(g.userData.state||{},building);
+  const attachment=roadAttachment(ws||{},building);
   if(!attachment)return null;
   const docks=buildingDockPoints(building);
   if(!docks.length)return null;
