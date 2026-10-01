@@ -86,10 +86,9 @@ test('junction controls expose explicit turning state for lane transitions',()=>
   const incoming=lanes.incoming.get(junction)||[];
   assert.ok(incoming.length);
   const lane=incoming[0];
-  const laneIndex=laneIndexForJunction(lanes,[lane.id,...(lanes.outgoing.get(junction)||[]).map(x=>x.id)],junction);
-  assert.equal(laneIndex,0);
-
   const movement=control.movements.find(m=>m.incomingLaneId===lane.id);
   assert.ok(movement);
+  const laneIndex=laneIndexForJunction(lanes,[movement.incomingLaneId,movement.outgoingLaneId],junction);
+  assert.equal(laneIndex,0);
   assert.equal(movementForLaneRoute(lanes,controls,[movement.incomingLaneId,movement.outgoingLaneId],0)?.id,movement.id);
 });
