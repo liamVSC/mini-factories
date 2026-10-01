@@ -302,22 +302,55 @@ function addDedicatedApproachLanes(group,center,connections){
     const out=roadDirection(con.inner,con.outer);
     if(!out)continue;
     const travel={x:-out.x,y:-out.y},side={x:-travel.y,y:travel.x};
-    addRoadBox(group,
-      {x:center.x+travel.x*L/2,y:center.y+travel.y*L/2},
-      {x:center.x+travel.x*2,y:center.y+travel.y*2},
-      W,.12,ROAD.surfaceY,roadMaterials.asphalt);
+    // Taper from the normal two-lane width into the three-lane junction
+    // approach. The added width starts gradually rather than appearing at
+    // the junction as a hard rectangular step.
+    const taperStart=58,taperEnd=30;
+    const widthAt=d=>ROAD.width+(W-ROAD.width)*Math.max(0,Math.min(1,(taperStart-d)/(taperStart-taperEnd)));
+    const sections=[58,48,38,30,20,10,2];
+    for(let i=1;i<sections.length;i++){
+      const da=sections[i-1],db=sections[i];
+      const wa=widthAt(da),wb=widthAt(db);
+      const a={x:center.x+travel.x*da,y:center.y+travel.y*da};
+      const b={x:center.x+travel.x*db,y:center.y+travel.y*db};
+      addRoadBox(group,a,b,(wa+wb)/2,.12,ROAD.surfaceY,roadMaterials.asphalt);
+    }
+    // Lane separators are dashed through the taper, then continuous in the
+    // dedicated approach. This visually merges the turn pocket into normal
+    // road geometry.
     for(const n of [1,2]){
       const off=-W/2+lane*n;
-      addRoadBox(group,
-        {x:center.x+travel.x*8+side.x*off,y:center.y+travel.y*8+side.y*off},
-        {x:center.x+travel.x*48+side.x*off,y:center.y+travel.y*48+side.y*off},
-        .5,.08,ROAD.markingY,roadMaterials.edge);
+      for(let d=46;d>=8;d-=7){
+        const blend=Math.max(0,Math.min(1,(58-d)/28));
+        const currentWidth=ROAD.width+(W-ROAD.width)*blend;
+        const currentOff=-currentWidth/2+(currentWidth/3)*n;
+        const a={x:center.x+travel.x*d+side.x*currentOff,y:center.y+travel.y*d+side.y*currentOff};
+        const q={x:center.x+travel.x*(d-3.4)+side.x*currentOff,y:center.y+travel.y*(d-3.4)+side.y*currentOff};
+        addRoadBox(group,a,q,.42,.075,ROAD.markingY,roadMaterials.edge);
+      }
     }
-    const pocketOff=-W/2+lane*2;
-    addRoadBox(group,
-      {x:center.x+travel.x*12+side.x*pocketOff,y:center.y+travel.y*12+side.y*pocketOff},
-      {x:center.x+travel.x*44+side.x*pocketOff,y:center.y+travel.y*44+side.y*pocketOff},
-      1.1,.08,ROAD.markingY+.01,roadMaterials.center);
+    // Turn-pocket edge line on the centre-side lane.
+    const edgeOff=W/2-lane*.12;
+    for(let d=46;d>=10;d-=6){
+      const blend=Math.max(0,Math.min(1,(58-d)/28));
+      const currentWidth=ROAD.width+(W-ROAD.width)*blend;
+      const currentOff=-currentWidth/2+currentWidth-edgeOff;
+      const a={x:center.x+travel.x*d+side.x*currentOff,y:center.y+travel.y*d+side.y*currentOff};
+      const q={x:center.x+travel.x*(d-2.8)+side.x*currentOff,y:center.y+travel.y*(d-2.8)+side.y*currentOff};
+      addRoadBox(group,a,q,.55,.075,ROAD.markingY+.01,roadMaterials.center);
+    }
+    // Directional arrow bars: compact, low-poly and readable on mobile.
+    for(const n of [0,1,2]){
+      const off=-W/2+lane*(n+.5);
+      const p={x:center.x+travel.x*25+side.x*off,y:center.y+travel.y*25+side.y*off};
+      const shaft={x:p.x+travel.x*5,y:p.y+travel.y*5};
+      addRoadBox(group,p,shaft,.7,.08,ROAD.markingY+.025,roadMaterials.edge);
+      const tip={x:shaft.x+travel.x*3,y:shaft.y+travel.y*3};
+      const leftTip={x:shaft.x+side.x*2.2+travel.x*1.5,y:shaft.y+side.y*2.2+travel.y*1.5};
+      const rightTip={x:shaft.x-side.x*2.2+travel.x*1.5,y:shaft.y-side.y*2.2+travel.y*1.5};
+      addRoadBox(group,leftTip,tip,.55,.08,ROAD.markingY+.025,roadMaterials.edge);
+      addRoadBox(group,rightTip,tip,.55,.08,ROAD.markingY+.025,roadMaterials.edge);
+    }
   }
 }
 function addTurnLaneMarking(group,start,control,end,width=1.05){
