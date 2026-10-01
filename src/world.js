@@ -4,7 +4,6 @@ import {dist,length,finitePoint,safePoint,validRoadPoints,projectSegment,project
 import {isInsideWorldBounds,validateRoadGeometry} from './world/roads/validation.js';
 import {riverY,district,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
 import {spawnBuilding,seedBuildings} from './world/buildings/spawning.js';
-import {buildingOperationalState} from './world/buildings/intelligence.js';
 import {buildingPhysicalPlacementReason,buildingHitbox,buildingAtPoint,nearestBuilding,buildingFootprint,buildingDockPoints,buildingConnectionPoint} from './world/buildings/geometry.js';
 import {roadBuildingTarget,nearestRoad,snapRoadPoint,snap,segmentNearRiver,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,snapToWorldEdge,roadTarget,roadPreview} from './world/roads/placement.js';
 import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate} from './world/roads/intersections.js';
