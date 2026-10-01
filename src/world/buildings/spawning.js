@@ -2,7 +2,7 @@ import {TYPES,makeBuilding} from '../../state.js';
 import {createRng,seedFromState} from '../../core/rng.js';
 import {newId} from '../../core/ids.js';
 import {riverY,WORLD_HALF_SIZE,WORLD_MARGIN} from '../terrain.js';
-import {buildingFootprint} from './geometry.js';
+import {buildingFootprint,buildingPhysicalPlacementReason} from './geometry.js';
 import {factorySpawnCandidates} from './layout.js';
 
 const FACTORY_TARGET_RADIUS=900;
@@ -62,43 +62,24 @@ function neighbourhoodScore(s,x,y,type){
   const buildings=Array.isArray(s.buildings)?s.buildings:[];
   let score=0;
   let nearest=Infinity;
-
   for(const building of buildings){
     const d=distance({x,y},building);
     nearest=Math.min(nearest,d);
-
-    if(building.kind===type.kind){
-      score+=Math.min(240,d*.45);
-    }else if(type.kind==='factory'&&building.kind==='shop'){
-      // Factories benefit from being close enough to the commercial network to
-      // keep routes practical, but not packed into the same block.
+    if(building.kind===type.kind)score+=Math.min(240,d*.45);
+    else if(type.kind==='factory'&&building.kind==='shop'){
       if(d>=260&&d<=700)score+=180;
       else if(d<220)score-=220;
-    }else if(type.kind==='shop'&&building.kind==='factory'){
-      if(d>=180&&d<=520)score+=120;
-    }
+    }else if(type.kind==='shop'&&building.kind==='factory'&&d>=180&&d<=520)score+=120;
   }
-
   if(buildings.length&&nearest<(type.kind==='factory'?260:100))score-=600;
   return score;
 }
 
 function candidateScore(s,type,x,y,random){
-  let score=0;
   if(!insideBounds(x,y))return -Infinity;
+  if(buildingPhysicalPlacementReason(s,type,x,y))return -Infinity;
 
-  const footprint=buildingFootprint({kind:type.kind});
-  if(Math.abs(y-riverY(x))<RIVER_BUFFER+Math.max(footprint.halfWidth,footprint.halfDepth)*.18)return -Infinity;
-
-  const buildings=s.buildings||[];
-  for(const other of buildings){
-    const d=distance({x,y},other);
-    const minimum=type.kind==='factory'&&other.kind==='factory'
-      ?250
-      :type.kind==='factory'||other.kind==='factory'?115:85;
-    if(d<minimum)return -Infinity;
-  }
-
+  let score=0;
   score+=roadScore(s,x,y);
   score+=neighbourhoodScore(s,x,y,type);
   score-=riverPenalty(x,y);
@@ -111,7 +92,6 @@ function candidateScore(s,type,x,y,random){
   }else{
     score-=Math.max(0,centreDistance-BUILDING_SEARCH_RADIUS)*.7;
   }
-
   score+=random()*35;
   return score;
 }
@@ -181,7 +161,7 @@ function spawnBuilding(s,kind,forced,placementReason){
     // candidates; otherwise a crowded/custom map could bypass river or bounds
     // rules merely because the primary search found no usable candidate.
     if(candidateScore(s,type,point.x,point.y,()=>0)>-Infinity&&
-      !placementReason(s,type,point.x,point.y)){
+      !buildingPhysicalPlacementReason(s,type,point.x,point.y)&&!placementReason(s,type,point.x,point.y)){
       return addBuilding(s,type,point.x,point.y);
     }
   }
