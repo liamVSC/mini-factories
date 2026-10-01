@@ -8,7 +8,8 @@ import {
   roadNetwork,
   routeOnRoadNetwork,
   buildingPhysicalPlacementReason,
-  spawn
+  spawn,
+  seed
 } from '../src/world.js';
 import {buildLaneGraph} from '../src/laneGraph.js';
 import {
