@@ -74,6 +74,25 @@ test('disconnected road components do not produce a lane route',()=>{
   assert.equal(routeOnRoadNetwork(s,factory,shop),null);
 });
 
+
+test('routing traverses a junction and preserves explicit turn state',()=>{
+  const s=roadState();
+  const factory={id:'factory',x:-160,y:0,kind:'factory',r:25};
+  const shop={id:'shop',x:0,y:160,kind:'shop',r:25};
+  s.buildings=[factory,shop];
+  assert.equal(addRoad(s,[{x:-160,y:0},{x:160,y:0}]),true);
+  assert.equal(addRoad(s,[{x:0,y:-160},{x:0,y:160}]),true);
+
+  const route=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(route);
+  assert.equal(route.roadNetworkRevision,s.roadNetworkRevision);
+  assert.equal(route.componentId,0);
+  assert.ok(route.laneIds.length>=2);
+  assert.ok(route.lanePoints.length>=2);
+  assert.ok(route.laneTransitions.some(t=>t.type==='left'));
+  assert.ok(route.points.some(p=>Math.abs(p.x)<1e-6&&Math.abs(p.y)<1e-6));
+});
+
 test('junction controls expose explicit turning state for lane transitions',()=>{
   const s=roadState();
   assert.equal(addRoad(s,[{x:-160,y:0},{x:160,y:0}]),true);
