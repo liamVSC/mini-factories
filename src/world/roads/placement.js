@@ -23,7 +23,6 @@ export function roadPathBlocked(s,points,endpointBuildings={}){
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i];
     for(const building of s.buildings||[]){
-      const clearance=(building.r||25)+12;
       const sameBuilding=(x,y)=>x===y||!!(x?.id&&y?.id&&x.id===y.id);
       const isStart=sameBuilding(building,startBuilding)&&i===1;
       const isEnd=sameBuilding(building,endBuilding)&&i===points.length-1;
@@ -33,11 +32,11 @@ export function roadPathBlocked(s,points,endpointBuildings={}){
         if(endpointSegmentBlockedGeometry(building,a,b,isStart?'start':'end',buildingFootprintRadius(building)))return true;
         continue;
       }
-      // still being a legitimate facade connection. Treat that endpoint as
-      // the building connection instead of rejecting the whole edited road.
-      if(i===1&&dist(a,{x:building.x,y:building.y})<=ROAD_BUILDING_SNAP_TOLERANCE)continue;
-      if(i===points.length-1&&dist(b,{x:building.x,y:building.y})<=ROAD_BUILDING_SNAP_TOLERANCE)continue;
-      if(pointSegmentDistance(building,a,b)<clearance)return true;
+      // Keep roads outside the rendered building footprint. Use the canonical
+      // rectangular hitbox with a small construction margin rather than the
+      // legacy circular radius, which can be smaller than a warehouse/factory.
+      const rect=buildingHitbox(building,12);
+      if(segmentIntersectsRect(a,b,rect))return true;
     }
   }
   return false;
