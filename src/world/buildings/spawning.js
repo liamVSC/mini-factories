@@ -2,6 +2,7 @@ import {TYPES,makeBuilding} from '../../state.js';
 import {createRng,seedFromState} from '../../core/rng.js';
 import {newId} from '../../core/ids.js';
 import {district,riverY} from '../terrain.js';
+import {buildingLocationScore} from './intelligence.js';
 
 export function spawnBuilding(s,kind,forced,placementReason){
   const random=createRng(seedFromState(s));
