@@ -110,7 +110,17 @@ function addLaneAwareJunction(group,center,connections){
   }
 }
 function makeRoadJunctions(roads){const group=new THREE.Group();const network=roadTopology({roads:(roads||[]).filter(road=>!road?.bridge)});for(const node of network.nodes){const links=network.adjacency.get(node)||[];if(links.length<3)continue;const connections=[];for(const link of links){const dx=link.node.x-node.x,dy=link.node.y-node.y,len=Math.hypot(dx,dy)||1;connections.push({inner:{x:node.x,y:node.y},outer:{x:node.x+dx/len*20,y:node.y+dy/len*20}});}const unique=[];for(const connection of connections)if(!unique.some(existing=>Math.abs(existing.outer.x-connection.outer.x)<8&&Math.abs(existing.outer.y-connection.outer.y)<8))unique.push(connection);if(unique.length>=3){const active=unique.slice(0,4),center={x:node.x,y:node.y},radius=ROAD.width*.66+Math.min(9,active.length*1.6);addLaneAwareJunction(group,center,active);addJunctionControlLines(group,center,active,radius);}}return group;}
-function addJunctionControlLines(group,center,connections,radius){for(const connection of connections){const d=roadDirection(connection.inner,connection.outer);if(!d)continue;const travel={x:-d.x,y:-d.y},left={x:-travel.y,y:travel.x},distance=radius+9,p={x:center.x+d.x*distance+left.x*7,y:center.y+d.y*distance+left.y*7},line=new THREE.Mesh(new THREE.BoxGeometry(.85,.12,ROAD.width*1.48),roadMaterials.edge);line.position.set(p.x,ROAD.markingY+.025,p.y);line.rotation.y=-Math.atan2(travel.y,travel.x);group.add(line);}}
+function addJunctionControlLines(group,center,connections,radius){
+  for(const connection of connections){
+    const d=roadDirection(connection.inner,connection.outer);if(!d)continue;
+    const travel={x:-d.x,y:-d.y},left={x:-travel.y,y:travel.x};
+    const distance=radius+9,centerOffset=7;
+    const p={x:center.x+d.x*distance+left.x*centerOffset,y:center.y+d.y*distance+left.y*centerOffset};
+    const a={x:p.x-travel.x*(ROAD.width*.56),y:p.y-travel.y*(ROAD.width*.56)};
+    const b={x:p.x+travel.x*(ROAD.width*.56),y:p.y+travel.y*(ROAD.width*.56)};
+    addRibbonStrip(group,[a,b],.92,ROAD.markingY+.035,roadMaterials.edge);
+  }
+}
 function disposeMaterial(material){if(Array.isArray(material)){material.forEach(disposeMaterial);return;}if(!material||sharedMaterials.has(material))return;material.dispose?.();}
 function disposeObject(g){g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)disposeMaterial(o.material);});}
 function clearDynamic(){for(const g of worldObjects){scene.remove(g);disposeObject(g);}worldObjects.clear();meshes.clear();for(const g of truckMeshes.values()){scene.remove(g);disposeObject(g);}truckMeshes.clear();}
