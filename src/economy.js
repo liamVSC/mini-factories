@@ -314,14 +314,20 @@ function rerouteTruck(s,t){
   // A deleted road can strand a truck between two remaining road segments.
   // Preserve its physical position and let it drive to the nearest point on
   // the replacement network instead of teleporting it onto that network.
-  const join=pointOnRoute(next.points,projected.progress);
+  const physical=Array.isArray(next.lanePoints)&&next.lanePoints.length>=2?next.lanePoints:next.points;
+  const physicalProjected=projectRouteProgress(physical,p);
+  if(!physicalProjected)return false;
+  const join=pointOnRoute(physical,physicalProjected.progress);
   if(!join)return false;
-  const remaining=next.points.slice(projected.segmentIndex);
+  const remaining=physical.slice(Math.max(0,physicalProjected.segmentIndex));
   const routePoints=[p,join,...remaining];
   const compact=routePoints.filter((q,i)=>i===0||dist(q,routePoints[i-1])>.01);
   t.centerlineRoute=next.points;
-  t.route=next.lanePoints||compact;
-  t.routeKey=t.route.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
+  t.route=compact;
+  t.routeKey=next.points.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
+  t.laneIds=Array.isArray(next.laneIds)?[...next.laneIds]:[];
+  t.currentLaneIndex=0;
+  t.currentLaneId=t.laneIds[0]||null;
   t.t=0;
   t.routeInvalidated=false;
   return true;
