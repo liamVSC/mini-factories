@@ -88,3 +88,20 @@ test('traffic signal state is persisted safely in hydrated game state',()=>{
   assert.equal(hydrated.trafficSignals.enabled,true);
   assert.equal(hydrated.trafficSignals.cycle,18);
 });
+
+
+test('junction movement classification uses canonical route geometry',async()=>{
+  const {freshState}=await import('../src/state.js');
+  const {routeOnRoadNetwork}=await import('../src/world.js');
+  const s=freshState();
+  s.roads.push(
+    {id:'a',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},
+    {id:'b',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0}
+  );
+  const source={x:-120,y:0,r:20};
+  const target={x:0,y:120,r:20};
+  const route=routeOnRoadNetwork(s,source,target);
+  assert.ok(route);
+  assert.ok(route.lanePoints.length>=route.points.length);
+  assert.equal(route.laneTransitions[0].type,'left');
+});
