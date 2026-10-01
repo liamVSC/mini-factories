@@ -56,8 +56,35 @@ test('new game seeds the fixed starter buildings once and without districts',()=
   );
   assert.equal(s.buildings.length,6);
   assert.ok(s.buildings.every(b=>!Object.prototype.hasOwnProperty.call(b,'district')));
+  assert.ok(s.buildings.every(b=>!('district' in b)));
   assert.equal(typeof buildingModule.spawn,'undefined');
+  assert.equal(makeBuilding(TYPES.find(t=>t.name==='Food'),0,0,'district-free').district,undefined);
   assert.ok(layoutIsValid(s.buildings));
+});
+
+test('starter factories occupy separate sectors and shops stay close to their paired factories',()=>{
+  const s=baseState();
+  seed(s);
+
+  const factories=s.buildings.filter(b=>b.kind==='factory');
+  const shops=s.buildings.filter(b=>b.kind==='shop');
+  assert.equal(factories.length,3);
+  assert.equal(shops.length,3);
+
+  for(let i=0;i<factories.length;i++){
+    const factory=factories[i];
+    const angle=Math.atan2(factory.y,factory.x);
+    for(let j=i+1;j<factories.length;j++){
+      const other=factories[j];
+      const separation=Math.hypot(factory.x-other.x,factory.y-other.y);
+      assert.ok(separation>=FACTORY_MIN_DISTANCE);
+    }
+    const paired=shops[i];
+    const distance=Math.hypot(factory.x-paired.x,factory.y-paired.y);
+    assert.ok(distance>=250&&distance<=650, 'paired starter shop should sit near its factory');
+    assert.ok(Math.hypot(factory.x,factory.y)>=FACTORY_MIN_SPAWN_RADIUS);
+    assert.ok(Number.isFinite(angle));
+  }
 });
 
 test('normal simulation does not create buildings after the new-game seed',()=>{
