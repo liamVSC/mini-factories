@@ -1,19 +1,15 @@
 import {freshState,goalList} from '../state.js';
+import {buildingFootprint} from '../world/buildings/geometry.js';
+import {isInsideWorldBounds} from '../world/roads/validation.js';
+import {riverY} from '../world/terrain.js';
 
 const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
 const clampNumber=(value,min,max,fallback=min)=>Math.max(min,Math.min(max,finite(value,fallback)));
 
-function stateBuildingFootprint(b){
-  if(b?.kind==='warehouse')return{w:48,d:33};
-  if(b?.kind==='factory')return{w:39,d:31};
-  return{w:35,d:28};
-}
-
-function stateRiverY(x){return 420+Math.sin(x*.002)*35}
-
-function buildingOverlaps(a,b,clearance=18){
-  const af=stateBuildingFootprint(a),bf=stateBuildingFootprint(b);
-  return Math.abs(Number(a.x)-Number(b.x))<af.w+bf.w+clearance&&Math.abs(Number(a.y)-Number(b.y))<af.d+bf.d+clearance;
+function buildingOverlaps(a,b){
+  const af=buildingFootprint(a),bf=buildingFootprint(b);
+  const clearance=a.kind==='factory'&&b.kind==='factory'?72:(a.kind==='factory'||b.kind==='factory'?36:18);
+  return Math.abs(Number(a.x)-Number(b.x))<af.halfWidth+bf.halfWidth+clearance&&Math.abs(Number(a.y)-Number(b.y))<af.halfDepth+bf.halfDepth+clearance;
 }
 
 function repairBuildingLayout(buildings){
@@ -27,10 +23,11 @@ function repairBuildingLayout(buildings){
         const radius=ring*70;
         for(let i=0;i<24;i++){
           const angle=(i/24)*Math.PI*2;
-          const x=Math.max(-1276,Math.min(1276,Number(b.x)+Math.cos(angle)*radius));
-          const y=Math.max(-1276,Math.min(1276,Number(b.y)+Math.sin(angle)*radius));
+          const raw={x:Number(b.x)+Math.cos(angle)*radius,y:Number(b.y)+Math.sin(angle)*radius};
+          const x=Math.max(-1276,Math.min(1276,raw.x));
+          const y=Math.max(-1276,Math.min(1276,raw.y));
           const test={...b,x,y};
-          if(Math.abs(y-stateRiverY(x))<120)continue;
+          if(!isInsideWorldBounds(test,24)||Math.abs(y-riverY(x))<105+Math.max(buildingFootprint(test).halfDepth,buildingFootprint(test).halfWidth)*.18)continue;
           if(!accepted.some(other=>buildingOverlaps(test,other))){found=test;break}
         }
       }
