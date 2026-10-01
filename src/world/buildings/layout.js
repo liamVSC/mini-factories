@@ -104,7 +104,7 @@ export function repairBuildingLayout(buildings,seed=1){
   for(let index=0;index<factories.length;index++){
     const original=factories[index];
     const current={...original};
-    const centralSpawn=Math.hypot(Number(current.x),Number(current.y))<FACTORY_MIN_SPAWN_RADIUS;
+    const centralSpawn=factories.length>1&&Math.hypot(Number(current.x),Number(current.y))<FACTORY_MIN_SPAWN_RADIUS;
     if(validCandidate(current,accepted)&&!centralSpawn){
       accepted.push(current);
       continue;
