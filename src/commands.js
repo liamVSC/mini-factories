@@ -1,5 +1,5 @@
 import {addRoad,eraseRoad,editRoadEndpoint,roadEndpointPreview,roadSegmentAtPoint} from './world/roads/index.js';
-import {placeBuilding,buildingAtPoint} from './world/buildings/index.js';
+import {placeBuilding} from './world/buildings/index.js';
 
 function clone(value){
   if(typeof structuredClone==='function')return structuredClone(value);
