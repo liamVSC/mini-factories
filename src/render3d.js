@@ -726,11 +726,20 @@ function drawTrucks(s){
     // This is blended from straight-road spacing so trucks never jump sideways.
     const laneSide=t.lane==='right'?-1:1;
     const laneOffsetBase=4.3;
-    const laneBlend=Math.max(0,Math.min(1,Math.abs(p.curvature||0)*10));
     const turnSide=Math.sign(p.curvature||0);
     const inner=turnSide===laneSide;
-    const laneOffsetMagnitude=laneOffsetBase+(laneBlend*(inner?-0.9:0.9));
-    const laneOffset=laneSide*laneOffsetMagnitude;
+    const curveOffset=laneOffsetBase+(Math.max(0,Math.min(1,Math.abs(p.curvature||0)*10))*(inner?-0.9:0.9));
+    // Select the appropriate approach position before the junction. The
+    // simulation supplies a target lane offset from the truck's intended
+    // movement, and we blend into it over the final approach instead of
+    // snapping at the junction itself.
+    const control=t.trafficControl;
+    const metresAhead=Number(control?.metresAhead);
+    const approachBlend=Number.isFinite(metresAhead)
+      ?Math.max(0,Math.min(1,(72-metresAhead)/54))
+      :0;
+    const targetLane=Number.isFinite(control?.laneTarget)?control.laneTarget:laneSide*curveOffset;
+    const laneOffset=laneSide*curveOffset*(1-approachBlend)+targetLane*approachBlend;
     const nx=-dy,nz=dx;
     const laneX=p.x+nx*laneOffset,laneZ=p.y+nz*laneOffset;
     g.position.set(laneX,.86,laneZ);
