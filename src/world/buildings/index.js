@@ -34,6 +34,7 @@ export {
 
 export {
   FACTORY_MIN_DISTANCE,
+  FACTORY_MIN_SPAWN_RADIUS,
   buildingOverlaps,
   buildingPlacementConflict,
   validateBuildingLayout,
