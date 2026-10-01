@@ -189,6 +189,51 @@ test('deleting a road invalidates the route', () => {
   assert.equal(route(s, f, shop), null);
 });
 
+test('route rejects a building object that is no longer live in world state', () => {
+  const s = baseState();
+  const f = building('Food', 0, 0);
+  const shop = building('Market', 220, 0);
+  s.buildings.push(f, shop);
+  s.roads.push(road([{x:35,y:0},{x:185,y:0}]));
+
+  assert.ok(route(s, f, shop));
+  s.buildings.splice(s.buildings.indexOf(f), 1);
+  assert.equal(route(s, f, shop), null);
+});
+
+test('economy retires trucks whose source or destination building was removed', () => {
+  const s = baseState();
+  const f = building('Food', 0, 0);
+  const shop = building('Market', 220, 0);
+  s.buildings.push(f, shop);
+  s.roads.push(road([{x:35,y:0},{x:185,y:0}]));
+  const r = route(s, f, shop);
+  assert.ok(r);
+
+  s.trucks.push({
+    id:'removed-building-truck',
+    route:r.points,
+    centerlineRoute:r.points,
+    laneRoute:r.lanePoints||r.points,
+    laneIds:r.laneIds,
+    laneRoadIds:r.laneRoadIds,
+    t:.2,
+    speed:.05,
+    cargo:2,
+    cargoType:'Food',
+    source:f,
+    to:shop,
+    stage:'delivery',
+    value:20,
+    routeNetworkRevision:s.roadNetworkRevision,
+    wait:0
+  });
+
+  s.buildings.splice(s.buildings.indexOf(shop), 1);
+  updateEconomy(s,.1,()=>{});
+  assert.equal(s.trucks.length,0);
+});
+
 test('insufficient cash rejects a road before mutating the network', () => {
   const s = baseState();
   s.cash = 1;
