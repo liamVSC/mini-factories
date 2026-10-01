@@ -1,4 +1,4 @@
-import {dist,finitePoint,validRoadPoints,projectSegment,projectOnPolyline,segmentIntersection,length} from './geometry.js';
+import {dist,finitePoint,validRoadPoints,cleanRoadPoints,projectSegment,projectOnPolyline,segmentIntersection,length} from './geometry.js';
 import {validateRoadGeometry} from './validation.js';
 import {riverY,WORLD_BOUNDS,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from '../terrain.js';
 import {buildingHitbox,nearestBuilding,buildingConnectionPoint,buildingFootprintRadius} from '../buildings/geometry.js';
