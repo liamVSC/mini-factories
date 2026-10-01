@@ -48,7 +48,7 @@ test('factories keep a full visual footprint clearance from each other',()=>{
   const s=baseState();
   const type=TYPES.find(t=>t.name==='Steel');
   s.buildings.push(makeBuilding(type,0,0,'existing'));
-  assert.equal(buildingPhysicalPlacementReason(s,type,140,0),null);
+  assert.equal(buildingPhysicalPlacementReason(s,type,160,0),null);
   assert.equal(buildingPhysicalPlacementReason(s,type,120,0),'Too close to another factory');
 });
 
@@ -82,7 +82,7 @@ test('building placement uses the same factory clearance as save repair',()=>{
   const s=baseState();
   const type=TYPES.find(t=>t.name==='Steel');
   s.buildings.push(makeBuilding(type,0,0,'existing'));
-  assert.equal(buildingPhysicalPlacementReason(s,type,140,0),null);
+  assert.equal(buildingPhysicalPlacementReason(s,type,160,0),null);
   assert.equal(buildingPhysicalPlacementReason(s,type,149,0),'Too close to another factory');
 });
 
@@ -319,7 +319,7 @@ test('live reroute keeps the truck at its physical position instead of teleporti
   const truck={id:'reroute-position',route:routed.points,centerlineRoute:routed.points,laneRoute:routed.lanePoints||routed.points,laneIds:routed.laneIds,t:.5,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10,routeNetworkRevision:s.roadNetworkRevision,wait:0};
   s.trucks.push(truck);
   const physical=pointOnRouteForTest(truck.route,truck.t);
-  assert.ok(editRoadEndpoint(s,main.id,1,{x:0,y:25}));
+  assert.ok(editRoadEndpoint(s,main.id,1,{x:0,y:45}));
   updateEconomy(s,0,()=>{});
   assert.equal(truck.routeNetworkRevision,s.roadNetworkRevision);
   assert.ok(truck.route.length>=2);
@@ -560,7 +560,7 @@ test('moving a road endpoint invalidates trucks using the old geometry', () => {
   assert.ok(routed);
   const truck = {id:'endpoint-edit-truck',route:routed.points,t:.4,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10};
   s.trucks.push(truck);
-  assert.ok(editRoadEndpoint(s,r.id,1,{x:85,y:120}));
+  assert.ok(editRoadEndpoint(s,r.id,1,{x:85,y:80}));
   assert.equal(truck.routeInvalidated,true);
 });
 
