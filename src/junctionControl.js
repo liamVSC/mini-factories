@@ -4,8 +4,6 @@
  * Road geometry and lane graph remain authoritative. Junction controls are
  * derived from them and are never persisted as topology.
  */
-const EPSILON=1e-6;
-
 function keyForNode(node){
   return `${Math.round(node.x*10)/10},${Math.round(node.y*10)/10}`;
 }
