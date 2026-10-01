@@ -1,4 +1,4 @@
-import {dist,finitePoint,validRoadPoints,cleanRoadPoints,projectSegment,projectOnPolyline,segmentIntersection,length} from './geometry.js';
+import {dist,finitePoint,validRoadPoints,cleanRoadPoints,projectSegment,projectOnPolyline,segmentIntersection,length,endpointSegmentBlocked as endpointSegmentBlockedGeometry} from './geometry.js';
 import {validateRoadGeometry} from './validation.js';
 import {riverY,WORLD_BOUNDS,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from '../terrain.js';
 import {buildingHitbox,nearestBuilding,buildingConnectionPoint,buildingFootprintRadius} from '../buildings/geometry.js';
@@ -30,7 +30,7 @@ export function roadPathBlocked(s,points,endpointBuildings={}){
       if(isStart||isEnd){
         const endpoint=isStart?a:b;
         if(dist(endpoint,{x:building.x,y:building.y})<=1)continue;
-        if(endpointSegmentBlocked(building,a,b,isStart?'start':'end'))return true;
+        if(endpointSegmentBlockedGeometry(building,a,b,isStart?'start':'end',buildingFootprintRadius(building)))return true;
         continue;
       }
       // still being a legitimate facade connection. Treat that endpoint as
@@ -140,4 +140,3 @@ const blocked=!boundary.ok||!path||roadPathBlocked(s,path,{start:startBuilding,e
 const roadLength=path?length(path):Infinity;
 return{path:path||[start,end],start,end,snappedStart:Number.isFinite(start.distance),snappedEnd:Number.isFinite(end.distance),edgeSnappedStart:!!start.edgeSnapped,edgeSnappedEnd:!!end.edgeSnapped,gridSnappedStart:!!start.gridSnapped,gridSnappedEnd:!!end.gridSnapped,connectsBuilding:!!start.building||!!end.building,connectsRoad:!!start.road||!!end.road,blocked,blockedReason:!boundary.ok?boundary.reason:null,length:roadLength,cost:Number.isFinite(roadLength)?Math.max(1,Math.ceil(roadLength/180))*2:Infinity}}
 
-function endpointSegmentBlocked(building,a,b,side){if(!building)return false;const ax=a.x-building.x,ay=a.y-building.y,bx=b.x-building.x,by=b.y-building.y,aRadius=Math.hypot(ax,ay),bRadius=Math.hypot(bx,by);const outward=side==='start'?ax*(b.x-a.x)+ay*(b.y-a.y):bx*(a.x-b.x)+by*(a.y-b.y);const connectionRadius=buildingFootprintRadius(building);const outside=side==='start'?aRadius>=connectionRadius-.001:bRadius>=connectionRadius-.001;return outside&&outward<0}
