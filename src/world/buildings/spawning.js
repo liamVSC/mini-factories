@@ -2,7 +2,7 @@ import {TYPES,makeBuilding} from '../../state.js';
 import {createRng,seedFromState} from '../../core/rng.js';
 import {newId} from '../../core/ids.js';
 import {riverY,WORLD_HALF_SIZE,WORLD_MARGIN} from '../terrain.js';
-import {buildingFootprint,buildingPhysicalPlacementReason} from './geometry.js';
+import {buildingPhysicalPlacementReason} from './geometry.js';
 import {factorySpawnCandidates} from './layout.js';
 
 const FACTORY_TARGET_RADIUS=900;
