@@ -6,6 +6,8 @@ import {
   eraseRoad,
   editRoadEndpoint,
   roadNetwork,
+  roadTopology,
+  nearestGraphNode,
   routeOnRoadNetwork,
   buildingPhysicalPlacementReason,
   spawn,
@@ -166,4 +168,40 @@ test('road intersections preserve exact duplicate rejection, meaningful overlap 
   const junction=network.junctions.find(n=>Math.abs(n.x)<1e-6&&Math.abs(n.y)<1e-6);
   assert.ok(junction);
   assert.ok((network.adjacency.get(junction)||[]).length>=4);
+});
+
+
+test('road topology exposes canonical nodes, adjacency, components and junction classification',()=>{
+  const s=roadState();
+  assert.equal(addRoad(s,[{x:-180,y:0},{x:180,y:0}]),true);
+  assert.equal(addRoad(s,[{x:0,y:-180},{x:0,y:180}]),true);
+  const topology=roadTopology(s);
+  assert.equal(topology.nodes.length,5);
+  assert.equal(topology.edges.length,4);
+  const junction=topology.topologyJunctions.find(n=>Math.abs(n.x)<1e-6&&Math.abs(n.y)<1e-6);
+  assert.ok(junction);
+  assert.equal(junction.degree,4);
+  assert.equal(junction.type,'junction');
+  assert.equal(topology.fourWayJunctions.length,1);
+  assert.equal(topology.threeWayJunctions.length,0);
+  assert.ok(topology.adjacency.get(topology.nodes.find(n=>Math.abs(n.x+180)<1e-6&&Math.abs(n.y)<1e-6)).length===1);
+});
+
+test('nearest topology node rejects points outside the graph snap tolerance',()=>{
+  const s=roadState();
+  assert.equal(addRoad(s,[{x:-180,y:0},{x:180,y:0}]),true);
+  const network=roadNetwork(s);
+  assert.ok(nearestGraphNode(network,{x:0,y:2}));
+  assert.equal(nearestGraphNode(network,{x:0,y:10}),null);
+});
+
+test('topology revision is invalidated by road mutation without rebuilding persisted geometry',()=>{
+  const s=roadState();
+  assert.equal(s.roadNetworkRevision,0);
+  assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
+  const before=s.roads[0].points.map(p=>({...p}));
+  const topology=roadTopology(s);
+  assert.equal(s.roadNetworkRevision,1);
+  assert.ok(topology.nodes.length>=2);
+  assert.deepEqual(s.roads[0].points,before);
 });

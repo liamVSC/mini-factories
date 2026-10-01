@@ -5,6 +5,7 @@ import {WORLD_BOUNDS,WORLD_MARGIN} from '../terrain.js';
 import {buildingAtPoint,buildingConnectionPoint,buildingHitbox,nearestBuilding,buildingFootprintRadius} from '../buildings/geometry.js';
 import {roadBuildingTarget,snapRoadPoint,snapToWorldEdge,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,segmentNearRiver} from './placement.js';
 import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate} from './intersections.js';
+import {bumpRoadNetworkRevision} from './topology.js';
 
 export const endpointSegmentBlocked=(building,a,b,side)=>endpointSegmentBlockedGeometry(building,a,b,side,building?buildingFootprintRadius(building):undefined);
 
@@ -21,8 +22,6 @@ function validateRoadNetworkState(s){
   }
   return true;
 }
-export function bumpRoadNetworkRevision(s){s.roadNetworkRevision=Math.max(0,Math.floor(Number(s.roadNetworkRevision)||0))+1}
-
 function commitRoadMutation(s,mutator){
   const before=cloneRoadState(s.roads);
   try{mutator();cleanupRoadNetwork(s);if(!validateRoadNetworkState(s))throw new Error('invalid-road-network');}

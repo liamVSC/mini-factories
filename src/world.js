@@ -1,19 +1,20 @@
 import {makeBuilding} from './state.js';
 import {newId} from './core/ids.js';
-import {dist,length,finitePoint,safePoint,validRoadPoints,projectSegment,projectOnPolyline,pointOnRoute,roadPointParameter,addNode} from './world/roads/geometry.js';
-import {isInsideWorldBounds,roadWithinWorldBounds,validateRoadGeometry} from './world/roads/validation.js';
+import {dist,length,finitePoint,safePoint,validRoadPoints,projectSegment,projectOnPolyline,pointOnRoute} from './world/roads/geometry.js';
+import {isInsideWorldBounds,validateRoadGeometry} from './world/roads/validation.js';
 import {riverY,district,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
 import {spawnBuilding,seedBuildings} from './world/buildings/spawning.js';
 import {buildingPhysicalPlacementReason,buildingHitbox,buildingAtPoint,nearestBuilding,buildingFootprint,buildingDockPoints,buildingConnectionPoint,buildingFootprintRadius} from './world/buildings/geometry.js';
 import {roadBuildingTarget,nearestRoad,snapRoadPoint,snap,segmentNearRiver,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,snapToWorldEdge,roadTarget,roadPreview} from './world/roads/placement.js';
-import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate,buildRoadIntersections} from './world/roads/intersections.js';
-import {cleanupRoadNetwork,bumpRoadNetworkRevision} from './world/roads/editing.js';
+import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate} from './world/roads/intersections.js';
+import {cleanupRoadNetwork} from './world/roads/editing.js';
 export {riverY,district,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
 export {isInsideWorldBounds} from './world/roads/validation.js';
 export {dist,length,pointOnRoute};
 export {buildingPhysicalPlacementReason,buildingHitbox,buildingAtPoint,nearestBuilding,buildingFootprint,buildingDockPoints,buildingConnectionPoint};
 export {roadBuildingTarget,nearestRoad,snapRoadPoint,snap,segmentNearRiver,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,snapToWorldEdge,roadTarget,roadPreview};
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from './laneGraph.js';
+import {roadNetwork,nearestGraphNode,bumpRoadNetworkRevision} from './world/roads/topology.js';
 
 
 export function buildingCost(s,type){const base={Steel:260,Food:220,Parts:320,Market:180,Garage:240,Builder:220,Plastics:420,Glass:500,Electronics:520,Furniture:600,Warehouse:700};return Math.round((base[type.name]||300)*Math.pow(1.12,s.buildings.length))}
@@ -80,83 +81,6 @@ function resolveRoadEndpoint(s,value){if(value?.building&&Number.isFinite(value.
 
 
 
-export function roadNetwork(s,extraPoints=[]){
-  const valid=(s.roads||[]).map(r=>({...r,points:validRoadPoints(r?.points,0)})).filter(r=>r.points?.length>=2&&roadWithinWorldBounds(r.points));
-  const nodes=[],edges=[],marks=new Map(),virtualEdges=[];
-  for(const road of valid){
-    const segments=road.points.slice(1).map(()=>[]);
-    marks.set(road,segments);
-    for(let i=1;i<road.points.length;i++){
-      segments[i-1].push(addNode(nodes,road.points[i-1]));
-      segments[i-1].push(addNode(nodes,road.points[i]));
-    }
-  }
-  buildRoadIntersections(valid,nodes,marks,virtualEdges);
-  for(const p of extraPoints||[]){if(!finitePoint(p))continue;let best=null;for(const road of valid)for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(!best||q.distance<best.distance)best={road,segment:i-1,point:q.point,distance:q.distance}}if(best){const n=addNode(nodes,best.point);marks.get(best.road)[best.segment].push(n)}}
-  for(const road of valid)for(let i=0;i<road.points.length-1;i++){
-    const a=road.points[i],b=road.points[i+1];
-    const list=[...new Set(marks.get(road)[i])].sort((u,v)=>roadPointParameter(a,b,u)-roadPointParameter(a,b,v));
-    for(let j=1;j<list.length;j++){const u=list[j-1],v=list[j],d=dist(u,v);if(d>0.5)edges.push({a:u,b:v,d,road});}
-  }
-  for(const edge of virtualEdges)if(edge.d>.001)edges.push(edge);
-  const nodeIds=new Map(nodes.map((node,index)=>[node,index]));
-  const uniqueEdges=[];
-  const edgeKeys=new Set();
-  for(const edge of edges){
-    if(!edge?.a||!edge?.b||edge.d<=.001)continue;
-    const ai=nodeIds.get(edge.a),bi=nodeIds.get(edge.b);
-    if(ai===undefined||bi===undefined||ai===bi)continue;
-    const lo=Math.min(ai,bi),hi=Math.max(ai,bi),roadId=edge.road?.id||'road';
-    const key=lo+':'+hi+':'+roadId;
-    if(edgeKeys.has(key))continue;
-    edgeKeys.add(key);
-    uniqueEdges.push(edge);
-  }
-  edges.length=0;
-  edges.push(...uniqueEdges);
-  const adjacency=new Map(nodes.map(n=>[n,[]]));
-  for(const e of edges){
-    adjacency.get(e.a).push({node:e.b,d:e.d,road:e.road});
-    adjacency.get(e.b).push({node:e.a,d:e.d,road:e.road});
-  }
-  const junctions=nodes.filter(n=>(adjacency.get(n)?.length||0)>=3);
-  return{nodes,edges,adjacency,junctions}
-}
-export function roadTopology(s){
-  const network=roadNetwork(s);
-  const boundaryMinX=WORLD_BOUNDS.minX+WORLD_MARGIN;
-  const boundaryMaxX=WORLD_BOUNDS.maxX-WORLD_MARGIN;
-  const boundaryMinY=WORLD_BOUNDS.minY+WORLD_MARGIN;
-  const boundaryMaxY=WORLD_BOUNDS.maxY-WORLD_MARGIN;
-  const boundaryTolerance=3;
-  const topologyNodes=network.nodes.map((node,index)=>{
-    const links=network.adjacency.get(node)||[];
-    const roadIds=[...new Set(links.map(link=>link.road?.id).filter(Boolean))];
-    const degree=links.length;
-    const boundary=Math.abs(node.x-boundaryMinX)<=boundaryTolerance||Math.abs(node.x-boundaryMaxX)<=boundaryTolerance||Math.abs(node.y-boundaryMinY)<=boundaryTolerance||Math.abs(node.y-boundaryMaxY)<=boundaryTolerance;
-    const junction=degree>=3;
-    return{
-      id:index,
-      x:node.x,
-      y:node.y,
-      degree,
-      roadIds,
-      boundary,
-      junction,
-      type:junction?(boundary?'boundary-junction':'junction'):(boundary?'boundary':degree===1?'endpoint':'node')
-    };
-  });
-  const junctions=topologyNodes.filter(node=>node.junction);
-  return{
-    ...network,
-    topologyNodes,
-    topologyJunctions:junctions,
-    boundaryNodes:topologyNodes.filter(node=>node.boundary),
-    threeWayJunctions:junctions.filter(node=>node.degree===3),
-    fourWayJunctions:junctions.filter(node=>node.degree>=4)
-  };
-}
-function shortestRoadPath(network,a,b){const queue=[{node:a,d:0}],best=new Map([[a,0]]),prev=new Map();while(queue.length){queue.sort((x,y)=>x.d-y.d);const cur=queue.shift();if(cur.d!==best.get(cur.node))continue;if(cur.node===b)break;for(const nx of network.adjacency.get(cur.node)||[]){const nd=cur.d+nx.d;if(nd<(best.get(nx.node)??Infinity)){best.set(nx.node,nd);prev.set(nx.node,cur.node);queue.push({node:nx.node,d:nd})}}}if(!best.has(b))return null;const path=[];let n=b;while(n){path.unshift(n);n=prev.get(n)}return{path,distance:best.get(b)}}
 export function roadAttachment(s,building){if(!building)return null;const footprint=buildingFootprint(building);const limit=Math.max(48,Math.hypot(footprint.halfWidth,footprint.halfDepth)+6,(building.r||25)+18);let best=null;for(const road of s.roads||[]){const points=validRoadPoints(road?.points,0);if(!points)continue;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],q=projectSegment(building,a,b);if(q.distance<=limit&&(!best||q.distance<best.distance))best={road,point:{x:q.point.x,y:q.point.y},distance:q.distance,segment:i-1}}}return best}
 export function routeOnRoadNetwork(s,a,b){
   const aa=roadAttachment(s,a),bb=roadAttachment(s,b);
@@ -279,4 +203,5 @@ export function addRoad(s,points,meta={}){
   return true;
 }
 
-export {roadAtPoint,roadSegmentAtPoint,roadEndpointCandidate,roadEndpointAtPoint,endpointTarget,roadEndpointPreview,editRoadSegment,editRoadEndpoint,endpointSegmentBlocked,eraseRoad,cleanupRoadNetwork,bumpRoadNetworkRevision} from './world/roads/editing.js';
+export {roadAtPoint,roadSegmentAtPoint,roadEndpointCandidate,roadEndpointAtPoint,endpointTarget,roadEndpointPreview,editRoadSegment,editRoadEndpoint,endpointSegmentBlocked,eraseRoad,cleanupRoadNetwork} from './world/roads/editing.js';
+export {roadNetwork,roadTopology,nearestGraphNode,shortestRoadPath,bumpRoadNetworkRevision} from './world/roads/topology.js';
