@@ -147,6 +147,15 @@ export function movementPermission(state,controls,node,movement,{occupiedIds=[],
   return{allowed:true,reason:'priority',signal};
 }
 
+export function laneIndexForJunction(laneGraph,laneIds,node){
+  if(!Array.isArray(laneIds)||!node)return -1;
+  for(let i=0;i<laneIds.length-1;i++){
+    const lane=laneGraph?.lanesById?.get(laneIds[i]);
+    if(lane?.to===node)return i;
+  }
+  return -1;
+}
+
 export function movementForLaneRoute(laneGraph,controls,laneIds,index=0){
   if(!Array.isArray(laneIds)||index<0||index>=laneIds.length-1)return null;
   const from=laneGraph.lanesById.get(laneIds[index]);
