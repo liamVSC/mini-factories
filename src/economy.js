@@ -258,16 +258,13 @@ function trafficConflict(s,t,network){
   // Keep a stable control state on the truck so rendering can show a stop line
   // / braking state and the simulation can slow before the conflict zone rather
   // than teleporting from full speed to a complete stop.
-  const direction=here.movement?.direction||'straight';
-  const laneSide=t.lane==='right'?-1:1;
-  // In left-hand traffic, a left turn naturally opens toward the outside
-  // edge while a right turn moves toward the centre line. Mirror this for
-  // opposing traffic so each truck selects the correct approach position.
-  const targetMagnitude=direction==='left'
-    ?(laneSide>0?5.7:1.5)
-    :direction==='right'
-      ?(laneSide>0?1.5:5.7)
-      :4.3;
+  const direction=here.movement?.direction||t.lane||'straight';
+  const laneSide=1;
+  // Left-hand traffic uses the outer lane for left turns, the centre lane for
+  // straight travel and the inner lane for right turns. The route itself stays
+  // canonical for pathfinding; laneTarget tells the traffic layer which lane
+  // the truck should occupy on the approach.
+  const targetMagnitude=direction==='left'?7:direction==='right'?1.8:4.5;
   t.trafficControl={
     junction:{x:here.junction.x,y:here.junction.y},
     metresAhead:here.metresAhead,
