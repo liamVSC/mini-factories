@@ -580,7 +580,7 @@ function updateTrucks(s){
     if(!truck?.id)continue;live.add(truck.id);
     let mesh=truckMeshes.get(truck.id);
     if(!mesh){mesh=createTruckMesh();scene.add(mesh);truckMeshes.set(truck.id,mesh);}
-    const route=Array.isArray(truck.route)?truck.route:truck.route?.points;if(!route?.length)continue;
+    const route=Array.isArray(truck.laneRoute)&&truck.laneRoute.length>=2?truck.laneRoute:(Array.isArray(truck.route)?truck.route:truck.route?.points);if(!route?.length)continue;
     const progress=Math.max(0,Math.min(1,Number(truck.t)||0)),p=pointOnRoute(route,progress),q=pointOnRoute(route,Math.min(1,progress+.002));
     let visual={x:p.x,y:p.y};
     let nextVisual=q?{x:q.x,y:q.y}:visual;
