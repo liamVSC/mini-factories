@@ -23,6 +23,7 @@ const {
   seed
 } = await import('../src/world.js');
 const {route, updateEconomy} = await import('../src/economy.js');
+const buildingModule = await import('../src/world/buildings/index.js');
 const {hydrate} = await import('../src/persistence/load.js');
 const {serialise} = await import('../src/persistence/save.js');
 const {roadPathIntersectsBuildingFootprint,roadPathBlocked} = await import('../src/world/roads/placement.js');
@@ -40,6 +41,14 @@ function baseState() {
   return s;
 }
 
+
+test('building facade exposes refactored operations without routing through world.js',()=>{
+  assert.equal(typeof buildingModule.buildingCost,'function');
+  assert.equal(typeof buildingModule.canPlaceBuildingAt,'function');
+  assert.equal(typeof buildingModule.buildingPlacementTarget,'function');
+  assert.equal(typeof buildingModule.placeBuilding,'function');
+  assert.equal(typeof buildingModule.buildingLogisticsAccess,'function');
+});
 function pointOnRouteForTest(points,t){const total=points.reduce((n,p,i)=>i?n+Math.hypot(p.x-points[i-1].x,p.y-points[i-1].y):0,0);let target=total*t,run=0;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],seg=Math.hypot(b.x-a.x,b.y-a.y);if(target<=run+seg){const u=seg?Math.max(0,Math.min(1,(target-run)/seg)):0;return{x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u}}run+=seg}return points.at(-1)}
 function building(typeName, x, y) {
   const type = TYPES.find(t => t.name === typeName);
