@@ -1,7 +1,7 @@
 import {makeBuilding} from '../../state.js';
 import {newId} from '../../core/ids.js';
 import {district} from '../terrain.js';
-import {buildingDockPoints,buildingPhysicalPlacementReason} from './geometry.js';
+import {buildingPhysicalPlacementReason} from './geometry.js';
 import {buildingPlacementTarget} from './placement.js';
 import {spawnBuilding,seedBuildings} from './spawning.js';
 
