@@ -23,7 +23,7 @@ function addUnique(list,value){
  * The lane geometry is intentionally not persisted: it is derived from the
  * road graph, so editing/deleting roads automatically invalidates old graphs.
  */
-export function buildLaneGraph(network,{lanesPerDirection=1}={}){
+export function buildLaneGraph(network,{lanesPerDirection=2}={}){
   const nodes = network?.nodes||[];
   const edges = network?.edges||[];
   const lanes = [];
@@ -36,8 +36,11 @@ export function buildLaneGraph(network,{lanesPerDirection=1}={}){
     const directionAB=vector(edge.a,edge.b);
     const directionBA={x:-directionAB.x,y:-directionAB.y};
     for(let laneIndex=0;laneIndex<Math.max(1,lanesPerDirection);laneIndex++){
-      const width=8;
-      const lateral=(laneIndex-(Math.max(1,lanesPerDirection)-1)/2)*width;
+      const width=7;
+      const laneCount=Math.max(1,lanesPerDirection);
+      // Left-hand traffic: each travel direction occupies its own half of the road.
+      const carriagewayCenter=reverse?7:-7;
+      const lateral=carriagewayCenter+(laneIndex-(laneCount-1)/2)*width;
       const create=(from,to,direction,reverse)=>{
         const id='lane-'+lanes.length;
         const lane={
@@ -48,6 +51,7 @@ export function buildLaneGraph(network,{lanesPerDirection=1}={}){
           edge,
           laneIndex,
           lateralOffset:lateral,
+          lanesPerDirection:laneCount,
           direction,
           reverse
         };
@@ -75,6 +79,20 @@ export function buildLaneGraph(network,{lanesPerDirection=1}={}){
   }
 
   return {nodes,edges,lanes,lanesById,outgoing,incoming,adjacency,transitions};
+}
+
+function transitionCost(fromLane,nextLane){
+  const base=nextLane.edge?.d||0;
+  if(!fromLane)return base;
+  const turn=turnInfo(fromLane,nextLane);
+  if(turn.type==='uturn')return base+1000;
+  const maxIndex=Math.max(0,(fromLane.lanesPerDirection||nextLane.lanesPerDirection||2)-1);
+  let penalty=0;
+  if(turn.type==='left'&&nextLane.laneIndex!==maxIndex)penalty+=12;
+  if(turn.type==='right'&&nextLane.laneIndex!==0)penalty+=12;
+  if(turn.type==='straight'&&nextLane.laneIndex!==fromLane.laneIndex)penalty+=5;
+  if(nextLane.laneIndex!==fromLane.laneIndex)penalty+=3;
+  return base+penalty;
 }
 
 function shortestLanePath(graph,startNode,endNode){
@@ -108,7 +126,7 @@ function shortestLanePath(graph,startNode,endNode){
     for(const nextId of graph.adjacency.get(current.lane.id)||[]){
       const next=graph.lanesById.get(nextId);
       if(!next)continue;
-      const nd=current.d+(next.edge?.d||0);
+      const nd=current.d+transitionCost(current.lane,next);
       if(nd<(best.get(next.id)??Infinity)){
         best.set(next.id,nd);
         prev.set(next.id,current.lane.id);
@@ -241,14 +259,20 @@ export function laneRouteGeometry(graph,laneIds,{approachDistance=34,turnRadius=
       const nNx=-nDy/nLen,nNy=nDx/nLen;
       const transition=transitions[i];
       const radius=Math.min(turnRadius,len*.22,nLen*.22);
-      const incoming={x:lane.to.x-nx*transition.offset,y:lane.to.y-ny*transition.offset};
-      const outgoing={x:next.from.x+nNx*transition.offset,y:next.from.y+nNy*transition.offset};
+      const incoming={x:lane.to.x+nx*lane.lateralOffset,y:lane.to.y+ny*lane.lateralOffset};
+      const outgoing={x:next.from.x+nNx*next.lateralOffset,y:next.from.y+nNy*next.lateralOffset};
       const control={x:lane.to.x,y:lane.to.y};
       const curveSteps=Math.max(3,samples+Math.ceil(radius/5));
       for(let k=1;k<=curveSteps;k++)addSample(points,quadratic(incoming,control,outgoing,k/curveSteps));
     }
   }
   return{points,transitions};
+}
+
+export function laneChangeRequired(graph,fromLaneId,toLaneId){
+  const from=graph?.lanesById?.get(fromLaneId),to=graph?.lanesById?.get(toLaneId);
+  if(!from||!to)return false;
+  return from.roadId!==to.roadId&&from.laneIndex!==to.laneIndex;
 }
 
 export function laneAtProgress(graph,laneIds,index=0){
