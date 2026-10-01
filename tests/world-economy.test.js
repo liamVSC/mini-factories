@@ -398,13 +398,9 @@ test('rerouted trucks replace lane road references after a road mutation', () =>
 
   assert.ok(!truck.routeInvalidated);
   assert.ok(truck.laneIds.length);
-  assert.deepEqual(
-    truck.laneRoadIds,
-    truck.laneIds.map(id => roadNetwork(s).edges.find(edge => {
-      const network = roadNetwork(s);
-      return false;
-    })?.road?.id || null)
-  );
+  assert.ok(truck.laneRoadIds.every(id => s.roads.some(r => r.id === id)));
+  assert.ok(truck.laneRoadIds.includes(detour.id));
+  assert.equal(truck.routeNetworkRevision, s.roadNetworkRevision);
 });
 
 test('deleting a branch invalidates only trucks whose saved route used that branch', () => {
