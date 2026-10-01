@@ -558,7 +558,7 @@ export function updateEconomy(s,dt,flash){
     // Every road mutation rebuilds the derived lane graph. A revision mismatch
     // invalidates even routes whose old geometry happens to overlap the new
     // network, preventing stale lane transitions after edits/junction changes.
-    if(Number(t.routeNetworkRevision)||0!==(Number(s.roadNetworkRevision)||0))t.routeInvalidated=true;
+    if(Number.isFinite(Number(t.routeNetworkRevision))&&Number(t.routeNetworkRevision)!==(Number(s.roadNetworkRevision)||0))t.routeInvalidated=true;
     // Road deletion can invalidate a live truck route. Re-route from the
     // truck's current physical position when an alternate network path exists.
     // If the endpoints are now disconnected, safely return the cargo instead
