@@ -23,13 +23,13 @@ export function spawnBuilding(s,kind,forced,placementReason){
   const maxRadius=count<6?430:Math.min(760,430+s.companyLevel*22);
   for(let n=0;n<500;n++){
     const sectorAngle=factorySlot>=0
-      ?layoutRotation+factorySlot*(Math.PI*2/3)+(random()-.5)*.42+(n%5)*.08
+      ?layoutRotation+factorySlot*(Math.PI*2/3)+(random()-.5)*.24+(n%5)*.045
       :random()*Math.PI*2;
     const angle=factorySlot>=0?sectorAngle:layoutRotation+random()*Math.PI*2;
     const radius=factorySlot>=0
-      ?Math.max(250,Math.min(maxRadius,310+random()*170))
+      ?Math.max(300,Math.min(maxRadius,330+random()*190))
       :minRadius+random()*Math.max(1,maxRadius-minRadius);
-    let x=Math.cos(angle)*radius+(random()-.5)*90;
+    let x=Math.cos(angle)*radius+(random()-.5)*45;
     let y=Math.sin(angle)*radius+(random()-.5)*90;
     const river=riverY(x);
     if(Math.abs(y-river)<105)y+=y<river?-120:120;
