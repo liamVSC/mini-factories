@@ -8,4 +8,3 @@ export const WORLD_MARGIN=WORLD_CONSTRUCTION_MARGIN;
 export const WORLD_EDGE_SNAP_DISTANCE=52;
 
 export function riverY(x){return 420+Math.sin(x*.002)*35}
-export function district(x,y){if(Math.abs(y-riverY(x))<170)return'Riverside';if(x<0&&y<180)return'Industrial';if(x>0&&y>0)return'Market Quarter';return'West End'}
