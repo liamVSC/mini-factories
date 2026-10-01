@@ -7,8 +7,6 @@
  */
 const EPSILON = 1e-6;
 
-function nodeKey(a,b){ return String(a.id)+':'+String(b.id); }
-
 function vector(a,b){
   const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy)||1;
   return {x:dx/len,y:dy/len};
