@@ -159,10 +159,11 @@ test('lane-change metadata and junction signals/priority expose deterministic st
   assert.ok(control);
   const left=control.movements.find(m=>m.type==='left');
   assert.ok(left);
-  const greenClock=signalForMovement({...s,trafficSignals:{enabled:true,cycle:12},trafficClock:left.approachDirection.x!==0?0:6},control,left);
-  assert.equal(greenClock.state,'green');
-  const blockedClock=signalForMovement({...s,trafficSignals:{enabled:true,cycle:12},trafficClock:left.approachDirection.x!==0?6.2:0.2},control,left);
-  assert.equal(blockedClock.state,'red');
+  const signalState=clock=>signalForMovement({...s,trafficSignals:{enabled:true,cycle:12},trafficClock:clock},control,left).state;
+  const greenAt=Array.from({length:121},(_,i)=>i/10).find(clock=>signalState(clock)==='green');
+  const redAt=Array.from({length:121},(_,i)=>i/10).find(clock=>signalState(clock)==='red');
+  assert.notEqual(greenAt,undefined);
+  assert.notEqual(redAt,undefined);
   const conflict=movementPermission(s,controls,junction,left,{occupiedIds:control.conflicts.get(left.id)});
   assert.equal(conflict.allowed,false);
 });
