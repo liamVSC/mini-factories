@@ -21,3 +21,17 @@ test('junction movement classification uses canonical route geometry',async()=>{
 test('explicit junction controls expose movements, conflicts and stop lines',()=>{const s=freshState();s.roads.push({id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},{id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0});const network=roadNetwork(s),graph=buildLaneGraph(network),controls=buildJunctionControls(network,graph),control=[...controls.values()].find(c=>Math.abs(c.node.x)<1e-9&&Math.abs(c.node.y)<1e-9);assert.ok(control);assert.ok(control.movements.some(m=>m.type==='straight'));assert.ok(control.movements.some(m=>m.type==='left'));assert.ok(control.movements.some(m=>m.type==='right'));const movement=control.movements.find(m=>m.type==='straight');assert.ok(movement);assert.ok(movement.stopLineDistance>0);assert.ok(stopLinePoint(graph,movement));const permission=movementPermission(s,controls,control.node,movement,{occupiedIds:control.conflicts.get(movement.id)||[]});assert.equal(permission.allowed,false);});
 test('explicit junction signals block yellow and red movements deterministically',()=>{const s=freshState();s.trafficSignals.enabled=true;s.trafficSignals.cycle=12;s.roads.push({id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},{id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0});const network=roadNetwork(s),graph=buildLaneGraph(network),controls=buildJunctionControls(network,graph),control=[...controls.values()].find(c=>c.id==='0,0'),horizontal=control.movements.find(m=>Math.abs(m.approachDirection.x)>.8);assert.ok(horizontal);s.trafficClock=0;const first=movementPermission(s,controls,control.node,horizontal);s.trafficClock=6;const second=movementPermission(s,controls,control.node,horizontal);assert.notEqual(first.signal.state,second.signal.state);});
 test('world bounds and renderer coordinate contract remain consistent',()=>{assert.equal(WORLD_HALF_SIZE,1300);assert.equal(WORLD_BOUNDS.minX,-1300);assert.equal(WORLD_BOUNDS.maxX,1300);assert.equal(isInsideWorldBounds({x:0,y:0}),true);assert.equal(isInsideWorldBounds({x:WORLD_HALF_SIZE,y:0}),false);assert.equal(WORLD_MARGIN,24);});
+
+
+test('building-road attachment has one canonical source shared by routing compatibility export',()=>{
+  const s=freshState();
+  const building=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  s.buildings.push(building);
+  s.roads.push({id:'road-1',points:[{x:35,y:0},{x:180,y:0}],bridge:false,condition:1,age:0});
+  const canonical=buildingRoadAttachment(s,building);
+  const compatibility=roadAttachment(s,building);
+  assert.deepEqual(compatibility,canonical);
+  assert.equal(compatibility.road.id,'road-1');
+  assert.ok(Number.isFinite(compatibility.point.x));
+  assert.ok(Number.isFinite(compatibility.point.y));
+});
