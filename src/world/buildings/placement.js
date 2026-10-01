@@ -1,11 +1,11 @@
 import {dist,finitePoint} from '../roads/geometry.js';
 import {nearestRoad,roadPathBlocked} from '../roads/placement.js';
 import {roadAttachment} from '../roads/routing.js';
-import {buildingDockPoints} from './geometry.js';
 import {
   buildingFootprint,
   nearestBuilding,
-  buildingConnectionPoint
+  buildingConnectionPoint,
+  buildingDockPoints
 } from './geometry.js';
 
 export function buildingPlacementTarget(s,type,p){
