@@ -1,9 +1,9 @@
 import {buildingAtPoint,buildingConnectionPoint,buildingHitbox} from './geometry.js';
 
-export function resolveBuildingRoadEndpoint(s,p,target=null){
+export function resolveBuildingRoadEndpoint(s,p,target=null,directionTarget=p){
   const building=target||buildingAtPoint(s,p,0);
   if(!building)return null;
-  const point=buildingConnectionPoint(building,p);
+  const point=buildingConnectionPoint(building,directionTarget);
   return{building,point};
 }
 
