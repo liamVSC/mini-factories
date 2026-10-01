@@ -1,4 +1,6 @@
-import {freshState,hydrate,serialise,TYPES} from './state.js';
+import {freshState,TYPES} from './state.js';
+import {hydrate} from './persistence/load.js';
+import {serialise} from './persistence/save.js';
 import {seed,nearestBuilding,buildingAtPoint,roadBuildingTarget,nearestRoad,roadTarget,roadPreview,addRoad,editRoadSegment,roadSegmentAtPoint,roadEndpointAtPoint,roadEndpointPreview,editRoadEndpoint,dist,buildingCost,buildingUnlock,canBuild,canPlaceBuildingAt,buildingPlacementTarget,placeBuilding} from './world.js';
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
 import {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
