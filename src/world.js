@@ -525,7 +525,7 @@ export function addRoad(s,points,meta={}){
   if(roadPathBlocked(s,clean,{start:startBuilding,end:endBuilding}))return'blocked';
   const cost=Math.max(1,Math.ceil(roadLength/180))*2;
   if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';
-  if((s.roads||[]).some(r=>(roadDistance(r,clean)<12&&Math.abs(length(r.points)-roadLength)<24)||roadsHaveMeaningfulOverlap(r,{points:clean})))return'duplicate';
+  if((s.roads||[]).some(r=>roadsExactlyDuplicate(r,{points:clean})||roadsHaveMeaningfulOverlap(r,{points:clean})))return'duplicate';
   const road={id:newId(),points:clean.map(safePoint),age:0,bridge:clean.some((p,i)=>i?segmentNearRiver(clean[i-1],p):false),condition:1};
   const previousCash=s.cash;
   s.roads.push(road);
