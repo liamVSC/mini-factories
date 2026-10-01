@@ -67,3 +67,15 @@
   .road-editor{left:8px;right:164px;bottom:8px;width:auto;max-height:calc(100% - 16px);}
   .build-menu{left:164px;right:0;bottom:0;width:auto;border-radius:16px 0 0 0;}
 }
+
+/* Centre settings and full-screen modal UI on mobile */
+@media(max-width:700px){
+  #settingsMenu,#changeLogPage{position:fixed;inset:0;display:none;place-items:center;width:100vw;height:100dvh;padding:10px;box-sizing:border-box;z-index:70;transform:none;}
+  #settingsMenu .box,#changeLogPage .box{position:relative;left:auto;right:auto;top:auto;bottom:auto;margin:0;width:min(360px,calc(100vw - 20px));max-width:calc(100vw - 20px);max-height:calc(100dvh - 24px);box-sizing:border-box;}
+  #settingsMenu .box{padding:18px;}
+  #changeLogPage .box{width:min(620px,calc(100vw - 20px));}
+}
+@media(max-width:390px){
+  #settingsMenu,#changeLogPage{padding:8px;}
+  #settingsMenu .box,#changeLogPage .box{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);}
+}
