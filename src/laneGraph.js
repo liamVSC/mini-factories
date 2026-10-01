@@ -272,7 +272,7 @@ export function laneRouteGeometry(graph,laneIds,{approachDistance=34,turnRadius=
 export function laneChangeRequired(graph,fromLaneId,toLaneId){
   const from=graph?.lanesById?.get(fromLaneId),to=graph?.lanesById?.get(toLaneId);
   if(!from||!to)return false;
-  return from.roadId!==to.roadId&&from.laneIndex!==to.laneIndex;
+  return from.laneIndex!==to.laneIndex;
 }
 
 export function laneAtProgress(graph,laneIds,index=0){
