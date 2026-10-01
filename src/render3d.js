@@ -841,8 +841,9 @@ function drawTrucks(s){
     truckMeshes.delete(id);
   }
 }
-export function setBuildingPreview(type,point,blocked=false){
+export function setBuildingPreview(type,placement,blocked=false){
   if(!buildingPreviewGroup)return;
+  const point=placement?.point||placement;
   const key=type&&point?[type.name,type.kind,Number(point.x).toFixed(2),Number(point.y).toFixed(2),placement?.snapType||'',blocked?'1':'0'].join('|'):'';
   if(key===buildingPreviewKey)return;
   buildingPreviewKey=key;
