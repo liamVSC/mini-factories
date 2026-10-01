@@ -21,7 +21,6 @@ export function goalList(){return[
  {text:'Reach Company Level 5',target:5,progress:s=>s.companyLevel,done:s=>s.companyLevel>=5}
 ]}
 export function makeBuilding(type,x,y,id){return{id,x,y,r:25,storage:type.kind==='warehouse'?0:0,type:type.name,kind:type.kind,need:type.need||null,color:type.color,level:1,stock:0,max:type.kind==='factory'?4:type.kind==='warehouse'?24:8,production:0,demand:type.kind==='shop'?3:0,served:0,satisfaction:type.kind==='shop'?100:0,inventory:type.kind==='warehouse'?{}:null,loading:0,logistics:0,contract:null,district:'',pulse:Math.random()*6.28,active:0}}
-export function serialise(s){const d={...s};delete d.week;delete d.weekTime;delete d.version;return{version:6,...d,selected:null,trucks:[],particles:[]}}
 const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
 function clampNumber(value,min,max,fallback=min){return Math.max(min,Math.min(max,finite(value,fallback)))}
 function stateBuildingFootprint(b){if(b?.kind==='warehouse')return{w:48,d:33};if(b?.kind==='factory')return{w:39,d:31};return{w:35,d:28}}
