@@ -88,6 +88,7 @@ export function routeOnRoadNetwork(s,a,b){
     distance:laneResult.distance,
     networkDistance:laneResult.distance,
     laneIds:laneResult.laneIds,
+    laneRoadIds:laneResult.laneIds.map(id=>laneGraph.lanesById.get(id)?.roadId||null),
     graphNodeCount:network.nodes.length,
     laneCount:laneGraph.lanes.length,
     lanePoints,
