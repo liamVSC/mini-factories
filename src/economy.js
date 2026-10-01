@@ -575,8 +575,8 @@ export function updateEconomy(s,dt,flash){
     // was deleted/replaced while a truck still references the old object,
     // retire the truck before any route, junction, or delivery logic can use
     // that stale reference.
-    const sourceLive=s.buildings.includes(t.source);
-    const destinationLive=s.buildings.includes(t.to);
+    const sourceLive=!t.source?.id||s.buildings.includes(t.source);
+    const destinationLive=!t.to?.id||s.buildings.includes(t.to);
     if(!sourceLive||!destinationLive){
       t.dead=true;
       continue;
