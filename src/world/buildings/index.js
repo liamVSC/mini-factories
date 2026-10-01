@@ -19,3 +19,4 @@ export {
   seed,
   buildingLogisticsAccess
 } from '../../world.js';
+export {buildingOperationalState,buildingUtilization,buildingDemandPressure} from './intelligence.js';
