@@ -1,17 +1,43 @@
 export {
   isInsideWorldBounds,
-  validateRoadGeometry,
+  validateRoadGeometry
+} from './validation.js';
+export {
+  dist,
+  length,
+  pointOnRoute,
+  validRoadPoints,
+  projectSegment,
+  projectOnPolyline,
+  roadPointParameter,
+  segmentIntersection,
+  addNode,
+  collinearOverlapLength,
+  segmentDistance
+} from './geometry.js';
+export {
   roadBuildingTarget,
   nearestRoad,
   snapRoadPoint,
   snap,
+  segmentNearRiver,
+  roadPathBlocked,
+  roadPathIntersectsBuildingFootprint,
+  simplifyRoad,
+  chooseRoadPath,
+  snapToWorldEdge,
+  roadTargetInternal,
+  roadTarget,
+  roadPreview,
+  endpointSegmentBlocked
+} from './placement.js';
+
+export {
   roadNetwork,
   roadTopology,
   roadAttachment,
   routeOnRoadNetwork,
   roadPath,
-  roadTarget,
-  roadPreview,
   cleanupRoadNetwork,
   addRoad,
   roadSegmentAtPoint,
@@ -19,10 +45,5 @@ export {
   roadEndpointAtPoint,
   roadEndpointPreview,
   editRoadEndpoint,
-  eraseRoad,
-  pointOnRoute,
-  dist,
-  length,
-  WORLD_BOUNDS,
-  WORLD_MARGIN
+  eraseRoad
 } from '../../world.js';
