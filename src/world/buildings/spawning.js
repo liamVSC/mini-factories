@@ -1,7 +1,7 @@
 import {TYPES,makeBuilding} from '../../state.js';
 import {createRng,seedFromState} from '../../core/rng.js';
 import {newId} from '../../core/ids.js';
-import {district,riverY,WORLD_HALF_SIZE,WORLD_MARGIN} from '../terrain.js';
+import {riverY,WORLD_HALF_SIZE,WORLD_MARGIN} from '../terrain.js';
 import {buildingFootprint} from './geometry.js';
 import {factorySpawnCandidates} from './layout.js';
 
@@ -24,7 +24,6 @@ function chooseBuildingType(s,kind,forced,random){
 
 function addBuilding(s,type,x,y){
   const building=makeBuilding(type,x,y,newId());
-  building.district=district(x,y);
   s.buildings.push(building);
   return building;
 }
@@ -84,22 +83,6 @@ function neighbourhoodScore(s,x,y,type){
   return score;
 }
 
-function districtScore(type,x,y){
-  const name=district(x,y);
-  if(type.kind==='factory'){
-    if(name==='Industrial')return 360;
-    if(name==='West End')return 120;
-    if(name==='Market Quarter')return -220;
-    return -1000;
-  }
-  if(type.kind==='shop'){
-    if(name==='Market Quarter')return 420;
-    if(name==='West End')return 180;
-    if(name==='Industrial')return -80;
-  }
-  return 0;
-}
-
 function candidateScore(s,type,x,y,random){
   if(!insideBounds(x,y))return -Infinity;
 
@@ -115,7 +98,6 @@ function candidateScore(s,type,x,y,random){
     if(d<minimum)return -Infinity;
   }
 
-  let score=districtScore(type,x,y);
   score+=roadScore(s,x,y);
   score+=neighbourhoodScore(s,x,y,type);
   score-=riverPenalty(x,y);
@@ -170,7 +152,7 @@ function findBestPosition(s,type,random){
 
 export function spawnBuilding(s,kind,forced,placementReason){
   // Derive each spawn decision from the stable map seed plus the current world
-  // shape. This keeps saves deterministic without replaying the exact same
+  // shape. This keeps new-game seeding deterministic without replaying the exact same
   // random stream for every building created during a session.
   const kindSeed=kind==='factory'?0x9e3779b9:0x7f4a7c15;
   const typeSeed=forced?Array.from(String(forced)).reduce((sum,char)=>sum+char.charCodeAt(0),0):0;
@@ -179,9 +161,7 @@ export function spawnBuilding(s,kind,forced,placementReason){
   const type=chooseBuildingType(s,kind,forced,random);
   if(!type)return null;
 
-  // Score many deterministic candidates instead of taking the first valid
-  // coordinate. This makes spawning react to the existing map, roads, districts,
-  // river, building density and factory separation.
+  // Score deterministic candidates against the actual world constraints and existing buildings/roads.
   const preferred=findBestPosition(s,type,random);
 
   if(preferred&&!placementReason(s,type,preferred.x,preferred.y)){
