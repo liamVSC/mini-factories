@@ -23,7 +23,7 @@ function addUnique(list,value){
  * The lane geometry is intentionally not persisted: it is derived from the
  * road graph, so editing/deleting roads automatically invalidates old graphs.
  */
-export function buildLaneGraph(network,{lanesPerDirection=2}={}){
+export function buildLaneGraph(network,{lanesPerDirection=1}={}){
   const nodes = network?.nodes||[];
   const edges = network?.edges||[];
   const lanes = [];
