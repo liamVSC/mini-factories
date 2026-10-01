@@ -42,17 +42,12 @@ export function connectedRoadComponents(network){
   return components;
 }
 
-function sameComponent(network,a,b){
-  if(!a||!b)return false;
-  const seen=new Set([a]),queue=[a];
-  while(queue.length){
-    const node=queue.shift();
-    if(node===b)return true;
-    for(const link of network.adjacency.get(node)||[]){
-      if(!seen.has(link.node)){seen.add(link.node);queue.push(link.node);}
-    }
+function componentIndex(network){
+  const index=new Map();
+  for(const [componentId,component] of connectedRoadComponents(network).entries()){
+    for(const node of component)index.set(node,componentId);
   }
-  return false;
+  return index;
 }
 
 export function isRouteStale(state,route){
@@ -64,7 +59,13 @@ export function routeOnRoadNetwork(s,a,b){
   if(!aa||!bb)return null;
   const network=roadNetwork(s,[aa.point,bb.point]);
   const start=nearestGraphNode(network,aa.point),end=nearestGraphNode(network,bb.point);
-  if(!start||!end||!sameComponent(network,start,end))return null;
+  if(!start||!end)return null;
+
+  const components=componentIndex(network);
+  const startComponent=components.get(start);
+  const endComponent=components.get(end);
+  if(startComponent===undefined||endComponent===undefined||startComponent!==endComponent)return null;
+
   const laneGraph=buildLaneGraph(network,{lanesPerDirection:1});
   const laneResult=findLaneRoute(laneGraph,start,end);
   if(!laneResult)return null;
@@ -93,7 +94,8 @@ export function routeOnRoadNetwork(s,a,b){
     laneTransitions:laneGeometry.transitions,
     start:{x:aa.point.x,y:aa.point.y},
     end:{x:bb.point.x,y:bb.point.y},
-    roadNetworkRevision:Math.max(0,Math.floor(Number(s.roadNetworkRevision)||0))
+    roadNetworkRevision:Math.max(0,Math.floor(Number(s.roadNetworkRevision)||0)),
+    componentId:startComponent
   };
 }
 
