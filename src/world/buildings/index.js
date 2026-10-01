@@ -28,7 +28,6 @@ export {
   canBuild,
   canPlaceBuildingAt,
   placeBuilding,
-  spawn,
   seed
 } from './operations.js';
 
