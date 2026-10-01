@@ -525,13 +525,82 @@ function distPointToSegment(p,a,b){
 function addBuilding(b){
   const g=new THREE.Group(),factory=b.kind==='factory',warehouse=b.kind==='warehouse';
   const w=factory?78:warehouse?96:70,d=factory?62:warehouse?66:56,h=factory?22:warehouse?18:14;
-  const base=box(w,h,d,factory?'#aeb7b2':warehouse?'#b4b7b3':'#c7b89f');base.position.y=h/2;g.add(base);
-  const roof=box(w+6,2,d+6,factory?'#465158':warehouse?'#4d5658':'#5a5149');roof.position.y=h+1;g.add(roof);
-  const trim=box(w*.82,1.2,.8,b.color||'#d9c46a');trim.position.set(0,h*.58,d/2+.6);g.add(trim);
-  if(factory){for(let i=-2;i<=2;i++){const win=box(8,6,.7,'#6f9ba5');win.position.set(i*13,h*.55,d/2+.5);g.add(win);}const door=box(20,10,.8,'#354247');door.position.set(0,5,d/2+.5);g.add(door);const chimney=box(9,32,9,'#667176');chimney.position.set(w*.28,32,d*.15);g.add(chimney);const cap=box(12,2,12,'#7f898d');cap.position.set(w*.28,48,d*.15);g.add(cap);const tank=new THREE.Mesh(new THREE.CylinderGeometry(7,7,18,16),mat('#7f898b'));tank.position.set(-w*.27,9,d*.1);g.add(tank);}
-  else if(warehouse){for(let i=-2;i<=2;i++){const door=box(14,9,.8,'#465156');door.position.set(i*17,5,d/2+.5);g.add(door);}const sign=box(52,5,.8,'#d9b95f');sign.position.set(0,h*.72,d/2+.6);g.add(sign);}
-  else{const glass=box(w*.58,7,.7,'#8ba9aa');glass.position.set(-4,6,d/2+.5);g.add(glass);const door=box(9,9,.8,'#536466');door.position.set(w*.30,5,d/2+.5);g.add(door);const awning=box(w*.9,2.2,5,b.color||'#d58f65');awning.position.set(0,h*.67,d/2+2.2);g.add(awning);}
-  g.position.set(Number(b.x)||0,0,Number(b.y)||0);g.userData.building=b;g.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(g);meshes.set(b.id,g);worldObjects.add(g);
+  const palette={
+    factory:{base:'#aeb7b2',roof:'#465158',accent:b.color||'#8bd5ff',glass:'#6f9ba5'},
+    warehouse:{base:'#b4b7b3',roof:'#4d5658',accent:b.color||'#e9c46a',glass:'#708589'},
+    shop:{base:'#c7b89f',roof:'#5a5149',accent:b.color||'#d58f65',glass:'#8ba9aa'}
+  }[factory?'factory':warehouse?'warehouse':'shop'];
+
+  const add=(mesh,x=0,y=0,z=0)=>{
+    mesh.position.set(x,y,z);
+    mesh.castShadow=true;
+    mesh.receiveShadow=true;
+    g.add(mesh);
+    return mesh;
+  };
+  const panel=(width,height,depth,color,x,y,z)=>{
+    return add(box(width,height,depth,color),x,y,z);
+  };
+
+  // Main mass: layered plinth + wall + roof gives the buildings a stronger
+  // silhouette without using expensive imported models.
+  panel(w+4,2,d+4,'#727b78',0,1,0);
+  panel(w,h,d,palette.base,0,h/2+2,0);
+  panel(w+7,2.4,d+7,palette.roof,0,h+3.2,0);
+  panel(w*.72,1.1,.9,palette.accent,0,h*.62+2,d/2+.65);
+
+  // Roof equipment makes factories/warehouses readable from the elevated
+  // camera while keeping the model entirely procedural.
+  if(factory){
+    panel(w*.28,2.2,d*.42,'#3e474b',-w*.22,h+4.8,0);
+    panel(w*.20,1.8,d*.28,'#596468',w*.18,h+4.6,0);
+    for(const x of [-w*.30,-w*.10,w*.10,w*.30]){
+      const vent=new THREE.Mesh(new THREE.CylinderGeometry(2.8,2.8,5.5,10),mat('#657176'));
+      add(vent,x,h+7.5,-d*.12);
+    }
+    const chimney=panel(9,32,9,'#667176',w*.28,35,d*.15);
+    panel(12,2,12,'#7f898d',w*.28,51,d*.15);
+    const tank=new THREE.Mesh(new THREE.CylinderGeometry(7,7,18,16),mat('#7f898b'));
+    add(tank,-w*.27,13,d*.1);
+    // Loading dock.
+    panel(32,3,10,'#6c7472',0,3.5,d/2+5);
+    panel(22,10,1,'#354247',0,9,d/2+.7);
+    for(let i=-2;i<=2;i++)panel(8,6,.7,palette.glass,i*13,13,d/2+.7);
+  }else if(warehouse){
+    // Large loading doors and canopy distinguish logistics buildings from shops.
+    panel(w*.82,2.2,6,'#68716f',0,h+4.8,d*.08);
+    for(let i=-2;i<=2;i++){
+      panel(14,10,.9,'#465156',i*17,8,d/2+.7);
+      panel(10,6,.55,palette.glass,i*17,8,d/2+1.2);
+      panel(17,1.4,2.5,'#737c79',i*17,2.1,d/2+3.0);
+    }
+    panel(56,5,.9,palette.accent,0,h*.72+2,d/2+.75);
+    // Small roof vents.
+    for(const x of [-26,0,26]){
+      const vent=new THREE.Mesh(new THREE.CylinderGeometry(3.5,3.5,4,10),mat('#697271'));
+      add(vent,x,h+6,0);
+    }
+  }else{
+    // Shops get a more recognisable storefront: glazing, door, canopy and sign.
+    panel(w*.62,8,.8,palette.glass,-4,9,d/2+.65);
+    panel(9,10,.9,'#536466',w*.30,8,d/2+.7);
+    panel(w*.92,2.5,6,palette.accent,0,h*.70+2.2,d/2+2.6);
+    panel(w*.58,3.2,.9,'#f3ead1',-w*.04,h*.70+5.1,d/2+.8);
+    // Awning supports.
+    for(const x of [-w*.34,w*.34])panel(1.8,5,1.8,'#777b74',x,h*.48+2,d/2+3.2);
+  }
+
+  // Corner trim adds depth and makes the simple block construction read as a
+  // deliberate low-poly building rather than a placeholder cube.
+  for(const side of [-1,1]){
+    panel(1.8,h*.72,1.8,'#747d7a',side*(w/2-.9),h*.50+2,d/2+.35);
+  }
+
+  g.position.set(Number(b.x)||0,0,Number(b.y)||0);
+  g.userData.building=b;
+  scene.add(g);
+  meshes.set(b.id,g);
+  worldObjects.add(g);
 }
 function updateBuilding(b,selected){
   const g=meshes.get(b.id);
@@ -600,7 +669,7 @@ function updateRoadEditVisual(s){
       depthWrite:false,
       side:THREE.DoubleSide
     });
-    const mesh=new THREE.Mesh(new THREE.BoxGeometry(len,.22,22),material);
+    const mesh=new THREE.Mesh(new THREE.BoxGeometry(len,.22,28),material);
     mesh.position.set((a.x+b.x)/2,.92,(a.y+b.y)/2);
     mesh.rotation.y=-Math.atan2(dy,dx);
     roadEditGroup.add(mesh);
