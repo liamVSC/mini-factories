@@ -46,6 +46,30 @@ function baseState() {
 }
 
 
+test('new game seeds the fixed starter buildings once and without districts',()=>{
+  const s=baseState();
+  seed(s);
+
+  assert.deepEqual(
+    s.buildings.map(b=>b.type).sort(),
+    ['Builder','Food','Garage','Market','Parts','Steel']
+  );
+  assert.equal(s.buildings.length,6);
+  assert.ok(s.buildings.every(b=>!Object.prototype.hasOwnProperty.call(b,'district')));
+  assert.equal(typeof buildingModule.spawn,'undefined');
+  assert.ok(layoutIsValid(s.buildings));
+});
+
+test('normal simulation does not create buildings after the new-game seed',()=>{
+  const s=baseState();
+  seed(s);
+  const initialIds=s.buildings.map(b=>b.id);
+  for(let i=0;i<120;i++)updateEconomy(s,.2,()=>{});
+
+  assert.equal(s.buildings.length,6);
+  assert.deepEqual(s.buildings.map(b=>b.id),initialIds);
+});
+
 test('building facade exposes refactored operations without routing through world.js',()=>{
   assert.equal(typeof buildingModule.buildingCost,'function');
   assert.equal(typeof buildingModule.canPlaceBuildingAt,'function');
