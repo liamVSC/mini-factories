@@ -30,9 +30,9 @@ function roadIntersection(a,b,c,d){
 }
 
 const ROAD = Object.freeze({
-  width:18,
-  bridgeWidth:16,
-  shoulderWidth:23,
+  width:28,
+  bridgeWidth:26,
+  shoulderWidth:34,
   surfaceY:.68,
   shoulderY:.59,
   markingY:.80,
@@ -451,7 +451,7 @@ function addLaneAwareJunction(group,center,connections){
   // Short centre separators point toward the usable approach lanes.
   if(dirs.length>=3){
     for(const {d} of dirs){
-      const marker=new THREE.Mesh(new THREE.BoxGeometry(5,.10,.85),roadMaterials.center);
+      const marker=new THREE.Mesh(new THREE.BoxGeometry(7,.10,.85),roadMaterials.center);
       marker.position.set(center.x+d.x*(radius*.66),ROAD.markingY+.02,center.y+d.y*(radius*.66));
       marker.rotation.y=-Math.atan2(d.y,d.x);
       group.add(marker);
@@ -467,7 +467,7 @@ function addJunctionControlLines(group,center,connections,radius){
     // Stop lines sit on the approach in the actual left-hand travel lane.
     const travel={x:-d.x,y:-d.y};
     const left={x:-travel.y,y:travel.x};
-    const laneOffset=4.3;
+    const laneOffset=7.0;
     const distance=radius+9;
     const p={
       x:center.x+d.x*distance+left.x*laneOffset,
