@@ -331,7 +331,7 @@ function rerouteTruck(s,t){
   const compact=routePoints.filter((q,i)=>i===0||dist(q,routePoints[i-1])>.01);
   t.centerlineRoute=next.points;
   t.route=next.lanePoints||compact;
-  t.routeKey=compact.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
+  t.routeKey=t.route.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
   t.t=0;
   t.routeInvalidated=false;
   return true;
