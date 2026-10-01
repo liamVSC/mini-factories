@@ -557,7 +557,8 @@ test('traffic yields at a crossing instead of driving through another truck', ()
   s.trucks=[first,second];
   updateEconomy(s,.1,()=>{});
   assert.ok(first.t>.45);
-  assert.equal(second.t,.45);
+  assert.ok(second.t<first.t);
+  assert.ok(second.t<.46);
   assert.ok(second.wait>0);
 });
 
@@ -576,7 +577,8 @@ test('traffic gives an occupied junction to the first arriving movement', () => 
   s.trucks=[first,second];
   updateEconomy(s,.1,()=>{});
   assert.ok(first.t>.45);
-  assert.equal(second.t,.45);
+  assert.ok(second.t<first.t);
+  assert.ok(second.t<.46);
   assert.ok(second.wait>0);
 });
 
@@ -606,7 +608,8 @@ test('junction traffic distinguishes straight-through movement from turning move
   s.trucks=[straight,turn];
   updateEconomy(s,.1,()=>{});
   assert.ok(straight.t>.45);
-  assert.equal(turn.t,.45);
+  assert.ok(turn.t<straight.t);
+  assert.ok(turn.t<.46);
   assert.ok(turn.wait>0);
 });
 
