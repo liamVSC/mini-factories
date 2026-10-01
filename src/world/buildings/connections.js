@@ -1,11 +1,32 @@
 import {validRoadPoints,projectSegment} from '../roads/geometry.js';
-import {buildingAtPoint,buildingConnectionPoint,buildingFootprint,buildingHitbox} from './geometry.js';
+import {buildingAtPoint,buildingConnectionPoint,buildingFootprint,buildingHitbox,buildingFootprintRadius} from './geometry.js';
 
 export function resolveBuildingRoadEndpoint(s,p,target=null,directionTarget=p){
   const building=target||buildingAtPoint(s,p,0);
   if(!building)return null;
   const point=buildingConnectionPoint(building,directionTarget);
   return{building,point};
+}
+
+export function buildingRoadDistance(building,p){
+  if(!building||!p)return Infinity;
+  const hit=buildingHitbox(building,0);
+  const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX);
+  const dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
+  return Math.hypot(dx,dy);
+}
+
+export function resolveBuildingRoadTarget(s,p,maxDistance=46){
+  if(!p)return null;
+  let best=null;
+  for(const building of s.buildings||[]){
+    const distance=buildingRoadDistance(building,p);
+    if(distance>maxDistance)continue;
+    if(!best||distance<best.distance){
+      best={building,point:buildingConnectionPoint(building,p),distance};
+    }
+  }
+  return best;
 }
 
 export function buildingRoadAttachment(s,building){
@@ -26,13 +47,12 @@ export function buildingRoadAttachment(s,building){
   return best;
 }
 
+export function buildingRoadEndpointClearance(building){
+  return buildingFootprintRadius(building);
+}
+
 export function nearestBuildingRoadTarget(s,p,maxDistance=24){
-  const building=buildingAtPoint(s,p,0);
-  if(!building)return null;
-  const hit=buildingHitbox(building,0);
-  const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX);
-  const dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
-  const distance=Math.hypot(dx,dy);
-  if(distance>maxDistance)return null;
-  return{building,point:buildingConnectionPoint(building,p),distance};
+  const target=resolveBuildingRoadTarget(s,p,maxDistance);
+  if(!target)return null;
+  return target;
 }
