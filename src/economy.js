@@ -410,7 +410,15 @@ function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,
   // to the saved road network when the truck is spawned.
   if(!roadAttachment(s,source)||!roadAttachment(s,destination))return false;
   const movementLane=preferredTrafficLane(route.points),laneOffset=laneOffsetForMovement(movementLane);
-  s.trucks.push({id:newId(),route:route.points,routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage,lane:movementLane,laneOffset});
+  s.trucks.push({
+    id:newId(),route:route.points,
+    routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),
+    laneIds:Array.isArray(route.laneIds)?[...route.laneIds]:[],
+    currentLaneIndex:0,currentLaneId:route.laneIds?.[0]||null,
+    t:0,
+    speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),
+    value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage,lane:movementLane,laneOffset
+  });
   return true;
 }
 
@@ -561,6 +569,10 @@ export function updateEconomy(s,dt,flash){
     }
     const trafficNetwork=roadNetwork(s);
     const trafficBlocked=trafficConflict(s,t,trafficNetwork);
+    if(Array.isArray(t.laneIds)&&t.laneIds.length){
+      t.currentLaneIndex=Math.min(t.laneIds.length-1,Math.max(0,Math.floor(t.t*t.laneIds.length)));
+      t.currentLaneId=t.laneIds[t.currentLaneIndex];
+    }
     let trafficSpeedFactor=1;
     t.queueAheadId=queueAhead?.id||null;
     t.queueGap=Number.isFinite(nearestGap)?nearestGap:null;
