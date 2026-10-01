@@ -701,7 +701,12 @@ function truckPoint(route,t){
   const x=a.x+(b.x-a.x)*q,y=a.y+(b.y-a.y)*q;
   const tangentLength=Math.hypot(b.x-a.x,b.y-a.y);
   const tangent=tangentLength?{x:(b.x-a.x)/tangentLength,y:(b.y-a.y)/tangentLength}:{x:1,y:0};
-  return{x,y,next:b,tangent};
+  const prev=visualRoute[Math.max(0,i-2)];
+  const prevDx=prev? a.x-prev.x : b.x-a.x,prevDy=prev? a.y-prev.y : b.y-a.y;
+  const prevLen=Math.hypot(prevDx,prevDy)||1;
+  const prevTangent={x:prevDx/prevLen,y:prevDy/prevLen};
+  const curvature=prevTangent.x*tangent.y-prevTangent.y*tangent.x;
+  return{x,y,next:b,tangent,curvature};
 }
 function drawTrucks(s){
   const active=new Set();
@@ -716,7 +721,16 @@ function drawTrucks(s){
     // a rounded centreline through junctions. This removes the hard 90-degree
     // snap and makes turning trucks trace the same kind of arc as the road.
     const dx=p.tangent.x,dy=p.tangent.y;
-    const laneOffset=t.lane==='right'?-4.3:4.3;
+    // Give the active lane its own turning radius. On a turn the lane on the
+    // inside of the bend takes a tighter arc while the outside lane opens up.
+    // This is blended from straight-road spacing so trucks never jump sideways.
+    const laneSide=t.lane==='right'?-1:1;
+    const laneOffsetBase=4.3;
+    const laneBlend=Math.max(0,Math.min(1,Math.abs(p.curvature||0)*10));
+    const turnSide=Math.sign(p.curvature||0);
+    const inner=turnSide===laneSide;
+    const laneOffsetMagnitude=laneOffsetBase+(laneBlend*(inner?-0.9:0.9));
+    const laneOffset=laneSide*laneOffsetMagnitude;
     const nx=-dy,nz=dx;
     const laneX=p.x+nx*laneOffset,laneZ=p.y+nz*laneOffset;
     g.position.set(laneX,.86,laneZ);
