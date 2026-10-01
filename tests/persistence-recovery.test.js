@@ -30,6 +30,6 @@ test('corrupt primary falls back to the last valid backup',()=>{
 
 test('incomplete recovery snapshot is ignored',()=>{
   const store=storage(),s=freshState();s.buildings=[];s.roads=[];
-  store.setItem(RECOVERY_KEY,JSON.stringify({schema:1,savedAt:999,state:{version:6,buildings:[],roads:[]}}));
+  store.setItem(RECOVERY_KEY,JSON.stringify({schema:1,savedAt:999,state:{version:6,buildings:[],roads:null}}));
   assert.equal(loadRecoveredState(store),null);
 });
