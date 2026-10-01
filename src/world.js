@@ -484,10 +484,13 @@ function validateRoadNetworkState(s){
   }
   return true;
 }
+function bumpRoadNetworkRevision(s){s.roadNetworkRevision=Math.max(0,Math.floor(Number(s.roadNetworkRevision)||0))+1}
+
 function commitRoadMutation(s,mutator){
   const before=cloneRoadState(s.roads);
   try{mutator();cleanupRoadNetwork(s);if(!validateRoadNetworkState(s))throw new Error('invalid-road-network');}
   catch{ s.roads=before; return false; }
+  bumpRoadNetworkRevision(s);
   const affected=[...before,...(s.roads||[])];
   invalidateTrucksForRoads(s,affected.filter((road,index)=>index===affected.findIndex(r=>r.id===road.id)));
   return true;
@@ -535,6 +538,7 @@ export function addRoad(s,points,meta={}){
   s.cash-=cost;
   reconcileRoadJunctions(s,committed.points,meta);
   cleanupRoadNetwork(s);
+  bumpRoadNetworkRevision(s);
   return true;
 }
 function routeTouchesRoad(route,road,tolerance=3){if(!Array.isArray(route)||route.length<2||!road?.points||road.points.length<2)return false;for(let i=1;i<route.length;i++){const a=route[i-1],b=route[i];for(let j=1;j<road.points.length;j++){const c=road.points[j-1],d=road.points[j],ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y},cross=Math.abs(ab.x*cd.y-ab.y*cd.x),aligned=cross<=1e-6*Math.max(1,Math.hypot(ab.x,ab.y)*Math.hypot(cd.x,cd.y));if(aligned){if(collinearOverlapLength(a,b,c,d)>tolerance)return true}else if(segmentDistance(a,b,c,d)<=tolerance&&segmentDistance(a,b,c,d)>tolerance*.25)return true}}return false}
@@ -601,10 +605,11 @@ export function editRoadEndpoint(s,roadId,index,p){
     s.roads=beforeRoads;
     return false;
   }
+  bumpRoadNetworkRevision(s);
   for(const truck of s.trucks||[]){
     if(routeTouchesRoad(truck.route,{points:oldPoints},4))truck.routeInvalidated=true;
     if(targetBefore&&routeTouchesRoad(truck.route,{points:targetBefore},4))truck.routeInvalidated=true;
   }
   return{road:next,oldPoints,point:{x:next.points[index].x,y:next.points[index].y},target:preview.target,affected:[road,targetRoad].filter(Boolean)};
 }
-export function eraseRoad(s,p){const hit=roadAtPoint(s,p);if(!hit)return false;const{road}=hit;s.roads=s.roads.filter(r=>r!==road);cleanupRoadNetwork(s);invalidateTrucksForRoads(s,[road]);return true}
+export function eraseRoad(s,p){const hit=roadAtPoint(s,p);if(!hit)return false;const{road}=hit;s.roads=s.roads.filter(r=>r!==road);cleanupRoadNetwork(s);bumpRoadNetworkRevision(s);invalidateTrucksForRoads(s,[road]);return true}
