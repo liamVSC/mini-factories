@@ -111,7 +111,10 @@ function movementAtJunction(route,junctionIndex){
   incoming.x/=il;incoming.y/=il;outgoing.x/=ol;outgoing.y/=ol;
   const dot=incoming.x*outgoing.x+incoming.y*outgoing.y;
   const cross=incoming.x*outgoing.y-incoming.y*outgoing.x;
-  return {node,straight:dot>.82,turn:dot<=.82&&Math.abs(cross)>.18,incoming,outgoing};
+  const straight=dot>.82;
+  const turn=dot<=.82&&Math.abs(cross)>.18;
+  const direction=turn?(cross>0?'left':'right'):'straight';
+  return {node,straight,turn,incoming,outgoing,direction};
 }
 function junctionForTruck(network,t){
   const p=pointOnRoute(t.route,t.t);
@@ -202,11 +205,22 @@ function trafficConflict(s,t,network){
   // Keep a stable control state on the truck so rendering can show a stop line
   // / braking state and the simulation can slow before the conflict zone rather
   // than teleporting from full speed to a complete stop.
+  const direction=here.movement?.direction||'straight';
+  const laneSide=t.lane==='right'?-1:1;
+  // In left-hand traffic, a left turn naturally opens toward the outside
+  // edge while a right turn moves toward the centre line. Mirror this for
+  // opposing traffic so each truck selects the correct approach position.
+  const targetMagnitude=direction==='left'
+    ?(laneSide>0?5.7:1.5)
+    :direction==='right'
+      ?(laneSide>0?1.5:5.7)
+      :4.3;
   t.trafficControl={
     junction:{x:here.junction.x,y:here.junction.y},
     metresAhead:here.metresAhead,
     yielding,
-    movement:here.movement?.turn?'turn':here.movement?.straight?'straight':'merge'
+    movement:direction,
+    laneTarget:laneSide*targetMagnitude
   };
   if(yielding)return true;
 
