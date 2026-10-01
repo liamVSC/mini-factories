@@ -121,3 +121,42 @@
   .build-menu{left:var(--mobile-side-w);right:0;bottom:0;width:auto;border-radius:16px 0 0 0;}
   .road-editor{left:calc(var(--mobile-side-w) + 8px);right:8px;bottom:8px;width:auto;}
 }
+
+
+/* Mobile polish pass v1.1.5 */
+@media (max-width:700px){
+  /* Keep interactive surfaces above the canvas and inside the safe area. */
+  .top,.actions,.panel,.build-menu,.road-editor,#settingsMenu,#changeLogPage,#gameOver{will-change:transform;}
+  .top{padding-top:max(7px,calc(7px + env(safe-area-inset-top)));pointer-events:none;}
+  .top .stat{pointer-events:auto;}
+  .stat{box-shadow:0 4px 14px rgba(61,48,30,.14);}
+  .actions{padding-top:5px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
+  .actions button{position:relative;overflow:hidden;font-weight:850;}
+  .actions button::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.16);opacity:0;transition:opacity .12s ease;}
+  .actions button:active::after{opacity:1;}
+  .panel,.build-menu,.road-editor{box-shadow:0 10px 30px rgba(61,48,30,.22);-webkit-overflow-scrolling:touch;}
+  .panel-head,.build-menu-head,.road-editor-head{touch-action:pan-y;}
+  .panel-close{flex:0 0 44px;}
+  .panel .row{min-height:20px;align-items:center;}
+  .panel .upgrade{touch-action:manipulation;}
+  .build-cards{scroll-snap-type:x proximity;overscroll-behavior-x:contain;padding-left:2px;padding-right:2px;}
+  .build-card{scroll-snap-align:start;}
+  .build-menu.open,.road-editor.open{animation:mobilePanelIn .16s ease-out;}
+  #settingsMenu .box,#changeLogPage .box,#gameOver .box{box-shadow:0 14px 42px rgba(0,0,0,.22);}
+  #settingsMenu .box,#changeLogPage .box{overscroll-behavior:contain;}
+  .pause,.modal{overscroll-behavior:none;}
+}
+@keyframes mobilePanelIn{
+  from{opacity:.72;transform:translateY(8px);}
+  to{opacity:1;transform:translateY(0);}
+}
+@media (max-width:390px){
+  .actions button{border-radius:9px;}
+  .stat{border-radius:9px;}
+  .panel,.road-editor{border-radius:11px;}
+  .build-menu{border-radius:14px 14px 0 0;}
+}
+@media (prefers-reduced-motion:reduce){
+  .build-menu.open,.road-editor.open{animation:none;}
+  button,.build-menu{transition:none;}
+}
