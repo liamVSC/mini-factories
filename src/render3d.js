@@ -561,13 +561,20 @@ function updateTrucks(s){
     const route=Array.isArray(truck.route)?truck.route:truck.route?.points;if(!route?.length)continue;
     const progress=Math.max(0,Math.min(1,Number(truck.t)||0)),p=pointOnRoute(route,progress),q=pointOnRoute(route,Math.min(1,progress+.002));
     let visual={x:p.x,y:p.y};
+    let nextVisual=q?{x:q.x,y:q.y}:visual;
+    const source=truck.source;
     const destination=truck.to;
-    if(destination&&progress>.78){
-      const dims=destination.kind==='warehouse'?{d:66}:destination.kind==='factory'?{d:62}:{d:56};
-      const dockX=(Number(destination.x)||0)+((truck.id?.toString().charCodeAt(0)||0)%3-1)*7;
-      const dockZ=(Number(destination.y)||0)+dims.d/2+6;
-      const approach=Math.max(0,Math.min(1,(progress-.78)/.18));
-      visual={x:p.x+(dockX-p.x)*approach,y:p.y+(dockZ-p.y)*approach};
+    const sourceAccess=source?meshes.get(source.id)?.userData.buildingAccess:null;
+    const destinationAccess=destination?meshes.get(destination.id)?.userData.buildingAccess:null;
+    if(sourceAccess&&progress<.14){
+      const t=Math.max(0,Math.min(1,progress/.14));
+      visual={x:sourceAccess.dock.approach.x+(p.x-sourceAccess.dock.approach.x)*t,y:sourceAccess.dock.approach.y+(p.y-sourceAccess.dock.approach.y)*t};
+      nextVisual=pointOnRoute(route,Math.min(1,progress+.012));
+    }
+    if(destinationAccess&&progress>.84){
+      const t=Math.max(0,Math.min(1,(progress-.84)/.16));
+      visual={x:p.x+(destinationAccess.dock.approach.x-p.x)*t,y:p.y+(destinationAccess.dock.approach.y-p.y)*t};
+      nextVisual=destinationAccess.dock.point;
     }
     mesh.position.set(visual.x,0,visual.y);
     if(q)mesh.rotation.y=-Math.atan2(q.y-p.y,q.x-p.x);
