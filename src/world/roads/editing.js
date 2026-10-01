@@ -21,7 +21,7 @@ function validateRoadNetworkState(s){
   }
   return true;
 }
-function bumpRoadNetworkRevision(s){s.roadNetworkRevision=Math.max(0,Math.floor(Number(s.roadNetworkRevision)||0))+1}
+export function bumpRoadNetworkRevision(s){s.roadNetworkRevision=Math.max(0,Math.floor(Number(s.roadNetworkRevision)||0))+1}
 
 function commitRoadMutation(s,mutator){
   const before=cloneRoadState(s.roads);
