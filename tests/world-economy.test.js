@@ -454,7 +454,7 @@ test('live reroute keeps the truck at its physical position instead of teleporti
   const truck={id:'reroute-position',route:routed.points,centerlineRoute:routed.points,laneRoute:routed.lanePoints||routed.points,laneIds:routed.laneIds,t:.5,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10,routeNetworkRevision:s.roadNetworkRevision,wait:0};
   s.trucks.push(truck);
   const physical=pointOnRouteForTest(truck.route,truck.t);
-  assert.ok(editRoadEndpoint(s,main.id,1,{x:0,y:245}));
+  assert.ok(editRoadEndpoint(s,main.id,1,{x:0,y:245}),JSON.stringify(roadEndpointPreview(s,main,1,{x:0,y:245})));
   updateEconomy(s,0,()=>{});
   assert.equal(truck.routeNetworkRevision,s.roadNetworkRevision);
   assert.ok(truck.route.length>=2);
@@ -522,6 +522,7 @@ test('building logistics access never returns a removed building or deleted road
 
   assert.equal(eraseRoad(s, {x:90,y:120}), true);
   assert.equal(buildingLogisticsAccess(s, buildings[1]), null);
+  assert.equal(eraseRoad(s, {x:90,y:240}), true);
 
   const replacement = road([{x:35,y:240},{x:140,y:240}]);
   s.roads.push(replacement);
@@ -751,7 +752,7 @@ test('moving a road endpoint invalidates trucks using the old geometry', () => {
   assert.ok(routed);
   const truck = {id:'endpoint-edit-truck',route:routed.points,t:.4,speed:.05,cargo:1,source:f,to:shop,stage:'delivery',value:10};
   s.trucks.push(truck);
-  assert.ok(editRoadEndpoint(s,r.id,1,{x:85,y:280}));
+  assert.ok(editRoadEndpoint(s,r.id,1,{x:85,y:280}),JSON.stringify(roadEndpointPreview(s,r,1,{x:85,y:280})));
   assert.equal(truck.routeInvalidated,true);
 });
 
