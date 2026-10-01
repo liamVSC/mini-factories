@@ -133,7 +133,7 @@ function junctionForTruck(network,t){
     const routeLength=Math.max(1,length(t.route));
     const metresAhead=remaining*routeLength;
     if(metresAhead< -6||metresAhead>72)continue;
-    if(d<bestDistance){bestDistance=d;best={junction:j,index,progress,metresAhead,movement:movementAtJunction(t.route,index)}}
+    if(d<bestDistance){bestDistance=d;best={junction:j,index,progress,metresAhead,movement:movementAtJunction(controlRoute,index)}}
   }
   return best;
 }
