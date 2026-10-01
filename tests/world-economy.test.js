@@ -17,7 +17,9 @@ const {
   routeOnRoadNetwork,
   roadNetwork,
   cleanupRoadNetwork,
-  roadPreview
+  roadPreview,
+  buildingPhysicalPlacementReason,
+  seed
 } = await import('../src/world.js');
 const {route, updateEconomy} = await import('../src/economy.js');
 
@@ -38,6 +40,27 @@ function building(typeName, x, y) {
   const type = TYPES.find(t => t.name === typeName);
   return makeBuilding(type, x, y, crypto.randomUUID());
 }
+
+test('factories keep a full visual footprint clearance from each other',()=>{
+  const s=baseState();
+  const type=TYPES.find(t=>t.name==='Steel');
+  s.buildings.push(makeBuilding(type,0,0,'existing'));
+  assert.equal(buildingPhysicalPlacementReason(s,type,140,0),null);
+  assert.equal(buildingPhysicalPlacementReason(s,type,120,0),'Too close to another factory');
+});
+
+test('initial factory seeding produces separated factories',()=>{
+  const s=baseState();
+  seed(s);
+  const factories=s.buildings.filter(b=>b.kind==='factory');
+  assert.equal(factories.length,3);
+  for(let i=0;i<factories.length;i++)for(let j=i+1;j<factories.length;j++){
+    const a=factories[i],b=factories[j];
+    const overlapX=Math.abs(a.x-b.x)<78+72+0;
+    const overlapY=Math.abs(a.y-b.y)<62+72+0;
+    assert.equal(overlapX&&overlapY,false,JSON.stringify({a,b}));
+  }
+});
 
 test('building attaches to the nearest physical road segment', () => {
   const s = baseState();
