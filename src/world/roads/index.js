@@ -30,6 +30,7 @@ export {
 } from './placement.js';
 
 export {roadNetwork,roadTopology,nearestGraphNode,shortestRoadPath,bumpRoadNetworkRevision} from './topology.js';
-export {roadAttachment,routeOnRoadNetwork,roadPath,addRoad} from '../../world.js';
+export {roadAttachment,routeOnRoadNetwork,roadPath,connectedRoadComponents,isRouteStale} from './routing.js';
+export {addRoad} from '../../world.js';
 export {roadAtPoint,roadSegmentAtPoint,roadEndpointCandidate,roadEndpointAtPoint,endpointTarget,roadEndpointPreview,editRoadSegment,editRoadEndpoint,endpointSegmentBlocked,cleanupRoadNetwork,eraseRoad} from './editing.js';
 export {roadsExactlyDuplicate,roadsHaveMeaningfulOverlap,buildRoadIntersections} from './intersections.js';
