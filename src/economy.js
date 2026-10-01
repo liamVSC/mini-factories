@@ -151,6 +151,21 @@ function movementConflict(a,b){
   }
   return true;
 }
+function laneOffsetForMovement(movement){
+  if(movement==='left')return 7;
+  if(movement==='right')return 1.8;
+  return 4.5;
+}
+function preferredTrafficLane(route){
+  if(!Array.isArray(route)||route.length<3)return 'straight';
+  for(let i=1;i<route.length-1;i++){
+    const a=route[i-1],b=route[i],c=route[i+1],ab={x:b.x-a.x,y:b.y-a.y},bc={x:c.x-b.x,y:c.y-b.y};
+    const al=Math.hypot(ab.x,ab.y),bl=Math.hypot(bc.x,bc.y); if(al<8||bl<8)continue;
+    const dot=Math.max(-1,Math.min(1,(ab.x*bc.x+ab.y*bc.y)/(al*bl))),cross=ab.x*bc.y-ab.y*bc.x;
+    if(dot<.82&&Math.abs(cross)>.18)return cross>0?'left':'right';
+  }
+  return 'straight';
+}
 function routeCurveFactor(route,t){
   if(!Array.isArray(route)||route.length<3)return 1;
   const p=pointOnRoute(route,t),total=length(route);
@@ -397,7 +412,8 @@ function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,
   // Final hard gate: both buildings must still be physically attached
   // to the saved road network when the truck is spawned.
   if(!roadAttachment(s,source)||!roadAttachment(s,destination))return false;
-  s.trucks.push({id:newId(),route:route.points,routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage,lane:'left'});
+  const movementLane=preferredTrafficLane(route.points),laneOffset=laneOffsetForMovement(movementLane);
+  s.trucks.push({id:newId(),route:route.points,routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),t:0,speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage,lane:movementLane,laneOffset});
   return true;
 }
 
