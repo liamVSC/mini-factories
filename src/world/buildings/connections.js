@@ -30,7 +30,7 @@ export function resolveBuildingRoadTarget(s,p,maxDistance=46){
 }
 
 export function buildingRoadAttachment(s,building){
-  if(!building)return null;
+  if(!building||!s?.buildings?.includes(building))return null;
   const footprint=buildingFootprint(building);
   const limit=Math.max(48,Math.hypot(footprint.halfWidth,footprint.halfDepth)+6,(building.r||25)+18);
   let best=null;
