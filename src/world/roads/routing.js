@@ -1,24 +1,10 @@
-import {dist,finitePoint,validRoadPoints,projectSegment} from './geometry.js';
-import {buildingFootprint} from '../buildings/geometry.js';
+import {dist,finitePoint,projectSegment} from './geometry.js';
+import {buildingRoadAttachment} from '../buildings/connections.js';
 import {snap} from './placement.js';
 import {roadNetwork,nearestGraphNode} from './topology.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from '../../laneGraph.js';
 
-export function roadAttachment(s,building){
-  if(!building)return null;
-  const footprint=buildingFootprint(building);
-  const limit=Math.max(48,Math.hypot(footprint.halfWidth,footprint.halfDepth)+6,(building.r||25)+18);
-  let best=null;
-  for(const road of s.roads||[]){
-    const points=validRoadPoints(road?.points,0);
-    if(!points)continue;
-    for(let i=1;i<points.length;i++){
-      const a=points[i-1],b=points[i],q=projectSegment(building,a,b);
-      if(q.distance<=limit&&(!best||q.distance<best.distance))best={road,point:{x:q.point.x,y:q.point.y},distance:q.distance,segment:i-1};
-    }
-  }
-  return best;
-}
+export {buildingRoadAttachment as roadAttachment};
 
 export function connectedRoadComponents(network){
   const nodes=network?.nodes||[];
@@ -68,7 +54,7 @@ export function routeNetworkValid(state,route){
 }
 
 export function routeOnRoadNetwork(s,a,b){
-  const aa=roadAttachment(s,a),bb=roadAttachment(s,b);
+  const aa=buildingRoadAttachment(s,a),bb=buildingRoadAttachment(s,b);
   if(!aa||!bb)return null;
   const network=roadNetwork(s,[aa.point,bb.point]);
   const start=nearestGraphNode(network,aa.point),end=nearestGraphNode(network,bb.point);
