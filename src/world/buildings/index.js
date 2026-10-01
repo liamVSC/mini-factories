@@ -10,7 +10,10 @@ export {
 
 export {
   resolveBuildingRoadEndpoint,
+  buildingRoadDistance,
+  resolveBuildingRoadTarget,
   buildingRoadAttachment,
+  buildingRoadEndpointClearance,
   nearestBuildingRoadTarget
 } from './connections.js';
 
