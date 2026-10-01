@@ -10,7 +10,7 @@ const CHANGELOG=[
 ];
 
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
-const canvas=document.querySelector('#game');let W=0,H=0;let s=load();let drag=null;let pointers=new Map();let pinch=null;let cameraGesture=null;let last=performance.now();let pinchCenter=null;let panelMode='none';let roadEditAction=null;
+const canvas=document.querySelector('#game');let W=0,H=0;let s=load();let drag=null;let pointers=new Map();let pinch=null;let cameraGesture=null;let last=performance.now();let pinchCenter=null;let panelMode='none';let roadEditAction=null;let buildFilter='all';
 function resize(){W=innerWidth;H=innerHeight;resizeRenderer(W,H)}addEventListener('resize',resize);resize();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
 function markWorldDirty(){s.renderVersion=(s.renderVersion||0)+1}
