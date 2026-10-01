@@ -295,6 +295,31 @@ function roadDirection(a,b){
   return len?{x:dx/len,y:dy/len}:null;
 }
 
+function addDedicatedApproachLanes(group,center,connections){
+  if(connections.length<3)return;
+  const L=58,W=ROAD.width*1.5,lane=W/3;
+  for(const con of connections){
+    const out=roadDirection(con.inner,con.outer);
+    if(!out)continue;
+    const travel={x:-out.x,y:-out.y},side={x:-travel.y,y:travel.x};
+    addRoadBox(group,
+      {x:center.x+travel.x*L/2,y:center.y+travel.y*L/2},
+      {x:center.x+travel.x*2,y:center.y+travel.y*2},
+      W,.12,ROAD.surfaceY,roadMaterials.asphalt);
+    for(const n of [1,2]){
+      const off=-W/2+lane*n;
+      addRoadBox(group,
+        {x:center.x+travel.x*8+side.x*off,y:center.y+travel.y*8+side.y*off},
+        {x:center.x+travel.x*48+side.x*off,y:center.y+travel.y*48+side.y*off},
+        .5,.08,ROAD.markingY,roadMaterials.edge);
+    }
+    const pocketOff=-W/2+lane*2;
+    addRoadBox(group,
+      {x:center.x+travel.x*12+side.x*pocketOff,y:center.y+travel.y*12+side.y*pocketOff},
+      {x:center.x+travel.x*44+side.x*pocketOff,y:center.y+travel.y*44+side.y*pocketOff},
+      1.1,.08,ROAD.markingY+.01,roadMaterials.center);
+  }
+}
 function addTurnLaneMarking(group,start,control,end,width=1.05){
   const steps=10; let prev=start;
   for(let i=1;i<=steps;i++){
@@ -416,7 +441,7 @@ function makeRoadJunctions(roads){
     for(const connection of connections){
       if(!unique.some(existing=>Math.abs(existing.outer.x-connection.outer.x)<8&&Math.abs(existing.outer.y-connection.outer.y)<8))unique.push(connection);
     }
-    if(unique.length>=3){const active=unique.slice(0,4);const center={x:node.x,y:node.y};const junctionRadius=ROAD.width*.66+Math.min(9,active.length*1.6);addLaneAwareJunction(group,center,active);addJunctionControlLines(group,center,active,junctionRadius);}
+    if(unique.length>=3){const active=unique.slice(0,4);const center={x:node.x,y:node.y};const junctionRadius=ROAD.width*.66+Math.min(9,active.length*1.6);addDedicatedApproachLanes(group,center,active);addLaneAwareJunction(group,center,active);addJunctionControlLines(group,center,active,junctionRadius);}
   }
   return group;
 }
