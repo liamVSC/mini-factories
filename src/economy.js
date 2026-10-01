@@ -479,29 +479,37 @@ export function updateEconomy(s,dt,flash){
       t.dead=true;
       continue;
     }
-    const p=pointOnRoute(t.route,t.t);let blocked=false,nearestAhead=Infinity;
-    let nearestGap=Infinity;
+    const p=pointOnRoute(t.route,t.t);let blocked=false;
+    let nearestGap=Infinity,queueAhead=null;
+    // Queue using physical distance along the shared route, not just raw t.
+    // This keeps vehicles ordered correctly when their route points have
+    // different spacing around a junction.
     for(const o of s.trucks){
-      if(o===t||o.dead)continue;
+      if(o===t||o.dead||o.routeKey!==t.routeKey)continue;
       const q=pointOnRoute(o.route,o.t);
-      if(o.routeKey!==t.routeKey||o.t<=t.t)continue;
+      const ahead=o.t>t.t;
+      if(!ahead)continue;
       const gap=Math.max(0,dist(p,q));
-      if(gap<nearestGap)nearestGap=gap;
-      if(gap<30)nearestAhead=Math.min(nearestAhead,o.t-t.t);
+      if(gap<nearestGap){nearestGap=gap;queueAhead=o;}
     }
     const trafficNetwork=roadNetwork(s);
     const trafficBlocked=trafficConflict(s,t,trafficNetwork);
     let trafficSpeedFactor=1;
-    // Maintain a physical following distance with progressive braking rather
-    // than the old binary "move/stop" behaviour. This also creates natural
-    // queues when several trucks share a lane.
-    if(nearestGap<42){
-      const safeGap=18+Math.min(18,t.speed*90);
-      const followingFactor=Math.max(0,Math.min(1,(nearestGap-safeGap)/24));
-      trafficSpeedFactor=Math.min(trafficSpeedFactor,followingFactor);
-      if(nearestGap<=safeGap){
+    t.queueAheadId=queueAhead?.id||null;
+    t.queueGap=Number.isFinite(nearestGap)?nearestGap:null;
+    // Use a slightly larger gap near junctions so a queue does not bunch into
+    // the stop line. The following truck brakes progressively, then holds a
+    // fixed physical gap instead of repeatedly overshooting and stopping.
+    const junctionAhead=t.trafficControl?.metresAhead;
+    const desiredGap=junctionAhead!=null&&junctionAhead<70
+      ?24+Math.min(12,t.speed*70)
+      :18+Math.min(18,t.speed*90);
+    if(queueAhead&&nearestGap<desiredGap+26){
+      const queueFactor=Math.max(0,Math.min(1,(nearestGap-desiredGap)/26));
+      trafficSpeedFactor=Math.min(trafficSpeedFactor,queueFactor);
+      if(nearestGap<=desiredGap){
         blocked=true;
-        t.wait=Math.min(2,t.wait+dt*.5);
+        t.wait=Math.min(2,t.wait+dt*.35);
       }
     }
     if(trafficBlocked){
