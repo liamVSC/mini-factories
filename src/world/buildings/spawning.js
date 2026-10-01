@@ -23,21 +23,18 @@ function spawnSearchRadius(s){
 }
 
 function candidatePosition(factorySlot,rotation,random,maxRadius,minRadius,index){
-  const sectorAngle=factorySlot>=0
-    ?rotation+factorySlot*(Math.PI*2/3)+(random()-.5)*.24+(index%5)*.045
-    :random()*Math.PI*2;
   const angle=factorySlot>=0
-    ?sectorAngle
+    ?rotation+factorySlot*(Math.PI*(3-Math.sqrt(5)))
     :rotation+random()*Math.PI*2;
   const radius=factorySlot>=0
-    ?Math.max(300,Math.min(maxRadius,330+random()*190))
+    ?Math.min(maxRadius,520+Math.floor(factorySlot/6)*120)
     :minRadius+random()*Math.max(1,maxRadius-minRadius);
 
-  let x=Math.cos(angle)*radius+(random()-.5)*45;
-  let y=Math.sin(angle)*radius+(random()-.5)*90;
+  let x=Math.cos(angle)*radius+(factorySlot>=0?(random()-.5)*18:(random()-.5)*45);
+  let y=Math.sin(angle)*radius+(factorySlot>=0?(random()-.5)*18:(random()-.5)*90);
   const river=riverY(x);
 
-  if(Math.abs(y-river)<105)y+=y<river?-120:120;
+  if(Math.abs(y-river)<125)y+=y<river?-150:150;
   return{x,y};
 }
 
