@@ -328,6 +328,7 @@ function rerouteTruck(s,t){
   const compact=routePoints.filter((q,i)=>i===0||dist(q,routePoints[i-1])>.01);
   t.centerlineRoute=next.points;
   t.route=compact;
+  t.laneRoute=physical;
   t.routeKey=next.points.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
   t.laneIds=Array.isArray(next.laneIds)?[...next.laneIds]:[];
   t.routeNetworkRevision=Number(s.roadNetworkRevision)||0;
@@ -440,7 +441,7 @@ function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,
   const movementLane=preferredTrafficLane(route.points),laneOffset=laneOffsetForMovement(movementLane);
   const physicalRoute=Array.isArray(route.lanePoints)&&route.lanePoints.length>=2?route.lanePoints:route.points;
   s.trucks.push({
-    id:newId(),route:physicalRoute,centerlineRoute:route.points,
+    id:newId(),route:route.points,laneRoute:physicalRoute,centerlineRoute:route.points,
     routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),
     routeNetworkRevision:Number(s.roadNetworkRevision)||0,
     routeNetworkRevision:Number(s.roadNetworkRevision)||0,
@@ -553,7 +554,7 @@ export function updateEconomy(s,dt,flash){
   }
 
   const trafficNetwork=roadNetwork(s);
-  const laneGraph=trafficNetwork?.edges?.length?buildLaneGraph(trafficNetwork):null;
+  const laneGraph=trafficNetwork?.edges?.length?buildLaneGraph(trafficNetwork,{lanesPerDirection:2}):null;
   const junctionControls=trafficNetwork&&laneGraph?buildJunctionControls(trafficNetwork,laneGraph):null;
   for(const t of s.trucks){
     // Every road mutation rebuilds the derived lane graph. A revision mismatch
