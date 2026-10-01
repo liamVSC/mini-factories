@@ -4,8 +4,23 @@ import {updateEconomy,upgrade,newContract,research,researchCost} from './economy
 import {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand,executeCommand} from './commands.js';
 
-const GAME_VERSION='1';
-const CHANGELOG=[];
+const GAME_VERSION='2';
+const CHANGELOG=[
+  {version:'2',date:'1 Oct 2026',items:[
+    'Factories now spawn across separate map sectors instead of clustering together.',
+    'Starter factories have a dedicated minimum spacing target of 250 units.',
+    'Factory placement now enforces an additional physical separation buffer.',
+    'Traffic simulation was optimized by reusing junction control data per update.',
+    'HUD updates are throttled during simulation to reduce unnecessary mobile work.',
+    'Mobile WebGL rendering now uses a lighter configuration for smoother performance.',
+    'Mobile Safari/PWA viewport, touch interaction and safe-area handling were hardened.',
+    'Road routing now detects stale routes after road network changes and reroutes traffic safely.'
+  ]},
+  {version:'1',date:'30 Sep 2026',items:[
+    'Initial Mini Factories release with factories, shops, warehouses, roads and traffic.',
+    'Added mobile-first build controls, road editing and PWA support.'
+  ]}
+];
 
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{}));}
 const canvas=document.querySelector('#game');
