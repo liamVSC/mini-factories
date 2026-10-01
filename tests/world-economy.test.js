@@ -24,7 +24,7 @@ const {
 } = await import('../src/world.js');
 const {route, updateEconomy} = await import('../src/economy.js');
 const {hydrate} = await import('../src/persistence/load.js');
-const {roadPathIntersectsBuildingFootprint} = await import('../src/world/roads/placement.js');
+const {roadPathIntersectsBuildingFootprint,roadPathBlocked} = await import('../src/world/roads/placement.js');
 
 function road(points) {
   return {id: crypto.randomUUID(), points, age:0, bridge:false, condition:1};
@@ -93,6 +93,7 @@ test('road routing avoids a warehouse physical footprint',()=>{
   const preview=roadPreview(s,{x:0,y:100},{x:200,y:100});
   assert.ok(preview);
   assert.equal(preview.blocked,false);
+  assert.equal(roadPathBlocked(s,preview.path,{}),false);
   assert.equal(roadPathIntersectsBuildingFootprint(s,preview.path,{}),false);
 });
 
