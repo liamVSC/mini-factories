@@ -1,18 +1,21 @@
 export {
-  buildingCost,
-  buildingUnlock,
-  canBuild,
   buildingPhysicalPlacementReason,
-  canPlaceBuildingAt,
-  buildingPlacementTarget,
-  placeBuilding,
-  spawn,
-  seed,
   buildingHitbox,
   buildingAtPoint,
   nearestBuilding,
   buildingFootprint,
   buildingDockPoints,
-  buildingLogisticsAccess,
   buildingConnectionPoint
+} from './geometry.js';
+
+export {
+  buildingCost,
+  buildingUnlock,
+  canBuild,
+  canPlaceBuildingAt,
+  buildingPlacementTarget,
+  placeBuilding,
+  spawn,
+  seed,
+  buildingLogisticsAccess
 } from '../../world.js';
