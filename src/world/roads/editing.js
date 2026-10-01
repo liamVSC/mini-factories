@@ -2,7 +2,8 @@ import {dist,finitePoint,validRoadPoints,projectOnPolyline,length,safePoint,coll
 import {endpointSegmentBlocked as endpointSegmentBlockedGeometry} from './geometry.js';
 import {isInsideWorldBounds,validateRoadGeometry} from './validation.js';
 import {WORLD_BOUNDS,WORLD_MARGIN} from '../terrain.js';
-import {buildingAtPoint,buildingConnectionPoint,buildingHitbox,nearestBuilding,buildingFootprintRadius} from '../buildings/geometry.js';
+import {nearestBuildingRoadTarget} from '../buildings/connections.js';
+import {buildingFootprintRadius} from '../buildings/geometry.js';
 import {roadBuildingTarget,snapRoadPoint,snapToWorldEdge,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,segmentNearRiver} from './placement.js';
 import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate} from './intersections.js';
 import {bumpRoadNetworkRevision} from './topology.js';
@@ -49,17 +50,11 @@ export function editRoadSegment(s,p,action='delete'){
 export function roadEndpointCandidate(s,p,maxDistance=24){if(!finitePoint(p))return null;let best=null;for(const road of s.roads||[]){if(!validRoadPoints(road?.points,0))continue;for(const index of [0,road.points.length-1]){const q=road.points[index],d=dist(q,p);if(d<=maxDistance&&(!best||d<best.distance))best={road,index,point:{x:q.x,y:q.y},distance:d}}}return best}
 export function roadEndpointAtPoint(s,p,tolerance=28){const hit=roadEndpointCandidate(s,p,tolerance);if(!hit)return null;return{road:hit.road,roadId:hit.road.id,index:hit.index,point:hit.point,distance:hit.distance}}
 export function endpointTarget(s,p,road,index){
-  const building=roadBuildingTarget(s,p);
+  const buildingTarget=nearestBuildingRoadTarget(s,p,24);
   const roadHit=snapRoadPoint(s,p,24);
   const candidateRoad=roadHit&&roadHit.road!==road?roadHit:null;
-  if(building){
-    const hit=buildingHitbox(building,0);
-    const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
-    const buildingDistance=Math.hypot(dx,dy);
-    if(buildingDistance<=24&&(buildingDistance<=10||!candidateRoad||buildingDistance<candidateRoad.distance)){
-      const q=buildingConnectionPoint(building,p);
-      return{x:q.x,y:q.y,building};
-    }
+  if(buildingTarget&&(buildingTarget.distance<=10||!candidateRoad||buildingTarget.distance<candidateRoad.distance)){
+    return{x:buildingTarget.point.x,y:buildingTarget.point.y,building:buildingTarget.building};
   }
   if(candidateRoad)return{x:candidateRoad.x,y:candidateRoad.y,road:candidateRoad.road};
   const endpoint=roadEndpointCandidate(s,p,24);
