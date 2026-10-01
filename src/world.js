@@ -163,4 +163,4 @@ export function addRoad(s,points,meta={}){
 
 export {roadAtPoint,roadSegmentAtPoint,roadEndpointCandidate,roadEndpointAtPoint,endpointTarget,roadEndpointPreview,editRoadSegment,editRoadEndpoint,endpointSegmentBlocked,eraseRoad,cleanupRoadNetwork} from './world/roads/editing.js';
 export {roadNetwork,roadTopology,nearestGraphNode,shortestRoadPath,bumpRoadNetworkRevision} from './world/roads/topology.js';
-export {roadAttachment,routeOnRoadNetwork,roadPath} from './world/roads/routing.js';
+export {roadAttachment,routeOnRoadNetwork,roadPath,connectedRoadComponents,isRouteStale} from './world/roads/routing.js';
