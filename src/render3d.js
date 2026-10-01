@@ -843,7 +843,7 @@ function drawTrucks(s){
 }
 export function setBuildingPreview(type,point,blocked=false){
   if(!buildingPreviewGroup)return;
-  const key=type&&point?[type.name,type.kind,Number(point.x).toFixed(2),Number(point.y).toFixed(2),blocked?'1':'0'].join('|'):'';
+  const key=type&&point?[type.name,type.kind,Number(point.x).toFixed(2),Number(point.y).toFixed(2),placement?.snapType||'',blocked?'1':'0'].join('|'):'';
   if(key===buildingPreviewKey)return;
   buildingPreviewKey=key;
   while(buildingPreviewGroup.children.length){
@@ -901,6 +901,27 @@ export function setBuildingPreview(type,point,blocked=false){
   bar.position.set(point.x,.82,point.y+dims.d*.18);
   buildingPreviewGroup.add(bar);
   buildingPreviewGroup.userData.previewType=label;
+  const accessPoints=placement?.accessPoints||[];
+  const accessMaterial=new THREE.MeshBasicMaterial({color:blocked?'#ff8d82':'#6ee7a2',transparent:true,opacity:.98,depthWrite:false});
+  for(const access of accessPoints){
+    const marker=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.35,16),accessMaterial);
+    marker.position.set(access.x,.92,access.y);
+    buildingPreviewGroup.add(marker);
+  }
+  if(placement?.connection){
+    const a=placement.connection.from,b=placement.connection.to,dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
+    const connector=new THREE.Mesh(new THREE.BoxGeometry(5,.28,len),accessMaterial);
+    connector.position.set((a.x+b.x)/2,.88,(a.y+b.y)/2);
+    connector.rotation.y=-Math.atan2(dy,dx)+Math.PI/2;
+    buildingPreviewGroup.add(connector);
+  }
+  if(placement?.snapType){
+    const snapRing=new THREE.Mesh(new THREE.RingGeometry(13,16,32),new THREE.MeshBasicMaterial({color:blocked?'#ff8d82':'#ffe16b',transparent:true,opacity:.95,depthWrite:false,side:THREE.DoubleSide}));
+    snapRing.rotation.x=-Math.PI/2;
+    const sp=placement.roadPoint||placement.point;
+    snapRing.position.set(sp.x,.9,sp.y);
+    buildingPreviewGroup.add(snapRing);
+  }
 }
 
 export function setPreview(path,start,end,blocked=false){
