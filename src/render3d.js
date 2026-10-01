@@ -24,7 +24,27 @@ const ROAD=Object.freeze({width:28,bridgeWidth:26,shoulderWidth:34,surfaceY:.68,
 const roadMaterials={asphalt:roadMat('#343a3c'),shoulder:roadMat('#697173'),curb:roadMat('#9aa09f'),center:mat('#e4c95f'),edge:mat('#d6dcda'),bridgeDeck:roadMat('#735334'),bridgeRail:mat('#b58a52'),bridgeSupport:mat('#5f4631')};
 const sharedMaterials=new Set(Object.values(roadMaterials));
 function addRoadBox(group,a,b,width,height,y,material){const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);if(len<1)return null;const mesh=new THREE.Mesh(new THREE.BoxGeometry(len,height,width),material);mesh.position.set((a.x+b.x)/2,y,(a.y+b.y)/2);mesh.rotation.y=-Math.atan2(dy,dx);group.add(mesh);return{mesh,len,dx,dy,angle:Math.atan2(dy,dx)};}
-function addRoadMarkings(group,points,width=ROAD.width,markingY=ROAD.markingY){if(!Array.isArray(points)||points.length<2)return;const segments=[];let total=0;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],len=Math.hypot(b.x-a.x,b.y-a.y);if(len<.5)continue;segments.push({a,b,len,start:total});total+=len;}if(total<4)return;for(const side of[-1,1])for(const s of segments){const angle=Math.atan2(s.b.y-s.a.y,s.b.x-s.a.x),nx=-Math.sin(angle),nz=Math.cos(angle),edge=new THREE.Mesh(new THREE.BoxGeometry(Math.max(1,s.len),.10,.62),roadMaterials.edge);edge.position.set((s.a.x+s.b.x)/2+nx*side*(width/2-1.5),markingY,(s.a.y+s.b.y)/2+nz*side*(width/2-1.5));edge.rotation.y=-angle;group.add(edge);}const dashLen=12,gap=18;for(let along=10;along<total-6;along+=dashLen+gap){const wanted=Math.min(total-3,along+dashLen/2);let seg=segments.at(-1);for(const candidate of segments){if(wanted<=candidate.start+candidate.len){seg=candidate;break;}}const q=(wanted-seg.start)/seg.len,x=seg.a.x+(seg.b.x-seg.a.x)*q,z=seg.a.y+(seg.b.y-seg.a.y)*q,angle=Math.atan2(seg.b.y-seg.a.y,seg.b.x-seg.a.x),dash=new THREE.Mesh(new THREE.BoxGeometry(dashLen,.11,1.02),roadMaterials.center);dash.position.set(x,markingY+.015,z);dash.rotation.y=-angle;group.add(dash);}}
+function samplePathByDistance(points,step=.8){const samples=[];if(!Array.isArray(points)||points.length<2)return samples;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],len=Math.hypot(b.x-a.x,b.y-a.y);if(len<.01)continue;const count=Math.max(1,Math.ceil(len/step));for(let j=0;j<count;j++){const t=j/count;samples.push({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});}}samples.push(points.at(-1));return samples;}
+function addRibbonStrip(group,points,width,y,material){if(points.length<2)return;const mesh=new THREE.Mesh(ribbonGeometry(points,width,y,.08),material);mesh.renderOrder=3;group.add(mesh);}
+function addRoadMarkings(group,points,width=ROAD.width,markingY=ROAD.markingY){
+  if(!Array.isArray(points)||points.length<2)return;
+  const samples=samplePathByDistance(points,.9);if(samples.length<2)return;
+  const left=offsetPath(samples,width/2-1.6),right=offsetPath(samples,-(width/2-1.6));
+  addRibbonStrip(group,left,.62,markingY,roadMaterials.edge);
+  addRibbonStrip(group,right,.62,markingY,roadMaterials.edge);
+  const dashLen=12,gap=18;let distance=10,run=0;
+  for(let i=1;i<samples.length;i++){
+    const a=samples[i-1],b=samples[i],seg=Math.hypot(b.x-a.x,b.y-a.y);
+    if(seg<.01)continue;
+    while(distance<run+seg-3){
+      const start=distance,end=Math.min(distance+dashLen,run+seg-1),t0=(start-run)/seg,t1=(end-run)/seg;
+      const dashStart={x:a.x+(b.x-a.x)*t0,y:a.y+(b.y-a.y)*t0},dashEnd={x:a.x+(b.x-a.x)*t1,y:a.y+(b.y-a.y)*t1};
+      addRibbonStrip(group,[dashStart,dashEnd],1.02,markingY+.018,roadMaterials.center);
+      distance+=dashLen+gap;
+    }
+    run+=seg;
+  }
+}
 function addRoadEndCap(group,p,radius,material,y){const cap=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.11,28),material);cap.position.set(p.x,y,p.y);group.add(cap);}
 function roundedRoadPoints(points){const clean=[];for(const p of points||[]){if(!Number.isFinite(p?.x)||!Number.isFinite(p?.y))continue;const last=clean.at(-1);if(last&&Math.hypot(last.x-p.x,last.y-p.y)<.5)continue;clean.push({x:p.x,y:p.y});}if(clean.length<3)return clean;const result=[clean[0]],radius=Math.min(30,Math.max(10,ROAD.width*1.35));for(let i=1;i<clean.length-1;i++){const prev=clean[i-1],cur=clean[i],next=clean[i+1],inLen=Math.hypot(cur.x-prev.x,cur.y-prev.y),outLen=Math.hypot(next.x-cur.x,next.y-cur.y);if(inLen<1||outLen<1){result.push(cur);continue;}const trim=Math.min(radius,inLen*.32,outLen*.32),inT={x:cur.x+(prev.x-cur.x)*(trim/inLen),y:cur.y+(prev.y-cur.y)*(trim/inLen)},outT={x:cur.x+(next.x-cur.x)*(trim/outLen),y:cur.y+(next.y-cur.y)*(trim/outLen)};result.push(inT);for(let s=1;s<=Math.max(3,Math.min(10,Math.ceil(trim/5)));s++){const t=s/Math.max(3,Math.min(10,Math.ceil(trim/5))),mt=1-t;result.push({x:mt*mt*inT.x+2*mt*t*cur.x+t*t*outT.x,y:mt*mt*inT.y+2*mt*t*cur.y+t*t*outT.y});}}result.push(clean.at(-1));return result;}
 function ribbonGeometry(points,width,y,thickness=.12){
