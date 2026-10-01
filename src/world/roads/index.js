@@ -25,7 +25,6 @@ export {
   roadPathIntersectsBuildingFootprint,
   simplifyRoad,
   snapToWorldEdge,
-  roadTargetInternal,
   roadTarget,
   roadPreview
 } from './placement.js';
