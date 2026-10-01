@@ -92,7 +92,7 @@ document.querySelector('#roadEditMove').onclick=()=>startRoadEditAction('move');
 document.querySelector('#roadEditRemove').onclick=()=>startRoadEditAction('remove');
 document.querySelector('#build').onclick=showBuild;
 document.querySelector('#research').onclick=showResearch;
-document.querySelector('#company').onclick=showCompany;
+document.querySelector('#company').onclick=showCompany;document.querySelector('#trafficControl').onclick=()=>showTraffic();
 document.querySelector('#panelClose').onclick=hidePanel;
 document.querySelector('#settings').onclick=()=>{s.paused=true;document.querySelector('#settingsMenu').style.display='flex'};
 document.querySelector('#settingsClose').onclick=()=>{s.paused=false;document.querySelector('#settingsMenu').style.display='none'};
