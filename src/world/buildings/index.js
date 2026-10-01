@@ -9,6 +9,11 @@ export {
 } from './geometry.js';
 
 export {
+  resolveBuildingRoadEndpoint,
+  nearestBuildingRoadTarget
+} from './connections.js';
+
+export {
   buildingPlacementTarget,
   buildingLogisticsAccess
 } from './placement.js';
