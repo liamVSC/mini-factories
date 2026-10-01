@@ -219,6 +219,107 @@ function addIndustrialProps(g,w,d,h,metal,dark){
   addBoxPart(g,new THREE.BoxGeometry(9,2.4,4),dark,w*.34,2,d*.42);
   addBoxPart(g,new THREE.BoxGeometry(7,2.8,3.5),metal,-w*.34,2,d*.42);
 }
+function addCylinderPart(g,radius,height,material,x,y,z,segments=12,cast=true){
+  return addBoxPart(g,new THREE.CylinderGeometry(radius,radius,height,segments),material,x,y,z,0,cast);
+}
+function addPallet(g,x,z,metal,dark){
+  const wood=mat('#71675b',.96);
+  addBoxPart(g,new THREE.BoxGeometry(5,.45,4),wood,x,.55,z,0,false);
+  for(const px of[-1.8,0,1.8])addBoxPart(g,new THREE.BoxGeometry(.45,.65,3.4),wood,x+px,.35,z,0,false);
+  for(const pz of[-1.35,1.35])addBoxPart(g,new THREE.BoxGeometry(4.8,.35,.35),metal,x,.8,z+pz,0,false);
+}
+function addDumpster(g,x,z,metal,dark){
+  const body=mat('#4e5553',.94),lid=mat('#363c3b',.96);
+  addBoxPart(g,new THREE.BoxGeometry(6,3.4,4.2),body,x,1.9,z);
+  addBoxPart(g,new THREE.BoxGeometry(6.4,.45,4.5),lid,x,3.75,z);
+  for(const px of[-2.2,2.2])addCylinderPart(g,.35,4,lid,x+px,1.2,z,10);
+}
+function addFuelTank(g,x,z,metal,dark){
+  const tankMat=mat('#68706d',.78,.45),darkMat=mat('#3e4442',.92);
+  const tank=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.2,10,16),tankMat);
+  tank.rotation.z=Math.PI/2;tank.position.set(x,4,z);tank.castShadow=true;tank.receiveShadow=true;g.add(tank);
+  for(const px of[-3.2,3.2])addBoxPart(g,new THREE.BoxGeometry(.8,2.4,5),darkMat,x+px,1.7,z);
+  addBoxPart(g,new THREE.BoxGeometry(2,1.2,1.5),darkMat,x,9,z);
+}
+function addPipeRun(g,points,material,radius=.55){
+  if(points.length<2)return;
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i],dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz);
+    if(len<.1)continue;
+    const pipe=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,len,8),material);
+    pipe.position.set((a.x+b.x)/2,(a.y+b.y)/2,(a.z+b.z)/2);
+    pipe.rotation.z=Math.PI/2;pipe.rotation.y=-Math.atan2(dz,dx);
+    pipe.castShadow=true;g.add(pipe);
+  }
+}
+function addForklift(g,x,z,metal,dark){
+  const forkMat=mat('#a18c56',.82,.35),frame=mat('#4b514f',.88,.25);
+  addBoxPart(g,new THREE.BoxGeometry(4.4,2.5,2.8),forkMat,x,2,z);
+  addBoxPart(g,new THREE.BoxGeometry(.7,5.5,2.1),frame,x+1.65,4.2,z);
+  addBoxPart(g,new THREE.BoxGeometry(2.8,.3,.5),forkMat,x+3.2,1.05,z-.85);
+  addBoxPart(g,new THREE.BoxGeometry(2.8,.3,.5),forkMat,x+3.2,1.05,z+.85);
+  for(const px of[-1.3,1.5])for(const pz of[-1.35,1.35])addCylinderPart(g,.65,1.0,dark,x+px,1,z+pz,10);
+}
+function addFenceLine(g,x1,z1,x2,z2,metal,postSpacing=9){
+  const fenceMat=mat('#4b514f',.9,.25),dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),count=Math.max(1,Math.ceil(len/postSpacing));
+  const nx=-dz/Math.max(.1,len),nz=dx/Math.max(.1,len);
+  for(let i=0;i<=count;i++){const t=i/count,x=x1+dx*t,z=z1+dz*t;addCylinderPart(g,.28,4.2,fenceMat,x,2.1,z,8);}
+  const railY=[1.1,3.1];
+  for(const y of railY){
+    const rail=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,len,8),fenceMat);
+    rail.position.set((x1+x2)/2,y,(z1+z2)/2);rail.rotation.z=Math.PI/2;rail.rotation.y=-Math.atan2(dz,dx);g.add(rail);
+  }
+}
+function addGate(g,x,z,width,metal){
+  const gateMat=mat('#454b49',.88,.3);
+  addCylinderPart(g,.38,5,gateMat,x-width/2,2.5,z,8);
+  addCylinderPart(g,.38,5,gateMat,x+width/2,2.5,z,8);
+  addBoxPart(g,new THREE.BoxGeometry(width,3.8,.35),gateMat,x,2.4,z);
+  addBoxPart(g,new THREE.BoxGeometry(width+.8,.25,.5),metal,x,4.5,z);
+}
+function addStaffParking(g,x,z,w,d,metal,dark){
+  const asphalt=mat('#4b5150',.98);
+  addBoxPart(g,new THREE.BoxGeometry(w,.18,d),asphalt,x,.1,z,0,false);
+  const lineMat=mat('#d7d9d4',.7);
+  const spaces=Math.max(3,Math.floor(w/8));
+  for(let i=0;i<=spaces;i++){
+    const px=x-w/2+i*w/spaces;
+    addBoxPart(g,new THREE.BoxGeometry(.28,.08,d*.78),lineMat,px,.22,z,0,false);
+  }
+  addBoxPart(g,new THREE.BoxGeometry(w+3,.5,1.2),metal,x,.4,z-d/2+2,0,false);
+}
+function addEntrance(g,x,z,w,h,metal,dark){
+  addBoxPart(g,new THREE.BoxGeometry(w,h,.65),dark,x,h/2+2,z);
+  addBoxPart(g,new THREE.BoxGeometry(w+4,.7,3),metal,x,h+2.7,z+1.2);
+  addBoxPart(g,new THREE.BoxGeometry(w+5,.25,5),metal,x,.25,z+3,0,false);
+}
+function addTruckTurningPad(g,x,z,radius,metal){
+  const pad=mat('#5a605e',.98);
+  const ring=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.18,48),pad);
+  ring.position.set(x,.1,z);ring.receiveShadow=true;g.add(ring);
+  const inner=new THREE.Mesh(new THREE.CylinderGeometry(radius*.55,radius*.55,.2,48),mat('#777c78',.98));
+  inner.position.set(x,.21,z);inner.receiveShadow=true;g.add(inner);
+  for(let i=0;i<4;i++){
+    const a=i*Math.PI/2;addBoxPart(g,new THREE.BoxGeometry(radius*.45,.12,1),metal,x+Math.cos(a)*radius*.72,.27,z+Math.sin(a)*radius*.72,a,0,false);
+  }
+}
+function addIndustrialSite(g,w,d,h,metal,dark,kind){
+  const yardZ=d/2+35, yardD=38;
+  addTruckTurningPad(g,0,yardZ+8,24,metal);
+  addForklift(g,-w*.28,yardZ-4,metal,dark);
+  addForklift(g,w*.28,yardZ-4,metal,dark);
+  addPallet(g,-w*.35,yardZ+17,metal,dark);addPallet(g,-w*.18,yardZ+17,metal,dark);addPallet(g,w*.34,yardZ+17,metal,dark);
+  addDumpster(g,w*.48,d*.42,metal,dark);
+  addFuelTank(g,-w*.42,d*.42,metal,dark);
+  addStaffParking(g,w*.22,-d/2-24,34,15,metal,dark);
+  addEntrance(g,-w*.25,-d/2-.8,10,9,metal,dark);
+  addFenceLine(g,-w/2-10,-d/2-5,-w/2-10,d/2+15,metal);
+  addFenceLine(g,w/2+10,-d/2-5,w/2+10,d/2+15,metal);
+  addGate(g,0,d/2+55,18,metal);
+  const pipeMat=mat('#555c59',.84,.35);
+  addPipeRun(g,[{x:-w*.42,y:10,z:-d/2},{x:-w*.42,y:10,z:d*.15},{x:-w*.28,y:18,z:d*.15}],pipeMat,.7);
+  addPipeRun(g,[{x:w*.38,y:7,z:-d/2},{x:w*.38,y:7,z:d*.22},{x:w*.25,y:14,z:d*.22}],pipeMat,.6);
+}
 function createFactoryModel(){
   const g=new THREE.Group(),w=78,d=62,h=25;
   const body=mat('#747b7b',.9),dark=mat('#3f4443',.96),metal=mat('#59605e',.84),glass=mat('#3d5559',.3,.12),roof=mat('#4e5453',.96);
@@ -230,6 +331,7 @@ function createFactoryModel(){
   addGableRoof(g,w,d,h,roof,metal);
   addLoadingYard(g,0,d/2+35,70,38,metal,dark);
   addIndustrialProps(g,w,d,h,metal,dark);
+  addIndustrialSite(g,w,d,h,metal,dark,'factory');
   for(const x of[-w*.28,w*.28]){
     addBoxPart(g,new THREE.CylinderGeometry(3.2,4.1,20,14),dark,x,h+12,0);
     addBoxPart(g,new THREE.CylinderGeometry(3.7,3.7,1.4,14),metal,x,h+22.5,0);
@@ -248,6 +350,7 @@ function createWarehouseModel(){
   addGableRoof(g,w,d,h,roof,metal);
   addLoadingYard(g,0,d/2+38,88,42,metal,dark);
   addIndustrialProps(g,w,d,h,metal,dark);
+  addIndustrialSite(g,w,d,h,metal,dark,'warehouse');
   for(const x of[-w*.3,0,w*.3]){
     addBoxPart(g,new THREE.BoxGeometry(10,3.2,7),dark,x,h+4.5,0);
     addBoxPart(g,new THREE.BoxGeometry(7,1,5),metal,x,h+6.3,0);
@@ -269,6 +372,10 @@ function createShopModel(){
   addBoxPart(g,new THREE.BoxGeometry(48,.2,34),mat('#5c6260',.98),0,.12,d/2+25,0,false);
   for(const x of[-19,0,19])addBoxPart(g,new THREE.BoxGeometry(2.8,.12,15),metal,x,.27,d/2+25,0,false);
   for(const x of[-22,22])addBoxPart(g,new THREE.BoxGeometry(2.5,1.5,2.5),dark,x,.9,d/2+25);
+  addEntrance(g,0,-d/2-.7,12,8,metal,dark);
+  addStaffParking(g,0,d/2+38,50,20,metal,dark);
+  addDumpster(g,w*.42,d*.38,metal,dark);
+  addFenceLine(g,-w/2-8,-d/2-4,-w/2-8,d/2+8,metal);addGate(g,0,d/2+38,16,metal);
   return g;
 }
 function createBuildingModel(building){
