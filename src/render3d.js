@@ -514,7 +514,7 @@ function updateBuildingActivity(s){
     const g=meshes.get(b.id);if(!g)continue;
     const activeTrucks=(s.trucks||[]).filter(t=>!t.dead&&(t.source===b||t.to===b));
     const loading=activeTrucks.some(t=>(t.to===b&&t.stage==='delivery'&&t.t>.78)||(t.source===b&&t.stage==='warehouse'&&t.t<.22));
-    const producing=b.kind==='factory'&&(Number(b.active)||0)>.15;
+    const producing=b.kind==='factory'&&Number(b.stock)<Number(b.max)&&Number(b.production)>.05;
     const active=loading||producing||activeTrucks.length>0;
     const level=loading?1:producing?.65:.25;
     const beaconMat=g.userData.statusBeacon?.userData.statusMaterial;
