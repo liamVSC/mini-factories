@@ -25,6 +25,7 @@ const {
 const {route, updateEconomy} = await import('../src/economy.js');
 const {hydrate} = await import('../src/persistence/load.js');
 const {roadPathIntersectsBuildingFootprint,roadPathBlocked} = await import('../src/world/roads/placement.js');
+const {routeNetworkValid} = await import('../src/world/roads/routing.js');
 
 function road(points) {
   return {id: crypto.randomUUID(), points, age:0, bridge:false, condition:1};
@@ -306,6 +307,23 @@ test('deleting one junction branch preserves the remaining road graph', () => {
   const shop = building('Market', 120, 0);
   s.buildings.push(f,shop);
   assert.ok(routeOnRoadNetwork(s,f,shop));
+});
+
+test('traffic dispatch validation rejects routes with stale or missing road references',()=>{
+  const s=baseState();
+  const f=building('Food',-160,0),shop=building('Market',160,0);
+  s.buildings.push(f,shop);
+  const r=road([{x:-125,y:0},{x:125,y:0}]);
+  s.roads.push(r);
+  const route=routeOnRoadNetwork(s,f,shop);
+  assert.ok(route);
+  assert.equal(routeNetworkValid(s,route),true);
+
+  const missingRoad={...route,laneRoadIds:route.laneRoadIds.map(()=> 'deleted-road')};
+  assert.equal(routeNetworkValid(s,missingRoad),false);
+
+  const stale={...route,roadNetworkRevision:s.roadNetworkRevision-1};
+  assert.equal(routeNetworkValid(s,stale),false);
 });
 
 test('live reroute keeps the truck at its physical position instead of teleporting to route start',()=>{
