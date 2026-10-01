@@ -1,12 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {freshState} from '../src/state.js';
+import {freshState,TYPES} from '../src/state.js';
 import {
   addRoad,
   eraseRoad,
   editRoadEndpoint,
   roadNetwork,
-  routeOnRoadNetwork
+  routeOnRoadNetwork,
+  buildingPhysicalPlacementReason,
+  spawn
 } from '../src/world.js';
 import {buildLaneGraph} from '../src/laneGraph.js';
 import {
@@ -32,7 +34,7 @@ test('road mutations advance the topology revision and rebuild lane graph safely
   const before=buildLaneGraph(roadNetwork(s));
   assert.ok(before.lanes.length>=4);
 
-  const removed=eraseRoad(s,{x:170,y:0});
+  const removed=eraseRoad(s,{x:0,y:170});
   assert.equal(removed,true);
   assert.equal(s.roadNetworkRevision,3);
 
@@ -91,4 +93,24 @@ test('junction controls expose explicit turning state for lane transitions',()=>
   const laneIndex=laneIndexForJunction(lanes,[movement.incomingLaneId,movement.outgoingLaneId],junction);
   assert.equal(laneIndex,0);
   assert.equal(movementForLaneRoute(lanes,controls,[movement.incomingLaneId,movement.outgoingLaneId],0)?.id,movement.id);
+});
+
+test('factories keep a dedicated separation buffer during placement and procedural spawning',()=>{
+  const s=roadState();
+  const steelType=TYPES.find(t=>t.name==='Steel');
+  const foodType=TYPES.find(t=>t.name==='Food');
+  assert.ok(steelType&&foodType);
+  const first={id:'steel',x:0,y:0,kind:'factory',r:25};
+  s.buildings=[first];
+  assert.equal(buildingPhysicalPlacementReason(s,foodType,120,0),'Too close to another factory');
+  assert.equal(buildingPhysicalPlacementReason(s,foodType,140,0),null);
+
+  const generated=freshState();
+  generated.cash=5000;
+  const steel=spawn(generated,'factory','Steel');
+  const food=spawn(generated,'factory','Food');
+  assert.ok(steel&&food);
+  const separatedX=Math.abs(steel.x-food.x)>=39+39+48;
+  const separatedY=Math.abs(steel.y-food.y)>=31+31+48;
+  assert.ok(separatedX||separatedY);
 });
