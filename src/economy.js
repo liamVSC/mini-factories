@@ -323,17 +323,20 @@ function rerouteTruck(s,t){
   if(!physicalProjected)return false;
   const join=pointOnRoute(physical,physicalProjected.progress);
   if(!join)return false;
-  const remaining=physical.slice(Math.max(0,physicalProjected.segmentIndex));
+  const physicalRemaining=physical.slice(Math.max(0,physicalProjected.segmentIndex-1));
+  const physicalCompact=[p,...physicalRemaining].filter((q,i)=>i===0||dist(q,physicalCompact?.[i-1]||q)>.01);
   const centerProjected=projectRouteProgress(next.points,p);
   if(!centerProjected||centerProjected.distance>160)return false;
-  const centerRemaining=next.points.slice(Math.max(0,centerProjected.segmentIndex));
+  const centerRemaining=next.points.slice(Math.max(0,centerProjected.segmentIndex-1));
   const routePoints=[p,...centerRemaining];
   const compact=routePoints.filter((q,i)=>i===0||dist(q,routePoints[i-1])>.01);
-  t.centerlineRoute=next.points;
+  const laneStart=Math.max(0,physicalProjected.segmentIndex-1);
+  const remainingLaneIds=Array.isArray(next.laneIds)?next.laneIds.slice(laneStart):[];
+  t.centerlineRoute=compact;
   t.route=compact;
-  t.laneRoute=physical;
-  t.routeKey=next.points.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
-  t.laneIds=Array.isArray(next.laneIds)?[...next.laneIds]:[];
+  t.laneRoute=physicalCompact;
+  t.routeKey=compact.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
+  t.laneIds=remainingLaneIds;
   t.routeNetworkRevision=Number(s.roadNetworkRevision)||0;
   t.currentLaneIndex=0;
   t.currentLaneId=t.laneIds[0]||null;
@@ -446,7 +449,6 @@ function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,
   s.trucks.push({
     id:newId(),route:route.points,laneRoute:physicalRoute,centerlineRoute:route.points,
     routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),
-    routeNetworkRevision:Number(s.roadNetworkRevision)||0,
     routeNetworkRevision:Number(s.roadNetworkRevision)||0,
     laneIds:Array.isArray(route.laneIds)?[...route.laneIds]:[],
     currentLaneIndex:0,currentLaneId:route.laneIds?.[0]||null,
