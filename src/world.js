@@ -1,11 +1,13 @@
 import {makeBuilding} from './state.js';
 import {newId} from './core/ids.js';
-import {dist,length,finitePoint,safePoint,validRoadPoints,cleanRoadPoints,projectSegment,projectOnPolyline,pointOnRoute,roadPointParameter,segmentIntersection,addNode,collinearOverlapLength,segmentDistance} from './world/roads/geometry.js';
+import {dist,length,finitePoint,safePoint,validRoadPoints,projectSegment,projectOnPolyline,pointOnRoute,roadPointParameter,addNode} from './world/roads/geometry.js';
 import {isInsideWorldBounds,roadWithinWorldBounds,validateRoadGeometry} from './world/roads/validation.js';
 import {riverY,district,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
 import {spawnBuilding,seedBuildings} from './world/buildings/spawning.js';
 import {buildingPhysicalPlacementReason,buildingHitbox,buildingAtPoint,nearestBuilding,buildingFootprint,buildingDockPoints,buildingConnectionPoint,buildingFootprintRadius} from './world/buildings/geometry.js';
 import {roadBuildingTarget,nearestRoad,snapRoadPoint,snap,segmentNearRiver,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,snapToWorldEdge,roadTarget,roadPreview} from './world/roads/placement.js';
+import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate,buildRoadIntersections} from './world/roads/intersections.js';
+import {cleanupRoadNetwork,bumpRoadNetworkRevision} from './world/roads/editing.js';
 export {riverY,district,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
 export {dist,length,pointOnRoute};
 export {buildingPhysicalPlacementReason,buildingHitbox,buildingAtPoint,nearestBuilding,buildingFootprint,buildingDockPoints,buildingConnectionPoint};
@@ -88,74 +90,7 @@ export function roadNetwork(s,extraPoints=[]){
       segments[i-1].push(addNode(nodes,road.points[i]));
     }
   }
-  for(let ri=0;ri<valid.length;ri++){
-    const aRoad=valid[ri];
-    for(let qi=ri;qi<valid.length;qi++){
-      const bRoad=valid[qi];
-      for(let i=1;i<aRoad.points.length;i++){
-        const a=aRoad.points[i-1],b=aRoad.points[i],first=aRoad===bRoad?i:1;
-        for(let j=first;j<bRoad.points.length;j++){
-          if(aRoad===bRoad&&i===j)continue;
-          const hit=segmentIntersection(a,b,bRoad.points[j-1],bRoad.points[j]);
-          if(!hit)continue;
-          const n=addNode(nodes,hit);
-          marks.get(aRoad)[i-1].push(n);
-          marks.get(bRoad)[j-1].push(n);
-        }
-      }
-    }
-  }
-  // Treat near-touching endpoints as real graph connections without moving
-  // persisted geometry. These are virtual graph edges: the visual road stays
-  // exactly where the player placed it, while routing can still traverse the
-  // small connection gap.
-  const junctionTolerance=6;
-  const connectEndpoint=(road,index,node)=>{
-    const endpoint=addNode(nodes,road.points[index],.5);
-    const d=dist(endpoint,node);
-    if(d>.001)virtualEdges.push({a:endpoint,b:node,d,road});
-  };
-  for(let ri=0;ri<valid.length;ri++)for(let qi=ri;qi<valid.length;qi++){
-    const aRoad=valid[ri],bRoad=valid[qi];
-    const aEnds=[{index:0,point:aRoad.points[0]},{index:aRoad.points.length-1,point:aRoad.points.at(-1)}];
-    const bEnds=[{index:0,point:bRoad.points[0]},{index:bRoad.points.length-1,point:bRoad.points.at(-1)}];
-    if(aRoad===bRoad)continue;
-
-    for(const aEnd of aEnds)for(const bEnd of bEnds){
-      if(dist(aEnd.point,bEnd.point)>junctionTolerance)continue;
-      const n=addNode(nodes,{x:(aEnd.point.x+bEnd.point.x)/2,y:(aEnd.point.y+bEnd.point.y)/2},.5);
-      connectEndpoint(aRoad,aEnd.index,n);
-      connectEndpoint(bRoad,bEnd.index,n);
-    }
-
-    const attachEndpointToRoad=(end,road)=>{
-      for(let j=1;j<road.points.length;j++){
-        const q=projectSegment(end.point,road.points[j-1],road.points[j]);
-        if(q.distance>junctionTolerance)continue;
-        const n=addNode(nodes,q.point,.5);
-        connectEndpoint(end===null?road: aRoad,end?.index??0,n);
-      }
-    };
-
-    for(const aEnd of aEnds){
-      for(let j=1;j<bRoad.points.length;j++){
-        const q=projectSegment(aEnd.point,bRoad.points[j-1],bRoad.points[j]);
-        if(q.distance>junctionTolerance)continue;
-        const n=addNode(nodes,q.point,.5);
-        connectEndpoint(aRoad,aEnd.index,n);
-        marks.get(bRoad)[j-1].push(n);
-      }
-    }
-    for(const bEnd of bEnds){
-      for(let i=1;i<aRoad.points.length;i++){
-        const q=projectSegment(bEnd.point,aRoad.points[i-1],aRoad.points[i]);
-        if(q.distance>junctionTolerance)continue;
-        const n=addNode(nodes,q.point,.5);
-        connectEndpoint(bRoad,bEnd.index,n);
-        marks.get(aRoad)[i-1].push(n);
-      }
-    }
-  }
+  buildRoadIntersections(valid,nodes,marks,virtualEdges);
   for(const p of extraPoints||[]){if(!finitePoint(p))continue;let best=null;for(const road of valid)for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(!best||q.distance<best.distance)best={road,segment:i-1,point:q.point,distance:q.distance}}if(best){const n=addNode(nodes,best.point);marks.get(best.road)[best.segment].push(n)}}
   for(const road of valid)for(let i=0;i<road.points.length-1;i++){
     const a=road.points[i],b=road.points[i+1];
@@ -263,10 +198,7 @@ export function routeOnRoadNetwork(s,a,b){
 }
 function nearestGraphNode(network,p){let best=null,bd=Infinity;for(const n of network.nodes){const d=dist(n,p);if(d<bd){bd=d;best=n}}return best&&bd<=2.5?best:null}
 export function roadPath(s,a,b){const start=snap(s,a),end=snap(s,b);if(dist(start,end)<8)return[start,end];const existing=routeOnRoadNetwork(s,start,end);return existing?existing.points:null}
-function roadDistance(a,b){const ap=a?.points||a,bp=b?.points||b;if(!Array.isArray(ap)||!Array.isArray(bp)||ap.length<2||bp.length<2)return Infinity;let best=Infinity;for(let i=1;i<ap.length;i++){const pa=ap[i-1],pb=ap[i];for(let j=1;j<bp.length;j++){const pc=bp[j-1],pd=bp[j];best=Math.min(best,projectSegment(pa,pc,pd).distance,projectSegment(pb,pc,pd).distance,projectSegment(pc,pa,pb).distance,projectSegment(pd,pa,pb).distance)}}return best}
-
 function normalizeRoadEndpoint(s,p){const b=nearestBuilding(s,p);if(!b||dist(b,p)>88)return p;return buildingConnectionPoint(b,p)}
-function cleanRoadPoints(points){return validRoadPoints(points,0)||[]}
 
 
 
@@ -300,34 +232,6 @@ function reconcileRoadJunctions(s,points,meta={}){
   }
 }
 
-function roadsHaveMeaningfulOverlap(a,b){const ap=a?.points||[],bp=b?.points||[];if(ap.length<2||bp.length<2)return false;let overlap=0;for(let i=1;i<ap.length;i++)for(let j=1;j<bp.length;j++)overlap=Math.max(overlap,collinearOverlapLength(ap[i-1],ap[i],bp[j-1],bp[j]));const aLen=length(ap),bLen=length(bp);return overlap>=24||overlap>=Math.min(aLen,bLen)*.65}
-function roadGeometrySignature(road){return(road?.points||[]).map(p=>`${Math.round(p.x*10)/10},${Math.round(p.y*10)/10}`).join('|')}
-function normalizeRoadGeometry(road){if(!road?.points)return null;const points=simplifyRoad(road.points);const validation=validateRoadGeometry(points);if(!validation.ok)return null;const bridge=points.some((p,i)=>i?segmentNearRiver(points[i-1],p):false);return{...road,points,bridge,age:Number.isFinite(road.age)?road.age:0,condition:Number.isFinite(road.condition)?Math.max(0,Math.min(1,road.condition)):1}}
-function roadsExactlyDuplicate(a,b){if(!a?.points||!b?.points)return false;if(roadGeometrySignature(a)===roadGeometrySignature(b))return true;return roadGeometrySignature({...a,points:[...a.points].reverse()})===roadGeometrySignature(b)}
-function invalidateTrucksForRoads(s,roads){const removed=new Set(roads);for(const truck of s.trucks||[])if((truck.routeSegments||[]).some(r=>removed.has(r))||roads.some(r=>routeTouchesRoad(truck.route,r)))truck.routeInvalidated=true}
-function cloneRoadState(roads){return (roads||[]).map(road=>({...road,points:(road.points||[]).map(safePoint)}));}
-function validateRoadNetworkState(s){
-  const seen=new Set();
-  for(const road of s.roads||[]){
-    if(!road?.id||seen.has(road.id))return false;
-    seen.add(road.id);
-    const normalized=normalizeRoadGeometry(road);
-    if(!normalized||normalized.points.length<2)return false;
-  }
-  return true;
-}
-function bumpRoadNetworkRevision(s){s.roadNetworkRevision=Math.max(0,Math.floor(Number(s.roadNetworkRevision)||0))+1}
-
-function commitRoadMutation(s,mutator){
-  const before=cloneRoadState(s.roads);
-  try{mutator();cleanupRoadNetwork(s);if(!validateRoadNetworkState(s))throw new Error('invalid-road-network');}
-  catch{ s.roads=before; return false; }
-  bumpRoadNetworkRevision(s);
-  const affected=[...before,...(s.roads||[])];
-  invalidateTrucksForRoads(s,affected.filter((road,index)=>index===affected.findIndex(r=>r.id===road.id)));
-  return true;
-}
-export function cleanupRoadNetwork(s){const original=[...(s.roads||[])],kept=[],removed=[];for(const road of original){const normalized=normalizeRoadGeometry(road);if(!normalized){removed.push(road);continue}if(kept.some(existing=>roadsExactlyDuplicate(existing,normalized)||roadsHaveMeaningfulOverlap(existing,normalized))){removed.push(road);continue}kept.push(normalized)}s.roads=kept;if(removed.length)invalidateTrucksForRoads(s,removed);return{removed,roads:s.roads}}
 export function addRoad(s,points,meta={}){
   if(!Array.isArray(points)||points.length<2)return'invalid';
   const normalized=points.map(q=>safePoint(q));
@@ -444,3 +348,5 @@ export function editRoadEndpoint(s,roadId,index,p){
   return{road:next,oldPoints,point:{x:next.points[index].x,y:next.points[index].y},target:preview.target,affected:[road,targetRoad].filter(Boolean)};
 }
 export function eraseRoad(s,p){const hit=roadAtPoint(s,p);if(!hit)return false;const{road}=hit;s.roads=s.roads.filter(r=>r!==road);cleanupRoadNetwork(s);bumpRoadNetworkRevision(s);invalidateTrucksForRoads(s,[road]);return true}
+
+export {roadAtPoint,roadSegmentAtPoint,roadEndpointCandidate,roadEndpointAtPoint,endpointTarget,roadEndpointPreview,editRoadSegment,editRoadEndpoint,endpointSegmentBlocked,eraseRoad} from './world/roads/editing.js';
