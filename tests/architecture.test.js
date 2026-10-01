@@ -80,7 +80,7 @@ test('lane geometry applies approach offsets and curved turn transitions',()=>{
   assert.equal(geometry.transitions[0].offset,7);
 });
 
-test('traffic signal state is persisted safely in hydrated game state',()=>{
+test('traffic signal state is persisted safely in hydrated game state',async()=>{
   const {hydrate,serialise}=await import('../src/state.js');
   const s=freshState();
   s.trafficSignals.enabled=true;
