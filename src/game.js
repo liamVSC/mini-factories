@@ -4,7 +4,7 @@ import {updateEconomy,upgrade,newContract,research,researchCost} from './economy
 import {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand,executeCommand} from './commands.js';
 
-const GAME_VERSION='1.3.1';
+const GAME_VERSION='1.3.3';
 const CHANGELOG=[
   {version:'1.3.1',date:'1 Oct 2026',items:['Fixed the PWA update loop so the Refresh/Load Latest screen cannot trap the game.','Version and service-worker cache identifiers now stay in sync.']},
   {version:'1.3',date:'1 Oct 2026',items:['Refactored traffic around the directional lane graph instead of centreline-only routing.','Added smooth lane-change approaches, turn-specific lane offsets and curved junction connectors.','Added deterministic junction priority control with optional traffic-signal phases.','Truck routes now keep canonical centreline data separate from physical lane-position geometry.']},
