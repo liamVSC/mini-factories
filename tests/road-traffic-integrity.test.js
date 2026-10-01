@@ -212,8 +212,8 @@ test('nearest topology node rejects points outside the graph snap tolerance',()=
   const s=roadState();
   assert.equal(addRoad(s,[{x:-180,y:0},{x:180,y:0}]),true);
   const network=roadNetwork(s);
-  assert.ok(nearestGraphNode(network,{x:0,y:2}));
-  assert.equal(nearestGraphNode(network,{x:0,y:10}),null);
+  assert.ok(nearestGraphNode(network,{x:-180,y:2}));
+  assert.equal(nearestGraphNode(network,{x:-180,y:10}),null);
 });
 
 test('topology revision is invalidated by road mutation without rebuilding persisted geometry',()=>{
