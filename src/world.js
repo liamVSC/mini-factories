@@ -9,6 +9,7 @@ import {roadBuildingTarget,nearestRoad,snapRoadPoint,snap,segmentNearRiver,roadP
 import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate,buildRoadIntersections} from './world/roads/intersections.js';
 import {cleanupRoadNetwork,bumpRoadNetworkRevision} from './world/roads/editing.js';
 export {riverY,district,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
+export {isInsideWorldBounds} from './world/roads/validation.js';
 export {dist,length,pointOnRoute};
 export {buildingPhysicalPlacementReason,buildingHitbox,buildingAtPoint,nearestBuilding,buildingFootprint,buildingDockPoints,buildingConnectionPoint};
 export {roadBuildingTarget,nearestRoad,snapRoadPoint,snap,segmentNearRiver,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,snapToWorldEdge,roadTarget,roadPreview};
