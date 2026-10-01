@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+globalThis.innerWidth=1280;
+globalThis.innerHeight=720;
+
 import {freshState,makeBuilding} from '../src/state.js';
 import {addRoad,routeOnRoadNetwork,roadNetwork} from '../src/world.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath} from '../src/laneGraph.js';
