@@ -15,6 +15,7 @@ const {
   editRoadEndpoint,
   roadAttachment,
   routeOnRoadNetwork,
+  buildingLogisticsAccess,
   roadNetwork,
   cleanupRoadNetwork,
   roadPreview,
@@ -340,6 +341,70 @@ test('disconnected reroute returns cargo instead of leaving a stale truck alive'
   updateEconomy(s,0,()=>{});
   assert.equal(s.trucks.length,0);
   assert.equal(f.stock,2);
+});
+
+test('building logistics access recomputes after its attached road is deleted', () => {
+  const s = baseState();
+  const factory = building('Food', 0, 0);
+  s.buildings.push(factory);
+  const attached = road([{x:45,y:0},{x:140,y:0}]);
+  s.roads.push(attached);
+  const before = buildingLogisticsAccess(s, factory);
+  assert.ok(before);
+  assert.equal(before.road.id, attached.id);
+
+  assert.equal(eraseRoad(s, {x:90,y:0}), true);
+
+  const after = buildingLogisticsAccess(s, factory);
+  assert.equal(after, null);
+});
+
+test('rerouted trucks replace lane road references after a road mutation', () => {
+  const s = baseState();
+  const factory = building('Food', -160, 0);
+  const shop = building('Market', 160, 0);
+  s.buildings.push(factory, shop);
+
+  const direct = road([{x:-125,y:0},{x:125,y:0}]);
+  const detour = road([{x:-125,y:0},{x:-125,y:90},{x:125,y:90},{x:125,y:0}]);
+  s.roads.push(direct, detour);
+
+  const initial = routeOnRoadNetwork(s, factory, shop);
+  assert.ok(initial);
+  assert.ok(initial.laneIds.length);
+  assert.equal(initial.laneIds.length, initial.laneRoadIds.length);
+
+  const truck = {
+    id:'lane-reference-truck',
+    route:initial.points,
+    centerlineRoute:initial.points,
+    laneRoute:initial.lanePoints || initial.points,
+    laneIds:[...initial.laneIds],
+    laneRoadIds:[...initial.laneRoadIds],
+    routeNetworkRevision:s.roadNetworkRevision,
+    t:.25,
+    speed:.001,
+    cargo:1,
+    source:factory,
+    to:shop,
+    stage:'delivery',
+    value:10,
+    wait:0
+  };
+  s.trucks.push(truck);
+
+  assert.equal(eraseRoad(s, {x:0,y:0}), true);
+  updateEconomy(s, .01, () => {});
+
+  assert.ok(!truck.routeInvalidated);
+  assert.ok(truck.laneIds.length);
+  assert.deepEqual(
+    truck.laneRoadIds,
+    truck.laneIds.map(id => roadNetwork(s).edges.find(edge => {
+      const network = roadNetwork(s);
+      return false;
+    })?.road?.id || null)
+  );
 });
 
 test('deleting a branch invalidates only trucks whose saved route used that branch', () => {
