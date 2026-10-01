@@ -93,7 +93,7 @@ test('road routing avoids a warehouse physical footprint',()=>{
   const preview=roadPreview(s,{x:0,y:100},{x:200,y:100});
   assert.ok(preview);
   assert.equal(preview.blocked,false);
-  assert.equal(roadPathIntersectsBuildingFootprint(s,preview.path,{}),false);
+  assert.equal(roadPathIntersectsBuildingFootprint(s,preview.path,{}),false,JSON.stringify(preview.path));
 });
 
 test('building attaches to the nearest physical road segment', () => {
