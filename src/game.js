@@ -9,7 +9,7 @@ const CHANGELOG=[];
 
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{}));}
 const canvas=document.querySelector('#game');let W=0,H=0;let s=load();let commands=createCommandHistory();let drag=null;let pointers=new Map();let pinch=null;let cameraGesture=null;let last=performance.now();let pinchCenter=null;let panelMode='none';let roadEditAction=null;let buildFilter='all';
-function resize(){W=innerWidth;H=innerHeight;resizeRenderer(W,H)}addEventListener('resize',resize);resize();
+function viewportSize(){const v=window.visualViewport;return{width:Math.max(1,Math.round(v?.width||innerWidth)),height:Math.max(1,Math.round(v?.height||innerHeight))}}function resize(){const v=viewportSize();W=v.width;H=v.height;resizeRenderer(W,H)}addEventListener('resize',resize,{passive:true});window.visualViewport?.addEventListener('resize',resize,{passive:true});window.visualViewport?.addEventListener('scroll',resize,{passive:true});resize();
 function load(){try{const d=JSON.parse(localStorage.getItem('miniFactoriesSaveV6'));const h=hydrate(d);if(h)return h}catch{}const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
 function markWorldDirty(){s.renderVersion=(s.renderVersion||0)+1}
 function save(){if(s.gameOver)return;try{localStorage.setItem('miniFactoriesSaveV6',JSON.stringify(serialise(s)))}catch(e){flash('Save failed — storage unavailable')}}
