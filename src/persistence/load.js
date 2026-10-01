@@ -2,41 +2,10 @@ import {freshState,goalList} from '../state.js';
 import {buildingFootprint,buildingClearance} from '../world/buildings/geometry.js';
 import {isInsideWorldBounds} from '../world/roads/validation.js';
 import {riverY} from '../world/terrain.js';
+import {repairBuildingLayout,validateBuildingLayout} from '../world/buildings/layout.js';
 
 const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
 const clampNumber=(value,min,max,fallback=min)=>Math.max(min,Math.min(max,finite(value,fallback)));
-
-function buildingOverlaps(a,b){
-  const af=buildingFootprint(a),bf=buildingFootprint(b);
-  const clearance=buildingClearance(a,b);
-  return Math.abs(Number(a.x)-Number(b.x))<af.halfWidth+bf.halfWidth+clearance&&Math.abs(Number(a.y)-Number(b.y))<af.halfDepth+bf.halfDepth+clearance;
-}
-
-function repairBuildingLayout(buildings){
-  const accepted=[];
-  for(const b of buildings){
-    let candidate=b;
-    const conflict=accepted.some(other=>buildingOverlaps(candidate,other)||(candidate.kind==='factory'&&other.kind==='factory'&&Math.hypot(Number(candidate.x)-Number(other.x),Number(candidate.y)-Number(other.y))<250));
-    if(conflict){
-      let found=null;
-      for(let ring=1;ring<=14&&!found;ring++){
-        const radius=ring*70;
-        for(let i=0;i<24;i++){
-          const angle=(i/24)*Math.PI*2;
-          const raw={x:Number(b.x)+Math.cos(angle)*radius,y:Number(b.y)+Math.sin(angle)*radius};
-          const x=Math.max(-1276,Math.min(1276,raw.x));
-          const y=Math.max(-1276,Math.min(1276,raw.y));
-          const test={...b,x,y};
-          if(!isInsideWorldBounds(test,24)||Math.abs(y-riverY(x))<105+Math.max(buildingFootprint(test).halfDepth,buildingFootprint(test).halfWidth)*.18)continue;
-          if(!accepted.some(other=>buildingOverlaps(test,other))){found=test;break}
-        }
-      }
-      if(found)candidate=found;else continue;
-    }
-    accepted.push(candidate);
-  }
-  return accepted;
-}
 
 export function hydrate(d){
   if(!d||d.version<2||!Array.isArray(d.buildings)||!Array.isArray(d.roads))return null;
@@ -74,7 +43,8 @@ export function hydrate(d){
     if(b.kind==='warehouse'){b.storage=Math.max(0,finite(b.storage,0));b.storage=Math.min(b.storage,b.max);b.inventory=b.inventory&&typeof b.inventory==='object'?b.inventory:{}}
     return b;
   });
-  s.buildings=repairBuildingLayout(s.buildings);
+  s.buildings=repairBuildingLayout(s.buildings,s.layoutSeed);
+  if(validateBuildingLayout(s.buildings).length)s.buildings=repairBuildingLayout(s.buildings,s.layoutSeed+7919);
   s.roads=s.roads.filter(r=>r&&Array.isArray(r.points)&&r.points.length>=2&&r.points.every(p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y))).map(r=>({...r,points:r.points.map(p=>({x:Number(p.x),y:Number(p.y)})),bridge:!!r.bridge,condition:Number.isFinite(r.condition)?r.condition:1,age:Number.isFinite(r.age)?r.age:0}));
   s.buildMode=null;
   return s;
