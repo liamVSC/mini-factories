@@ -533,12 +533,21 @@ function updateBuildingActivity(s){
       ringMat.emissiveIntensity=loading?.65:producing?.25:.06;
     }
     if(g.userData.statusRing)g.userData.statusRing.rotation.z=now*.5;
+    const arriving=activeTrucks.filter(t=>t.to===b&&t.t>.68);
+    const dockTarget=g.userData.buildingAccess?.dock?.approach;
     for(const[fi,fork]of(g.userData.siteForklifts||[]).entries()){
       const baseX=Number(fork.userData.baseX)||0,baseZ=Number(fork.userData.baseZ)||0;
-      const motion=activeTrucks.length?Math.sin(now*(1.3+fi*.2))*10:0;
-      fork.position.x=baseX+motion;
-      fork.position.z=baseZ+(activeTrucks.length?Math.cos(now*1.1+fi)*2:0);
-      fork.rotation.y=activeTrucks.length?Math.sin(now*.65+fi)*.12:0;
+      if(arriving.length&&dockTarget){
+        const side=fi===0?-7:7;
+        const tx=dockTarget.x-b.x;
+        const tz=dockTarget.y-b.y+side;
+        fork.position.x=baseX+(tx-baseX)*.12;
+        fork.position.z=baseZ+(tz-baseZ)*.12;
+        fork.rotation.y=Math.atan2(dockTarget.y-b.y,dockTarget.x-b.x);
+      }else{
+        fork.position.x=baseX+Math.sin(now*.7+fi)*1.5;
+        fork.position.z=baseZ+Math.cos(now*.8+fi)*.7;
+      }
     }
     for(const[palletIndex,pallet]of(g.userData.sitePallets||[]).entries()){
       pallet.position.y=activeTrucks.length?Math.sin(now*2+palletIndex)*.12:0;
