@@ -117,17 +117,18 @@ function movementAtJunction(route,junctionIndex){
   return {node,straight,turn,incoming,outgoing,direction};
 }
 function junctionForTruck(network,t){
-  const p=pointOnRoute(t.route,t.t);
+  const controlRoute=t.centerlineRoute||t.route;
+  const p=pointOnRoute(controlRoute,t.t);
   if(!p)return null;
   let best=null,bestDistance=Infinity,bestIndex=-1;
   for(const j of network.junctions||[]){
     let index=-1,d=Infinity;
-    for(let i=0;i<t.route.length;i++){
-      const q=t.route[i],dd=dist(q,j);
+    for(let i=0;i<controlRoute.length;i++){
+      const q=controlRoute[i],dd=dist(q,j);
       if(dd<d){d=dd;index=i}
     }
     if(index<0||d>1.5)continue;
-    const progress=routeProgressToPoint(t.route,j);
+    const progress=routeProgressToPoint(controlRoute,j);
     const remaining=Math.max(0,progress-t.t);
     const routeLength=Math.max(1,length(t.route));
     const metresAhead=remaining*routeLength;
@@ -204,6 +205,28 @@ function updateTruckSpeed(t,targetFactor,dt){
   if(t.currentSpeed<.001)t.currentSpeed=0;
   return t.currentSpeed;
 }
+
+function junctionSignal(s,junction,movement){
+  const signals=s.trafficSignals;
+  if(!signals?.enabled||!junction)return{state:'priority',blocked:false};
+  const key=Math.round(junction.x*10)+':'+Math.round(junction.y*10);
+  let hash=0;for(let i=0;i<key.length;i++)hash=(hash*31+key.charCodeAt(i))>>>0;
+  const cycle=Math.max(8,Number(signals.cycle)||12);
+  const elapsed=((s.trafficClock||0)+(hash%1000)/1000*cycle)%cycle;
+  const green=cycle*.45;
+  const yellow=Math.min(1.5,cycle*.1);
+  const horizontal=Math.abs(movement?.incoming?.x||0)>=Math.abs(movement?.incoming?.y||0);
+  const phaseA=elapsed<cycle/2;
+  const inYellow=elapsed>cycle/2-yellow;
+  const activeHorizontal=phaseA;
+  const allowed=horizontal===activeHorizontal;
+  return{
+    state:allowed?(inYellow?'yellow':'green'):'red',
+    blocked:!allowed||inYellow,
+    axis:horizontal?'horizontal':'vertical'
+  };
+}
+
 function trafficConflict(s,t,network){
   const p=pointOnRoute(t.route,t.t);
   if(!p)return false;
@@ -259,6 +282,7 @@ function trafficConflict(s,t,network){
   // / braking state and the simulation can slow before the conflict zone rather
   // than teleporting from full speed to a complete stop.
   const direction=here.movement?.direction||t.lane||'straight';
+  const signal=junctionSignal(s,here.junction,here.movement);
   const laneSide=1;
   // Left-hand traffic uses the outer lane for left turns, the centre lane for
   // straight travel and the inner lane for right turns. The route itself stays
@@ -270,9 +294,11 @@ function trafficConflict(s,t,network){
     metresAhead:here.metresAhead,
     yielding,
     movement:direction,
-    laneTarget:laneSide*targetMagnitude
+    laneTarget:laneSide*targetMagnitude,
+    signal:signal.state,
+    signalAxis:signal.axis||null
   };
-  if(yielding)return true;
+  if(yielding||signal.blocked)return true;
 
   // Claim the junction briefly. This prevents a second movement entering while
   // the first truck is physically occupying the conflict zone.
@@ -303,7 +329,8 @@ function rerouteTruck(s,t){
   const remaining=next.points.slice(projected.segmentIndex);
   const routePoints=[p,join,...remaining];
   const compact=routePoints.filter((q,i)=>i===0||dist(q,routePoints[i-1])>.01);
-  t.route=compact;
+  t.centerlineRoute=next.points;
+  t.route=next.lanePoints||compact;
   t.routeKey=compact.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
   t.t=0;
   t.routeInvalidated=false;
@@ -410,8 +437,9 @@ function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,
   // to the saved road network when the truck is spawned.
   if(!roadAttachment(s,source)||!roadAttachment(s,destination))return false;
   const movementLane=preferredTrafficLane(route.points),laneOffset=laneOffsetForMovement(movementLane);
+  const physicalRoute=Array.isArray(route.lanePoints)&&route.lanePoints.length>=2?route.lanePoints:route.points;
   s.trucks.push({
-    id:newId(),route:route.points,
+    id:newId(),route:physicalRoute,centerlineRoute:route.points,
     routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),
     laneIds:Array.isArray(route.laneIds)?[...route.laneIds]:[],
     currentLaneIndex:0,currentLaneId:route.laneIds?.[0]||null,
@@ -573,6 +601,9 @@ export function updateEconomy(s,dt,flash){
       t.currentLaneIndex=Math.min(t.laneIds.length-1,Math.max(0,Math.floor(t.t*t.laneIds.length)));
       t.currentLaneId=t.laneIds[t.currentLaneIndex];
     }
+    const laneTarget=Number.isFinite(t.trafficControl?.laneTarget)?t.trafficControl.laneTarget:0;
+    const laneApproach=Math.max(0,Math.min(1,1-(t.trafficControl?.metresAhead??999)/42));
+    t.laneOffset=(Number.isFinite(t.laneOffset)?t.laneOffset:0)+(laneTarget-(Number.isFinite(t.laneOffset)?t.laneOffset:0))*Math.min(1,dt*3.8*laneApproach);
     let trafficSpeedFactor=1;
     t.queueAheadId=queueAhead?.id||null;
     t.queueGap=Number.isFinite(nearestGap)?nearestGap:null;
