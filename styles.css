@@ -160,3 +160,8 @@
   .build-menu.open,.road-editor.open{animation:none;}
   button,.build-menu{transition:none;}
 }
+
+/* Build category controls */
+.build-categories{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 1px 7px;overscroll-behavior-x:contain}.build-categories::-webkit-scrollbar{display:none}.build-category{flex:0 0 auto;min-height:34px;padding:6px 11px;border:1px solid rgba(66,54,38,.16);border-radius:999px;background:#f4ead7;color:#675b4c;font-size:10px;font-weight:850;touch-action:manipulation;white-space:nowrap}.build-category.active{background:#26353c;color:#fff;border-color:#26353c}.build-category:active{transform:scale(.97)}
+@media(max-width:700px){.build-categories{gap:5px;padding-bottom:6px}.build-category{min-height:32px;padding:5px 10px;font-size:9px}.build-cards{padding-top:1px}}
+@media(max-width:390px){.build-category{min-height:30px;padding:4px 9px;font-size:8px}}
