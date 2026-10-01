@@ -550,7 +550,8 @@ function updateBuildingActivity(s){
       }
     }
     for(const[palletIndex,pallet]of(g.userData.sitePallets||[]).entries()){
-      pallet.position.y=activeTrucks.length?Math.sin(now*2+palletIndex)*.12:0;
+      pallet.visible=b.kind==='warehouse'?palletIndex<(Number(b.storage)||0):palletIndex<(Number(b.stock)||0);
+      pallet.position.y=activeTrucks.length&&pallet.visible?Math.sin(now*2+palletIndex)*.12:0;
     }
     for(const[puffIndex,puff]of(g.userData.smokePuffs||[]).entries()){
       const t=(now*.18+puffIndex*.23)%1;
