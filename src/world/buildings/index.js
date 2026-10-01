@@ -31,3 +31,13 @@ export {
   spawn,
   seed
 } from './operations.js';
+
+export {
+  FACTORY_MIN_DISTANCE,
+  buildingOverlaps,
+  buildingPlacementConflict,
+  validateBuildingLayout,
+  repairBuildingLayout,
+  factorySpawnCandidates,
+  layoutIsValid
+} from './layout.js';
