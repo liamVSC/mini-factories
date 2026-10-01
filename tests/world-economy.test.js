@@ -106,7 +106,8 @@ test('intelligent spawning reacts to existing roads instead of bypassing placeme
   const spawned=buildingModule.spawn(s,'factory','Plastics');
   assert.ok(spawned);
   assert.equal(spawned.type,'Plastics');
-  assert.equal(buildingPhysicalPlacementReason(s, TYPES.find(t=>t.name==='Plastics'), spawned.x, spawned.y),null);
+  const beforeSpawn={...s,buildings:s.buildings.filter(building=>building!==spawned)};
+  assert.equal(buildingPhysicalPlacementReason(beforeSpawn, TYPES.find(t=>t.name==='Plastics'), spawned.x, spawned.y),null);
   assert.ok(Math.hypot(spawned.x,spawned.y)>=FACTORY_MIN_SPAWN_RADIUS);
 });
 
@@ -119,7 +120,8 @@ test('intelligent spawning never uses an invalid river or out-of-bounds fallback
   s.buildings.push(makeBuilding(type,0,river,'river-blocker'));
   const spawned=buildingModule.spawn(s,'shop','Garage');
   assert.ok(spawned);
-  assert.equal(buildingPhysicalPlacementReason(s,type,spawned.x,spawned.y),null);
+  const beforeSpawn={...s,buildings:s.buildings.filter(building=>building!==spawned)};
+  assert.equal(buildingPhysicalPlacementReason(beforeSpawn,type,spawned.x,spawned.y),null);
   assert.ok(Math.abs(spawned.y-(420+Math.sin(spawned.x*.002)*35))>=105+35*.18);
 });
 
