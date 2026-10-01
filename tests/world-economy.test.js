@@ -23,6 +23,7 @@ const {
 } = await import('../src/world.js');
 const {route, updateEconomy} = await import('../src/economy.js');
 const {hydrate} = await import('../src/persistence/load.js');
+const {roadPathIntersectsBuildingFootprint} = await import('../src/world/roads/placement.js');
 
 function road(points) {
   return {id: crypto.randomUUID(), points, age:0, bridge:false, condition:1};
@@ -84,13 +85,14 @@ test('building placement uses the same factory clearance as save repair',()=>{
   assert.equal(buildingPhysicalPlacementReason(s,type,149,0),'Too close to another factory');
 });
 
-test('roads cannot pass through a warehouse physical footprint',()=>{
+test('road routing avoids a warehouse physical footprint',()=>{
   const s=baseState();
   const warehouse=building('Warehouse',100,100);
   s.buildings.push(warehouse);
   const preview=roadPreview(s,{x:0,y:100},{x:200,y:100});
   assert.ok(preview);
-  assert.equal(preview.blocked,true);
+  assert.equal(preview.blocked,false);
+  assert.equal(roadPathIntersectsBuildingFootprint(s,preview.path,{}),false);
 });
 
 test('building attaches to the nearest physical road segment', () => {
