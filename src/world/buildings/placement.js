@@ -1,7 +1,6 @@
 import {dist,finitePoint} from '../roads/geometry.js';
 import {nearestRoad,roadPathBlocked} from '../roads/placement.js';
-import {roadAttachment} from '../roads/routing.js';
-import {resolveBuildingRoadEndpoint} from './connections.js';
+import {buildingRoadAttachment,resolveBuildingRoadEndpoint} from './connections.js';
 import {
   buildingFootprint,
   nearestBuilding,
@@ -109,7 +108,7 @@ export function buildingPlacementTarget(s,type,p){
 export function buildingLogisticsAccess(s,building){
   if(!building||!Array.isArray(s?.buildings)||!s.buildings.includes(building))return null;
 
-  const attachment=roadAttachment(s,building);
+  const attachment=buildingRoadAttachment(s,building);
   if(!attachment||!s.roads?.includes(attachment.road))return null;
 
   const docks=buildingDockPoints(building);
