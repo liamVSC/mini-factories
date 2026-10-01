@@ -141,7 +141,8 @@ test('lane graph keeps opposing traffic in separate carriageways and prefers tur
   const turn=route.laneTransitions.find(t=>t.type==='left');
   assert.ok(turn);
   assert.equal(turn.offset,7);
-  const geometry=laneRouteGeometry(graph,route.laneIds);
+  const routeGraph=buildLaneGraph(roadNetwork(s,[{x:-140,y:0},{x:0,y:140}]),{lanesPerDirection:2});
+  const geometry=laneRouteGeometry(routeGraph,route.laneIds);
   assert.ok(geometry.points.length>route.laneIds.length);
   assert.ok(geometry.transitions.some(t=>t.type==='left'));
 });
@@ -151,7 +152,7 @@ test('lane-change metadata and junction signals/priority expose deterministic st
   assert.equal(addRoad(s,[{x:-160,y:0},{x:0,y:0}]),true);
   assert.equal(addRoad(s,[{x:0,y:0},{x:0,y:160}]),true);
   const network=roadNetwork(s),graph=buildLaneGraph(network,{lanesPerDirection:2}),controls=buildJunctionControls(network,graph);
-  const junction=network.junctions[0];
+  const junction=network.nodes.find(n=>(network.adjacency.get(n)||[]).length>=2);
   assert.ok(junction);
   const incoming=graph.incoming.get(junction)||[];
   const outgoing=graph.outgoing.get(junction)||[];
