@@ -5,15 +5,17 @@ import {isInsideWorldBounds,roadWithinWorldBounds,validateRoadGeometry} from './
 import {riverY,district,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
 export {district};
 import {spawnBuilding,seedBuildings} from './world/buildings/spawning.js';
+import {buildingPhysicalPlacementReason,buildingHitbox,buildingAtPoint,nearestBuilding,buildingFootprint,buildingDockPoints,buildingConnectionPoint,buildingFootprintRadius} from './world/buildings/geometry.js';
 export {riverY,district,WORLD_SIZE,WORLD_HALF_SIZE,WORLD_BOUNDS,WORLD_CONSTRUCTION_MARGIN,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from './world/terrain.js';
 export {dist,length,pointOnRoute};
+export {buildingPhysicalPlacementReason,buildingHitbox,buildingAtPoint,nearestBuilding,buildingFootprint,buildingDockPoints,buildingConnectionPoint};
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from './laneGraph.js';
 
 
 export function buildingCost(s,type){const base={Steel:260,Food:220,Parts:320,Market:180,Garage:240,Builder:220,Plastics:420,Glass:500,Electronics:520,Furniture:600,Warehouse:700};return Math.round((base[type.name]||300)*Math.pow(1.12,s.buildings.length))}
 export function buildingUnlock(t,s){if(t.unlock&&(s.research?.[t.unlock]||0)<t.unlockLevel)return'Requires '+t.unlock+' research Lv '+t.unlockLevel;const min={Steel:1,Food:1,Parts:2,Market:1,Garage:2,Builder:1,Plastics:1,Glass:2,Electronics:1,Furniture:2,Warehouse:2}[t.name]||1;if(s.companyLevel<min)return'Requires Company Level '+min;return null}
 export function canBuild(s,type){const reason=buildingUnlock(type,s);if(reason)return reason;const cap=10+(s.research?.industry||0)*2;if(s.buildings.length>=cap)return'Company building capacity reached ('+cap+')';if(s.cash<buildingCost(s,type))return'Costs £'+buildingCost(s,type);return null}
-export function buildingPhysicalPlacementReason(s,type,x,y){if(!type)return'Unknown building';if(!Number.isFinite(Number(x))||!Number.isFinite(Number(y)))return'Invalid placement';if(!isInsideWorldBounds({x,y},WORLD_MARGIN))return'Outside the playable area';const candidate={kind:type.kind,x:Number(x),y:Number(y)};const footprint=buildingFootprint(candidate);for(const b of s.buildings||[]){if(!finitePoint(b))continue;const other=buildingFootprint(b),clearance=candidate.kind==='factory'&&b.kind==='factory'?48:18;const overlapX=Math.abs(Number(b.x)-Number(x))<footprint.halfWidth+other.halfWidth+clearance;const overlapY=Math.abs(Number(b.y)-Number(y))<footprint.halfDepth+other.halfDepth+clearance;if(overlapX&&overlapY)return candidate.kind==='factory'&&b.kind==='factory'?'Too close to another factory':'Too close to another building'}if(Math.abs(Number(y)-riverY(Number(x)))<105+Math.max(footprint.halfDepth,footprint.halfWidth)*.18)return'Too close to the river';return null}
+
 export function canPlaceBuildingAt(s,type,x,y){const reason=canBuild(s,type);if(reason)return reason;return buildingPhysicalPlacementReason(s,type,x,y)}
 export function buildingPlacementTarget(s,type,p){
   if(!finitePoint(p)||!type)return null;
@@ -47,28 +49,13 @@ export function buildingPlacementTarget(s,type,p){
 export function placeBuilding(s,type,x,y){if(canPlaceBuildingAt(s,type,x,y))return false;const b=makeBuilding(type,x,y,newId());b.district=district(x,y);s.cash-=buildingCost(s,type);s.buildings.push(b);return b}
 export function spawn(s,kind,forced){return spawnBuilding(s,kind,forced,buildingPhysicalPlacementReason)}
 export function seed(s){return seedBuildings(s,buildingPhysicalPlacementReason)}
-export function buildingHitbox(building,tolerance=0){const footprint=buildingFootprint(building);return{minX:building.x-footprint.halfWidth-tolerance,maxX:building.x+footprint.halfWidth+tolerance,minY:building.y-footprint.halfDepth-tolerance,maxY:building.y+footprint.halfDepth+tolerance}}export function buildingAtPoint(s,p,tolerance=10){if(!finitePoint(p))return null;let best=null,bestDistance=Infinity;for(const b of s.buildings||[]){const hit=buildingHitbox(b,tolerance);const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY),d=Math.hypot(dx,dy);if(d<=tolerance&&d<bestDistance){best=b;bestDistance=d}}return best}export function nearestBuilding(s,p){return buildingAtPoint(s,p,18)}
+
 const ROAD_BUILDING_SNAP_TOLERANCE=46;
 export function roadBuildingTarget(s,p){if(!finitePoint(p))return null;let best=null,bd=Infinity;for(const b of s.buildings||[]){const hit=buildingHitbox(b,ROAD_BUILDING_SNAP_TOLERANCE),dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX),dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY),d=Math.hypot(dx,dy);if(d<bd){bd=d;best=b}}return bd<=ROAD_BUILDING_SNAP_TOLERANCE?best:null}
 export function nearestRoad(s,p){let best=null;for(const road of s.roads||[]){const points=validRoadPoints(road?.points,0);if(!points)continue;const q=projectOnPolyline(points,p);if(q&&(!best||q.distance<best.distance))best={x:q.point.x,y:q.point.y,road,distance:q.distance,segment:q.segment,along:q.along}}return best&&best.distance<=46?best:null}
-export function buildingFootprint(building){
-  if(building?.kind==='warehouse')return{halfWidth:48,halfDepth:33};
-  if(building?.kind==='factory')return{halfWidth:39,halfDepth:31};
-  return{halfWidth:35,halfDepth:28};
-}
-function buildingFootprintRadius(building){
-  const footprint=buildingFootprint(building);
-  return Math.max(26,(building?.r||25)+9,Math.min(footprint.halfWidth,footprint.halfDepth));
-}
-export function buildingDockPoints(building){
-  const x=Number(building?.x)||0,y=Number(building?.y)||0;
-  const specs=building?.kind==='factory'
-    ?[{name:'north-loading',x:0,y:31.5,normal:{x:0,y:1},width:22},{name:'south-loading',x:-23.4,y:-31.5,normal:{x:0,y:-1},width:13}]
-    :building?.kind==='warehouse'
-      ?[{name:'north-main',x:0,y:33.5,normal:{x:0,y:1},width:24},{name:'north-secondary',x:-30.7,y:33.5,normal:{x:0,y:1},width:14},{name:'south-secondary',x:30.7,y:-33.5,normal:{x:0,y:-1},width:14}]
-      :[{name:'front-entrance',x:0,y:-28.5,normal:{x:0,y:-1},width:12}];
-  return specs.map(dock=>({...dock,point:{x:x+dock.x,y:y+dock.y},approach:{x:x+dock.x+dock.normal.x*10,y:y+dock.y+dock.normal.y*10}}));
-}
+
+
+
 export function buildingLogisticsAccess(s,building){
   if(!building)return null;
   const attachment=roadAttachment(s,building);
@@ -82,25 +69,7 @@ export function buildingLogisticsAccess(s,building){
   const driveway=[{x:attachment.point.x,y:attachment.point.y},{x:dock.approach.x,y:dock.approach.y}];
   return{road:attachment.road,roadPoint:{...attachment.point},dock,driveway,connected:!roadPathBlocked(s,driveway,{end:building})};
 }
-export function buildingConnectionPoint(building,target,exteriorOffset=2.5){
-  const dx=Number(target?.x)-Number(building?.x),dy=Number(target?.y)-Number(building?.y);
-  const len=Math.hypot(dx,dy)||1;
-  const ux=dx/len,uy=dy/len;
-  const footprint=buildingFootprint(building);
-  // Buildings are rendered as rectangles, so use the exact ray/rectangle
-  // intersection instead of an oversized circular radius. Keep a tiny
-  // exterior offset so the road centreline sits just outside the facade while
-  // the shoulder/surface still visually meets and overlaps the building edge.
-  const tx=Math.abs(ux)>1e-6?footprint.halfWidth/Math.abs(ux):Infinity;
-  const ty=Math.abs(uy)>1e-6?footprint.halfDepth/Math.abs(uy):Infinity;
-  const distance=Math.min(tx,ty)+exteriorOffset;
-  return{
-    x:building.x+ux*distance,
-    y:building.y+uy*distance,
-    building,
-    distance:0
-  };
-}
+
 function endpointSegmentBlocked(building,a,b,side){if(!building)return false;const ax=a.x-building.x,ay=a.y-building.y,bx=b.x-building.x,by=b.y-building.y,aRadius=Math.hypot(ax,ay),bRadius=Math.hypot(bx,by);const outward=side==='start'?ax*(b.x-a.x)+ay*(b.y-a.y):bx*(a.x-b.x)+by*(a.y-b.y);const connectionRadius=buildingFootprintRadius(building);const outside=side==='start'?aRadius>=connectionRadius-.001:bRadius>=connectionRadius-.001;return outside&&outward<0}
 function resolveRoadEndpoint(s,value){if(value?.building&&Number.isFinite(value.building.x))return buildingConnectionPoint(value.building,value);const building=nearestBuilding(s,value);if(building&&dist(building,value)<=88)return buildingConnectionPoint(building,value);const road=snapRoadPoint(s,value,42);return road||{x:value.x,y:value.y,distance:Infinity}}
 export function snapRoadPoint(s,p,max=42){const q=nearestRoad(s,p);if(!q||q.distance>max)return null;return{x:q.x,y:q.y,road:q.road,distance:q.distance}}
