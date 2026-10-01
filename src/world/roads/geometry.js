@@ -86,3 +86,5 @@ export function segmentDistance(a,b,c,d){
   }
   return Math.min(projectSegment(a,c,d).distance,projectSegment(b,c,d).distance,projectSegment(c,a,b).distance,projectSegment(d,a,b).distance);
 }
+
+export const cleanRoadPoints=points=>validRoadPoints(points,0)||[];
