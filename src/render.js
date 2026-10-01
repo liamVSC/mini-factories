@@ -3,7 +3,7 @@ import * as renderer3d from './render3d.js';
 let previewState=null;
 
 export function render(s,W,H,canvas=document.querySelector('#game')){
-  renderer3d.render(null,s,W,H,canvas);
+  renderer3d.render(s,W,H,canvas);
 }
 export function setBuildingPreview(type,point,blocked=false){renderer3d.setBuildingPreview(type,point,blocked)}
 export function setPreview(path,start,end,blocked=false){
