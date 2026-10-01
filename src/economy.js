@@ -1,7 +1,7 @@
 import {TYPES} from './core/types.js';
 import {newId} from './core/ids.js';
 
-import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment,roadNetwork} from './world.js';
+import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment,roadNetwork} from './world/roads/index.js';
 import {buildLaneGraph} from './laneGraph.js';
 import {buildJunctionControls,laneIndexForJunction,movementForLaneRoute,movementPermission,stopLinePoint} from './junctionControl.js';
 
