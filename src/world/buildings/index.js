@@ -10,6 +10,7 @@ export {
 
 export {
   resolveBuildingRoadEndpoint,
+  buildingRoadAttachment,
   nearestBuildingRoadTarget
 } from './connections.js';
 
