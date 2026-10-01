@@ -213,11 +213,11 @@ function junctionSignal(s,junction,movement){
   let hash=0;for(let i=0;i<key.length;i++)hash=(hash*31+key.charCodeAt(i))>>>0;
   const cycle=Math.max(8,Number(signals.cycle)||12);
   const elapsed=((s.trafficClock||0)+(hash%1000)/1000*cycle)%cycle;
-  const green=cycle*.45;
+  const half=cycle/2;
   const yellow=Math.min(1.5,cycle*.1);
   const horizontal=Math.abs(movement?.incoming?.x||0)>=Math.abs(movement?.incoming?.y||0);
-  const phaseA=elapsed<cycle/2;
-  const inYellow=elapsed>cycle/2-yellow;
+  const phaseA=elapsed<half;
+  const inYellow=(elapsed%half)>half-yellow;
   const activeHorizontal=phaseA;
   const allowed=horizontal===activeHorizontal;
   return{
