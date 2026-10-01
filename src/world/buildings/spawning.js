@@ -79,6 +79,16 @@ function candidateScore(s,type,x,y,random){
   if(!insideBounds(x,y))return -Infinity;
   if(buildingPhysicalPlacementReason(s,type,x,y))return -Infinity;
 
+  // Starter shops must remain physically related to the seeded factory network.
+  // Do not let the broad fallback search silently place a shop elsewhere on the map.
+  if(type.kind==='shop'){
+    const factories=(s.buildings||[]).filter(building=>building.kind==='factory');
+    if(factories.length){
+      const nearestFactory=Math.min(...factories.map(factory=>distance({x,y},factory)));
+      if(nearestFactory<250||nearestFactory>650)return -Infinity;
+    }
+  }
+
   let score=0;
   score+=roadScore(s,x,y);
   score+=neighbourhoodScore(s,x,y,type);
@@ -125,7 +135,7 @@ function candidatePoints(s,type,random){
     if(factories.length){
       const anchor=factories[shopIndex%factories.length];
       const anchorAngle=rotation+(shopIndex%factories.length)*(Math.PI*2/3);
-      for(let ring=0;ring<5;ring++){
+      for(let ring=0;ring<8;ring++){
         const radius=260+ring*55;
         for(let side=0;side<8;side++){
           const angle=anchorAngle+(side/8)*Math.PI*2;
@@ -137,12 +147,14 @@ function candidatePoints(s,type,random){
       }
     }
 
-    // Keep the broader search as a fallback so custom terrain can still produce a
-    // valid starter shop if the preferred factory-relative positions are blocked.
-    for(let attempt=0;attempt<420;attempt++){
-      const angle=rotation+random()*Math.PI*2;
-      const radius=90+random()*BUILDING_SEARCH_RADIUS;
-      points.push({x:Math.cos(angle)*radius,y:Math.sin(angle)*radius});
+    // Keep any fallback search factory-relative as well. Starter shops should never
+    // silently become detached from the seeded factory network.
+    for(const factory of factories){
+      for(let attempt=0;attempt<120;attempt++){
+        const angle=rotation+random()*Math.PI*2;
+        const radius=250+random()*400;
+        points.push({x:Number(factory.x)+Math.cos(angle)*radius,y:Number(factory.y)+Math.sin(angle)*radius});
+      }
     }
   }
   return points;
