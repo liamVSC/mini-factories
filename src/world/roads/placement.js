@@ -65,7 +65,7 @@ export function roadPathBlocked(s,points,endpointBuildings={}){
       // Keep roads outside the rendered building footprint. Use the canonical
       // rectangular hitbox with a small construction margin rather than the
       // legacy circular radius, which can be smaller than a warehouse/factory.
-      const rect=buildingHitbox(building,12);
+      const rect=buildingHitbox(building,6);
       const startsInside=a.x>=rect.minX&&a.x<=rect.maxX&&a.y>=rect.minY&&a.y<=rect.maxY;
       // A construction endpoint can sit inside another building's expanded
       // site envelope when legacy/overlapping layouts are loaded. Allow only
