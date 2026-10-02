@@ -44,6 +44,7 @@ export function roadPathBlocked(s,points,endpointBuildings={}){
       // fully collision-checked so roads cannot traverse the site.
       const endsInside=b.x>=rect.minX&&b.x<=rect.maxX&&b.y>=rect.minY&&b.y<=rect.maxY;
       if(startsInside&&i===1&&!endsInside)continue;
+      if(endsInside&&i===points.length-1&&!startsInside)continue;
       if(segmentIntersectsRect(a,b,rect))return true;
     }
   }
