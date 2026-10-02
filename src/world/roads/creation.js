@@ -34,10 +34,8 @@ export function addRoad(s,points,meta={}){
   // too-short facade segment as building envelopes grow.
   if((s.roads||[]).some(r=>roadsExactlyDuplicate(r,{points:normalized})))return'duplicate';
   const startBuilding=meta.startBuilding||null,endBuilding=meta.endBuilding||null;
-  const startAtCenter=!!startBuilding&&dist(normalized[0],{x:startBuilding.x,y:startBuilding.y})<=2;
-  const endAtCenter=!!endBuilding&&dist(normalized.at(-1),{x:endBuilding.x,y:endBuilding.y})<=2;
-  const startConnection=startAtCenter?null:resolveBuildingRoadEndpoint(s,normalized[0],startBuilding,normalized.at(-1));
-  const endConnection=endAtCenter?null:resolveBuildingRoadEndpoint(s,normalized.at(-1),endBuilding,normalized[0]);
+  const startConnection=resolveBuildingRoadEndpoint(s,normalized[0],startBuilding,normalized.at(-1));
+  const endConnection=resolveBuildingRoadEndpoint(s,normalized.at(-1),endBuilding,normalized[0]);
   const resolvedStartBuilding=startConnection?.building||startBuilding;
   const resolvedEndBuilding=endConnection?.building||endBuilding;
   if(resolvedStartBuilding&&resolvedEndBuilding&&resolvedStartBuilding===resolvedEndBuilding)return'blocked';
@@ -51,11 +49,16 @@ export function addRoad(s,points,meta={}){
   // Center-point duplicate checks alone can miss the same road once the larger
   // building envelopes shorten it to its connection points.
   if((s.roads||[]).some(r=>roadsExactlyDuplicate(r,{points})))return'duplicate';
-  const validation=validateRoadGeometry(points);
+  let validation=validateRoadGeometry(points);
   if(!validation.ok){
     const raw=validRoadPoints(points,0);
-    if(raw&&length(raw)<12)return'too-short';
-    return'boundary';
+    const explicitBuildingConnection=!!resolvedStartBuilding&&!!resolvedEndBuilding&&resolvedStartBuilding!==resolvedEndBuilding;
+    if(raw&&length(raw)<12&&explicitBuildingConnection){
+      validation={ok:true,reason:null,points:raw};
+    }else{
+      if(raw&&length(raw)<12)return'too-short';
+      return'boundary';
+    }
   }
   const clean=validation.points,roadLength=length(clean);
   if(!Number.isFinite(roadLength))return'invalid';
