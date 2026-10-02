@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm';
-import {riverY,isInsideWorldBounds,WORLD_BOUNDS,WORLD_MARGIN,WORLD_HALF_SIZE,roadTopology,buildingConnectionPoint,buildingHitbox,buildingDockPoints,roadAttachment} from './world.js';
+import {riverY,isInsideWorldBounds,WORLD_BOUNDS,WORLD_MARGIN,WORLD_HALF_SIZE,roadTopology,buildingConnectionPoint,buildingHitbox,buildingDockPoints,buildingRoadEntrance,roadAttachment} from './world.js';
 
 let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null,buildingPreviewGroup=null,roadEditGroup=null,roadEndpointGroup=null;
 let target={x:0,z:0,yaw:0,pitch:.82,distance:620};
@@ -507,18 +507,45 @@ function addTruckTurningPad(g,x,z,radius,metal){
   }
 }
 function addIndustrialSite(g,w,d,h,metal,dark,kind){
-  const yardZ=d/2+35, yardD=38;
-  addTruckTurningPad(g,0,yardZ+8,24,metal);
-  const forklifts=[addForklift(g,-w*.28,yardZ-4,metal,dark),addForklift(g,w*.28,yardZ-4,metal,dark)];
-  const pallets=[addPallet(g,-w*.35,yardZ+17,metal,dark),addPallet(g,-w*.18,yardZ+17,metal,dark),addPallet(g,w*.34,yardZ+17,metal,dark)];
+  // The site is a proper depot/yard, not just props floating around the building.
+  // All truck traffic uses one gate aligned with the building's canonical dock.
+  const front=kind==='shop'?-1:1;
+  const dock=buildingDockPoints({kind})[0];
+  const dockZ=dock?.y??front*(d/2);
+  const dockNormal=dock?.normal?.y??front;
+  const gateZ=dockZ+dockNormal*28;
+  const depotWidth=kind==='warehouse'?128:kind==='factory'?112:72;
+  const depotDepth=Math.abs(gateZ-dockZ)+28;
+  const depotCenter=(dockZ+gateZ)/2;
+
+  addBoxPart(g,new THREE.BoxGeometry(depotWidth,.18,depotDepth),mat('#555b59',.98),0,.1,depotCenter,0,false);
+  addBoxPart(g,new THREE.BoxGeometry(depotWidth+8,.12,depotDepth+8),mat('#777d79',.98),0,.04,depotCenter,0,false);
+
+  // One marked truck lane runs directly from the gate to the primary loading dock.
+  const laneMat=mat('#d8dad4',.7);
+  addBoxPart(g,new THREE.BoxGeometry(2.2,.08,Math.max(10,depotDepth-8)),laneMat,0,.23,depotCenter,0,false);
+  for(const x of[-depotWidth*.38,depotWidth*.38]){
+    addBoxPart(g,new THREE.BoxGeometry(1.2,.08,depotDepth-8),laneMat,x,.22,depotCenter,0,false);
+  }
+
+  const padZ=gateZ-dockNormal*8;
+  addTruckTurningPad(g,0,padZ,28,metal);
+  const forklifts=[addForklift(g,-w*.28,dockZ+dockNormal*12,metal,dark),addForklift(g,w*.28,dockZ+dockNormal*12,metal,dark)];
+  const pallets=[addPallet(g,-w*.35,dockZ+dockNormal*20,metal,dark),addPallet(g,-w*.18,dockZ+dockNormal*20,metal,dark),addPallet(g,w*.34,dockZ+dockNormal*20,metal,dark)];
   g.userData.siteForklifts=forklifts.filter(Boolean);g.userData.sitePallets=pallets.filter(Boolean);
+
   addDumpster(g,w*.48,d*.42,metal,dark);
   addFuelTank(g,-w*.42,d*.42,metal,dark);
-  addStaffParking(g,w*.22,-d/2-24,34,15,metal,dark);
+  addStaffParking(g,front>0?w*.26:-w*.26,-front*(d/2+24),34,15,metal,dark);
+
+  // Fence lines terminate at the single gate rather than creating multiple access points.
+  addFenceLine(g,-depotWidth/2,-front*(d/2),-depotWidth/2,gateZ,metal);
+  addFenceLine(g,depotWidth/2,-front*(d/2),depotWidth/2,gateZ,metal);
+  addGate(g,0,gateZ,22,metal);
+
+  // Pedestrian entrance remains separate from the truck gate.
   addEntrance(g,-w*.25,-d/2-.8,10,9,metal,dark);
-  addFenceLine(g,-w/2-10,-d/2-5,-w/2-10,d/2+15,metal);
-  addFenceLine(g,w/2+10,-d/2-5,w/2+10,d/2+15,metal);
-  addGate(g,0,d/2+55,18,metal);
+
   const pipeMat=mat('#555c59',.84,.35);
   addPipeRun(g,[{x:-w*.42,y:10,z:-d/2},{x:-w*.42,y:10,z:d*.15},{x:-w*.28,y:18,z:d*.15}],pipeMat,.7);
   addPipeRun(g,[{x:w*.38,y:7,z:-d/2},{x:w*.38,y:7,z:d*.22},{x:w*.25,y:14,z:d*.22}],pipeMat,.6);
@@ -675,21 +702,24 @@ function segmentHitsBuilding(a,b,building){
 function addBuildingAccess(g,building){
   const attachment=roadAttachment(ws||{},building);
   if(!attachment)return null;
-  const docks=buildingDockPoints(building);
-  if(!docks.length)return null;
-  const dock=docks.reduce((best,current)=>{
-    const score=Math.hypot(attachment.point.x-current.approach.x,attachment.point.y-current.approach.y);
-    return !best||score<best.score?{...current,score}:best;
-  },null);
-  if(!dock)return null;
-  const a={x:attachment.point.x,y:attachment.point.y},b={x:dock.approach.x,y:dock.approach.y};
-  if(segmentHitsBuilding(a,b,building))return null;
-  const la={x:a.x-building.x,y:a.y-building.y},lb={x:b.x-building.x,y:b.y-building.y};
-  addRoadBox(g,la,lb,16,.16,.6,roadMaterials.asphalt);
-  addRoadBox(g,la,lb,17.5,.10,.7,roadMaterials.curb);
-  const marker=new THREE.Mesh(new THREE.BoxGeometry(Math.max(6,dock.width),.12,5),roadMaterials.edge);
-  marker.position.set(dock.x-building.x,.8,dock.y-building.y);g.add(marker);
-  g.userData.buildingAccess={roadPoint:a,dock,connected:true};
+  const dock=buildingDockPoints(building)[0];
+  const entrance=buildingRoadEntrance(building);
+  if(!dock||!entrance)return null;
+  const a={x:attachment.point.x,y:attachment.point.y};
+  const gate={x:entrance.x,y:entrance.y};
+  const b={x:dock.approach.x,y:dock.approach.y};
+  if(Math.hypot(a.x-gate.x,a.y-gate.y)>16)return null;
+  const la={x:a.x-building.x,y:a.y-building.y},lg={x:gate.x-building.x,y:gate.y-building.y},lb={x:b.x-building.x,y:b.y-building.y};
+  if(segmentHitsBuilding(a,gate,building)||segmentHitsBuilding(gate,b,building))return null;
+  addRoadBox(g,la,lg,22,.16,.6,roadMaterials.shoulder);
+  addRoadBox(g,la,lg,16,.16,.72,roadMaterials.asphalt);
+  addRoadBox(g,lg,lb,18,.16,.72,roadMaterials.asphalt);
+  addRoadBox(g,lg,lb,20,.10,.8,roadMaterials.curb);
+  const marker=new THREE.Mesh(new THREE.BoxGeometry(Math.max(8,dock.width),.12,5),roadMaterials.edge);
+  marker.position.set(dock.x-building.x,.84,dock.y-building.y);g.add(marker);
+  const gateMarker=new THREE.Mesh(new THREE.BoxGeometry(24,.1,4),roadMaterials.edge);
+  gateMarker.position.set(entrance.x-building.x,.82,entrance.y-building.y);g.add(gateMarker);
+  g.userData.buildingAccess={roadPoint:a,entrance:{...entrance},dock,connected:true};
   return g.userData.buildingAccess;
 }
 function createBuildingModel(building){
@@ -879,13 +909,26 @@ function updateTrucks(s){
     const destinationAccess=destination?meshes.get(destination.id)?.userData.buildingAccess:null;
     if(sourceAccess&&progress<.14){
       const t=Math.max(0,Math.min(1,progress/.14));
-      visual={x:sourceAccess.dock.approach.x+(p.x-sourceAccess.dock.approach.x)*t,y:sourceAccess.dock.approach.y+(p.y-sourceAccess.dock.approach.y)*t};
+      if(t<.55){
+        const u=t/.55;
+        visual={x:sourceAccess.dock.point.x+(sourceAccess.entrance.x-sourceAccess.dock.point.x)*u,y:sourceAccess.dock.point.y+(sourceAccess.entrance.y-sourceAccess.dock.point.y)*u};
+      }else{
+        const u=(t-.55)/.45;
+        visual={x:sourceAccess.entrance.x+(p.x-sourceAccess.entrance.x)*u,y:sourceAccess.entrance.y+(p.y-sourceAccess.entrance.y)*u};
+      }
       nextVisual=pointOnRoute(route,Math.min(1,progress+.012));
     }
     if(destinationAccess&&progress>.84){
       const t=Math.max(0,Math.min(1,(progress-.84)/.16));
-      visual={x:p.x+(destinationAccess.dock.approach.x-p.x)*t,y:p.y+(destinationAccess.dock.approach.y-p.y)*t};
-      nextVisual=destinationAccess.dock.point;
+      if(t<.45){
+        const u=t/.45;
+        visual={x:p.x+(destinationAccess.entrance.x-p.x)*u,y:p.y+(destinationAccess.entrance.y-p.y)*u};
+        nextVisual=destinationAccess.entrance;
+      }else{
+        const u=(t-.45)/.55;
+        visual={x:destinationAccess.entrance.x+(destinationAccess.dock.point.x-destinationAccess.entrance.x)*u,y:destinationAccess.entrance.y+(destinationAccess.dock.point.y-destinationAccess.entrance.y)*u};
+        nextVisual=destinationAccess.dock.point;
+      }
     }
     mesh.position.set(visual.x,0,visual.y);
     if(nextVisual)mesh.rotation.y=-Math.atan2(nextVisual.y-visual.y,nextVisual.x-visual.x);
