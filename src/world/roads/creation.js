@@ -65,7 +65,12 @@ export function addRoad(s,points,meta={}){
   const canonicalStart=!!resolvedStartBuilding&&!!buildingRoadEntrance(resolvedStartBuilding)&&dist(points[0],buildingRoadEntrance(resolvedStartBuilding))<=2;
   const canonicalEnd=!!resolvedEndBuilding&&!!buildingRoadEntrance(resolvedEndBuilding)&&dist(points.at(-1),buildingRoadEntrance(resolvedEndBuilding))<=2;
   const endpointBuildings={start:resolvedStartBuilding,end:resolvedEndBuilding};
-  if((canonicalStart||canonicalEnd)&&roadPathBlocked(s,points,endpointBuildings)){
+  // A canonical gate is already the designated protected-site escape point.
+  // Do not run the gate segment through the generic obstacle detour solver;
+  // that solver can mistake the owning site's own yard envelope for an
+  // obstacle and reject an otherwise valid gate-to-road connection. Any
+  // non-owning building collision is still rejected by the final validation.
+  if(!(canonicalStart||canonicalEnd)&&roadPathBlocked(s,points,endpointBuildings)){
     const routed=chooseRoadPath(s,points[0],points.at(-1),endpointBuildings);
     if(!routed)return'blocked';
     points=routed;
