@@ -518,29 +518,28 @@ function buildingWorldPosition(building){
   if(!Number.isFinite(x)||!Number.isFinite(z))return null;
   return{x,z};
 }
-function applyBuildingWorldTransform(group,position){
-  // Building coordinates are authoritative world-space coordinates. This helper
-  // is intentionally called after the group has been parented into the live world
-  // root, so the validation below checks the real scene graph, not only local space.
-  group.position.set(position.x,0,position.z);
-  group.rotation.set(0,0,0);
-  group.scale.set(1,1,1);
-  group.updateMatrix();
-  group.updateMatrixWorld(true);
-  const world=group.getWorldPosition(new THREE.Vector3());
+function applyBuildingWorldTransform(anchor,position){
+  // World coordinates belong to a dedicated anchor, never to the model itself.
+  // The model remains at local origin so none of its child geometry can inherit
+  // or accidentally overwrite persisted world coordinates.
+  if(!anchor||!anchor.parent)throw new Error('Building render anchor must be parented before positioning');
+  anchor.position.set(position.x,0,position.z);
+  anchor.rotation.set(0,0,0);
+  anchor.scale.set(1,1,1);
+  anchor.updateMatrix();
+  anchor.updateMatrixWorld(true);
+  const world=anchor.getWorldPosition(new THREE.Vector3());
   const dx=Math.abs(world.x-position.x),dz=Math.abs(world.z-position.z);
   if(dx>1e-5||dz>1e-5){
-    // Force the exact world transform through the parent's inverse. The current
-    // root is identity, but this remains correct if the root ever gains a transform.
     const local=new THREE.Vector3(position.x,0,position.z);
-    root.worldToLocal(local);
-    group.position.copy(local);
-    group.updateMatrix();
-    group.updateMatrixWorld(true);
+    anchor.parent.worldToLocal(local);
+    anchor.position.copy(local);
+    anchor.updateMatrix();
+    anchor.updateMatrixWorld(true);
   }
-  const verified=group.getWorldPosition(new THREE.Vector3());
-  group.userData.worldPosition={x:verified.x,z:verified.z};
-  group.userData.worldPositionVerified=
+  const verified=anchor.getWorldPosition(new THREE.Vector3());
+  anchor.userData.worldPosition={x:verified.x,z:verified.z};
+  anchor.userData.worldPositionVerified=
     Math.abs(verified.x-position.x)<=1e-5&&Math.abs(verified.z-position.z)<=1e-5;
 }
 function updateWorld(s){
@@ -568,16 +567,22 @@ function updateWorld(s){
     if(building.id&&liveIds.has(building.id))continue;
     if(building.id)liveIds.add(building.id);
     const g=createBuildingModel(building);
-    // Parent first, then apply and verify the transform in actual world space.
-    root.add(g);
+    // Use a dedicated world anchor. The factory model itself stays at local origin;
+    // persisted x/y is applied only to this anchor.
+    const anchor=new THREE.Group();
+    anchor.name=`building-anchor-${building.id||liveIds.size}`;
+    anchor.userData.building=building;
+    anchor.add(g);
+    root.add(anchor);
     // Logistics access is derived from the same persisted road/building state used
     // by simulation. Build it once with the model so activity/truck visuals cannot
     // silently operate without a dock attachment.
     addBuildingAccess(g,building);
-    applyBuildingWorldTransform(g,position);
+    applyBuildingWorldTransform(anchor,position);
     g.userData.building=building;
+    g.userData.worldAnchor=anchor;
     meshes.set(building.id,g);
-    worldObjects.add(g);
+    worldObjects.add(anchor);
   }
 }
 function createTruckMesh(){
@@ -607,8 +612,14 @@ function enforceBuildingWorldTransforms(s){
   root.updateMatrixWorld(true);
   for(const building of s.buildings||[]){
     const g=meshes.get(building.id),position=buildingWorldPosition(building);
-    if(!g||!position)continue;
-    applyBuildingWorldTransform(g,position);
+    const anchor=g?.userData.worldAnchor;
+    if(!g||!anchor||!position)continue;
+    applyBuildingWorldTransform(anchor,position);
+    g.position.set(0,0,0);
+    g.rotation.set(0,0,0);
+    g.scale.set(1,1,1);
+    g.updateMatrix();
+    g.updateMatrixWorld(true);
   }
 }
 function updateBuildingActivity(s){
