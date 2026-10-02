@@ -968,8 +968,8 @@ test('road preview from a building faces the destination and snaps to a nearby b
   assert.ok(!preview.blocked);
   assert.equal(preview.start.building, start);
   assert.equal(preview.end.building, end);
-  const expectedStart=buildingRoadEntrance(start);
-  const expectedEnd=buildingRoadEntrance(end);
+  const expectedStart=buildingModule.buildingRoadEntrance(start);
+  const expectedEnd=buildingModule.buildingRoadEntrance(end);
   assert.deepEqual({x:preview.start.x,y:preview.start.y},{x:expectedStart.x,y:expectedStart.y});
   assert.deepEqual({x:preview.end.x,y:preview.end.y},{x:expectedEnd.x,y:expectedEnd.y});
 });
