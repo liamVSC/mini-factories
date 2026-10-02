@@ -12,6 +12,9 @@ import {resolveBuildingRoadEndpoint} from '../src/world/buildings/connections.js
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from '../src/laneGraph.js';
 import {createCommandHistory,AddRoadCommand,PlaceBuildingCommand,DeleteRoadCommand} from '../src/commands.js';
 import {seed} from '../src/world/buildings/index.js';
+import {factorySpawnCandidates,validateBuildingLayout,layoutIsValid} from '../src/world/buildings/layout.js';
+import {buildingFootprint,buildingVisualFootprint} from '../src/world/buildings/geometry.js';
+
 import {buildJunctionControls,movementPermission,stopLinePoint} from '../src/junctionControl.js';
 
 test('seed is a one-time initialization transaction',()=>{
@@ -139,4 +142,39 @@ test('save/load preserves valid derived building-road relationships and drops st
   loaded.roads=[];
   assert.equal(buildingRoadAttachment(loaded,loaded.buildings[0]),null);
   assert.equal(buildingLogisticsAccess(loaded,loaded.buildings[0]),null);
+});
+
+
+test('factory placement footprint covers the rendered site envelope',()=>{
+  const footprint=buildingFootprint({kind:'factory'});
+  const visual=buildingVisualFootprint({kind:'factory'});
+  assert.deepEqual(footprint,visual);
+  assert.ok(footprint.halfWidth>=50);
+  assert.ok(footprint.halfDepth>=58);
+});
+
+test('factory spawn candidates are spatially separated from the world centre',()=>{
+  const candidates=factorySpawnCandidates(12345,0);
+  assert.equal(candidates.length,3);
+  for(const point of candidates){
+    assert.ok(Math.hypot(point.x,point.y)>=720);
+    assert.ok(Number.isFinite(point.x)&&Number.isFinite(point.y));
+  }
+});
+
+test('layout validation rejects duplicate factory world positions',()=>{
+  const a=makeBuilding({name:'Steel',kind:'factory',need:null,color:'#fff'},-820,0,'factory-a');
+  const b=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},-820,0,'factory-b');
+  const issues=validateBuildingLayout([a,b]);
+  assert.ok(issues.some(issue=>issue.type==='stacked-position'));
+  assert.equal(layoutIsValid([a,b]),false);
+});
+
+test('seeded factories have unique positions and a valid hardened layout',()=>{
+  const s=freshState();
+  assert.equal(seed(s),true);
+  const factories=s.buildings.filter(building=>building.kind==='factory');
+  assert.equal(factories.length,3);
+  assert.equal(new Set(factories.map(b=>`${b.x},${b.y}`)).size,3);
+  assert.equal(layoutIsValid(s.buildings),true);
 });
