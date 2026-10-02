@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {freshState,TYPES} from '../src/state.js';
+import {createCommandHistory,AddRoadCommand} from '../src/commands.js';
 import {
   addRoad,
   eraseRoad,
