@@ -60,8 +60,10 @@ export function routeOnRoadNetwork(s,a,b){
   // Include the canonical yard gates as explicit graph attachment points.
   // Roads therefore meet the site at the gate, while the truck route can continue
   // through the private yard to the actual loading dock.
-  const network=roadNetwork(s,[aa.point,bb.point]);
-  const start=nearestGraphNode(network,aa.point),end=nearestGraphNode(network,bb.point);
+  const startPoint=aa.roadPoint||aa.point;
+  const endPoint=bb.roadPoint||bb.point;
+  const network=roadNetwork(s,[startPoint,endPoint]);
+  const start=nearestGraphNode(network,startPoint),end=nearestGraphNode(network,endPoint);
   if(!start||!end)return null;
 
   // Do not reject on a separately derived component map. The shortest-path
@@ -108,8 +110,8 @@ export function routeOnRoadNetwork(s,a,b){
       ?[{x:entrance.x,y:entrance.y},turn,{x:dock.approach.x,y:dock.approach.y}]
       :[{x:dock.approach.x,y:dock.approach.y},turn,{x:entrance.x,y:entrance.y}];
   };
-  const startYard=dist(aa.point,buildingRoadEntrance(a))<=1.5?yardPath(a,true):[];
-  const endYard=dist(bb.point,buildingRoadEntrance(b))<=1.5?yardPath(b,false):[];
+  const startYard=dist(startPoint,buildingRoadEntrance(a))<=1.5?yardPath(a,true):[];
+  const endYard=dist(endPoint,buildingRoadEntrance(b))<=1.5?yardPath(b,false):[];
   const combined=[...startYard,...routePoints,...endYard];
   const combinedPoints=combined.filter((p,i)=>i===0||dist(p,combined[i-1])>.01);
   const yardDistance=length(startYard)+length(endYard);
@@ -124,8 +126,8 @@ export function routeOnRoadNetwork(s,a,b){
     laneCount:laneGraph.lanes.length,
     lanePoints,
     laneTransitions:laneGeometry.transitions,
-    start:{x:aa.point.x,y:aa.point.y},
-    end:{x:bb.point.x,y:bb.point.y},
+    start:{x:startPoint.x,y:startPoint.y},
+    end:{x:endPoint.x,y:endPoint.y},
     startYard:startYard.map(p=>({...p})),
     endYard:endYard.map(p=>({...p})),
     roadNetworkRevision:Math.max(0,Math.floor(Number(s.roadNetworkRevision)||0)),
