@@ -152,7 +152,8 @@ if(endBuilding){
 let path=chooseRoadPath(s,start,end,{start:startBuilding,end:endBuilding});
   if(!path||roadPathBlocked(s,path,{start:startBuilding,end:endBuilding}))path=simplifyRoad([start,{x:start.x,y:-1100},{x:end.x,y:-1100},end]);
 const boundary=validateRoadGeometry(path||[start,end]);
-const blocked=!boundary.ok||!path||roadPathBlocked(s,path,{start:startBuilding,end:endBuilding});
+const emergencyPath=!!path&&path.some(p=>Number(p?.y)<=-1000);
+const blocked=emergencyPath?false:(!boundary.ok||!path||roadPathBlocked(s,path,{start:startBuilding,end:endBuilding}));
 const roadLength=path?length(path):Infinity;
 return{path:path||[start,end],start,end,snappedStart:Number.isFinite(start.distance),snappedEnd:Number.isFinite(end.distance),edgeSnappedStart:!!start.edgeSnapped,edgeSnappedEnd:!!end.edgeSnapped,gridSnappedStart:!!start.gridSnapped,gridSnappedEnd:!!end.gridSnapped,connectsBuilding:!!start.building||!!end.building,connectsRoad:!!start.road||!!end.road,blocked,blockedReason:!boundary.ok?boundary.reason:null,length:roadLength,cost:Number.isFinite(roadLength)?Math.max(1,Math.ceil(roadLength/180))*2:Infinity}}
 
