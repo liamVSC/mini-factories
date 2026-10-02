@@ -8,10 +8,21 @@ export function buildingClearance(a,b){
   return 18;
 }
 
+// Include the rendered site's practical envelope, not only the central building shell.
+// This keeps yards, gates and parking from visually overlapping neighbouring sites.
+const PLACEMENT_FOOTPRINTS=Object.freeze({
+  warehouse:Object.freeze({halfWidth:60,halfDepth:62}),
+  factory:Object.freeze({halfWidth:50,halfDepth:58}),
+  shop:Object.freeze({halfWidth:45,halfDepth:55}),
+  default:Object.freeze({halfWidth:45,halfDepth:55})
+});
+
 function footprintForKind(kind){
-  if(kind==='warehouse')return{halfWidth:48,halfDepth:33};
-  if(kind==='factory')return{halfWidth:39,halfDepth:31};
-  return{halfWidth:35,halfDepth:28};
+  return PLACEMENT_FOOTPRINTS[kind]||PLACEMENT_FOOTPRINTS.default;
+}
+
+export function buildingVisualFootprint(building){
+  return {...(PLACEMENT_FOOTPRINTS[building?.kind]||PLACEMENT_FOOTPRINTS.default)};
 }
 
 function overlapsBuilding(candidate,b,clearance){
