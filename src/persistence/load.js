@@ -15,6 +15,10 @@ export function hydrate(d){
   const keys=Object.keys(s);
   for(const k of keys)if(Object.prototype.hasOwnProperty.call(d,k)&&k!=='week'&&k!=='weekTime'&&k!=='version')s[k]=d[k];
   s.version=6;s.renderVersion=Math.max(0,Math.floor(finite(s.renderVersion,0)));s.selected=null;s.trucks=[];s.particles=[];s.goals=goalList();
+  // Runtime/UI state is never restored from a persisted snapshot. A save can be
+  // captured while a panel is open or the tab is being suspended, so resuming
+  // should always start the simulation in a clean interactive state.
+  s.mode='select';s.paused=false;s.gameOver=false;s.buildMode=null;
   s.cash=clampNumber(s.cash,0,Number.MAX_SAFE_INTEGER,500);
   s.orders=Math.max(0,Math.floor(finite(s.orders,0)));
   s.companyLevel=Math.max(1,Math.floor(finite(s.companyLevel,1)));
@@ -41,7 +45,22 @@ export function hydrate(d){
     b.loading=Math.max(0,Math.floor(finite(b.loading,0)));b.logistics=Math.max(0,Math.floor(finite(b.logistics,0)));
     b.active=clampNumber(b.active,0,1,0);b.pulse=finite(b.pulse,Math.random()*6.28);
     delete b.district;
-    if(b.kind==='warehouse'){b.storage=Math.max(0,finite(b.storage,0));b.storage=Math.min(b.storage,b.max);b.inventory=b.inventory&&typeof b.inventory==='object'?b.inventory:{}}
+    if(b.kind==='warehouse'){
+      b.storage=Math.max(0,finite(b.storage,0));b.storage=Math.min(b.storage,b.max);
+      b.inventory=b.inventory&&typeof b.inventory==='object'?b.inventory:{};
+      for(const key of Object.keys(b.inventory))b.inventory[key]=Math.max(0,finite(b.inventory[key],0));
+    }
+    if(b.kind==='shop'&&b.contract){
+      const c=b.contract;
+      c.id=Math.max(1,Math.floor(finite(c.id,0)));
+      c.qty=Math.max(1,Math.floor(finite(c.qty,1)));
+      c.initial=Math.max(c.qty,Math.floor(finite(c.initial,c.qty)));
+      c.remaining=Math.max(0,Math.min(c.initial,Math.floor(finite(c.remaining,c.initial))));
+      c.reward=Math.max(0,finite(c.reward,0));
+      c.expires=Math.max(0,finite(c.expires,0));
+      c.inFlight=0;
+      c.urgent=!!c.urgent;
+    }
     return b;
   });
   s.buildings=repairBuildingLayout(s.buildings,s.layoutSeed);
