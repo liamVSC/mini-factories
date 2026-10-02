@@ -1,8 +1,8 @@
 import {validRoadPoints,projectSegment} from '../roads/geometry.js';
-import {buildingAtPoint,buildingConnectionPoint,buildingFootprint,buildingHitbox,buildingFootprintRadius} from './geometry.js';
+import {buildingConnectionPoint,buildingFootprint,buildingHitbox,buildingRoadHitbox,buildingFootprintRadius} from './geometry.js';
 
 export function resolveBuildingRoadEndpoint(s,p,target=null,directionTarget=p){
-  const building=target||buildingAtPoint(s,p,0);
+  const building=target||s.buildings?.find(candidate=>{const hit=buildingRoadHitbox(candidate,0);return Number(p?.x)>=hit.minX&&Number(p?.x)<=hit.maxX&&Number(p?.y)>=hit.minY&&Number(p?.y)<=hit.maxY;});
   if(!building)return null;
   const point=buildingConnectionPoint(building,directionTarget);
   return{building,point};
@@ -10,7 +10,7 @@ export function resolveBuildingRoadEndpoint(s,p,target=null,directionTarget=p){
 
 export function buildingRoadDistance(building,p){
   if(!building||!p)return Infinity;
-  const hit=buildingHitbox(building,0);
+  const hit=buildingRoadHitbox(building,0);
   const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX);
   const dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
   return Math.hypot(dx,dy);
