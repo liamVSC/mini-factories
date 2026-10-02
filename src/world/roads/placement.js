@@ -1,7 +1,7 @@
 import {dist,finitePoint,validRoadPoints,cleanRoadPoints,projectSegment,projectOnPolyline,segmentIntersection,length,endpointSegmentBlocked as endpointSegmentBlockedGeometry} from './geometry.js';
 import {validateRoadGeometry} from './validation.js';
 import {riverY,WORLD_BOUNDS,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from '../terrain.js';
-import {buildingHitbox,nearestBuilding} from '../buildings/geometry.js';
+import {buildingHitbox,buildingVisualHitbox,nearestBuilding} from '../buildings/geometry.js';
 import {resolveBuildingRoadEndpoint,resolveBuildingRoadTarget,buildingRoadEndpointClearance} from '../buildings/connections.js';
 import {buildingRoadEntrance} from '../buildings/geometry.js';
 
