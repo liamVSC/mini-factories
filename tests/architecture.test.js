@@ -13,7 +13,7 @@ import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from
 import {createCommandHistory,AddRoadCommand,PlaceBuildingCommand,DeleteRoadCommand} from '../src/commands.js';
 import {seed} from '../src/world/buildings/index.js';
 import {factorySpawnCandidates,validateBuildingLayout,layoutIsValid} from '../src/world/buildings/layout.js';
-import {buildingFootprint,buildingVisualFootprint,buildingPrimaryDock,buildingRoadEntrance,buildingRoadHitbox} from '../src/world/buildings/geometry.js';
+import {buildingFootprint,buildingSiteFootprint,buildingVisualFootprint,buildingPrimaryDock,buildingRoadEntrance,buildingRoadHitbox} from '../src/world/buildings/geometry.js';
 
 import {buildJunctionControls,movementPermission,stopLinePoint} from '../src/junctionControl.js';
 
@@ -148,7 +148,7 @@ test('save/load preserves valid derived building-road relationships and drops st
 
 
 test('factory placement footprint covers the rendered site envelope',()=>{
-  const footprint=buildingFootprint({kind:'factory'});
+  const footprint=buildingSiteFootprint({kind:'factory'});
   const visual=buildingVisualFootprint({kind:'factory'});
   assert.deepEqual(footprint,visual);
   assert.ok(footprint.halfWidth>=50);
