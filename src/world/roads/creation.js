@@ -64,8 +64,9 @@ export function addRoad(s,points,meta={}){
   // roads must retain their existing preview/commit geometry and collision rules.
   const canonicalStart=!!resolvedStartBuilding&&!!buildingRoadEntrance(resolvedStartBuilding)&&dist(points[0],buildingRoadEntrance(resolvedStartBuilding))<=2;
   const canonicalEnd=!!resolvedEndBuilding&&!!buildingRoadEntrance(resolvedEndBuilding)&&dist(points.at(-1),buildingRoadEntrance(resolvedEndBuilding))<=2;
-  if((canonicalStart||canonicalEnd)&&roadPathBlocked(s,points,{})){
-    const routed=chooseRoadPath(s,points[0],points.at(-1),{});
+  const endpointBuildings={start:resolvedStartBuilding,end:resolvedEndBuilding};
+  if((canonicalStart||canonicalEnd)&&roadPathBlocked(s,points,endpointBuildings)){
+    const routed=chooseRoadPath(s,points[0],points.at(-1),endpointBuildings);
     if(!routed)return'blocked';
     points=routed;
   }
