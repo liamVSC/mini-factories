@@ -5,6 +5,7 @@ import {roadBuildingTarget,roadPathBlocked,segmentCrossesRiver,chooseRoadPath} f
 import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate} from './intersections.js';
 import {cleanupRoadNetwork} from './editing.js';
 import {resolveBuildingRoadEndpoint} from '../buildings/connections.js';
+import {buildingRoadEntrance} from '../buildings/geometry.js';
 import {bumpRoadNetworkRevision} from './topology.js';
 
 function reconcileRoadJunctions(s,points,meta={}){
@@ -59,11 +60,11 @@ export function addRoad(s,points,meta={}){
   if(meta.startBuilding&&startConnection)normalized[0]=startConnection.point;
   if(meta.endBuilding&&endConnection)normalized[normalized.length-1]=endConnection.point;
   points=normalized;
-  // If a legacy/center-point road request resolves to the canonical gate but
-  // its first segment heads back through the site, route that segment outward
-  // around the building instead of rejecting the command. Interactive previews
-  // use the same obstacle-aware pathing, so committed roads stay consistent.
-  if((resolvedStartBuilding||resolvedEndBuilding)&&roadPathBlocked(s,points,{})){
+  // Only canonical gate endpoints get the yard detour. Ordinary building-targeted
+  // roads must retain their existing preview/commit geometry and collision rules.
+  const canonicalStart=!!resolvedStartBuilding&&!!buildingRoadEntrance(resolvedStartBuilding)&&dist(points[0],buildingRoadEntrance(resolvedStartBuilding))<=2;
+  const canonicalEnd=!!resolvedEndBuilding&&!!buildingRoadEntrance(resolvedEndBuilding)&&dist(points.at(-1),buildingRoadEntrance(resolvedEndBuilding))<=2;
+  if((canonicalStart||canonicalEnd)&&roadPathBlocked(s,points,{})){
     const routed=chooseRoadPath(s,points[0],points.at(-1),{});
     if(!routed)return'blocked';
     points=routed;
