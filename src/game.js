@@ -38,12 +38,28 @@ mobileTouchStyle.textContent='@media(max-width:700px){.actions{grid-template-col
 document.head.appendChild(mobileTouchStyle);
 let W=0,H=0;let lastHudSync=0;let s=load();let commands=createCommandHistory();let drag=null;let pointers=new Map();let pinch=null;let cameraGesture=null;let last=performance.now();let pinchCenter=null;let panelMode='none';let roadEditAction=null;let buildFilter='all';let lastSaveAt=0;
 function viewportSize(){const r=canvas.getBoundingClientRect();const v=window.visualViewport;return{width:Math.max(1,Math.round(r.width||v?.width||innerWidth)),height:Math.max(1,Math.round(r.height||v?.height||innerHeight))}}function resize(){const v=viewportSize();W=v.width;H=v.height;resizeRenderer(W,H)}addEventListener('resize',resize,{passive:true});window.visualViewport?.addEventListener('resize',resize,{passive:true});window.visualViewport?.addEventListener('scroll',resize,{passive:true});resize();
-function load(){const recovered=loadRecoveredState();if(recovered)return recovered;const n=freshState();seed(n);for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);return n}
+function startNewGame(){
+  const n=freshState();
+  const newGameSeed=(Date.now()^Math.floor(Math.random()*0x7fffffff))>>>0;
+  n.gameSeed=newGameSeed||1;
+  n.layoutSeed=((newGameSeed^Math.floor(Math.random()*0x7fffffff)^0x9e3779b9)>>>0)||1;
+  if(!seed(n))throw new Error('New game seed initialization failed');
+  n.renderVersion=1;
+  for(const b of n.buildings.filter(b=>b.kind==='shop'))newContract(n,b);
+  return n;
+}
+function load(){
+  const recovered=loadRecoveredState();
+  // A persisted empty/unseeded snapshot is not a playable saved game. Do not call
+  // seed() while loading; fall back to the dedicated new-game initialization path.
+  if(recovered&&(recovered.seeded===true||(recovered.buildings?.length||0)>0||(recovered.roads?.length||0)>0))return recovered;
+  return startNewGame();
+}
 function markWorldDirty(){s.renderVersion=(s.renderVersion||0)+1}
 function save(force=false){if(s.gameOver&&!force)return;const now=performance.now();if(!force&&now-lastSaveAt<1000)return;const ok=saveRecoveredState(s,localStorage,Date.now());lastSaveAt=now;if(!ok&&force)flash('Recovery save unavailable — storage is full')}
 function roadResultMessage(result,path){if(result===true)return 'Road built';if(result==='cash'){const lengthEstimate=path.length>1?path.reduce((n,p,i)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180))*2;return 'Need £'+cost+' cash (you have £'+Math.floor(s.cash)+')'}if(result==='too-short')return 'Select two different points or buildings';if(result==='blocked')return 'Road blocked — move around the building';if(result==='duplicate')return 'Road already exists here';return 'Invalid road'}
 function flash(text){const el=document.querySelector('#tip');el.textContent=text;clearTimeout(flash.timer);flash.timer=setTimeout(()=>el.textContent='Build roads between factories and shops.',1200)}
-function reset(){closeBuildMenu();closeRoadEditor();commands.clear();clearRecoveredState(localStorage);s=freshState();const newGameSeed=(Date.now()^Math.floor(Math.random()*0x7fffffff))>>>0;s.gameSeed=newGameSeed||1;s.layoutSeed=((newGameSeed^Math.floor(Math.random()*0x7fffffff)^0x9e3779b9)>>>0)||1;seed(s);s.renderVersion=1;for(const b of s.buildings.filter(b=>b.kind==='shop'))newContract(s,b);document.querySelector('#settingsMenu').style.display='none';document.querySelector('#gameOver').style.display='none';s.paused=false;hidePanel();sync();save(true);flash('New factory started')}
+function reset(){closeBuildMenu();closeRoadEditor();commands.clear();clearRecoveredState(localStorage);s=startNewGame();document.querySelector('#settingsMenu').style.display='none';document.querySelector('#gameOver').style.display='none';s.paused=false;hidePanel();sync();save(true);flash('New factory started')}
 function renderChangeLog(){const el=document.querySelector('#changeLog');if(!el)return;el.innerHTML=CHANGELOG.map(v=>'<section class="changelog-version"><div class="changelog-head"><b>v'+v.version+'</b><span>'+v.date+'</span></div><ul>'+v.items.map(x=>'<li>'+x+'</li>').join('')+'</ul></section>').join('')}
 renderChangeLog();bindBuildMenu();
 try{localStorage.setItem('miniFactoriesRuntimeVersion',GAME_VERSION)}catch{}
