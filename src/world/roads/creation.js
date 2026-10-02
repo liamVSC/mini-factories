@@ -66,7 +66,8 @@ export function addRoad(s,points,meta={}){
     const a=meta.startBuilding||roadBuildingTarget(s,clean[0]),b=meta.endBuilding||roadBuildingTarget(s,clean.at(-1));
     if(!a||!b||a===b)return'too-short';
   }
-  if(roadPathBlocked(s,clean,{start:resolvedStartBuilding,end:resolvedEndBuilding}))return'blocked';
+  const shortBuildingConnection=roadLength<12&&resolvedStartBuilding&&resolvedEndBuilding&&resolvedStartBuilding!==resolvedEndBuilding;
+  if(!shortBuildingConnection&&roadPathBlocked(s,clean,{start:resolvedStartBuilding,end:resolvedEndBuilding}))return'blocked';
   const cost=Math.max(1,Math.ceil(roadLength/180))*2;
   if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';
   if((s.roads||[]).some(r=>roadsExactlyDuplicate(r,{points:clean})||roadsHaveMeaningfulOverlap(r,{points:clean})))return'duplicate';
