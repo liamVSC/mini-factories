@@ -1,7 +1,14 @@
 import * as renderer3d from './render3d-clean.js';
 
 export function render(s,W,H,canvas=document.querySelector('#game')){
-  renderer3d.render(s,W,H,canvas);
+  // The clean renderer keys static geometry by buildings/roads. A zero-length
+  // transient road marker makes a truck-set change invalidate that key without
+  // changing persisted gameplay state or drawing any extra pavement.
+  const trucks=s.trucks||[];
+  const marker={id:'__render_trucks__'+trucks.map(t=>t.id).join(','),points:[]};
+  s.roads=s.roads||[];
+  s.roads.push(marker);
+  try{renderer3d.render(s,W,H,canvas)}finally{s.roads.pop()}
 }
 export function setBuildingPreview(type,point,blocked=false){renderer3d.setBuildingPreview(type,point,blocked)}
 export function setPreview(path,start,end,blocked=false){renderer3d.setPreview(path,start,end,blocked)}
