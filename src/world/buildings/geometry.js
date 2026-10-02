@@ -3,7 +3,7 @@ import {isInsideWorldBounds} from '../roads/validation.js';
 import {riverY,WORLD_MARGIN} from '../terrain.js';
 
 export function buildingClearance(a,b){
-  if(a?.kind==='factory'&&b?.kind==='factory')return 72;
+  if(a?.kind==='factory'&&b?.kind==='factory')return 55;
   if(a?.kind==='factory'||b?.kind==='factory')return 36;
   return 18;
 }
@@ -59,7 +59,7 @@ export function buildingVisualHitbox(building,tolerance=0){
 }
 
 function overlapsBuilding(candidate,b,clearance){
-  const other=buildingFootprint(b);
+  const other=buildingSiteFootprint(b);
   const overlapX=Math.abs(Number(b.x)-candidate.x)<candidate.footprint.halfWidth+other.halfWidth+clearance;
   const overlapY=Math.abs(Number(b.y)-candidate.y)<candidate.footprint.halfDepth+other.halfDepth+clearance;
   return overlapX&&overlapY;
@@ -71,7 +71,7 @@ export function buildingPhysicalPlacementReason(s,type,x,y){
   if(!Number.isFinite(px)||!Number.isFinite(py))return'Invalid placement';
   if(!isInsideWorldBounds({x:px,y:py},WORLD_MARGIN))return'Outside the playable area';
 
-  const candidate={kind:type.kind,x:px,y:py,footprint:buildingFootprint({kind:type.kind})};
+  const candidate={kind:type.kind,x:px,y:py,footprint:buildingSiteFootprint({kind:type.kind})};
   for(const building of s.buildings||[]){
     if(!finitePoint(building))continue;
     if(candidate.kind==='factory'&&building.kind==='factory'&&Math.hypot(px-Number(building.x),py-Number(building.y))<250){
@@ -122,7 +122,18 @@ export function nearestBuilding(s,p){
   return buildingAtPoint(s,p,18);
 }
 
+const SHELL_FOOTPRINTS=Object.freeze({
+  warehouse:Object.freeze({halfWidth:90,halfDepth:60}),
+  factory:Object.freeze({halfWidth:75,halfDepth:56}),
+  shop:Object.freeze({halfWidth:66,halfDepth:47}),
+  default:Object.freeze({halfWidth:48,halfDepth:40})
+});
+
 export function buildingFootprint(building){
+  return SHELL_FOOTPRINTS[building?.kind]||SHELL_FOOTPRINTS.default;
+}
+
+export function buildingSiteFootprint(building){
   return footprintForKind(building?.kind);
 }
 
