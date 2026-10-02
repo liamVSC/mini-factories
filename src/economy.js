@@ -244,6 +244,20 @@ function trafficConflict(s,t,network,laneGraph,controls){
   s.trafficReservations[key]={truckId:t.id,movementId:movement?.id||null,until:now+.9};
   return false;
 }
+function fullLaneMovementRoute(route){
+  if(!route)return null;
+  const parts=[];
+  for(const part of [route.startYard,route.lanePoints,route.endYard]){
+    if(!Array.isArray(part)||part.length<2)continue;
+    for(const p of part){
+      if(!Number.isFinite(Number(p?.x))||!Number.isFinite(Number(p?.y)))continue;
+      const q={x:Number(p.x),y:Number(p.y)};
+      if(!parts.length||dist(q,parts.at(-1))>.01)parts.push(q);
+    }
+  }
+  if(parts.length<2)return null;
+  return parts;
+}
 function rerouteTruck(s,t){
   if(!t?.source||!t?.to)return false;
   const p=pointOnRoute(t.route,t.t);
@@ -255,7 +269,7 @@ function rerouteTruck(s,t){
   // A deleted road can strand a truck between two remaining road segments.
   // Preserve its physical position and let it drive to the nearest point on
   // the replacement network instead of teleporting it onto that network.
-  const physical=Array.isArray(next.lanePoints)&&next.lanePoints.length>=2?next.lanePoints:next.points;
+  const physical=fullLaneMovementRoute(next)||next.points;
   const physicalProjected=projectRouteProgress(physical,p);
   // Lane geometry is derived and can legitimately differ from the centreline
   // around junctions/virtual connectors. It is not allowed to make a valid
@@ -383,7 +397,7 @@ function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,
   // to the saved road network when the truck is spawned.
   if(!roadAttachment(s,source)||!roadAttachment(s,destination))return false;
   const movementLane=preferredTrafficLane(route.points),laneOffset=laneOffsetForMovement(movementLane);
-  const physicalRoute=Array.isArray(route.lanePoints)&&route.lanePoints.length>=2?route.lanePoints:route.points;
+  const physicalRoute=fullLaneMovementRoute(route)||route.points;
   s.trucks.push({
     id:newId(),route:route.points,laneRoute:physicalRoute,centerlineRoute:route.points,
     routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),
@@ -551,17 +565,19 @@ export function updateEconomy(s,dt,flash){
       t.dead=true;
       continue;
     }
-    const p=pointOnRoute(t.route,t.t);let blocked=false;
+    const movementRoute=Array.isArray(t.laneRoute)&&t.laneRoute.length>=2?t.laneRoute:t.route;
+    const p=pointOnRoute(movementRoute,t.t);let blocked=false;
     let nearestGap=Infinity,queueAhead=null;
     // Queue using physical distance along the shared route, not just raw t.
     // This keeps vehicles ordered correctly when their route points have
     // different spacing around a junction.
     for(const o of s.trucks){
       if(o===t||o.dead||o.routeKey!==t.routeKey)continue;
-      const q=pointOnRoute(o.route,o.t);
+      const otherMovementRoute=Array.isArray(o.laneRoute)&&o.laneRoute.length>=2?o.laneRoute:o.route;
+      const q=pointOnRoute(otherMovementRoute,o.t);
       const ahead=o.t>t.t;
       if(!ahead)continue;
-      const routeLen=length(t.route);
+      const routeLen=length(movementRoute);
       const routeGap=o.routeKey===t.routeKey&&routeLen>0?Math.max(0,(o.t-t.t)*routeLen):dist(p,q);
       const gap=Math.max(0,routeGap);
       if(gap<nearestGap){nearestGap=gap;queueAhead=o;}
@@ -611,7 +627,7 @@ export function updateEconomy(s,dt,flash){
       t.trafficControl=null;
       t.wait=Math.max(0,t.wait-dt*.75);
     }
-    const curveFactor=routeCurveFactor(t.route,t.t);
+    const curveFactor=routeCurveFactor(movementRoute,t.t);
     trafficSpeedFactor=Math.min(trafficSpeedFactor,curveFactor);
     const congestionFactor=Math.max(.55,1-(s.congestion*.18));
     const movementSpeedFactor=t.trafficControl?.movement==='right'?.94:t.trafficControl?.movement==='left'?.97:1;
