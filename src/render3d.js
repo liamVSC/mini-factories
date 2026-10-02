@@ -115,53 +115,85 @@ function addFlatCurve(group,start,control,end,width,y,material,steps=8){
   addRoadSurface(group,points,width,y,material);
 }
 function addRoadRails(group,points,width){
-  const postGeo=new THREE.CylinderGeometry(.42,.52,2.25,8);
-  const beamGeo=new THREE.BoxGeometry(1,0.42,.62);
+  // Bridge rails are numerous, repeated parts. Use instancing so a long/curved
+  // bridge does not create one draw call per rail segment/post.
+  const railSegments=[],postPositions=[];
   for(const side of[-1,1]){
     for(let i=1;i<points.length;i++){
       const a=points[i-1],b=points[i],dx=b.x-a.x,dz=b.y-a.y,len=Math.hypot(dx,dz);
       if(len<1)continue;
       const angle=Math.atan2(dz,dx),nx=-Math.sin(angle),nz=Math.cos(angle);
-      const rail=new THREE.Mesh(new THREE.BoxGeometry(len+.7,.62,.48),roadMaterials.bridgeRail);
-      rail.position.set((a.x+b.x)/2+nx*side*(width/2+.9),ROAD.railY,(a.y+b.y)/2+nz*side*(width/2+.9));
-      rail.rotation.y=-angle;rail.castShadow=true;group.add(rail);
+      railSegments.push({x:(a.x+b.x)/2+nx*side*(width/2+.9),z:(a.y+b.y)/2+nz*side*(width/2+.9),angle,len:len+.7});
       const count=Math.max(1,Math.floor(len/22));
       for(let p=0;p<=count;p++){
-        const t=p/count,x=a.x+dx*t+nx*side*(width/2+.9),z=a.y+dz*t+nz*side*(width/2+.9);
-        const post=new THREE.Mesh(postGeo,roadMaterials.bridgeRail);
-        post.position.set(x,ROAD.railY-.72,z);post.castShadow=true;group.add(post);
+        const t=p/count;
+        postPositions.push({x:a.x+dx*t+nx*side*(width/2+.9),z:a.y+dz*t+nz*side*(width/2+.9)});
       }
     }
   }
+  if(!railSegments.length)return;
+  const railGroup=new THREE.Group();railGroup.name='bridge-rail-beams';
+  const railGeo=new THREE.BoxGeometry(1,.62,.48);
+  const railMesh=new THREE.InstancedMesh(railGeo,roadMaterials.bridgeRail,railSegments.length);
+  const matrix=new THREE.Matrix4();
+  for(let i=0;i<railSegments.length;i++){
+    const r=railSegments[i];
+    matrix.compose(new THREE.Vector3(r.x,ROAD.railY,r.z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,-r.angle,0)),new THREE.Vector3(r.len,1,1));
+    railMesh.setMatrixAt(i,matrix);
+  }
+  railMesh.instanceMatrix.needsUpdate=true;
+  railMesh.castShadow=true;railMesh.receiveShadow=true;railGroup.add(railMesh);
+  group.add(railGroup);
+  const postGeo=new THREE.CylinderGeometry(.42,.52,2.25,8);
+  const postMesh=new THREE.InstancedMesh(postGeo,roadMaterials.bridgeRail,postPositions.length);
+  for(let i=0;i<postPositions.length;i++)postMesh.setMatrixAt(i,matrix.compose(new THREE.Vector3(postPositions[i].x,ROAD.railY-.72,postPositions[i].z),new THREE.Quaternion(),new THREE.Vector3(1,1,1)));
+  postMesh.instanceMatrix.needsUpdate=true;
+  postMesh.castShadow=true;postMesh.receiveShadow=true;
+  const postGroup=new THREE.Group();postGroup.name='bridge-rail-posts';postGroup.add(postMesh);group.add(postGroup);
 }
 function addBridgeSupports(group,points){
   const total=points.slice(1).reduce((n,p,i)=>n+Math.hypot(p.x-points[i].x,p.y-points[i].y),0);
   if(total<55)return;
-  const pierGeo=new THREE.CylinderGeometry(2.4,3.1,ROAD.bridgeDeckY+10,8);
-  const capGeo=new THREE.BoxGeometry(10,1.4,3.6);
-  const beamGeo=new THREE.BoxGeometry(1,1,1);
+  const detailGroup=new THREE.Group();detailGroup.name='bridge-structure';
+  const pierPositions=[];
   const count=Math.max(1,Math.floor(total/95));
   for(let s=1;s<=count;s++){
     const target=total*s/(count+1);let run=0;
     for(let i=1;i<points.length;i++){
       const a=points[i-1],b=points[i],seg=Math.hypot(b.x-a.x,b.y-a.y);
       if(run+seg<target){run+=seg;continue;}
-      const t=(target-run)/Math.max(1,seg),x=a.x+(b.x-a.x)*t,z=a.y+(b.y-a.y)*t;
-      const pier=new THREE.Mesh(pierGeo,roadMaterials.bridgeSupport);pier.position.set(x,-4.3,z);pier.castShadow=true;group.add(pier);
-      const cap=new THREE.Mesh(capGeo,roadMaterials.bridgeSupport);cap.position.set(x,ROAD.bridgeDeckY-.4,z);cap.castShadow=true;group.add(cap);
+      const t=(target-run)/Math.max(1,seg);
+      pierPositions.push({x:a.x+(b.x-a.x)*t,z:a.y+(b.y-a.y)*t});
       break;
     }
   }
+  if(pierPositions.length){
+    const pierGeo=new THREE.CylinderGeometry(2.4,3.1,ROAD.bridgeDeckY+10,8);
+    const pierMesh=new THREE.InstancedMesh(pierGeo,roadMaterials.bridgeSupport,pierPositions.length);
+    const matrix=new THREE.Matrix4();
+    for(let i=0;i<pierPositions.length;i++)pierMesh.setMatrixAt(i,matrix.compose(new THREE.Vector3(pierPositions[i].x,-4.3,pierPositions[i].z),new THREE.Quaternion(),new THREE.Vector3(1,1,1)));
+    pierMesh.instanceMatrix.needsUpdate=true;pierMesh.castShadow=true;pierMesh.receiveShadow=true;detailGroup.add(pierMesh);
+    const capGeo=new THREE.BoxGeometry(10,1.4,3.6);
+    const capMesh=new THREE.InstancedMesh(capGeo,roadMaterials.bridgeSupport,pierPositions.length);
+    for(let i=0;i<pierPositions.length;i++)capMesh.setMatrixAt(i,matrix.compose(new THREE.Vector3(pierPositions[i].x,ROAD.bridgeDeckY-.4,pierPositions[i].z),new THREE.Quaternion(),new THREE.Vector3(1,1,1)));
+    capMesh.instanceMatrix.needsUpdate=true;capMesh.castShadow=true;capMesh.receiveShadow=true;detailGroup.add(capMesh);
+  }
+  const girders=[];
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i],dx=b.x-a.x,dz=b.y-a.y,len=Math.hypot(dx,dz);
     if(len<12)continue;
     const angle=Math.atan2(dz,dx);
-    for(const side of[-1,1]){
-      const girder=new THREE.Mesh(new THREE.BoxGeometry(len,2.2,1.6),roadMaterials.bridgeSupport);
-      girder.position.set((a.x+b.x)/2,ROAD.bridgeDeckY-2.0,(a.y+b.y)/2+side*(ROAD.bridgeWidth*.34));
-      girder.rotation.y=-angle;girder.castShadow=true;group.add(girder);
-    }
+    for(const side of[-1,1])girders.push({x:(a.x+b.x)/2,z:(a.y+b.y)/2+side*(ROAD.bridgeWidth*.34),angle,len});
   }
+  if(girders.length){
+    const geo=new THREE.BoxGeometry(1,2.2,1.6),mesh=new THREE.InstancedMesh(geo,roadMaterials.bridgeSupport,girders.length),matrix=new THREE.Matrix4();
+    for(let i=0;i<girders.length;i++){
+      const g=girders[i];
+      mesh.setMatrixAt(i,matrix.compose(new THREE.Vector3(g.x,ROAD.bridgeDeckY-2.0,g.z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,-g.angle,0)),new THREE.Vector3(g.len,1,1)));
+    }
+    mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=true;mesh.receiveShadow=true;detailGroup.add(mesh);
+  }
+  group.add(detailGroup);
 }
 function addBoundaryRoadEnd(group,p,width,y){const minX=WORLD_BOUNDS.minX+WORLD_MARGIN,maxX=WORLD_BOUNDS.maxX-WORLD_MARGIN,minY=WORLD_BOUNDS.minY+WORLD_MARGIN,maxY=WORLD_BOUNDS.maxY-WORLD_MARGIN,nearX=Math.abs(p.x-minX)<2||Math.abs(p.x-maxX)<2,nearY=Math.abs(p.y-minY)<2||Math.abs(p.y-maxY)<2;if(!nearX&&!nearY)return;const line=new THREE.Mesh(new THREE.BoxGeometry(width+.8,.12,1.2),roadMaterials.edge);line.position.set(p.x,y+.06,p.y);line.rotation.y=nearY?0:Math.PI/2;group.add(line);for(const side of[-1,1]){const post=new THREE.Mesh(new THREE.BoxGeometry(1.4,7,1.4),roadMaterials.edge);if(nearY)post.position.set(p.x+side*Math.min(7,width*.35),y+3.5,p.y);else post.position.set(p.x,y+3.5,p.y+side*Math.min(7,width*.35));group.add(post);}}
 function buildingForRoadEndpoint(s,p){let best=null,bd=9;for(const b of s.buildings||[]){const q=buildingConnectionPoint(b,p,0),d=Math.hypot(q.x-p.x,q.y-p.y);if(d<bd){bd=d;best={building:b,facade:q};}}return best;}
@@ -230,8 +262,10 @@ function makeRoad(points,bridge,s=null){
       addRoadSurface(group,run.points,ROAD.bridgeWidth+2,ROAD.bridgeDeckY,roadMaterials.bridgeDeck);
       addRoadSurface(group,run.points,ROAD.bridgeWidth,ROAD.bridgeSurfaceY,roadMaterials.asphalt);
       addRoadMarkings(group,run.points,ROAD.bridgeWidth,ROAD.bridgeMarkingY);
-      addRoadRails(group,run.points,ROAD.bridgeWidth);
-      addBridgeSupports(group,run.points);
+      const detail=new THREE.Group();detail.name='bridge-details';detail.userData.bridgeDetail=true;
+      addRoadRails(detail,run.points,ROAD.bridgeWidth);
+      addBridgeSupports(detail,run.points);
+      group.add(detail);
     }else{
       addRoadSurface(group,run.points,ROAD.shoulderWidth,ROAD.shoulderY,roadMaterials.shoulder);
       addRoadSurface(group,run.points,ROAD.width,ROAD.surfaceY,roadMaterials.asphalt);
@@ -895,7 +929,17 @@ function addEnvironment(s={buildings:[]}){
 function updateSelectionVisual(s){const selected=s.selected?.id||null;if(selected===lastBuildingSelection)return;for(const[id,g]of meshes){const scale=id===selected?1.035:1;g.scale.setScalar(scale);}lastBuildingSelection=selected;}
 function updateRoadEditVisual(){if(roadEditGroup)roadEditGroup.visible=true;}
 function updateRoadEndpointVisual(){if(roadEndpointGroup)roadEndpointGroup.visible=true;}
-function render(s,W,H,canvas=document.querySelector('#game')){if(!canvas)return;if(!renderer)init(canvas);resize(W||innerWidth,H||innerHeight);if(!scene)return;ensureCamera();const worldKey=worldRenderKey(s);if(render.lastWorldKey!==worldKey){updateWorld(s);render.lastWorldKey=worldKey;}enforceBuildingWorldTransforms(s);updateBuildingActivity(s);updateTrucks(s);updateSelectionVisual(s);updateRoadEditVisual(s);updateRoadEndpointVisual(s);syncCamera();renderer.render(scene,camera3d);}
+function updateRenderDistanceQuality(){
+  if(!root||!camera3d)return;
+  // Tiny bridge hardware becomes sub-pixel noise at long camera distances and
+  // can compete in the depth buffer with the deck. Hide only that detail layer;
+  // the actual road/bridge surface remains visible at every zoom level.
+  const far=target.distance;
+  root.traverse(o=>{
+    if(o.userData?.bridgeDetail)o.visible=far<900;
+  });
+}
+function render(s,W,H,canvas=document.querySelector('#game')){if(!canvas)return;if(!renderer)init(canvas);resize(W||innerWidth,H||innerHeight);if(!scene)return;ensureCamera();const worldKey=worldRenderKey(s);if(render.lastWorldKey!==worldKey){updateWorld(s);render.lastWorldKey=worldKey;}enforceBuildingWorldTransforms(s);updateBuildingActivity(s);updateTrucks(s);updateSelectionVisual(s);updateRoadEditVisual(s);updateRoadEndpointVisual(s);syncCamera();updateRenderDistanceQuality();renderer.render(scene,camera3d);}
 function screenToWorld(x,y,w=viewport.width,h=viewport.height){ensureCamera();const ndc=new THREE.Vector2(x/w*2-1,-(y/h)*2+1),raycaster=new THREE.Raycaster();raycaster.setFromCamera(ndc,camera3d);const hit=new THREE.Vector3();return raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),0),hit)?{x:hit.x,y:hit.z}:{x:0,y:0};}
 function worldToScreen(x,y,w=viewport.width,h=viewport.height){ensureCamera();const p=new THREE.Vector3(x,0,y).project(camera3d);return{x:(p.x+1)*.5*w,y:(1-p.y)*.5*h};}
 function panScreen(dx,dy,w=viewport.width,h=viewport.height){const a=screenToWorld(w*.5,h*.5,w,h),b=screenToWorld(w*.5-dx,h*.5-dy,w,h);desired.x+=b.x-a.x;desired.z+=b.y-a.y;updateCameraBounds();}
