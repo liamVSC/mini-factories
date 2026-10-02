@@ -15,7 +15,7 @@ test('debug routing state',()=>{
  ];
  console.log('ATT',buildingRoadAttachment(s,f),buildingRoadAttachment(s,sh));
  const a=buildingRoadAttachment(s,f),b=buildingRoadAttachment(s,sh);
- const n=roadNetwork(s,[a.point,b.point]),start=nearestGraphNode(n,a.point),end=nearestGraphNode(n,b.point);
+ const ap=a.roadPoint||a.point,bp=b.roadPoint||b.point; const n=roadNetwork(s,[ap,bp]),start=nearestGraphNode(n,ap),end=nearestGraphNode(n,bp);
  console.log('GRAPH',n.nodes.map(p=>[p.x,p.y]),n.edges.map(e=>[[e.a.x,e.a.y],[e.b.x,e.b.y],e.d]),'near',start,end,'short',shortestRoadPath(n,start,end));
  console.log('ROUTE',routeOnRoadNetwork(s,f,sh));
 });
