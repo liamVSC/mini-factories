@@ -72,18 +72,15 @@ export function routeOnRoadNetwork(s,a,b){
   const laneGraph=buildLaneGraph(network,{lanesPerDirection:2});
   // The canonical road graph is authoritative for connectivity. Use its
   // shortest path first, including virtual edges created for near-touching
-  // endpoints. Lane search remains the derived metadata layer; it must never
-  // make an otherwise connected road network appear disconnected.
+  // endpoints. Lane search is derived traffic metadata only.
   const roadResult=shortestRoadPath(network,start,end);
   if(!roadResult?.path||roadResult.path.length<2)return null;
-  const laneIds=[];
-  for(let i=1;i<roadResult.path.length;i++){
-    const from=roadResult.path[i-1],to=roadResult.path[i];
-    const lane=laneGraph.lanes.find(candidate=>candidate.from===from&&candidate.to===to);
-    if(!lane)return null;
-    laneIds.push(lane.id);
-  }
-  if(!laneIds.length)return null;
+  // Derive directional lane metadata independently. A virtual near-touching
+  // connector can be represented by the road graph before lane derivation has
+  // an exact one-to-one edge match, so connectivity must not be rejected just
+  // because one centreline edge lacks a lane object.
+  const laneResult=findLaneRoute(laneGraph,start,end);
+  const laneIds=Array.isArray(laneResult?.laneIds)?laneResult.laneIds:[];
   const routeDistance=roadResult.distance;
   const laneNodes=roadResult.path;
   const routePoints=laneNodes.map(p=>({x:p.x,y:p.y}));
