@@ -514,7 +514,7 @@ function addIndustrialSite(g,w,d,h,metal,dark,kind){
   const dockZ=dock?.y??front*(d/2);
   const dockNormal=dock?.normal?.y??front;
   const gateZ=dockZ+dockNormal*28;
-  const depotWidth=kind==='warehouse'?128:kind==='factory'?112:72;
+  const depotWidth=kind==='warehouse'?156:kind==='factory'?144:96;
   const depotDepth=Math.abs(gateZ-dockZ)+28;
   const depotCenter=(dockZ+gateZ)/2;
 
@@ -529,7 +529,7 @@ function addIndustrialSite(g,w,d,h,metal,dark,kind){
   }
 
   const padZ=gateZ-dockNormal*8;
-  addTruckTurningPad(g,0,padZ,28,metal);
+  addTruckTurningPad(g,0,padZ,34,metal);
   const forklifts=[addForklift(g,-w*.28,dockZ+dockNormal*12,metal,dark),addForklift(g,w*.28,dockZ+dockNormal*12,metal,dark)];
   const pallets=[addPallet(g,-w*.35,dockZ+dockNormal*20,metal,dark),addPallet(g,-w*.18,dockZ+dockNormal*20,metal,dark),addPallet(g,w*.34,dockZ+dockNormal*20,metal,dark)];
   g.userData.siteForklifts=forklifts.filter(Boolean);g.userData.sitePallets=pallets.filter(Boolean);
@@ -541,7 +541,7 @@ function addIndustrialSite(g,w,d,h,metal,dark,kind){
   // Fence lines terminate at the single gate rather than creating multiple access points.
   addFenceLine(g,-depotWidth/2,-front*(d/2),-depotWidth/2,gateZ,metal);
   addFenceLine(g,depotWidth/2,-front*(d/2),depotWidth/2,gateZ,metal);
-  addGate(g,0,gateZ,22,metal);
+  addGate(g,0,gateZ,28,metal);
 
   // Pedestrian entrance remains separate from the truck gate.
   addEntrance(g,-w*.25,-d/2-.8,10,9,metal,dark);
@@ -597,7 +597,7 @@ function createFactoryModel(building={}){
   addGableRoof(g,w,d,h,roof,metal);
   addRoofEquipment(g,w,d,h,metal,dark,3);
   addSafetyDetails(g,w,d,h,metal,dark);
-  addLoadingYard(g,0,d/2+38,96,34,metal,dark);
+  addLoadingYard(g,0,d/2+40,128,44,metal,dark);
   addIndustrialProps(g,w,d,h,metal,dark);
   addIndustrialSite(g,w,d,h,metal,dark,'factory');
   for(const x of[-w*.28,w*.28]){
@@ -624,7 +624,7 @@ function createWarehouseModel(building={}){
   addGableRoof(g,w,d,h,roof,metal);
   addRoofEquipment(g,w,d,h,metal,dark,4);
   addSafetyDetails(g,w,d,h,metal,dark);
-  addLoadingYard(g,0,d/2+48,118,38,metal,dark);
+  addLoadingYard(g,0,d/2+50,144,48,metal,dark);
   addIndustrialProps(g,w,d,h,metal,dark);
   addIndustrialSite(g,w,d,h,metal,dark,'warehouse');
   for(const x of[-w*.3,0,w*.3]){
@@ -652,7 +652,7 @@ function createShopModel(building={}){
   for(const x of[-17,0,17])addBoxPart(g,new THREE.BoxGeometry(2.8,.12,15),metal,x,.27,d/2+25,0,false);
   for(const x of[-21,21])addBoxPart(g,new THREE.BoxGeometry(2.5,1.5,2.5),dark,x,.9,d/2+25);
   addEntrance(g,0,-d/2-.7,12,8,metal,dark);
-  addStaffParking(g,0,d/2+38,46,16,metal,dark);
+  addStaffParking(g,0,d/2+40,58,20,metal,dark);
   addDumpster(g,w*.42,d*.38,metal,dark);
   // Customer frontage stays separate; the truck gate is the single logistics
   // entrance on the same south side as the loading dock.
