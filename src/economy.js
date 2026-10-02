@@ -166,9 +166,10 @@ function trafficConflict(s,t,network,laneGraph,controls){
     // do not map cleanly to an explicit junction node.
     for(const o of s.trucks||[]){
       if(o===t||o.dead||o.wait>0||!Array.isArray(o.route)||o.route.length<2)continue;
-      const q=pointOnRoute(o.route,o.t);
-      for(let i=1;i<t.route.length;i++){
-        const a=i===1?p:t.route[i-1],b=t.route[i];
+      const oMovementRoute=Array.isArray(o.laneRoute)&&o.laneRoute.length>=2?o.laneRoute:o.route;
+      const q=pointOnRoute(oMovementRoute,o.t);
+      for(let i=1;i<tMovementRoute.length;i++){
+        const a=i===1?p:tMovementRoute[i-1],b=tMovementRoute[i];
         for(let j=1;j<oMovementRoute.length;j++){
           const c=oMovementRoute[j-1],d=oMovementRoute[j],hit=segmentHit(a,b,c,d);
           if(!hit)continue;
