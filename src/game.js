@@ -8,6 +8,12 @@ import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCo
 
 const GAME_VERSION=globalThis.MINI_FACTORIES_VERSION;
 const CHANGELOG=[
+  {version:'1.1',date:'2 Oct 2026',items:[
+    'Expanded factory, warehouse and shop yards with larger depot and truck turning areas.',
+    'Buildings now use one canonical truck entrance/exit for road snapping and logistics access.',
+    'Road/building placement and routing were hardened around the enlarged site envelopes.',
+    'Fixed the remaining building/road architecture regression coverage.'
+  ]},
   {version:GAME_VERSION,date:globalThis.MINI_FACTORIES_VERSION_DATE,items:[
     'Starter layouts now deliberately distribute factories around the map.',
     'Starter shops are positioned relative to seeded factories instead of using any district system.',
