@@ -37,6 +37,12 @@ export function roadPathBlocked(s,points,endpointBuildings={}){
       // rectangular hitbox with a small construction margin rather than the
       // legacy circular radius, which can be smaller than a warehouse/factory.
       const rect=buildingVisualHitbox(building,12);
+      const startsInside=a.x>=rect.minX&&a.x<=rect.maxX&&a.y>=rect.minY&&a.y<=rect.maxY;
+      // A construction endpoint can sit inside another building's expanded
+      // site envelope when legacy/overlapping layouts are loaded. Allow only
+      // the first segment to escape that envelope; all later segments remain
+      // fully collision-checked so roads cannot traverse the site.
+      if(startsInside&&i===1)continue;
       if(segmentIntersectsRect(a,b,rect))return true;
     }
   }
@@ -73,7 +79,7 @@ export function roadPathIntersectsBuildingFootprint(s,points,endpointBuildings={
 
 export function simplifyRoad(points){const p=cleanRoadPoints(points);if(p.length<=2)return p;const out=[p[0]];for(let i=1;i<p.length-1;i++){const a=out.at(-1),b=p[i],c=p[i+1],ab={x:b.x-a.x,y:b.y-a.y},bc={x:c.x-b.x,y:c.y-b.y};if(Math.abs(ab.x*bc.y-ab.y*bc.x)<1.5)continue;out.push(b)}out.push(p.at(-1));return out}
 
-function candidateRoadPaths(start,end,obstacles=[]){const mx=(start.x+end.x)/2,my=(start.y+end.y)/2,candidates=[[start,end],[start,{x:end.x,y:start.y},end],[start,{x:start.x,y:end.y},end],[start,{x:mx,y:start.y},{x:mx,y:end.y},end],[start,{x:start.x,y:my},{x:end.x,y:my},end]];for(const b of obstacles){const hit=buildingVisualHitbox(b,24),left=hit.minX,right=hit.maxX,top=hit.minY,bottom=hit.maxY;candidates.push([start,{x:start.x,y:top},{x:end.x,y:top},end],[start,{x:start.x,y:bottom},{x:end.x,y:bottom},end],[start,{x:left,y:start.y},{x:left,y:end.y},end],[start,{x:right,y:start.y},{x:right,y:end.y},end],[start,{x:start.x,y:top},{x:right,y:top},{x:right,y:end.y},end],[start,{x:start.x,y:bottom},{x:right,y:bottom},{x:right,y:end.y},end],[start,{x:left,y:start.y},{x:left,y:top},{x:end.x,y:top},{x:end.x,y:end.y},end],[start,{x:left,y:start.y},{x:left,y:bottom},{x:end.x,y:bottom},{x:end.x,y:end.y},end])}return candidates}
+function candidateRoadPaths(start,end,obstacles=[]){const mx=(start.x+end.x)/2,my=(start.y+end.y)/2,candidates=[[start,end],[start,{x:end.x,y:start.y},end],[start,{x:start.x,y:end.y},end],[start,{x:mx,y:start.y},{x:mx,y:end.y},end],[start,{x:start.x,y:my},{x:end.x,y:my},end]];for(const b of obstacles){const hit=buildingVisualHitbox(b,25),left=hit.minX-1,right=hit.maxX+1,top=hit.minY-1,bottom=hit.maxY+1;candidates.push([start,{x:start.x,y:top},{x:end.x,y:top},end],[start,{x:start.x,y:bottom},{x:end.x,y:bottom},end],[start,{x:left,y:start.y},{x:left,y:end.y},end],[start,{x:right,y:start.y},{x:right,y:end.y},end],[start,{x:start.x,y:top},{x:right,y:top},{x:right,y:end.y},end],[start,{x:start.x,y:bottom},{x:right,y:bottom},{x:right,y:end.y},end],[start,{x:left,y:start.y},{x:left,y:top},{x:end.x,y:top},{x:end.x,y:end.y},end],[start,{x:left,y:start.y},{x:left,y:bottom},{x:end.x,y:bottom},{x:end.x,y:end.y},end],[start,{x:right,y:start.y},{x:right,y:top},{x:left,y:top},{x:left,y:end.y},end],[start,{x:right,y:start.y},{x:right,y:bottom},{x:left,y:bottom},{x:left,y:end.y},end])}return candidates}
 
 function routeBendPenalty(path){return Math.max(0,path.length-2)*18}
 
