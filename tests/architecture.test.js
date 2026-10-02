@@ -11,7 +11,45 @@ import {addRoad,routeOnRoadNetwork,roadNetwork,roadAttachment,buildingRoadAttach
 import {resolveBuildingRoadEndpoint} from '../src/world/buildings/connections.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from '../src/laneGraph.js';
 import {createCommandHistory,AddRoadCommand,PlaceBuildingCommand,DeleteRoadCommand} from '../src/commands.js';
+import {seed} from '../src/world/buildings/index.js';
 import {buildJunctionControls,movementPermission,stopLinePoint} from '../src/junctionControl.js';
+
+test('seed is a one-time initialization transaction',()=>{
+  const s=freshState();
+  assert.equal(s.seeded,false);
+  assert.equal(seed(s),true);
+  assert.equal(s.seeded,true);
+  assert.equal(s.buildings.length,6);
+  const ids=s.buildings.map(b=>b.id);
+  assert.equal(seed(s),false);
+  assert.equal(s.buildings.length,6);
+  assert.deepEqual(s.buildings.map(b=>b.id),ids);
+});
+
+test('seed refuses to initialize a partially populated world',()=>{
+  const s=freshState();
+  s.buildings.push(makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'existing'));
+  const before=s.buildings.slice();
+  assert.equal(seed(s),false);
+  assert.equal(s.seeded,false);
+  assert.deepEqual(s.buildings,before);
+});
+
+test('seed marker survives save/load and legacy populated saves become initialized',()=>{
+  const s=freshState();
+  assert.equal(seed(s),true);
+  const loaded=hydrate(serialise(s));
+  assert.ok(loaded);
+  assert.equal(loaded.seeded,true);
+  assert.equal(seed(loaded),false);
+
+  const legacy=serialise(s);
+  delete legacy.seeded;
+  const legacyLoaded=hydrate(legacy);
+  assert.ok(legacyLoaded);
+  assert.equal(legacyLoaded.seeded,true);
+  assert.equal(seed(legacyLoaded),false);
+});
 
 test('lane graph creates directional lanes and connects through a four-way junction',()=>{const s=freshState();s.roads.push({id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},{id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0});const network=roadNetwork(s),graph=buildLaneGraph(network);assert.equal(graph.lanes.length,network.edges.length*2);const east=network.nodes.find(n=>Math.abs(n.x-120)<1e-9&&Math.abs(n.y)<1e-9);assert.ok(east);const route=findLaneRoute(graph,network.nodes.find(n=>Math.abs(n.x+120)<1e-9&&Math.abs(n.y)<1e-9),east);assert.ok(route);assert.ok(route.laneIds.length>=2);assert.ok(laneRouteToNodePath(graph,route.laneIds).length>=3);});
 test('routeOnRoadNetwork returns lane metadata while preserving canonical centreline geometry',()=>{const s=freshState(),factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},-120,0,'factory-1'),shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},120,0,'shop-1');s.buildings.push(factory,shop);assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}],{startBuilding:factory,endBuilding:shop}),true);const route=routeOnRoadNetwork(s,factory,shop);assert.ok(route);assert.ok(Array.isArray(route.laneIds));assert.ok(route.laneIds.length>=1);assert.ok(Array.isArray(route.lanePoints));assert.ok(route.lanePoints.length>=2);assert.ok(route.points.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));});
