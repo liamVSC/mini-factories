@@ -87,3 +87,24 @@ test('canonical truck entrance is stable regardless of which side the road appro
   assert.equal(north.x,buildingRoadEntrance(building).x);
   assert.equal(north.y,buildingRoadEntrance(building).y);
 });
+
+
+test('rendered shell footprints leave a visible yard gap before the canonical gate',()=>{
+  for(const kind of ['factory','warehouse','shop']){
+    const building={id:`gap-${kind}`,kind,x:0,y:0};
+    const entrance=buildingRoadEntrance(building);
+    const shellDepth={factory:64,warehouse:70,shop:58}[kind];
+    assert.ok(Math.abs(entrance.y)>shellDepth+25,`${kind} gate must sit outside the building shell`);
+  }
+});
+
+test('canonical gate is outside the building hitbox and can be a road endpoint',()=>{
+  for(const kind of ['factory','warehouse','shop']){
+    const building={id:`gate-${kind}`,kind,x:120,y:-80};
+    const entrance=buildingRoadEntrance(building);
+    const halfDepth={factory:64,warehouse:70,shop:58}[kind];
+    assert.ok(Math.abs(entrance.y-building.y)>halfDepth);
+    assert.equal(buildingConnectionPoint(building,{x:900,y:900}).x,entrance.x);
+    assert.equal(buildingConnectionPoint(building,{x:900,y:900}).y,entrance.y);
+  }
+});
