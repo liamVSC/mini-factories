@@ -110,8 +110,8 @@ export function routeOnRoadNetwork(s,a,b){
       ?[{x:entrance.x,y:entrance.y},turn,{x:dock.approach.x,y:dock.approach.y}]
       :[{x:dock.approach.x,y:dock.approach.y},turn,{x:entrance.x,y:entrance.y}];
   };
-  const startYard=dist(startPoint,buildingRoadEntrance(a))<=1.5?yardPath(a,true):[];
-  const endYard=dist(endPoint,buildingRoadEntrance(b))<=1.5?yardPath(b,false):[];
+  const startYard=aa.canonical?yardPath(a,true):[];
+  const endYard=bb.canonical?yardPath(b,false):[];
   const combined=[...startYard,...routePoints,...endYard];
   const combinedPoints=combined.filter((p,i)=>i===0||dist(p,combined[i-1])>.01);
   const yardDistance=length(startYard)+length(endYard);
