@@ -255,7 +255,9 @@ function makeRoad(points,bridge,s=null){
   if(!Array.isArray(points)||points.length<2)return new THREE.Group();
   const group=new THREE.Group(),clean=roundedRoadPoints(points);
   if(clean.length<2)return group;
-  const runs=bridge?splitRoadByWater(clean):[{kind:'land',points:clean}];
+  // Rendering derives water coverage from the actual path as a final guard. A stale
+  // bridge flag must never allow the normal black road surface to render over water.
+  const runs=splitRoadByWater(clean);
   for(const run of runs){
     if(run.points.length<2)continue;
     if(run.kind==='water'){
