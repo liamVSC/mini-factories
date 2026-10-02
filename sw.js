@@ -1,7 +1,7 @@
-const CACHE='mini-factories-v10';
-const VERSION='5';
+const CACHE='mini-factories-v11';
+const VERSION='1.1';
 const APP_SHELL=[
-  './','./index.html','./styles.css?v=1','./src/game.js?v=4','./src/state.js','./src/world.js','./src/economy.js',
+  './','./index.html','./styles.css?v=1','./src/game.js?v=5','./src/version.js','./src/state.js','./src/world.js','./src/economy.js',
   './src/core/types.js','./src/core/rng.js','./src/core/ids.js','./src/commands.js','./src/junctionControl.js',
   './src/world/terrain.js','./src/world/buildings/spawning.js','./src/world/buildings/index.js','./src/world/buildings/layout.js','./src/world/buildings/geometry.js','./src/world/buildings/connections.js','./src/world/buildings/placement.js','./src/world/buildings/operations.js',
   './src/world/roads/index.js','./src/world/roads/creation.js','./src/world/roads/editing.js','./src/world/roads/geometry.js','./src/world/roads/intersections.js','./src/world/roads/placement.js','./src/world/roads/routing.js','./src/world/roads/topology.js','./src/world/roads/validation.js',
