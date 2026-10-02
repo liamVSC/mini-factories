@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=4';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6';
 import {riverY,WORLD_BOUNDS,WORLD_MARGIN,buildingDockPoints,buildingRoadEntrance} from './world.js';
 let renderer=null,scene=null,camera=null,root=null,previewGroup=null,buildingPreviewGroup=null;
 let viewport={width:1,height:1};let target={x:0,z:0,yaw:0,pitch:.82,distance:620};let desired={...target};let worldKey='';
@@ -14,8 +14,70 @@ function loadingDoor(g,x,z,w,h,front,metal,dark){box(g,w+3,h+3,.55,metal,x,h/2+2
 function dockStrip(g,x,z,w,front,mat){box(g,w,1.1,7,mat,x,1,z+front*2,false);for(let i=0;i<Math.max(3,Math.floor(w/12));i++){const px=x-w/2+6+i*12;box(g,.5,1.25,6,material('#aeb4ae',.72),px,1.65,z+front*2,false);}}
 function gate(g,z,width,metal){const dark=material('#303635',.98);for(const x of[-width/2,width/2]){box(g,2.2,8,1.4,metal,x,4,z);box(g,1,5,.5,dark,x,4,z-.8);}box(g,width+2,.65,1.1,metal,0,8,z);}
 function fence(g,x1,z1,x2,z2,metal){const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),a=Math.atan2(dz,dx);if(len<1)return;box(g,len,.35,.7,metal,(x1+x2)/2,2.2,(z1+z2)/2,a,false);for(let d=0;d<=len;d+=14)cyl(g,.35,4,metal,x1+Math.cos(a)*d,2.1,z1+Math.sin(a)*d,8);}
-function yard(g,b,kind,metal){const dock=buildingDockPoints(b)[0],entrance=buildingRoadEntrance(b);if(!dock||!entrance)return;const dockZ=dock.y-b.y,gateZ=entrance.y-b.y,dir=Math.sign(gateZ-dockZ)||1,width=kind==='warehouse'?320:kind==='factory'?278:208,depth=kind==='warehouse'?126:kind==='factory'?112:94,asphalt=material('#515957',.98),paint=material('#d6d9d4',.68);const center=(gateZ+dockZ)/2;box(g,width,.18,depth,asphalt,0,.12,center,0,false);box(g,width+8,.08,depth+8,material('#737a76',.98),0,.04,center,0,false);const laneWidth=kind==='warehouse'?40:36;box(g,laneWidth,.09,Math.abs(gateZ-dockZ)+20,material('#454c4a',.98),0,.23,center,0,false);for(const x of[-width*.33,width*.33])box(g,1.1,.1,depth-10,paint,x,.3,center,0,false);const radius=kind==='warehouse'?50:kind==='factory'?44:36;const pad=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.22,48),asphalt);pad.position.set(0,.24,gateZ);pad.receiveShadow=true;g.add(pad);for(const side of[-1,1])fence(g,side*width/2,dockZ,side*width/2,gateZ,metal);gate(g,gateZ,kind==='warehouse'?54:kind==='factory'?50:40,metal);for(const x of[-width*.30,width*.30]){box(g,16,.25,10,material('#68716d',.92),x,.28,dockZ+dir*12,0,false);box(g,12,3,7,material('#b3b7b2',.9),x,2,dockZ+dir*12);cyl(g,1.8,2.4,metal,x+5,1.25,dockZ+dir*12,12);}box(g,width*.5,.12,3,paint,0,.3,gateZ-dir*12,0,false);box(g,width*.28,.16,16,material('#626a67',.94),0,.24,gateZ-dir*8,0,false);}
-function factoryModel(b){const g=new THREE.Group(),w=166,d=118,h=46;const body=material('#727a78',.9),dark=material('#343b3a',.97),metal=material('#59615f',.8,.18),accent=material(b.color||'#789a86',.55,.16),gl=glass(),roofMat=material('#424947',.96);foundation(g,w,d,metal);box(g,w,h,d,body,0,h/2+2,0);box(g,w*.9,3,d+.8,accent,0,8,d/2+.4);addWindows(g,w,d,20,gl,dark,true);addWindows(g,w,d,20,gl,dark,false);loadingDoor(g,0,d/2+.5,34,20,1,metal,dark);loadingDoor(g,-w*.32,d/2+.5,22,15,1,metal,dark);loadingDoor(g,w*.32,-d/2-.5,20,14,-1,metal,dark);dockStrip(g,0,d/2+.5,34,1,metal);box(g,w+8,3,d+8,roofMat,0,h+3,0);box(g,w*.34,8,d*.58,dark,-w*.29,h+7,0);box(g,w*.22,12,d*.44,metal,w*.31,h+9,0);for(const x of[-w*.34,w*.34]){cyl(g,5.2,28,dark,x,h+16,0,18);cyl(g,5.6,1.5,metal,x,h+30,0,18);box(g,10,3,5,metal,x,h+5,0);}for(const x of[-w*.22,0,w*.22]){box(g,18,3.5,10,dark,x,h+7,-d*.05);box(g,13,1.2,7,metal,x,h+9,-d*.05);}yard(g,b,'factory',metal);box(g,28,.18,38,material('#414846',.98),-w*.36,.2,d/2+42,0,false);return g;}
+function yard(g,b,kind,metal){
+  const dock=buildingDockPoints(b)[0],entrance=buildingRoadEntrance(b);
+  if(!dock||!entrance)return;
+  const dockZ=dock.y-b.y,gateZ=entrance.y-b.y,dir=Math.sign(gateZ-dockZ)||1;
+  const width=kind==='warehouse'?220:kind==='factory'?190:176;
+  const depth=kind==='warehouse'?104:kind==='factory'?88:76;
+  const asphalt=material('#515957',.98),paint=material('#d6d9d4',.68);
+  const center=(gateZ+dockZ)/2;
+  box(g,width,.18,depth,asphalt,0,.12,center,0,false);
+  box(g,width+4,.08,depth+4,material('#737a76',.98),0,.04,center,0,false);
+  for(const x of[-width*.33,width*.33])box(g,1.1,.1,depth-10,paint,x,.3,center,0,false);
+  const radius=kind==='warehouse'?42:kind==='factory'?36:32;
+  const pad=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.22,48),asphalt);
+  pad.position.set(0,.24,gateZ);pad.receiveShadow=true;g.add(pad);
+  for(const side of[-1,1])fence(g,side*width/2,dockZ,side*width/2,gateZ,metal);
+  gate(g,gateZ,kind==='warehouse'?48:kind==='factory'?42:38,metal);
+  for(const x of[-width*.28,width*.28]){
+    box(g,12,.25,8,material('#68716d',.92),x,.28,dockZ+dir*10,0,false);
+    box(g,9,2.5,6,material('#b3b7b2',.9),x,1.7,dockZ+dir*10);
+    cyl(g,1.5,2.2,metal,x+4,1.1,dockZ+dir*10,12);
+  }
+  box(g,width*.5,.12,3,paint,0,.3,gateZ-dir*10,0,false);
+  box(g,width*.28,.16,12,material('#626a67',.94),0,.24,gateZ-dir*7,0,false);
+}
+function factoryModel(b){
+  const g=new THREE.Group(),w=166,d=118,h=46;
+  const body=material('#727a78',.9),dark=material('#343b3a',.97);
+  const metal=material('#59615f',.8,.18),accent=material(b.color||'#789a86',.55,.16);
+  const gl=glass(),roofMat=material('#424947',.96);
+  foundation(g,w,d,metal);
+  box(g,w,h,d,body,0,h/2+2,0);
+  box(g,w*.9,3,.8,accent,0,8,d/2+.4);
+  addWindows(g,w,d,20,gl,dark,true);
+  addWindows(g,w,d,20,gl,dark,false);
+  loadingDoor(g,0,d/2+.5,34,20,1,metal,dark);
+  loadingDoor(g,-w*.32,d/2+.5,22,15,1,metal,dark);
+  loadingDoor(g,w*.32,-d/2-.5,20,14,-1,metal,dark);
+  dockStrip(g,0,d/2+.5,34,1,metal);
+
+  box(g,w+8,2,d+8,roofMat,0,h+3,0);
+  for(const x of[-w*.34,-w*.11,w*.11,w*.34]){
+    box(g,2,1.3,d*.9,metal,x,h+4.65,0);
+  }
+  for(const x of[-w*.27,0,w*.27]){
+    box(g,15,.5,d*.72,gl,x,h+4.25,0);
+    box(g,17,.5,1.2,metal,x,h+4.3,-d*.37);
+    box(g,17,.5,1.2,metal,x,h+4.3,d*.37);
+  }
+
+  box(g,w*.31,22,d*.72,dark,-w*.29,h+14,0);
+  box(g,w*.22,14,d*.42,metal,w*.30,h+10,0);
+  for(const x of[-w*.36,w*.36]){
+    const z=-d*.24;
+    cyl(g,5.2,28,dark,x,h+16,z,18);
+    cyl(g,5.8,1.5,metal,x,h+30,z,18);
+    box(g,10,3,5,metal,x,h+5,z);
+  }
+  for(const x of[-w*.22,0,w*.22]){
+    box(g,18,3.5,10,dark,x,h+7,-d*.05);
+    box(g,13,1.2,7,metal,x,h+9,-d*.05);
+  }
+  yard(g,b,'factory',metal);
+  return g;
+}
 function warehouseModel(b){const g=new THREE.Group(),w=194,d=132,h=39;const body=material('#858d89',.93),dark=material('#3b4240',.98),metal=material('#626a66',.82,.12),accent=material(b.color||'#b7a25f',.56,.14),gl=glass(),roofMat=material('#4c5350',.96);foundation(g,w,d,metal);box(g,w,h,d,body,0,h/2+2,0);box(g,w*.88,3,d+.8,accent,0,7,d/2+.4);addWindows(g,w,d,18,gl,dark,true);loadingDoor(g,-w*.33,d/2+.5,24,16,1,metal,dark);loadingDoor(g,0,d/2+.5,38,20,1,metal,dark);loadingDoor(g,w*.33,d/2+.5,24,16,1,metal,dark);dockStrip(g,0,d/2+.5,38,1,metal);box(g,w+8,3,d+8,roofMat,0,h+3,0);box(g,w*.58,9,d*.74,body,-w*.05,h+7,0);box(g,w*.18,15,d*.5,dark,w*.35,h+10,0);for(const x of[-w*.3,-w*.05,w*.2]){box(g,15,3.2,9,dark,x,h+9,0);box(g,11,1.2,6,metal,x,h+10.8,0);}yard(g,b,'warehouse',metal);return g;}
 function shopModel(b){const g=new THREE.Group(),w=158,d=106,h=32;const body=material('#777f7b',.88),dark=material('#2f3735',.97),metal=material('#68716d',.78,.14),accent=material(b.color||'#c39a45',.5,.16),gl=glass('#315c63'),roofMat=material('#454c49',.94);foundation(g,w,d,metal);box(g,w*.72,h+8,d*.72,body,-w*.08,(h+8)/2+2,-d*.02);box(g,w*.3,h-3,d*.5,dark,w*.34,(h-3)/2+2,.05);box(g,w*.74,5,d*.2,accent,-w*.08,h+6,-d*.18);addWindows(g,w*.72,d*.72,17,gl,dark,true);loadingDoor(g,w*.34,d/2+.5,22,16,1,metal,dark);dockStrip(g,w*.34,d/2+.5,22,1,metal);box(g,w*.46,2.5,d*.34,metal,w*.08,h+5,.02);for(const x of[-w*.25,-w*.08,w*.09,w*.26])box(g,7,5,.3,gl,x,13,d*.36);box(g,w*.52,2.8,8,metal,-w*.1,22,d/2+3);for(const x of[-w*.32,w*.18])cyl(g,1.8,12,metal,x,h+10,0,14);yard(g,b,'shop',metal);return g;}
 function makeBuilding(b){if(b.kind==='factory')return factoryModel(b);if(b.kind==='warehouse')return warehouseModel(b);return shopModel(b);}

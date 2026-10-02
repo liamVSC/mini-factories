@@ -3,7 +3,7 @@ import {loadRecoveredState,saveRecoveredState,clearRecoveredState} from './persi
 import {seed,nearestBuilding,buildingAtPoint,buildingCost,buildingUnlock,canBuild,canPlaceBuildingAt,buildingPlacementTarget,placeBuilding} from './world/buildings/index.js';
 import {roadBuildingTarget,nearestRoad,roadTarget,roadPreview,addRoad,editRoadSegment,roadSegmentAtPoint,roadEndpointAtPoint,roadEndpointPreview,editRoadEndpoint,dist} from './world/roads/index.js';
 import {updateEconomy,upgrade,newContract,research,researchCost} from './economy.js';
-import {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
+import {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js?v=3';
 import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand,executeCommand} from './commands.js';
 
 const GAME_VERSION=globalThis.MINI_FACTORIES_VERSION;

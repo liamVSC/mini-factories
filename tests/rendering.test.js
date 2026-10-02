@@ -4,6 +4,8 @@ import {freshState} from '../src/state.js';
 import {seed} from '../src/world/buildings/index.js';
 import {savedBuildingToWorldPosition,projectWorldPointToNdc,buildingRenderTrace} from '../src/rendering/buildingTransform.js';
 import {buildingDockPoints,buildingRoadEntrance,buildingConnectionPoint} from '../src/world/buildings/geometry.js';
+import {roadTarget} from '../src/world/roads/placement.js';
+import {addRoad} from '../src/world/roads/creation.js';
 
 // Column-major projection fixture: world X -> NDC X and world Z -> NDC Y.
 const ORTHOGRAPHIC_TEST_MATRIX=[
@@ -106,5 +108,20 @@ test('canonical gate is outside the building hitbox and can be a road endpoint',
     assert.ok(Math.abs(entrance.y-building.y)>halfDepth);
     assert.equal(buildingConnectionPoint(building,{x:900,y:900}).x,entrance.x);
     assert.equal(buildingConnectionPoint(building,{x:900,y:900}).y,entrance.y);
+  }
+});
+
+test('road snapping recognizes the canonical gate inside each building yard',()=>{
+  for(const kind of ['factory','warehouse','shop']){
+    const s=freshState();
+    const building={id:`yard-snap-${kind}`,kind,x:120,y:500};
+    s.buildings.push(building);
+    s.cash=5000;
+    const entrance=buildingRoadEntrance(building);
+    const snapped=roadTarget(s,{x:entrance.x+12,y:entrance.y});
+    assert.equal(snapped.building,building,kind);
+    assert.deepEqual({x:snapped.x,y:snapped.y},{x:entrance.x,y:entrance.y},kind);
+    assert.equal(addRoad(s,[{x:snapped.x,y:snapped.y},{x:snapped.x+240,y:snapped.y}],{startBuilding:building}),true,kind);
+    assert.deepEqual(s.roads[0].points[0],{x:entrance.x,y:entrance.y},kind);
   }
 });
