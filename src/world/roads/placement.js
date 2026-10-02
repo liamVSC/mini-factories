@@ -166,11 +166,6 @@ function roadTargetInternal(s,p){
 export function roadTarget(s,p){return roadTargetInternal(s,p)}
 
 export function roadPreview(s,a,b){let start=roadTargetInternal(s,a),end=roadTargetInternal(s,b);if(!start||!end)return null;
-// A raw coordinate inside a building is commonly produced by legacy callers and
-// test fixtures. Only an explicit building target should invoke the canonical gate;
-// exterior proximity still snaps normally.
-if(!a?.building&&!a?.road&&start.building){start={x:Number(a.x),y:Number(a.y),distance:Infinity};}
-if(!b?.building&&!b?.road&&end.building){end={x:Number(b.x),y:Number(b.y),distance:Infinity};}
 const startBuilding=start.building,endBuilding=end.building;
 if(startBuilding){
   const resolved=resolveBuildingRoadEndpoint(s,start,startBuilding,endBuilding||end);
