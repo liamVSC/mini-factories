@@ -1,3 +1,3 @@
 // Single source of truth for the currently published game version.
-globalThis.MINI_FACTORIES_VERSION='1.1';
+globalThis.MINI_FACTORIES_VERSION='1.2';
 globalThis.MINI_FACTORIES_VERSION_DATE='2 Oct 2026';
