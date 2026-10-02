@@ -1,4 +1,4 @@
-import {dist,finitePoint,projectSegment} from './geometry.js';
+import {dist,length,finitePoint,projectSegment} from './geometry.js';
 import {buildingRoadAttachment} from '../buildings/connections.js';
 import {buildingPrimaryDock,buildingRoadEntrance} from '../buildings/geometry.js';
 import {snap} from './placement.js';
