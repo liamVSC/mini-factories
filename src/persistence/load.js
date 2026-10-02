@@ -12,6 +12,9 @@ export function hydrate(d){
   const s=freshState();
   s.gameSeed=Math.max(1,Math.floor(finite(d.gameSeed,Math.floor(Math.random()*0x7fffffff)||1)));
   s.layoutSeed=Math.max(1,Math.floor(finite(d.layoutSeed,s.gameSeed)));
+  // Old saves predate the explicit seed marker. A non-empty persisted world is
+  // already initialized; only an empty legacy save remains eligible for seeding.
+  s.seeded=typeof d.seeded==='boolean'?d.seeded:(Array.isArray(d.buildings)&&d.buildings.length>0);
   const keys=Object.keys(s);
   for(const k of keys)if(Object.prototype.hasOwnProperty.call(d,k)&&k!=='week'&&k!=='weekTime'&&k!=='version')s[k]=d[k];
   s.version=6;s.renderVersion=Math.max(0,Math.floor(finite(s.renderVersion,0)));s.selected=null;s.trucks=[];s.particles=[];s.goals=goalList();
