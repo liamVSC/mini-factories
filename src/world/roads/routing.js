@@ -84,7 +84,12 @@ export function routeOnRoadNetwork(s,a,b){
   // an exact one-to-one edge match, so connectivity must not be rejected just
   // because one centreline edge lacks a lane object.
   const laneResult=findLaneRoute(laneGraph,start,end);
-  const laneIds=Array.isArray(laneResult?.laneIds)?laneResult.laneIds:[];
+  // A route that is only valid on the centreline is not a valid traffic route.
+  // Persisted trucks require lane metadata for deterministic junction control
+  // and physical lane geometry, so fail routing rather than returning a route
+  // that routeNetworkValid() will later reject.
+  if(!laneResult?.laneIds?.length)return null;
+  const laneIds=[...laneResult.laneIds];
   const routeDistance=roadResult.distance;
   const laneNodes=roadResult.path;
   const routePoints=laneNodes.map(p=>({x:p.x,y:p.y}));
