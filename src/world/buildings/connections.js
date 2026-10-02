@@ -33,7 +33,11 @@ export function buildingRoadAttachment(s,building){
   if(!building)return null;
   const entrance=buildingRoadEntrance(building);
   const footprint=buildingRoadFootprint(building);
-  const limit=Math.max(48,Math.hypot(footprint.halfWidth,footprint.halfDepth)+6,(building.r||25)+18);
+  // Allow established roads to remain logistics-connected even when their
+  // pavement predates the visual yard/gate. New road placement still snaps to
+  // the canonical entrance; this wider attachment window is only for persisted
+  // compatibility and seeded road networks.
+  const limit=Math.max(100,Math.hypot(footprint.halfWidth,footprint.halfDepth)+6,(building.r||25)+18);
   let best=null;
   for(const road of s.roads||[]){
     const points=validRoadPoints(road?.points,0);
