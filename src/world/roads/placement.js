@@ -3,6 +3,7 @@ import {validateRoadGeometry} from './validation.js';
 import {riverY,WORLD_BOUNDS,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from '../terrain.js';
 import {buildingHitbox,buildingVisualHitbox,nearestBuilding} from '../buildings/geometry.js';
 import {resolveBuildingRoadEndpoint,resolveBuildingRoadTarget,buildingRoadEndpointClearance} from '../buildings/connections.js';
+import {buildingRoadEntrance} from '../buildings/geometry.js';
 
 const ROAD_BUILDING_SNAP_TOLERANCE=46;
 // Preview snapping should require proximity to the actual road facade, not merely the expanded site envelope.
@@ -55,7 +56,9 @@ export function roadPathBlocked(s,points,endpointBuildings={}){
       const isEnd=sameBuilding(building,endBuilding)&&i===points.length-1;
       if(isStart||isEnd){
         const endpoint=isStart?a:b;
-        if(dist(endpoint,{x:building.x,y:building.y})<=1)continue;
+        const entrance=buildingRoadEntrance(building);
+        const atCanonicalEntrance=!!entrance&&Math.hypot(endpoint.x-entrance.x,endpoint.y-entrance.y)<=1;
+        if(dist(endpoint,{x:building.x,y:building.y})<=1||atCanonicalEntrance)continue;
         if(endpointSegmentBlockedGeometry(building,a,b,isStart?'start':'end',buildingRoadEndpointClearance(building)))return true;
         continue;
       }
