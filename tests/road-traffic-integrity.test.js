@@ -95,7 +95,6 @@ test('truck routes enter building gates and continue through the yard to the pri
   assert.ok(route.endYard.length>=3);
   assert.ok(route.yardDistance>0);
 
-  console.log('YARD_ROUTE_DEBUG',JSON.stringify({points:route.points,startYard:route.startYard,endYard:route.endYard,factoryDock:buildingDockPoints(factory)[0],attachment:route.start}));
   const factoryDock=buildingDockPoints(factory)[0];
   const shopDock=buildingDockPoints(shop)[0];
   assert.ok(Math.hypot(route.points[0].x-factoryDock.approach.x,route.points[0].y-factoryDock.approach.y)<.01);
