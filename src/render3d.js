@@ -520,6 +520,11 @@ function createTruckMesh(){
   for(const x of[5.8,7.7])for(const z of[-2.3,2.3])addBoxPart(g,new THREE.BoxGeometry(.35,1.1,.5),mat('#b8b7a7',.55),x,3,z,false);
   g.userData.wheels=g.children.filter(o=>o.isMesh&&o.geometry.type==='CylinderGeometry');return g;
 }
+function worldRenderKey(s){
+  const buildings=(s.buildings||[]).map(b=>[b.id,b.kind,b.type,Number(b.x),Number(b.y)]);
+  const roads=(s.roads||[]).map(r=>[r.id,!!r.bridge,(r.points||[]).map(p=>[Number(p.x),Number(p.y)])]);
+  return JSON.stringify([s.renderVersion||0,buildings,roads]);
+}
 function updateBuildingActivity(s){
   const now=performance.now()*.001;
   for(const b of s.buildings||[]){
@@ -642,7 +647,7 @@ function addEnvironment(s={buildings:[]}){
 function updateSelectionVisual(s){const selected=s.selected?.id||null;if(selected===lastBuildingSelection)return;for(const[id,g]of meshes){const scale=id===selected?1.035:1;g.scale.setScalar(scale);}lastBuildingSelection=selected;}
 function updateRoadEditVisual(){if(roadEditGroup)roadEditGroup.visible=true;}
 function updateRoadEndpointVisual(){if(roadEndpointGroup)roadEndpointGroup.visible=true;}
-function render(s,W,H,canvas=document.querySelector('#game')){if(!canvas)return;if(!renderer)init(canvas);resize(W||innerWidth,H||innerHeight);if(!scene)return;ensureCamera();if(render.lastVersion!==s.renderVersion){updateWorld(s);render.lastVersion=s.renderVersion;}updateBuildingActivity(s);updateTrucks(s);updateSelectionVisual(s);updateRoadEditVisual(s);updateRoadEndpointVisual(s);syncCamera();renderer.render(scene,camera3d);}
+function render(s,W,H,canvas=document.querySelector('#game')){if(!canvas)return;if(!renderer)init(canvas);resize(W||innerWidth,H||innerHeight);if(!scene)return;ensureCamera();const worldKey=worldRenderKey(s);if(render.lastWorldKey!==worldKey){updateWorld(s);render.lastWorldKey=worldKey;}updateBuildingActivity(s);updateTrucks(s);updateSelectionVisual(s);updateRoadEditVisual(s);updateRoadEndpointVisual(s);syncCamera();renderer.render(scene,camera3d);}
 function screenToWorld(x,y,w=viewport.width,h=viewport.height){ensureCamera();const ndc=new THREE.Vector2(x/w*2-1,-(y/h)*2+1),raycaster=new THREE.Raycaster();raycaster.setFromCamera(ndc,camera3d);const hit=new THREE.Vector3();return raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),0),hit)?{x:hit.x,y:hit.z}:{x:0,y:0};}
 function worldToScreen(x,y,w=viewport.width,h=viewport.height){ensureCamera();const p=new THREE.Vector3(x,0,y).project(camera3d);return{x:(p.x+1)*.5*w,y:(1-p.y)*.5*h};}
 function panScreen(dx,dy,w=viewport.width,h=viewport.height){const a=screenToWorld(w*.5,h*.5,w,h),b=screenToWorld(w*.5-dx,h*.5-dy,w,h);desired.x+=b.x-a.x;desired.z+=b.y-a.y;updateCameraBounds();}
