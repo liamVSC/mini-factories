@@ -110,8 +110,11 @@ export function routeOnRoadNetwork(s,a,b){
       ?[{x:entrance.x,y:entrance.y},turn,{x:dock.approach.x,y:dock.approach.y}]
       :[{x:dock.approach.x,y:dock.approach.y},turn,{x:entrance.x,y:entrance.y}];
   };
-  const startYard=aa.canonical?yardPath(a,true):[];
-  const endYard=bb.canonical?yardPath(b,false):[];
+  // Routes are expressed source -> destination. Start at the source dock,
+  // drive through its yard to the gate, use the public road, then enter the
+  // destination gate and finish at its dock.
+  const startYard=aa.canonical?yardPath(a,false):[];
+  const endYard=bb.canonical?yardPath(b,true):[];
   const combined=[...startYard,...routePoints,...endYard];
   const combinedPoints=combined.filter((p,i)=>i===0||dist(p,combined[i-1])>.01);
   const yardDistance=length(startYard)+length(endYard);
