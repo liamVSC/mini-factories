@@ -6,9 +6,9 @@ import {updateEconomy,upgrade,newContract,research,researchCost} from './economy
 import {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera} from './render.js';
 import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand,executeCommand} from './commands.js';
 
-const GAME_VERSION='3';
+const GAME_VERSION=globalThis.MINI_FACTORIES_VERSION;
 const CHANGELOG=[
-  {version:'3',date:'2 Oct 2026',items:[
+  {version:GAME_VERSION,date:globalThis.MINI_FACTORIES_VERSION_DATE,items:[
     'Starter layouts now deliberately distribute factories around the map.',
     'Starter shops are positioned relative to seeded factories instead of using any district system.',
     'Building seeding is restricted to new-game initialization; normal simulation no longer auto-spawns buildings.',
