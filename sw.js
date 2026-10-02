@@ -1,12 +1,12 @@
-const CACHE='mini-factories-v14';
-const VERSION='1.4';
+const CACHE='mini-factories-v15';
+const VERSION='1.5';
 const APP_SHELL=[
-  './','./index.html','./styles.css?v=1','./src/game.js?v=6','./src/version.js','./src/state.js','./src/world.js','./src/economy.js',
+  './','./index.html','./styles.css?v=1','./src/game.js?v=7','./src/version.js','./src/state.js','./src/world.js','./src/economy.js',
   './src/core/types.js','./src/core/rng.js','./src/core/ids.js','./src/commands.js','./src/junctionControl.js',
   './src/world/terrain.js','./src/world/buildings/spawning.js','./src/world/buildings/index.js','./src/world/buildings/layout.js','./src/world/buildings/geometry.js','./src/world/buildings/connections.js','./src/world/buildings/placement.js','./src/world/buildings/operations.js',
   './src/world/roads/index.js','./src/world/roads/creation.js','./src/world/roads/editing.js','./src/world/roads/geometry.js','./src/world/roads/intersections.js','./src/world/roads/placement.js','./src/world/roads/routing.js','./src/world/roads/topology.js','./src/world/roads/validation.js',
   './src/laneGraph.js','./src/persistence/save.js','./src/persistence/load.js','./src/persistence/recovery.js',
-  './src/render.js?v=2','./src/render3d.js?v=4','./src/rendering/buildingTransform.js','./icon.svg','./manifest.webmanifest',
+  './src/render.js?v=2','./src/render3d.js?v=5','./src/rendering/buildingTransform.js','./icon.svg','./manifest.webmanifest',
   'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm'
 ];
 const EXTERNAL_ASSETS=new Set(['https://cdn.jsdelivr.net/npm/three@0.180.0/+esm']);
