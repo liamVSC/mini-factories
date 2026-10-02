@@ -7,52 +7,12 @@ import {buildJunctionControls,laneIndexForJunction,movementForLaneRoute,movement
 
 export function spec(type){return TYPES.find(t=>t.name===type)||TYPES[0]}
 
-function nearestPointOnRoad(road,p){let best=null,bd=Infinity;for(let i=1;i<road.points.length;i++){const a=road.points[i-1],b=road.points[i],q={x:a.x,y:a.y};const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;if(!l)continue;const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l));q.x=a.x+dx*t;q.y=a.y+dy*t;const d=dist(p,q);if(d<bd){bd=d;best=q}}return best}
 function pointSegmentDistance(p,a,b){
   const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
   if(!len2)return dist(p,a);
   const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len2));
   return dist(p,{x:a.x+dx*t,y:a.y+dy*t});
 }
-function touches(r,b){
-  for(let i=1;i<r.points.length;i++)if(pointSegmentDistance(b,r.points[i-1],r.points[i])<b.r+34)return true;
-  return false;
-}
-function segmentDistance(a,b,c,d){
-  const cross=(u,v)=>u.x*v.y-u.y*v.x;
-  const ab={x:b.x-a.x,y:b.y-a.y};
-  const cd={x:d.x-c.x,y:d.y-c.y};
-  const ac={x:c.x-a.x,y:c.y-a.y};
-  const den=cross(ab,cd);
-  if(Math.abs(den)>1e-9){
-    const t=cross(ac,cd)/den;
-    const u=cross(ac,ab)/den;
-    if(t>=0&&t<=1&&u>=0&&u<=1)return 0;
-  }
-  return Math.min(
-    pointSegmentDistance(a,c,d),
-    pointSegmentDistance(b,c,d),
-    pointSegmentDistance(c,a,b),
-    pointSegmentDistance(d,a,b)
-  );
-}
-function roadDistance(a,b){
-  let best=Infinity;
-  for(let i=1;i<a.points.length;i++){
-    for(let j=1;j<b.points.length;j++){
-      best=Math.min(best,segmentDistance(a.points[i-1],a.points[i],b.points[j-1],b.points[j]));
-    }
-  }
-  return best;
-}
-
-function oriented(points,from,to){
-  const a=dist(points[0],from),b=dist(points.at(-1),from);
-  const out=a<=b?[...points]:[...points].reverse();
-  if(dist(out.at(-1),to)>dist(out[0],to))out.reverse();
-  return out;
-}
-
 function projectRouteProgress(points,p){
   if(!Array.isArray(points)||points.length<2)return null;
   let total=length(points),run=0,best=null;
@@ -89,18 +49,6 @@ function segmentHit(a,b,c,d){
   const ta=cross(ac,cd)/den,tc=cross(ac,ab)/den;
   if(ta<0||ta>1||tc<0||tc>1)return null;
   return{x:a.x+ab.x*ta,y:a.y+ab.y*ta,ta,tc};
-}
-function routeDistanceToPoint(route,t,p){
-  const total=length(route),target=total*Math.max(0,Math.min(1,t));
-  let run=0,best=Infinity;
-  for(let i=1;i<route.length;i++){
-    const a=route[i-1],b=route[i],seg=dist(a,b);
-    if(!seg)continue;
-    const q=Math.max(0,Math.min(1,(target-run)/seg));
-    best=Math.min(best,dist({x:a.x+(b.x-a.x)*q,y:a.y+(b.y-a.y)*q},p));
-    run+=seg;
-  }
-  return best;
 }
 function routeProgressToPoint(route,p){
   const projected=projectRouteProgress(route,p);
@@ -143,21 +91,6 @@ function junctionForTruck(network,t){
     if(d<bestDistance){bestDistance=d;best={junction:j,index,progress,metresAhead,movement:movementAtJunction(controlRoute,index)}}
   }
   return best;
-}
-function movementConflict(a,b){
-  if(!a?.movement||!b?.movement)return true;
-  const ai=a.movement,bi=b.movement;
-  const sameJunction=dist(a.junction,b.junction)<1.5;
-  if(sameJunction&&a.index===b.index){
-    if(ai.straight&&bi.straight){
-      const opposing=ai.incoming.x*bi.incoming.x+ai.incoming.y*bi.incoming.y<-.7;
-      if(opposing)return false;
-    }
-    const same=ai.incoming.x*bi.incoming.x+ai.incoming.y*bi.incoming.y>.7 &&
-      ai.outgoing.x*bi.outgoing.x+ai.outgoing.y*bi.outgoing.y>.7;
-    if(same)return false;
-  }
-  return true;
 }
 function laneOffsetForMovement(movement){
   if(movement==='left')return 7;
@@ -403,15 +336,6 @@ export function upgrade(s,b,n){
   return false;
 }
 
-function warehouseFor(s,building){
-  let best=null,bestScore=Infinity;
-  for(const w of s.buildings.filter(b=>b.kind==='warehouse')){
-    const r=route(s,building,w);
-    if(!r)continue;
-    if(r.distance<bestScore){bestScore=r.distance;best=w}
-  }
-  return best;
-}
 function supplyWarehouseFor(s,factory,shop){
   let best=null,bestScore=Infinity;
   for(const warehouse of s.buildings.filter(b=>b.kind==='warehouse')){
