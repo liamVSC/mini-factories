@@ -622,7 +622,7 @@ function addSafetyDetails(g,w,d,h,metal,dark){
   }
 }
 function createFactoryModel(building={}){
-  const g=new THREE.Group(),w=150,d=112,h=42;
+  const g=new THREE.Group(),w=136,d=116,h=50;
   const accent=mat(building.color||'#8a9994',.62,.18);
   const body=mat('#747b7b',.9),dark=mat('#3f4443',.96),metal=mat('#59605e',.84),glass=mat('#3d5559',.3,.12),roof=mat('#4e5453',.96);
   addBuildingFoundation(g,w,d,metal);
@@ -658,7 +658,7 @@ function createFactoryModel(building={}){
   return g;
 }
 function createWarehouseModel(building={}){
-  const g=new THREE.Group(),w=180,d=120,h=36;
+  const g=new THREE.Group(),w=168,d=128,h=44;
   const accent=mat(building.color||'#e9c46a',.62,.18);
   const body=mat('#858b89',.94),roof=mat('#535957',.97),dark=mat('#414746',.97),glass=mat('#43585b',.3,.1),metal=mat('#656b68',.86);
   addBuildingFoundation(g,w,d,metal);
@@ -689,7 +689,7 @@ function createWarehouseModel(building={}){
   return g;
 }
 function createShopModel(building={}){
-  const g=new THREE.Group(),w=150,d=100,h=30;
+  const g=new THREE.Group(),w=128,d=108,h=34;
   const accent=mat(building.color||'#d7a83e',.52,.16);
   const body=mat('#727976',.88),roof=mat('#454b49',.95),glass=mat('#29464b',.18,.16),dark=mat('#303634',.96),metal=mat('#69716d',.78);
   addBuildingFoundation(g,w,d,metal);
@@ -741,7 +741,7 @@ function createShopModel(building={}){
   return g;
 }
 function addBuildingStatusVisual(g,building){
-  const dims=building.kind==='warehouse'?{w:180,d:120,h:36}:building.kind==='factory'?{w:150,d:112,h:42}:{w:150,d:100,h:30};
+  const dims=building.kind==='warehouse'?{w:168,d:128,h:44}:building.kind==='factory'?{w:136,d:116,h:50}:{w:128,d:108,h:34};
   const statusMat=new THREE.MeshStandardMaterial({color:'#7b8581',roughness:.45,metalness:.15,emissive:'#26302d',emissiveIntensity:.15});
   const beacon=addBoxPart(g,new THREE.BoxGeometry(2.2,1.2,2.2),statusMat,dims.w*.38,dims.h+11,0);
   beacon.userData.statusMaterial=statusMat;
@@ -806,7 +806,7 @@ function addBuildingAccess(g,building){
 function createBuildingModel(building){
   const g=building.kind==='factory'?createFactoryModel(building):building.kind==='warehouse'?createWarehouseModel(building):createShopModel(building);
   addBuildingStatusVisual(g,building);
-  if(building.kind==='factory')addFactorySmoke(g,150,112,42);
+  if(building.kind==='factory')addFactorySmoke(g,136,116,50);
   return g;
 }
 function buildingWorldPosition(building){
