@@ -147,12 +147,14 @@ function updateTruckSpeed(t,targetFactor,dt){
 }
 
 function trafficConflict(s,t,network,laneGraph,controls){
-  const p=pointOnRoute(t.route,t.t);
+  const tMovementRoute=Array.isArray(t.laneRoute)&&t.laneRoute.length>=2?t.laneRoute:t.route;
+  const p=pointOnRoute(tMovementRoute,t.t);
   if(!p)return false;
 
   for(const o of s.trucks||[]){
     if(o===t||o.dead||!Array.isArray(o.route)||o.route.length<2)continue;
-    const q=pointOnRoute(o.route,o.t);
+    const oMovementRoute=Array.isArray(o.laneRoute)&&o.laneRoute.length>=2?o.laneRoute:o.route;
+    const q=pointOnRoute(oMovementRoute,o.t);
     if(o.routeKey===t.routeKey&&o.t>t.t&&dist(p,q)<34)return true;
   }
 
@@ -167,8 +169,8 @@ function trafficConflict(s,t,network,laneGraph,controls){
       const q=pointOnRoute(o.route,o.t);
       for(let i=1;i<t.route.length;i++){
         const a=i===1?p:t.route[i-1],b=t.route[i];
-        for(let j=1;j<o.route.length;j++){
-          const c=o.route[j-1],d=o.route[j],hit=segmentHit(a,b,c,d);
+        for(let j=1;j<oMovementRoute.length;j++){
+          const c=oMovementRoute[j-1],d=oMovementRoute[j],hit=segmentHit(a,b,c,d);
           if(!hit)continue;
           const td=dist(p,hit),od=dist(q,hit);
           if(td>72||od>72)continue;
