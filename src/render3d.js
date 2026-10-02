@@ -508,7 +508,46 @@ function createBuildingModel(building){
   if(building.kind==='factory')addFactorySmoke(g,78,62,25);
   return g;
 }
-function updateWorld(s){ws=s;clearDynamic();root.clear();addEnvironment(s);for(const road of s.roads||[]){const g=makeRoad(road.points,!!road.bridge,s);g.userData.road=road;root.add(g);worldObjects.add(g);}root.add(makeRoadJunctions(s.roads||[]));for(const building of s.buildings||[]){const g=createBuildingModel(building);g.position.set(Number(building.x)||0,0,Number(building.y)||0);g.userData.building=building;scene.add(g);meshes.set(building.id,g);worldObjects.add(g);}}
+function buildingWorldPosition(building){
+  const x=Number(building?.x),z=Number(building?.y);
+  if(!Number.isFinite(x)||!Number.isFinite(z))return null;
+  return{x,z};
+}
+function updateWorld(s){
+  ws=s;
+  clearDynamic();
+  root.clear();
+  addEnvironment(s);
+  for(const road of s.roads||[]){
+    const g=makeRoad(road.points,!!road.bridge,s);
+    g.userData.road=road;
+    root.add(g);
+    worldObjects.add(g);
+  }
+  root.add(makeRoadJunctions(s.roads||[]));
+
+  // Buildings must share the exact same world-space parent as roads. Previously
+  // buildings were attached directly to scene while roads lived under root.
+  // Keeping both in one world root makes their transform space explicit and
+  // prevents future root/camera transform changes from visually collapsing one
+  // layer onto another.
+  const liveIds=new Set();
+  for(const building of s.buildings||[]){
+    const position=buildingWorldPosition(building);
+    if(!position)continue;
+    if(building.id&&liveIds.has(building.id))continue;
+    if(building.id)liveIds.add(building.id);
+    const g=createBuildingModel(building);
+    g.position.set(position.x,0,position.z);
+    g.updateMatrix();
+    g.updateMatrixWorld(true);
+    g.userData.building=building;
+    g.userData.worldPosition={x:position.x,z:position.z};
+    root.add(g);
+    meshes.set(building.id,g);
+    worldObjects.add(g);
+  }
+}
 function createTruckMesh(){
   const g=new THREE.Group(),cabMat=mat('#59615f',.88),trailerMat=mat('#aeb2ae',.92),dark=mat('#242829',.98),glass=mat('#3f5155',.22,.08),metal=mat('#68706d',.82);
   addBoxPart(g,new THREE.BoxGeometry(6.8,6.3,7),cabMat,4.1,4.2,0);
