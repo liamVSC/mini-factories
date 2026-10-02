@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {freshState,TYPES} from '../src/state.js';
-import {createCommandHistory,AddRoadCommand} from '../src/commands.js';
+import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand} from '../src/commands.js';
 import {
   addRoad,
   eraseRoad,
@@ -310,4 +310,45 @@ test('road command undo restores the topology revision and traffic reservations'
   assert.equal(s.roadNetworkRevision,beforeRevision);
   assert.deepEqual(s.roads,[]);
   assert.deepEqual(s.trafficReservations,{'0,0':{truckId:'old',until:99}});
+});
+
+
+test('road delete and endpoint commands restore topology, reservations and geometry on undo',()=>{
+  const s=roadState();
+  assert.equal(addRoad(s,[{x:-180,y:0},{x:180,y:0}]),true);
+  const history=createCommandHistory();
+  s.trafficReservations={'0,0':{truckId:'before-delete',until:99}};
+  const revision=s.roadNetworkRevision;
+  const roadId=s.roads[0].id;
+  assert.equal(history.execute(s,new DeleteRoadCommand({x:0,y:0})).ok,true);
+  assert.equal(s.roads.length,0);
+  assert.equal(history.undo(s),true);
+  assert.equal(s.roadNetworkRevision,revision);
+  assert.equal(s.roads.length,1);
+  assert.deepEqual(s.trafficReservations,{'0,0':{truckId:'before-delete',until:99}});
+
+  s.trafficReservations={'0,0':{truckId:'before-move',until:99}};
+  const before=s.roads[0].points.map(p=>({...p}));
+  const move=history.execute(s,new MoveRoadEndpointCommand(roadId,1,{x:240,y:0}));
+  assert.equal(move.ok,true);
+  assert.equal(s.roads[0].points.at(-1).x,240);
+  assert.equal(history.undo(s),true);
+  assert.deepEqual(s.roads[0].points,before);
+  assert.equal(s.roadNetworkRevision,revision);
+  assert.deepEqual(s.trafficReservations,{'0,0':{truckId:'before-move',until:99}});
+});
+
+test('building placement command restores building list and cash on undo',()=>{
+  const s=roadState();
+  const type=TYPES.find(t=>t.name==='Steel');
+  assert.ok(type);
+  const history=createCommandHistory();
+  const cash=s.cash;
+  const result=history.execute(s,new PlaceBuildingCommand(type,600,600));
+  assert.equal(result.ok,true);
+  assert.equal(s.buildings.length,1);
+  assert.ok(s.cash<cash);
+  assert.equal(history.undo(s),true);
+  assert.equal(s.buildings.length,0);
+  assert.equal(s.cash,cash);
 });
