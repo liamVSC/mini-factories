@@ -33,10 +33,23 @@ export function addRoad(s,points,meta={}){
   // keeps legacy center-to-center duplicate calls from collapsing into a
   // too-short facade segment as building envelopes grow.
   if((s.roads||[]).some(r=>roadsExactlyDuplicate(r,{points:normalized})))return'duplicate';
-  const startBuilding=meta.startBuilding||null,endBuilding=meta.endBuilding||null;
+  let startBuilding=meta.startBuilding||null,endBuilding=meta.endBuilding||null;
+  const canonicalAt=(point)=>{
+    if(!point)return null;
+    for(const building of s.buildings||[]){
+      const entrance=buildingRoadEntrance(building);
+      if(entrance&&dist(point,entrance)<=2)return building;
+    }
+    return null;
+  };
+  // Direct programmatic road creation can target a canonical building gate without
+  // supplying UI metadata. Recover that relationship so a legacy road cannot cut
+  // through the building shell on its way out of the yard.
+  startBuilding=startBuilding||canonicalAt(normalized[0]);
+  endBuilding=endBuilding||canonicalAt(normalized.at(-1));
   const centerPair=!!startBuilding&&!!endBuilding&&dist(normalized[0],{x:startBuilding.x,y:startBuilding.y})<=2&&dist(normalized.at(-1),{x:endBuilding.x,y:endBuilding.y})<=2;
-  const startConnection=centerPair?null:resolveBuildingRoadEndpoint(s,normalized[0],startBuilding,normalized.at(-1));
-  const endConnection=centerPair?null:resolveBuildingRoadEndpoint(s,normalized.at(-1),endBuilding,normalized[0]);
+  const startConnection=centerPair?null:resolveBuildingRoadEndpoint(s,normalized[0],meta.startBuilding||null,normalized.at(-1));
+  const endConnection=centerPair?null:resolveBuildingRoadEndpoint(s,normalized.at(-1),meta.endBuilding||null,normalized[0]);
   const resolvedStartBuilding=startConnection?.building||startBuilding;
   const resolvedEndBuilding=endConnection?.building||endBuilding;
   if(resolvedStartBuilding&&resolvedEndBuilding&&resolvedStartBuilding===resolvedEndBuilding)return'blocked';
@@ -50,8 +63,8 @@ export function addRoad(s,points,meta={}){
   // its first segment heads back through the site, route that segment outward
   // around the building instead of rejecting the command. Interactive previews
   // use the same obstacle-aware pathing, so committed roads stay consistent.
-  if((resolvedStartBuilding||resolvedEndBuilding)&&roadPathBlocked(s,points,{start:resolvedStartBuilding,end:resolvedEndBuilding})){
-    const routed=chooseRoadPath(s,points[0],points.at(-1),{start:resolvedStartBuilding,end:resolvedEndBuilding});
+  if((resolvedStartBuilding||resolvedEndBuilding)&&roadPathBlocked(s,points,{})){
+    const routed=chooseRoadPath(s,points[0],points.at(-1),{});
     if(!routed)return'blocked';
     points=routed;
   }
