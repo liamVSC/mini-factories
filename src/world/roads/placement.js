@@ -18,7 +18,34 @@ export function snap(s,p){const b=nearestBuilding(s,p);if(b)return b;const r=nea
 
 function pointSegmentDistance(p,a,b){return projectSegment(p,a,b).distance}
 
-export function segmentNearRiver(a,b,threshold=45){const span=Math.max(1,dist(a,b)),samples=Math.max(3,Math.ceil(span/24));for(let i=0;i<=samples;i++){const t=i/samples,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;if(Math.abs(y-riverY(x))<threshold)return true}return false}
+export function segmentCrossesRiver(a,b){
+  if(!finitePoint(a)||!finitePoint(b))return false;
+  const span=Math.max(1,dist(a,b)),samples=Math.max(4,Math.ceil(span/12));
+  let previous=null;
+  for(let i=0;i<=samples;i++){
+    const t=i/samples,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+    const side=y-riverY(x);
+    if(Math.abs(side)<1){
+      if(previous!==null&&previous!==0&&Math.sign(previous)!==Math.sign(side))return true;
+      previous=0;
+      continue;
+    }
+    if(previous!==null&&previous!==0&&Math.sign(previous)!==Math.sign(side))return true;
+    previous=side;
+  }
+  return false;
+}
+
+// Kept for compatibility with older callers; proximity alone must never make a road a bridge.
+export function segmentNearRiver(a,b,threshold=45){
+  if(!finitePoint(a)||!finitePoint(b)||!Number.isFinite(threshold))return false;
+  const span=Math.max(1,dist(a,b)),samples=Math.max(3,Math.ceil(span/24));
+  for(let i=0;i<=samples;i++){
+    const t=i/samples,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+    if(Math.abs(y-riverY(x))<threshold)return true;
+  }
+  return false;
+}
 
 export function roadPathBlocked(s,points,endpointBuildings={}){
   if(!validRoadPoints(points,0))return true;
