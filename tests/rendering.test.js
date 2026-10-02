@@ -3,9 +3,12 @@ import assert from 'node:assert/strict';
 import {freshState} from '../src/state.js';
 import {seed} from '../src/world/buildings/index.js';
 import {savedBuildingToWorldPosition,projectWorldPointToNdc,buildingRenderTrace} from '../src/rendering/buildingTransform.js';
+import {buildingSitePlan} from '../src/rendering/sitePlan.js';
 import {buildingDockPoints,buildingRoadEntrance,buildingConnectionPoint} from '../src/world/buildings/geometry.js';
 import {roadTarget} from '../src/world/roads/placement.js';
 import {addRoad} from '../src/world/roads/creation.js';
+import {serialise} from '../src/persistence/save.js';
+import {hydrate} from '../src/persistence/load.js';
 
 // Column-major projection fixture: world X -> NDC X and world Z -> NDC Y.
 const ORTHOGRAPHIC_TEST_MATRIX=[
@@ -78,6 +81,45 @@ test('each building exposes exactly one canonical truck entrance for road snappi
     assert.ok(Math.hypot(entrance.x-building.x,entrance.y-building.y)>40);
   }
 });
+
+test('industrial site plans fit the protected footprint and connect the gate, truck court and dock',()=>{
+  for(const kind of ['factory','warehouse','shop']){
+    const building={id:`site-plan-${kind}`,kind,type:`${kind}-type`,x:340,y:-260};
+    const plan=buildingSitePlan(building);
+    assert.ok(plan,kind);
+    assert.ok(plan.width<=plan.shell.halfWidth*2,`${kind} shell width`);
+    assert.ok(plan.depth<=plan.shell.halfDepth*2,`${kind} shell depth`);
+    assert.ok(plan.lotWidth<=plan.site.halfWidth*2,`${kind} lot width`);
+    assert.ok(plan.lotDepth<=plan.site.halfDepth*2,`${kind} lot depth`);
+    assert.ok(Math.abs(plan.turnX)<=plan.courtWidth/2,`${kind} truck turn width`);
+    assert.ok(Math.abs(plan.turnZ-plan.courtZ)<=plan.courtDepth/2,`${kind} truck turn depth`);
+    assert.ok(plan.parkingWidth<=plan.lotWidth,`${kind} parking width`);
+    assert.ok(plan.parkingDepth<=plan.lotDepth,`${kind} parking depth`);
+    assert.ok(Math.abs(plan.serviceX)+8<=plan.lotWidth/2,`${kind} service lane stays inside site`);
+    assert.ok(Math.abs(plan.turnZ-plan.courtZ)+plan.turnRadius<=plan.courtDepth/2,`${kind} turning pad stays inside court`);
+    assert.equal(plan.gateZ,buildingRoadEntrance(building).y-building.y,`${kind} canonical gate`);
+    assert.equal(buildingSitePlan(building).variant,plan.variant,`${kind} deterministic variant`);
+    const dock=buildingDockPoints(building)[0];
+    assert.equal(plan.dockZ,dock.point.y-building.y,`${kind} primary loading dock`);
+    for(const value of Object.values(plan)){
+      if(typeof value==='number')assert.ok(Number.isFinite(value),`${kind} plan has finite dimensions`);
+    }
+  }
+});
+
+test('fresh-game visual site plans vary deterministically and save/load preserves their building positions',()=>{
+  const s=freshState();
+  assert.equal(seed(s),true);
+  const positions=new Map(s.buildings.map(b=>[b.id,{x:b.x,y:b.y}]));
+  const originalPlans=s.buildings.map(b=>buildingSitePlan(b));
+  const factoryVariants=s.buildings.filter(b=>b.kind==='factory').map(b=>buildingSitePlan(b).variant);
+  assert.ok(new Set(factoryVariants).size>1,'seeded factories should not all share identical site details');
+  const loaded=hydrate(serialise(s));
+  assert.ok(loaded);
+  assert.deepEqual(loaded.buildings.map(b=>({x:b.x,y:b.y})),s.buildings.map(b=>positions.get(b.id)));
+  assert.deepEqual(loaded.buildings.map(b=>buildingSitePlan(b)),originalPlans);
+});
+
 
 test('canonical truck entrance is stable regardless of which side the road approaches from',()=>{
   const building={id:'factory-entrance',kind:'factory',x:-120,y:80};
