@@ -80,7 +80,37 @@ export function placeBuilding(s,type,x,y){
 
 
 export function seed(s){
-  return seedBuildings(s,buildingPhysicalPlacementReason);
+  // Seeding is a one-time initialization transaction. A loaded or already-seeded
+  // world must never receive a second starter layout.
+  if(!s||s.seeded===true)return false;
+
+  // Refuse to seed a state that already contains world entities. This protects
+  // against accidental calls from gameplay/editor code and prevents duplicate
+  // starter buildings from being appended to a live world.
+  if((s.buildings?.length||0)>0||(s.roads?.length||0)>0)return false;
+
+  const originalBuildings=s.buildings;
+  const originalSeeded=s.seeded;
+  s.buildings=[];
+  try{
+    seedBuildings(s,buildingPhysicalPlacementReason);
+
+    const expected=['Steel','Food','Parts','Market','Garage','Builder'];
+    const seededNames=s.buildings.map(building=>building.type);
+    const complete=expected.every(name=>seededNames.includes(name));
+    if(!complete||!layoutIsValid(s.buildings)){
+      s.buildings=originalBuildings;
+      s.seeded=originalSeeded;
+      return false;
+    }
+
+    s.seeded=true;
+    return true;
+  }catch(error){
+    s.buildings=originalBuildings;
+    s.seeded=originalSeeded;
+    throw error;
+  }
 }
 
 export {buildingPlacementTarget,buildingLogisticsAccess} from './placement.js';
