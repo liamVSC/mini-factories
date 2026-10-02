@@ -66,15 +66,30 @@ function addRoadEndpointJoin(group,p,roadWidth){
 }
 function roundedRoadPoints(points){const clean=[];for(const p of points||[]){if(!Number.isFinite(p?.x)||!Number.isFinite(p?.y))continue;const last=clean.at(-1);if(last&&Math.hypot(last.x-p.x,last.y-p.y)<.5)continue;clean.push({x:p.x,y:p.y});}if(clean.length<3)return clean;const result=[clean[0]],radius=Math.min(30,Math.max(10,ROAD.width*1.35));for(let i=1;i<clean.length-1;i++){const prev=clean[i-1],cur=clean[i],next=clean[i+1],inLen=Math.hypot(cur.x-prev.x,cur.y-prev.y),outLen=Math.hypot(next.x-cur.x,next.y-cur.y);if(inLen<1||outLen<1){result.push(cur);continue;}const trim=Math.min(radius,inLen*.32,outLen*.32),inT={x:cur.x+(prev.x-cur.x)*(trim/inLen),y:cur.y+(prev.y-cur.y)*(trim/inLen)},outT={x:cur.x+(next.x-cur.x)*(trim/outLen),y:cur.y+(next.y-cur.y)*(trim/outLen)};result.push(inT);for(let s=1;s<=Math.max(3,Math.min(10,Math.ceil(trim/5)));s++){const t=s/Math.max(3,Math.min(10,Math.ceil(trim/5))),mt=1-t;result.push({x:mt*mt*inT.x+2*mt*t*cur.x+t*t*outT.x,y:mt*mt*inT.y+2*mt*t*cur.y+t*t*outT.y});}}result.push(clean.at(-1));return result;}
 function ribbonGeometry(points,width,y,thickness=.12){
+  // Build each path segment as its own quad. The previous shared-vertex ribbon
+  // used averaged tangents at corners; sharp road edits could therefore create
+  // extreme miter spikes/twisted triangles that looked like a broken road model.
+  // Segment-local normals keep every piece planar and stable through tight turns.
   const verts=[],indices=[];
-  for(let i=0;i<points.length;i++){
-    const p=points[i],prev=points[Math.max(0,i-1)],next=points[Math.min(points.length-1,i+1)];
-    let tx=next.x-prev.x,tz=next.y-prev.y,len=Math.hypot(tx,tz)||1;tx/=len;tz/=len;
-    const nx=-tz,nz=tx;
-    verts.push(p.x+nx*width/2,y-thickness/2,p.y+nz*width/2,p.x-nx*width/2,y-thickness/2,p.y-nz*width/2);
-    if(i<points.length-1){const j=i*2;indices.push(j,j+1,j+2,j+1,j+3,j+2);}
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i];
+    const dx=b.x-a.x,dz=b.y-a.y,len=Math.hypot(dx,dz);
+    if(!Number.isFinite(len)||len<.01)continue;
+    const nx=-dz/len,nz=dx/len,half=width/2;
+    const base=verts.length/3;
+    verts.push(
+      a.x+nx*half,y-thickness/2,a.y+nz*half,
+      a.x-nx*half,y-thickness/2,a.y-nz*half,
+      b.x+nx*half,y-thickness/2,b.y+nz*half,
+      b.x-nx*half,y-thickness/2,b.y-nz*half
+    );
+    indices.push(base,base+1,base+2,base+1,base+3,base+2);
   }
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));g.setIndex(indices);g.computeVertexNormals();return g;
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+  g.setIndex(indices);
+  g.computeVertexNormals();
+  return g;
 }
 function addRoadSurface(group,points,width,y,material){
   if(points.length<2)return;
