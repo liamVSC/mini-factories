@@ -20,12 +20,6 @@ export function resolveBuildingRoadTarget(s,p,maxDistance=46){
   if(!p)return null;
   let best=null;
   for(const building of s.buildings||[]){
-    const hit=buildingRoadHitbox(building,0);
-    const inside=Number(p.x)>=hit.minX&&Number(p.x)<=hit.maxX&&Number(p.y)>=hit.minY&&Number(p.y)<=hit.maxY;
-    // Raw pointer positions inside a building are not road snap targets. The
-    // explicit building endpoint path handles intentional building connections;
-    // proximity snapping should happen from the exterior toward the gate.
-    if(inside)continue;
     const distance=buildingRoadDistance(building,p);
     if(distance>maxDistance)continue;
     if(!best||distance<best.distance){
