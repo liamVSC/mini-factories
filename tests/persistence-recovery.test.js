@@ -33,3 +33,21 @@ test('incomplete recovery snapshot is ignored',()=>{
   store.setItem(RECOVERY_KEY,JSON.stringify({schema:1,savedAt:999,state:{version:6,buildings:[],roads:null}}));
   assert.equal(loadRecoveredState(store),null);
 });
+
+
+test('hydration resets runtime state and clears orphaned contract in-flight cargo',()=>{
+  const store=storage(),s=freshState();
+  s.buildings=[{
+    id:'shop-1',x:100,y:100,r:25,kind:'shop',type:'Market',need:'Food',level:1,stock:0,max:8,production:0,demand:3,served:0,satisfaction:100,loading:0,logistics:0,
+    contract:{id:7,type:'Food',qty:4,initial:4,remaining:3,reward:120,expires:20,inFlight:3,urgent:true}
+  }];
+  s.roads=[];s.cash=900;s.mode='build';s.paused=true;s.gameOver=true;s.buildMode={name:'Market'};
+  assert.equal(saveRecoveredState(s,store,500),true);
+  const loaded=loadRecoveredState(store);
+  assert.equal(loaded.mode,'select');
+  assert.equal(loaded.paused,false);
+  assert.equal(loaded.gameOver,false);
+  assert.equal(loaded.buildMode,null);
+  assert.equal(loaded.buildings[0].contract.inFlight,0);
+  assert.equal(loaded.buildings[0].contract.remaining,3);
+});
