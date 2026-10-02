@@ -37,7 +37,7 @@ export function buildingRoadAttachment(s,building){
   // pavement predates the visual yard/gate. New road placement still snaps to
   // the canonical entrance; this wider attachment window is only for persisted
   // compatibility and seeded road networks.
-  const hit=buildingRoadHitbox(building,6);
+  const hit=buildingRoadHitbox(building,18);
   let best=null;
   for(const road of s.roads||[]){
     const points=validRoadPoints(road?.points,0);
