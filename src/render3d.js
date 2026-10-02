@@ -514,8 +514,8 @@ function addIndustrialSite(g,w,d,h,metal,dark,kind){
   const dockZ=dock?.y??front*(d/2);
   const dockNormal=dock?.normal?.y??front;
   const gateZ=dockZ+dockNormal*28;
-  const depotWidth=kind==='warehouse'?156:kind==='factory'?144:96;
-  const depotDepth=Math.abs(gateZ-dockZ)+28;
+  const depotWidth=kind==='warehouse'?220:kind==='factory'?190:132;
+  const depotDepth=Math.abs(gateZ-dockZ)+64;
   const depotCenter=(dockZ+gateZ)/2;
 
   addBoxPart(g,new THREE.BoxGeometry(depotWidth,.18,depotDepth),mat('#555b59',.98),0,.1,depotCenter,0,false);
@@ -529,19 +529,19 @@ function addIndustrialSite(g,w,d,h,metal,dark,kind){
   }
 
   const padZ=gateZ-dockNormal*8;
-  addTruckTurningPad(g,0,padZ,34,metal);
+  addTruckTurningPad(g,0,padZ,48,metal);
   const forklifts=[addForklift(g,-w*.28,dockZ+dockNormal*12,metal,dark),addForklift(g,w*.28,dockZ+dockNormal*12,metal,dark)];
   const pallets=[addPallet(g,-w*.35,dockZ+dockNormal*20,metal,dark),addPallet(g,-w*.18,dockZ+dockNormal*20,metal,dark),addPallet(g,w*.34,dockZ+dockNormal*20,metal,dark)];
   g.userData.siteForklifts=forklifts.filter(Boolean);g.userData.sitePallets=pallets.filter(Boolean);
 
   addDumpster(g,w*.48,d*.42,metal,dark);
   addFuelTank(g,-w*.42,d*.42,metal,dark);
-  addStaffParking(g,front>0?w*.26:-w*.26,-front*(d/2+24),34,15,metal,dark);
+  addStaffParking(g,front>0?w*.26:-w*.26,-front*(d/2+34),52,22,metal,dark);
 
   // Fence lines terminate at the single gate rather than creating multiple access points.
   addFenceLine(g,-depotWidth/2,-front*(d/2),-depotWidth/2,gateZ,metal);
   addFenceLine(g,depotWidth/2,-front*(d/2),depotWidth/2,gateZ,metal);
-  addGate(g,0,gateZ,28,metal);
+  addGate(g,0,gateZ,34,metal);
 
   // Pedestrian entrance remains separate from the truck gate.
   addEntrance(g,-w*.25,-d/2-.8,10,9,metal,dark);
@@ -583,21 +583,21 @@ function addSafetyDetails(g,w,d,h,metal,dark){
   }
 }
 function createFactoryModel(building={}){
-  const g=new THREE.Group(),w=110,d=86,h=34;
+  const g=new THREE.Group(),w=150,d=112,h=42;
   const accent=mat(building.color||'#8a9994',.62,.18);
   const body=mat('#747b7b',.9),dark=mat('#3f4443',.96),metal=mat('#59605e',.84),glass=mat('#3d5559',.3,.12),roof=mat('#4e5453',.96);
   addBuildingFoundation(g,w,d,metal);
   addBoxPart(g,new THREE.BoxGeometry(w,h,d),body,0,h/2+2,0);
   addBoxPart(g,new THREE.BoxGeometry(w*.58,3,d+.8),accent,0,7,d/2+.45);
-  addFacadeWindows(g,w,d,16,glass,dark,false);addFacadeWindows(g,w,d,16,glass,dark,true);
-  addRecessedLoadingBay(g,0,d/2+.5,22,14,dark,metal);
-  addRecessedLoadingBay(g,-w*.3,-d/2-.5,13,10,dark,metal);
-  addDockDetails(g,0,d/2+.5,22,14,1,metal,dark);
-  addDockDetails(g,-w*.3,-d/2-.5,13,10,-1,metal,dark);
+  addFacadeWindows(g,w,d,20,glass,dark,false);addFacadeWindows(g,w,d,20,glass,dark,true);
+  addRecessedLoadingBay(g,0,d/2+.5,30,18,dark,metal);
+  addRecessedLoadingBay(g,-w*.30,-d/2-.5,18,14,dark,metal);
+  addDockDetails(g,0,d/2+.5,30,18,1,metal,dark);
+  addDockDetails(g,-w*.30,-d/2-.5,18,14,-1,metal,dark);
   addGableRoof(g,w,d,h,roof,metal);
   addRoofEquipment(g,w,d,h,metal,dark,3);
   addSafetyDetails(g,w,d,h,metal,dark);
-  addLoadingYard(g,0,d/2+40,128,44,metal,dark);
+  addLoadingYard(g,0,d/2+58,176,64,metal,dark);
   addIndustrialProps(g,w,d,h,metal,dark);
   addIndustrialSite(g,w,d,h,metal,dark,'factory');
   for(const x of[-w*.28,w*.28]){
@@ -608,23 +608,23 @@ function createFactoryModel(building={}){
   return g;
 }
 function createWarehouseModel(building={}){
-  const g=new THREE.Group(),w=132,d=92,h=29;
+  const g=new THREE.Group(),w=180,d=120,h=36;
   const accent=mat(building.color||'#e9c46a',.62,.18);
   const body=mat('#858b89',.94),roof=mat('#535957',.97),dark=mat('#414746',.97),glass=mat('#43585b',.3,.1),metal=mat('#656b68',.86);
   addBuildingFoundation(g,w,d,metal);
   addBoxPart(g,new THREE.BoxGeometry(w,h,d),body,0,h/2+2,0);
   addBoxPart(g,new THREE.BoxGeometry(w*.7,2.4,d+.8),accent,0,6,d/2+.45);
-  addFacadeWindows(g,w,d,14,glass,dark,false);addFacadeWindows(g,w,d,14,glass,dark,true);
-  addRecessedLoadingBay(g,0,d/2+.5,24,13,dark,metal);
-  addRecessedLoadingBay(g,-w*.32,d/2+.5,14,10,dark,metal);
-  addRecessedLoadingBay(g,w*.32,-d/2-.5,14,10,dark,metal);
-  addDockDetails(g,0,d/2+.5,24,13,1,metal,dark);
-  addDockDetails(g,-w*.32,d/2+.5,14,10,1,metal,dark);
-  addDockDetails(g,w*.32,-d/2-.5,14,10,-1,metal,dark);
+  addFacadeWindows(g,w,d,18,glass,dark,false);addFacadeWindows(g,w,d,18,glass,dark,true);
+  addRecessedLoadingBay(g,0,d/2+.5,34,17,dark,metal);
+  addRecessedLoadingBay(g,-w*.32,d/2+.5,20,13,dark,metal);
+  addRecessedLoadingBay(g,w*.32,-d/2-.5,20,13,dark,metal);
+  addDockDetails(g,0,d/2+.5,34,17,1,metal,dark);
+  addDockDetails(g,-w*.32,d/2+.5,20,13,1,metal,dark);
+  addDockDetails(g,w*.32,-d/2-.5,20,13,-1,metal,dark);
   addGableRoof(g,w,d,h,roof,metal);
   addRoofEquipment(g,w,d,h,metal,dark,4);
   addSafetyDetails(g,w,d,h,metal,dark);
-  addLoadingYard(g,0,d/2+50,144,48,metal,dark);
+  addLoadingYard(g,0,d/2+76,204,78,metal,dark);
   addIndustrialProps(g,w,d,h,metal,dark);
   addIndustrialSite(g,w,d,h,metal,dark,'warehouse');
   for(const x of[-w*.3,0,w*.3]){
@@ -634,7 +634,7 @@ function createWarehouseModel(building={}){
   return g;
 }
 function createShopModel(building={}){
-  const g=new THREE.Group(),w=96,d=72,h=22;
+  const g=new THREE.Group(),w=132,d=94,h=28;
   const accent=mat(building.color||'#ffd166',.58,.12);
   const body=mat('#777d7a',.9),roof=mat('#505655',.96),glass=mat('#354b4f',.25,.12),dark=mat('#3c4241',.96),metal=mat('#6b706d',.82);
   addBuildingFoundation(g,w,d,metal);
@@ -646,23 +646,23 @@ function createShopModel(building={}){
   addBoxPart(g,new THREE.BoxGeometry(9,8,.7),dark,0,7,d/2+.7);
   addBoxPart(g,new THREE.BoxGeometry(w*.82,1.1,3),metal,0,11,d/2+1.5);
   addBoxPart(g,new THREE.BoxGeometry(w*.55,2.8,.8),dark,0,14,d/2+.7);
-  addFacadeWindows(g,w,d,11,glass,dark,true);
+  addFacadeWindows(g,w,d,14,glass,dark,true);
   for(const x of[-w*.32,w*.32])addBoxPart(g,new THREE.BoxGeometry(5,2,4),metal,x,h+3.5,0);
-  addBoxPart(g,new THREE.BoxGeometry(44,.2,28),mat('#5c6260',.98),0,.12,d/2+34,0,false);
-  for(const x of[-17,0,17])addBoxPart(g,new THREE.BoxGeometry(2.8,.12,15),metal,x,.27,d/2+25,0,false);
-  for(const x of[-21,21])addBoxPart(g,new THREE.BoxGeometry(2.5,1.5,2.5),dark,x,.9,d/2+25);
+  addBoxPart(g,new THREE.BoxGeometry(72,.2,42),mat('#5c6260',.98),0,.12,d/2+50,0,false);
+  for(const x of[-27,0,27])addBoxPart(g,new THREE.BoxGeometry(2.8,.12,22),metal,x,.27,d/2+39,0,false);
+  for(const x of[-33,33])addBoxPart(g,new THREE.BoxGeometry(3,1.8,3),dark,x,.9,d/2+39);
   addEntrance(g,0,-d/2-.7,12,8,metal,dark);
-  addStaffParking(g,0,d/2+40,58,20,metal,dark);
+  addStaffParking(g,0,d/2+58,86,26,metal,dark);
   addDumpster(g,w*.42,d*.38,metal,dark);
   // Customer frontage stays separate; the truck gate is the single logistics
   // entrance on the same south side as the loading dock.
-  addFenceLine(g,-w/2-8,-d/2-4,-w/2-8,-d/2-52,metal);
-  addFenceLine(g,w/2+8,-d/2-4,w/2+8,-d/2-52,metal);
-  addGate(g,0,-d/2-46,18,metal);
+  addFenceLine(g,-w/2-10,-d/2-4,-w/2-10,-d/2-64,metal);
+  addFenceLine(g,w/2+10,-d/2-4,w/2+10,-d/2-64,metal);
+  addGate(g,0,-d/2-58,26,metal);
   return g;
 }
 function addBuildingStatusVisual(g,building){
-  const dims=building.kind==='warehouse'?{w:132,d:92,h:29}:building.kind==='factory'?{w:110,d:86,h:34}:{w:96,d:72,h:22};
+  const dims=building.kind==='warehouse'?{w:180,d:120,h:36}:building.kind==='factory'?{w:150,d:112,h:42}:{w:132,d:94,h:28};
   const statusMat=new THREE.MeshStandardMaterial({color:'#7b8581',roughness:.45,metalness:.15,emissive:'#26302d',emissiveIntensity:.15});
   const beacon=addBoxPart(g,new THREE.BoxGeometry(2.2,1.2,2.2),statusMat,dims.w*.38,dims.h+11,0);
   beacon.userData.statusMaterial=statusMat;
@@ -729,7 +729,7 @@ function addBuildingAccess(g,building){
 function createBuildingModel(building){
   const g=building.kind==='factory'?createFactoryModel(building):building.kind==='warehouse'?createWarehouseModel(building):createShopModel(building);
   addBuildingStatusVisual(g,building);
-  if(building.kind==='factory')addFactorySmoke(g,110,86,34);
+  if(building.kind==='factory')addFactorySmoke(g,150,112,42);
   return g;
 }
 function buildingWorldPosition(building){
