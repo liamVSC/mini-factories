@@ -71,7 +71,9 @@ export function roadPathIntersectsBuildingFootprint(s,points,endpointBuildings={
       const endsInside=b.x>=rect.minX&&b.x<=rect.maxX&&b.y>=rect.minY&&b.y<=rect.maxY;
       const isStart=endpointBuildings.start&&building.id===endpointBuildings.start.id&&i===1;
       const isEnd=endpointBuildings.end&&building.id===endpointBuildings.end.id&&i===points.length-1;
-      if(isStart||isEnd||(i===1&&startsInside)||(i===points.length-1&&endsInside))continue;
+      if(isStart||isEnd)continue;
+      if(i===1&&startsInside&&!endsInside)continue;
+      if(i===points.length-1&&endsInside&&!startsInside)continue;
       if(segmentIntersectsRect(a,b,rect))return true;
     }
   }
