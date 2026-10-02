@@ -34,8 +34,9 @@ export function addRoad(s,points,meta={}){
   // too-short facade segment as building envelopes grow.
   if((s.roads||[]).some(r=>roadsExactlyDuplicate(r,{points:normalized})))return'duplicate';
   const startBuilding=meta.startBuilding||null,endBuilding=meta.endBuilding||null;
-  const startConnection=resolveBuildingRoadEndpoint(s,normalized[0],startBuilding,normalized.at(-1));
-  const endConnection=resolveBuildingRoadEndpoint(s,normalized.at(-1),endBuilding,normalized[0]);
+  const centerPair=!!startBuilding&&!!endBuilding&&dist(normalized[0],{x:startBuilding.x,y:startBuilding.y})<=2&&dist(normalized.at(-1),{x:endBuilding.x,y:endBuilding.y})<=2;
+  const startConnection=centerPair?null:resolveBuildingRoadEndpoint(s,normalized[0],startBuilding,normalized.at(-1));
+  const endConnection=centerPair?null:resolveBuildingRoadEndpoint(s,normalized.at(-1),endBuilding,normalized[0]);
   const resolvedStartBuilding=startConnection?.building||startBuilding;
   const resolvedEndBuilding=endConnection?.building||endBuilding;
   if(resolvedStartBuilding&&resolvedEndBuilding&&resolvedStartBuilding===resolvedEndBuilding)return'blocked';
