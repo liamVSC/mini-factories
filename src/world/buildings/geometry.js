@@ -29,9 +29,9 @@ function footprintForKind(kind){
 // clearance, but must not make a road endpoint think it is still inside a
 // building after the endpoint has moved beyond the actual model.
 const ROAD_CONNECTION_FOOTPRINTS=Object.freeze({
-  warehouse:Object.freeze({halfWidth:86,halfDepth:60}),
-  factory:Object.freeze({halfWidth:72,halfDepth:56}),
-  shop:Object.freeze({halfWidth:60,halfDepth:48}),
+  warehouse:Object.freeze({halfWidth:48,halfDepth:36}),
+  factory:Object.freeze({halfWidth:40,halfDepth:32}),
+  shop:Object.freeze({halfWidth:36,halfDepth:36}),
   default:Object.freeze({halfWidth:36,halfDepth:36})
 });
 
