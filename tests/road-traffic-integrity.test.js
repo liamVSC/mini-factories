@@ -87,8 +87,10 @@ test('truck routes enter building gates and continue through the yard to the pri
 
   const factoryGate={x:factory.x,y:factory.y+108};
   const shopGate={x:shop.x,y:shop.y-110};
-  assert.equal(addRoad(s,[{x:factoryGate.x,y:factoryGate.y},{x:factoryGate.x,y:0}]),true);
-  assert.equal(addRoad(s,[{x:shopGate.x,y:shopGate.y},{x:shopGate.x,y:0}]),true);
+  const publicX=220;
+  assert.equal(addRoad(s,[factoryGate,{x:publicX,y:factoryGate.y}]),true);
+  assert.equal(addRoad(s,[shopGate,{x:publicX,y:shopGate.y}]),true);
+  assert.equal(addRoad(s,[{x:publicX,y:shopGate.y},{x:publicX,y:factoryGate.y}]),true);
 
   const route=routeOnRoadNetwork(s,factory,shop);
   assert.ok(route);
@@ -110,11 +112,12 @@ test('truck routes enter building gates and continue through the yard to the pri
 
 test('routing traverses a junction and preserves explicit turn state',()=>{
   const s=roadState();
-  const factory={id:'factory',x:-160,y:0,kind:'factory',r:25};
+  const factory={id:'factory',x:-300,y:0,kind:'factory',r:25};
   const shop={id:'shop',x:0,y:160,kind:'shop',r:25};
   s.buildings=[factory,shop];
-  assert.equal(addRoad(s,[{x:-160,y:0},{x:160,y:0}]),true);
-  assert.equal(addRoad(s,[{x:0,y:-160},{x:0,y:160}]),true);
+  assert.equal(addRoad(s,[{x:-300,y:108},{x:-300,y:160},{x:-400,y:160},{x:-400,y:0},{x:0,y:0}]),true);
+  assert.equal(addRoad(s,[{x:0,y:0},{x:0,y:61}]),true);
+  assert.equal(addRoad(s,[{x:0,y:0},{x:160,y:0}]),true);
 
   const route=routeOnRoadNetwork(s,factory,shop);
   assert.ok(route);

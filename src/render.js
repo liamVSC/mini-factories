@@ -1,4 +1,4 @@
-import * as renderer3d from './render3d-clean.js?v=7';
+import * as renderer3d from './render3d-clean.js?v=8';
 
 export function render(s,W,H,canvas=document.querySelector('#game')){
   // The clean renderer keys static geometry by buildings/roads. A zero-length

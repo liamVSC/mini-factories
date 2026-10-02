@@ -10,7 +10,7 @@ const {serialise}=await import('../src/persistence/save.js');
 const {pointOnRoute,length,dist,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget,roadEndpointPreview,editRoadEndpoint,editRoadSegment,roadNetwork,roadTopology,cleanupRoadNetwork,WORLD_BOUNDS,WORLD_MARGIN}=await import('../src/world.js');
 const {updateEconomy}=await import('../src/economy.js');
 await import('../src/version.js');
-const {segmentCrossesRiver}=await import('../src/world/roads/placement.js');
+const {segmentCrossesRiver,roadPathBlocked}=await import('../src/world/roads/placement.js');
 
 const route=[{x:0,y:0},{x:100,y:0}];
 const truck=(overrides={})=>({
@@ -491,11 +491,11 @@ test('erasing a connecting road removes the route and prevents new dispatches',(
 
 test('truck delivery completes across a river bridge route',()=>{
   const s=freshState();
-  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,350,'factory-1');
-  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},0,500,'shop-1');
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},-250,300,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},250,550,'shop-1');
   s.buildings.push(factory,shop);
 
-  const path=[{x:0,y:350},{x:0,y:500}];
+  const path=[{x:factory.x,y:factory.y},{x:shop.x,y:shop.y}];
   assert.equal(addRoad(s,path,{startBuilding:factory,endBuilding:shop}),true);
   assert.equal(s.roads.length,1);
   assert.equal(s.roads[0].bridge,true);
@@ -524,10 +524,10 @@ test('truck delivery completes across a river bridge route',()=>{
 
 test('roads crossing the river are marked as bridges and remain routable',()=>{
   const s=freshState();
-  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,350,'factory-1');
-  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},0,500,'shop-1');
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},-250,300,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},250,550,'shop-1');
   s.buildings.push(factory,shop);
-  const path=[{x:0,y:350},{x:0,y:500}];
+  const path=[{x:factory.x,y:factory.y},{x:shop.x,y:shop.y}];
   assert.equal(addRoad(s,path,{startBuilding:factory,endBuilding:shop}),true);
   assert.equal(s.roads.length,1);
   assert.equal(s.roads[0].bridge,true);
@@ -734,9 +734,9 @@ test('clear road preview stays direct while blocked preview uses a clean 90 degr
 
 test('building road endpoints stay outside the rendered footprint and cannot route back through the building',()=>{
   const s=freshState();
-  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
-  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},220,0,'shop-1');
-  const obstacle=makeBuilding({name:'Warehouse',kind:'warehouse',need:null,color:'#fff'},0,90,'warehouse-1');
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},-260,0,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},260,0,'shop-1');
+  const obstacle=makeBuilding({name:'Warehouse',kind:'warehouse',need:null,color:'#fff'},0,0,'warehouse-1');
   s.buildings.push(factory,shop,obstacle);
 
   const preview=roadPreview(s,factory,shop);
@@ -747,8 +747,35 @@ test('building road endpoints stay outside the rendered footprint and cannot rou
   assert.ok(preview.path.length>=2);
   assert.ok(preview.path.every((p,i)=>i===0||Math.hypot(p.x-preview.path[i-1].x,p.y-preview.path[i-1].y)>0));
 
-  const reverseIntoBuilding=[{x:70,y:0},{x:0,y:0}];
+  const reverseIntoBuilding=[{x:factory.x+70,y:0},{x:factory.x,y:0}];
   assert.equal(addRoad(s,reverseIntoBuilding,{startBuilding:factory}),'blocked');
+});
+
+test('legacy center-to-center road creation uses safe building gates and routes around buildings',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-center');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},220,0,'shop-center');
+  const obstacle=makeBuilding({name:'Warehouse',kind:'warehouse',need:null,color:'#fff'},110,0,'warehouse-center');
+  s.buildings.push(factory,shop,obstacle);
+
+  assert.equal(addRoad(s,[{x:factory.x,y:factory.y},{x:shop.x,y:shop.y}],{startBuilding:factory,endBuilding:shop}),true);
+  const created=s.roads[0];
+  assert.notDeepEqual(created.points[0],{x:factory.x,y:factory.y});
+  assert.notDeepEqual(created.points.at(-1),{x:shop.x,y:shop.y});
+  assert.equal(roadPathBlocked(s,created.points,{start:factory,end:shop}),false);
+  assert.ok(created.points.length>2,'the road should detour around the intervening warehouse');
+});
+
+test('road creation rejects paths that start inside a building instead of escaping through its shell',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-interior-road');
+  s.buildings.push(factory);
+  const cash=s.cash;
+
+  assert.equal(addRoad(s,[{x:60,y:0},{x:200,y:0}]),'blocked');
+  assert.deepEqual(s.roads,[]);
+  assert.equal(s.cash,cash);
+  assert.equal(roadPathBlocked(s,[{x:0,y:108},{x:0,y:0}],{start:factory}),true);
 });
 
 test('road preview routes around multiple buildings without cutting through them',()=>{

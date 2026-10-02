@@ -10,4 +10,4 @@ export {
   zoomAtScreen,
   resetCamera,
   focusCamera
-} from './render3d-clean.js?v=7';
+} from './render3d-clean.js?v=8';

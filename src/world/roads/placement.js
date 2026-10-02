@@ -55,11 +55,14 @@ export function roadPathBlocked(s,points,endpointBuildings={}){
       const isStart=sameBuilding(building,startBuilding)&&i===1;
       const isEnd=sameBuilding(building,endBuilding)&&i===points.length-1;
       if(isStart||isEnd){
-        const endpoint=isStart?a:b;
-        const entrance=buildingRoadEntrance(building);
-        const atCanonicalEntrance=!!entrance&&Math.hypot(endpoint.x-entrance.x,endpoint.y-entrance.y)<=1;
-        if(dist(endpoint,{x:building.x,y:building.y})<=1||atCanonicalEntrance)continue;
-        if(endpointSegmentBlockedGeometry(building,a,b,isStart?'start':'end',buildingRoadEndpointClearance(building)))return true;
+        const rect=buildingHitbox(building,6),endpoint=isStart?a:b,other=isStart?b:a;
+        const endpointInside=endpoint.x>=rect.minX&&endpoint.x<=rect.maxX&&endpoint.y>=rect.minY&&endpoint.y<=rect.maxY;
+        if(endpointInside){
+          const otherInside=other.x>=rect.minX&&other.x<=rect.maxX&&other.y>=rect.minY&&other.y<=rect.maxY;
+          if(otherInside||endpointSegmentBlockedGeometry(building,a,b,isStart?'start':'end',buildingRoadEndpointClearance(building)))return true;
+          continue;
+        }
+        if(segmentIntersectsRect(a,b,rect))return true;
         continue;
       }
       // Keep roads outside the rendered building footprint. Use the canonical
@@ -72,7 +75,11 @@ export function roadPathBlocked(s,points,endpointBuildings={}){
       // the first segment to escape that envelope; all later segments remain
       // fully collision-checked so roads cannot traverse the site.
       const endsInside=b.x>=rect.minX&&b.x<=rect.maxX&&b.y>=rect.minY&&b.y<=rect.maxY;
-      if(startsInside&&i===1&&!endsInside)continue;
+      if(startsInside&&i===1&&!endsInside){
+        const shell=buildingHitbox(building,0);
+        if(a.x>=shell.minX&&a.x<=shell.maxX&&a.y>=shell.minY&&a.y<=shell.maxY)return true;
+        continue;
+      }
       // An unowned road endpoint may never finish inside another building/site.
       // Only an explicit endBuilding connection is allowed to terminate there.
       if(segmentIntersectsRect(a,b,rect))return true;
@@ -102,9 +109,16 @@ export function roadPathIntersectsBuildingFootprint(s,points,endpointBuildings={
       const endsInside=b.x>=rect.minX&&b.x<=rect.maxX&&b.y>=rect.minY&&b.y<=rect.maxY;
       const isStart=endpointBuildings.start&&building.id===endpointBuildings.start.id&&i===1;
       const isEnd=endpointBuildings.end&&building.id===endpointBuildings.end.id&&i===points.length-1;
-      if(isStart||isEnd)continue;
-      if(i===1&&startsInside&&!endsInside)continue;
-      if(i===points.length-1&&endsInside&&!startsInside)continue;
+      if(isStart||isEnd){
+        const endpoint=isStart?a:b,other=isStart?b:a;
+        const endpointInside=endpoint.x>=rect.minX&&endpoint.x<=rect.maxX&&endpoint.y>=rect.minY&&endpoint.y<=rect.maxY;
+        const otherInside=other.x>=rect.minX&&other.x<=rect.maxX&&other.y>=rect.minY&&other.y<=rect.maxY;
+        if(endpointInside){if(otherInside)return true;continue;}
+      }
+      if(i===1&&startsInside&&!endsInside){
+        if(a.x>=rect.minX&&a.x<=rect.maxX&&a.y>=rect.minY&&a.y<=rect.maxY)return true;
+        continue;
+      }
       if(segmentIntersectsRect(a,b,rect))return true;
     }
   }
@@ -183,4 +197,3 @@ const boundary=validateRoadGeometry(path||[start,end]);
 const blocked=!boundary.ok||!path||roadPathBlocked(s,path,{start:startBuilding,end:endBuilding});
 const roadLength=path?length(path):Infinity;
 return{path:path||[start,end],start,end,snappedStart:Number.isFinite(start.distance),snappedEnd:Number.isFinite(end.distance),edgeSnappedStart:!!start.edgeSnapped,edgeSnappedEnd:!!end.edgeSnapped,gridSnappedStart:!!start.gridSnapped,gridSnappedEnd:!!end.gridSnapped,connectsBuilding:!!start.building||!!end.building,connectsRoad:!!start.road||!!end.road,blocked,blockedReason:!boundary.ok?boundary.reason:null,length:roadLength,cost:Number.isFinite(roadLength)?Math.max(1,Math.ceil(roadLength/180))*2:Infinity}}
-

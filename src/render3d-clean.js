@@ -1,6 +1,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6';
 import {riverY,WORLD_BOUNDS,WORLD_MARGIN} from './world.js';
 import {buildingSitePlan} from './rendering/sitePlan.js';
+import {offsetRoadPath,roadDashSegments,smoothRoadPath} from './rendering/roadGeometry.js';
 let renderer=null,scene=null,camera=null,root=null,previewGroup=null,buildingPreviewGroup=null;
 let viewport={width:1,height:1};let target={x:0,z:0,yaw:0,pitch:.82,distance:620};let desired={...target};let worldKey='';
 const buildingMeshes=new Map(),truckMeshes=new Map(),shared=new Set();
@@ -160,8 +161,93 @@ function makeBuilding(b){const plan=buildingSitePlan(b);if(!plan)return new THRE
 function buildingKey(s){return JSON.stringify((s.buildings||[]).map(b=>[b.id,b.kind,b.type,b.x,b.y,b.color]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))));}
 function roadKey(s){return JSON.stringify((s.roads||[]).map(r=>[r.id,r.bridge,r.points]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))));}
 function rounded(points){const out=[];for(const p of points||[]){if(!Number.isFinite(p?.x)||!Number.isFinite(p?.y))continue;if(!out.length||Math.hypot(p.x-out.at(-1).x,p.y-out.at(-1).y)>.6)out.push({x:p.x,y:p.y});}return out;}
-function ribbon(points,width,y,mat,thickness=.12){if(points.length<2)return null;const verts=[],idx=[];for(let i=0;i<points.length;i++){const p=points[i],a=points[Math.max(0,i-1)],b=points[Math.min(points.length-1,i+1)],dx=b.x-a.x,dz=b.y-a.y,l=Math.hypot(dx,dz)||1,nx=-dz/l,nz=dx/l;verts.push(p.x+nx*width/2,y,p.y+nz*width/2,p.x-nx*width/2,y,p.y-nz*width/2);if(i){const q=(i-1)*2,r=i*2;idx.push(q,q+1,r,r,r+1,q+1);}}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(idx);geo.computeVertexNormals();const m=new THREE.Mesh(geo,mat);m.receiveShadow=true;m.renderOrder=2;return m;}
-function roadMesh(r){const g=new THREE.Group(),p=rounded(r.points);if(p.length<2)return g;const asphalt=material('#353b3c',.92),shoulder=material('#6b7370',.98),line=material('#e9ebe5',.7),curb=material('#a0a6a1',.75);const isBridge=!!r.bridge||p.some(q=>Math.abs(q.y-riverY(q.x))<43);const sh=ribbon(p,isBridge?30:36,.58,shoulder);if(sh)g.add(sh);const surf=ribbon(p,isBridge?27:28,isBridge?.84:.69,asphalt,.14);if(surf)g.add(surf);if(!isBridge){for(const side of[-1,1]){const cp=p.map(q=>({x:q.x+side*14,y:q.y}));const c=ribbon(cp,1.1,.82,curb,.16);if(c)g.add(c);}}const samples=[];for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1],len=Math.hypot(b.x-a.x,b.y-a.y),n=Math.max(1,Math.floor(len/28));for(let j=0;j<n;j++){const t=j/n;samples.push({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});}}for(let i=0;i<samples.length-1;i+=2){const m=ribbon([samples[i],samples[i+1]],1.05,isBridge?.99:.82,line,.08);if(m)g.add(m);}if(isBridge){const rail=material('#a9895c',.8,.1);for(const side of[-1,1])for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1],dx=b.x-a.x,dz=b.y-a.y,l=Math.hypot(dx,dz)||1;box(g,l,.7,.8,rail,(a.x+b.x)/2-(dz/l)*side*16,2.3,(a.y+b.y)/2+(dx/l)*side*16,-Math.atan2(dz,dx));}}return g;}
+function ribbon(points,width,y,mat,thickness=.12){
+ if(points.length<2)return null;
+ const verts=[],idx=[],half=width/2;
+ for(let i=0;i<points.length;i++){
+  const p=points[i],previous=points[Math.max(0,i-1)],next=points[Math.min(points.length-1,i+1)];
+  const inX=p.x-previous.x,inZ=p.y-previous.y,outX=next.x-p.x,outZ=next.y-p.y;
+  const inLength=Math.hypot(inX,inZ),outLength=Math.hypot(outX,outZ);
+  let nx,nz,offset=half;
+  if(i===0||inLength<.001){const l=outLength||1;nx=-outZ/l;nz=outX/l;}
+  else if(i===points.length-1||outLength<.001){const l=inLength||1;nx=-inZ/l;nz=inX/l;}
+  else{
+   const inNX=-inZ/inLength,inNZ=inX/inLength,outNX=-outZ/outLength,outNZ=outX/outLength;
+   const sumX=inNX+outNX,sumZ=inNZ+outNZ,sumLength=Math.hypot(sumX,sumZ);
+   if(sumLength<.001){nx=outNX;nz=outNZ;}
+   else{
+    nx=sumX/sumLength;nz=sumZ/sumLength;
+    const projection=nx*outNX+nz*outNZ;
+    offset=Math.min(half/Math.max(.25,projection),half*2.5);
+   }
+  }
+  verts.push(p.x+nx*offset,y,p.y+nz*offset,p.x-nx*offset,y,p.y-nz*offset);
+  if(i){
+   const q=(i-1)*2,r=i*2;
+   idx.push(q,r,q+1,r,r+1,q+1);
+  }
+ }
+ const geo=new THREE.BufferGeometry();
+ geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+ geo.setIndex(idx);geo.computeVertexNormals();
+ const m=new THREE.Mesh(geo,mat);m.receiveShadow=true;m.renderOrder=2;return m;
+}
+function riverBridgeSections(points){
+ const sections=[];let active=null;
+ const point=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});
+ const inside=p=>Math.abs(p.y-riverY(p.x))<=45;
+ const crossing=(a,b,aInside)=>{
+  let lo=0,hi=1;
+  for(let i=0;i<16;i++){const mid=(lo+hi)/2;if(inside(point(a,b,mid))===aInside)lo=mid;else hi=mid;}
+  return point(a,b,(lo+hi)/2);
+ };
+ const append=(path,p)=>{if(!path.length||Math.hypot(path.at(-1).x-p.x,path.at(-1).y-p.y)>.5)path.push(p);};
+ for(let segment=1;segment<points.length;segment++){
+  const a=points[segment-1],b=points[segment],length=Math.hypot(b.x-a.x,b.y-a.y),steps=Math.max(1,Math.ceil(length/8));
+  let previous=point(a,b,0),previousInside=inside(previous);
+  if(previousInside&&!active){active=[previous];sections.push(active);}
+  for(let step=1;step<=steps;step++){
+   const current=point(a,b,step/steps),currentInside=inside(current);
+   if(currentInside){
+    if(!active){active=[crossing(previous,current,false)];sections.push(active);}
+    append(active,current);
+   }else if(active){
+    append(active,crossing(previous,current,true));
+    active=null;
+   }
+   previous=current;previousInside=currentInside;
+  }
+ }
+ return sections.filter(section=>section.length>=2);
+}
+function roadMesh(r){
+ const g=new THREE.Group(),source=rounded(r.points);if(source.length<2)return g;
+ const p=rounded(smoothRoadPath(source,18));
+ const asphalt=material('#353b3c',.92),shoulder=material('#6b7370',.98),line=material('#e9ebe5',.7),curb=material('#a0a6a1',.75);
+ const sh=ribbon(p,38,.58,shoulder);if(sh)g.add(sh);
+ const surf=ribbon(p,30,.69,asphalt,.14);if(surf)g.add(surf);
+ for(const side of[-1,1]){const c=ribbon(offsetRoadPath(p,side*19.5),.9,.82,curb,.16);if(c)g.add(c);}
+ for(const dash of roadDashSegments(p,20,18)){const m=ribbon(dash,1.05,.84,line,.08);if(m)g.add(m);}
+ const bridgeSections=riverBridgeSections(p);
+ if(bridgeSections.length){
+  const deck=material('#5a6260',.9,.08),rail=material('#858c85',.75,.15),support=material('#414846',.92,.12);
+  for(const section of bridgeSections){
+   const bridgeDeck=ribbon(section,34,.91,deck,.2);if(bridgeDeck)g.add(bridgeDeck);
+   for(const side of[-1,1]){
+    const edge=offsetRoadPath(section,side*17);
+    for(let i=1;i<edge.length;i++){
+     const a=edge[i-1],b=edge[i],dx=b.x-a.x,dz=b.y-a.y,len=Math.hypot(dx,dz)||1;
+     box(g,len,.7,.8,rail,(a.x+b.x)/2,2.55,(a.y+b.y)/2,-Math.atan2(dz,dx));
+    }
+    for(let i=0;i<edge.length;i++){
+     const p=edge[i];
+     box(g,.7,2.5,.7,support,p.x,1.85,p.y);
+    }
+   }
+  }
+ }
+ return g;
+}
 function truckMesh(){const g=new THREE.Group(),cab=material('#5d6764',.82,.12),trailer=material('#aeb5b1',.9),dark=material('#242a2a',.98),glassMat=glass('#3b5c62'),metal=material('#6c7570',.75,.18);box(g,7,6.8,7,cab,4,4.3,0);box(g,3,3.2,6.5,glassMat,7.1,5.3,0);box(g,12,7.8,7.6,trailer,-4.5,4.7,0);box(g,12.2,.6,7.9,metal,-4.5,8.8,0);for(const x of[-7,-2.5,3.8,6.4])for(const z of[-3.85,3.85]){const w=cyl(g,1.55,1.15,dark,x,1.65,z,16);w.rotation.x=Math.PI/2;}box(g,.5,1.2,.6,material('#e6d7aa',.5),7.7,4,-3.1);box(g,.5,1.2,.6,material('#e6d7aa',.5),7.7,4,3.1);return g;}
 function routePoint(points,t){if(!Array.isArray(points)||points.length<2)return null;let total=0;for(let i=1;i<points.length;i++)total+=Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y);if(total<.01)return points[0];let want=Math.max(0,Math.min(1,t))*total,run=0;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],len=Math.hypot(b.x-a.x,b.y-a.y);if(run+len>=want){const q=(want-run)/len;return{x:a.x+(b.x-a.x)*q,y:a.y+(b.y-a.y)*q};}run+=len;}return points.at(-1);}
 function rebuildWorld(s){for(const g of [...root.children]){root.remove(g);const materials=materialsIn(g);g.traverse(o=>{if(o.geometry&&!sharedGeometries.has(o.geometry))o.geometry.dispose();});disposeMaterials(materials);}buildingMeshes.clear();truckMeshes.clear();const roads=new THREE.Group();for(const r of s.roads||[]){const g=roadMesh(r);g.userData.road=r;roads.add(g);}root.add(roads);for(const b of s.buildings||[]){const model=makeBuilding(b),anchor=new THREE.Group();anchor.name='building-anchor-'+b.id;anchor.position.set(Number(b.x)||0,0,Number(b.y)||0);anchor.add(model);root.add(anchor);buildingMeshes.set(b.id,model);}for(const t of s.trucks||[]){const m=truckMesh();root.add(m);truckMeshes.set(t.id,m);}worldKey=buildingKey(s)+'|'+roadKey(s);}

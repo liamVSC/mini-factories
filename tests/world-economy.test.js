@@ -430,6 +430,20 @@ test('duplicate roads are rejected without charging twice', () => {
   assert.equal(s.cash, cashAfterFirst);
 });
 
+test('road creation rejected by post-snap cleanup does not charge or mutate the network', () => {
+  const s = baseState();
+  const existing = road([{x:0,y:0},{x:200,y:0}]);
+  s.roads.push(existing);
+  const truck = {route:[{x:0,y:0},{x:200,y:0}]};
+  s.trucks.push(truck);
+  const beforeCash = s.cash;
+
+  assert.equal(addRoad(s, [{x:10,y:5},{x:100,y:5}]), 'duplicate');
+  assert.deepEqual(s.roads, [existing]);
+  assert.equal(s.cash, beforeCash);
+  assert.equal(truck.routeInvalidated, undefined);
+});
+
 test('placing a road into the middle of an existing road creates a real junction without splitting pavement', () => {
   const s = baseState();
   s.roads.push(road([{x:0,y:0},{x:200,y:0}]));
@@ -808,6 +822,24 @@ test('road endpoint preview snaps to another road segment', () => {
   assert.equal(preview.target.road,target);
 });
 
+test('moving a multi-segment road endpoint onto another road cannot cross a building', () => {
+  const s = baseState();
+  const factory = building('Food', 0, 0);
+  const moving = road([{x:-220,y:200},{x:-220,y:100},{x:-120,y:100}]);
+  const target = road([{x:150,y:0},{x:280,y:0}]);
+  s.buildings.push(factory);
+  s.roads.push(moving,target);
+
+  const preview = roadEndpointPreview(s,moving,2,{x:160,y:0});
+  assert.ok(preview);
+  assert.equal(preview.target.road,target);
+  assert.equal(roadPathBlocked(s,preview.path,{}),true);
+  assert.equal(preview.blocked,true);
+  const before = JSON.stringify(s.roads);
+  assert.equal(editRoadEndpoint(s,moving.id,2,{x:160,y:0}),false);
+  assert.equal(JSON.stringify(s.roads),before);
+});
+
 test('moving a road endpoint commits atomically and preserves the road id', () => {
   const s = baseState();
   const r = road([{x:0,y:0},{x:100,y:0}]);
@@ -1106,4 +1138,3 @@ test('warehouse delivery respects total storage capacity',()=>{
   assert.equal(warehouse.storage,1);
   assert.ok(f.stock>=3);
 });
-

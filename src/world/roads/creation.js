@@ -48,29 +48,18 @@ export function addRoad(s,points,meta={}){
   // through the building shell on its way out of the yard.
   startBuilding=startBuilding||canonicalAt(normalized[0]);
   endBuilding=endBuilding||canonicalAt(normalized.at(-1));
-  const centerPair=!!startBuilding&&!!endBuilding&&dist(normalized[0],{x:startBuilding.x,y:startBuilding.y})<=2&&dist(normalized.at(-1),{x:endBuilding.x,y:endBuilding.y})<=2;
-  const startConnection=centerPair?null:resolveBuildingRoadEndpoint(s,normalized[0],meta.startBuilding||null,normalized.at(-1));
-  const endConnection=centerPair?null:resolveBuildingRoadEndpoint(s,normalized.at(-1),meta.endBuilding||null,normalized[0]);
+  const startConnection=resolveBuildingRoadEndpoint(s,normalized[0],meta.startBuilding||null,normalized.at(-1));
+  const endConnection=resolveBuildingRoadEndpoint(s,normalized.at(-1),meta.endBuilding||null,normalized[0]);
   const resolvedStartBuilding=startConnection?.building||startBuilding;
   const resolvedEndBuilding=endConnection?.building||endBuilding;
   if(resolvedStartBuilding&&resolvedEndBuilding&&resolvedStartBuilding===resolvedEndBuilding)return'blocked';
-  // Explicit building connections use facade endpoints. Legacy direct addRoad
-  // calls may still provide a building centre as an endpoint; keep those
-  // coordinates intact and let the endpoint collision rules validate them.
-  if(meta.startBuilding&&startConnection)normalized[0]=startConnection.point;
-  if(meta.endBuilding&&endConnection)normalized[normalized.length-1]=endConnection.point;
+  // Building-targeted paths must begin/end at the site's canonical gate, not
+  // at its centre or shell, so the public road never passes through a building.
+  if(startConnection)normalized[0]=startConnection.point;
+  if(endConnection)normalized[normalized.length-1]=endConnection.point;
   points=normalized;
-  // Only canonical gate endpoints get the yard detour. Ordinary building-targeted
-  // roads must retain their existing preview/commit geometry and collision rules.
-  const canonicalStart=!!resolvedStartBuilding&&!!buildingRoadEntrance(resolvedStartBuilding)&&dist(points[0],buildingRoadEntrance(resolvedStartBuilding))<=2;
-  const canonicalEnd=!!resolvedEndBuilding&&!!buildingRoadEntrance(resolvedEndBuilding)&&dist(points.at(-1),buildingRoadEntrance(resolvedEndBuilding))<=2;
   const endpointBuildings={start:resolvedStartBuilding,end:resolvedEndBuilding};
-  // A canonical gate is already the designated protected-site escape point.
-  // Do not run the gate segment through the generic obstacle detour solver;
-  // that solver can mistake the owning site's own yard envelope for an
-  // obstacle and reject an otherwise valid gate-to-road connection. Any
-  // non-owning building collision is still rejected by the final validation.
-  if(!(canonicalStart||canonicalEnd)&&roadPathBlocked(s,points,endpointBuildings)){
+  if(roadPathBlocked(s,points,endpointBuildings)){
     const routed=chooseRoadPath(s,points[0],points.at(-1),endpointBuildings);
     if(!routed)return'blocked';
     points=routed;
@@ -103,18 +92,25 @@ export function addRoad(s,points,meta={}){
   if((s.roads||[]).some(r=>roadsExactlyDuplicate(r,{points:clean})||roadsHaveMeaningfulOverlap(r,{points:clean})))return'duplicate';
   const crossesWater=clean.some((p,i)=>i>0&&segmentCrossesRiver(clean[i-1],p));
   const road={id:newId(),points:clean.map(safePoint),age:0,bridge:crossesWater,condition:1};
-  const previousCash=s.cash;
+  const previousRoads=(s.roads||[]).slice();
   s.roads.push(road);
   cleanupRoadNetwork(s);
   const committed=s.roads.find(r=>r?.id===road.id);
   if(!committed){
-    s.cash=previousCash;
+    s.roads=previousRoads;
+    return'duplicate';
+  }
+  reconcileRoadJunctions(s,committed.points,meta);
+  if((s.roads||[]).some(r=>r!==committed&&(roadsExactlyDuplicate(r,committed)||roadsHaveMeaningfulOverlap(r,committed)))){
+    s.roads=previousRoads;
+    return'duplicate';
+  }
+  cleanupRoadNetwork(s);
+  if(!(s.roads||[]).some(r=>r?.id===road.id)){
+    s.roads=previousRoads;
     return'duplicate';
   }
   s.cash-=cost;
-  reconcileRoadJunctions(s,committed.points,meta);
-  cleanupRoadNetwork(s);
   bumpRoadNetworkRevision(s);
   return true;
 }
-
