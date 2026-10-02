@@ -64,10 +64,12 @@ export function routeOnRoadNetwork(s,a,b){
   const start=nearestGraphNode(network,aa.point),end=nearestGraphNode(network,bb.point);
   if(!start||!end)return null;
 
+  // Do not reject on a separately derived component map. The shortest-path
+  // traversal below is the authoritative connectivity check and understands
+  // virtual near-touching endpoint edges.
   const components=componentIndex(network);
   const startComponent=components.get(start);
   const endComponent=components.get(end);
-  if(startComponent===undefined||endComponent===undefined||startComponent!==endComponent)return null;
 
   const laneGraph=buildLaneGraph(network,{lanesPerDirection:2});
   // The canonical road graph is authoritative for connectivity. Use its
@@ -127,7 +129,7 @@ export function routeOnRoadNetwork(s,a,b){
     startYard:startYard.map(p=>({...p})),
     endYard:endYard.map(p=>({...p})),
     roadNetworkRevision:Math.max(0,Math.floor(Number(s.roadNetworkRevision)||0)),
-    componentId:startComponent
+    componentId:startComponent===undefined?null:startComponent
   };
 }
 
