@@ -32,7 +32,7 @@ function glassMat(color,opacity=.72){
 function box(w,h,d,color){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));}
 function roadMat(color){return new THREE.MeshStandardMaterial({color,roughness:.9,metalness:0,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});}
 function roadIntersection(a,b,c,d){const abx=b.x-a.x,aby=b.y-a.y,cdx=d.x-c.x,cdy=d.y-c.y,den=abx*cdy-aby*cdx;if(Math.abs(den)<1e-8)return null;const acx=c.x-a.x,acy=c.y-a.y,t=(acx*cdy-acy*cdx)/den,u=(acx*aby-acy*abx)/den;if(t<.0001||t>.9999||u<.0001||u>.9999)return null;return{x:a.x+abx*t,y:a.y+aby*t};}
-const ROAD=Object.freeze({width:28,bridgeWidth:26,shoulderWidth:34,surfaceY:.68,shoulderY:.59,markingY:.80,curbY:.79,bridgeY:.72,railY:1.48});
+const ROAD=Object.freeze({width:28,bridgeWidth:26,shoulderWidth:34,surfaceY:.68,shoulderY:.59,markingY:.80,curbY:.79,bridgeDeckY:.72,bridgeSurfaceY:.86,bridgeMarkingY:.98,railY:2.15});
 const roadMaterials={asphalt:roadMat('#343a3c'),shoulder:roadMat('#697173'),curb:roadMat('#9aa09f'),center:mat('#e8e9e5',.72),edge:mat('#f1f1ec',.78),bridgeDeck:roadMat('#735334'),bridgeRail:mat('#b58a52'),bridgeSupport:mat('#5f4631')};
 const sharedMaterials=new Set(Object.values(roadMaterials));
 function addRoadBox(group,a,b,width,height,y,material){const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);if(len<1)return null;const mesh=new THREE.Mesh(new THREE.BoxGeometry(len,height,width),material);mesh.position.set((a.x+b.x)/2,y,(a.y+b.y)/2);mesh.rotation.y=-Math.atan2(dy,dx);group.add(mesh);return{mesh,len,dx,dy,angle:Math.atan2(dy,dx)};}
@@ -114,8 +114,55 @@ function addFlatCurve(group,start,control,end,width,y,material,steps=8){
   for(let i=0;i<=steps;i++){const t=i/steps,mt=1-t;points.push({x:mt*mt*start.x+2*mt*t*control.x+t*t*end.x,y:mt*mt*start.y+2*mt*t*control.y+t*t*end.y});}
   addRoadSurface(group,points,width,y,material);
 }
-function addRoadRails(group,points,width){for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],len=Math.hypot(b.x-a.x,b.y-a.y);if(len<1)continue;const angle=Math.atan2(b.y-a.y,b.x-a.x),nx=-Math.sin(angle),nz=Math.cos(angle);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(len+.8,1.45,.75),roadMaterials.bridgeRail);rail.position.set((a.x+b.x)/2+nx*side*(width/2),ROAD.railY,(a.y+b.y)/2+nz*side*(width/2));rail.rotation.y=-angle;group.add(rail);}}}
-function addBridgeSupports(group,points){const total=points.slice(1).reduce((n,p,i)=>n+Math.hypot(p.x-points[i].x,p.y-points[i].y),0);if(total<55)return;const count=Math.max(1,Math.floor(total/100));for(let s=1;s<=count;s++){const target=total*s/(count+1);let run=0;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],seg=Math.hypot(b.x-a.x,b.y-a.y);if(run+seg<target){run+=seg;continue;}const t=(target-run)/Math.max(1,seg),x=a.x+(b.x-a.x)*t,z=a.y+(b.y-a.y)*t,support=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.8,ROAD.bridgeY,10),roadMaterials.bridgeSupport);support.position.set(x,ROAD.bridgeY/2,z);group.add(support);break;}}}
+function addRoadRails(group,points,width){
+  const postGeo=new THREE.CylinderGeometry(.42,.52,2.25,8);
+  const beamGeo=new THREE.BoxGeometry(1,0.42,.62);
+  for(const side of[-1,1]){
+    for(let i=1;i<points.length;i++){
+      const a=points[i-1],b=points[i],dx=b.x-a.x,dz=b.y-a.y,len=Math.hypot(dx,dz);
+      if(len<1)continue;
+      const angle=Math.atan2(dz,dx),nx=-Math.sin(angle),nz=Math.cos(angle);
+      const rail=new THREE.Mesh(new THREE.BoxGeometry(len+.7,.62,.48),roadMaterials.bridgeRail);
+      rail.position.set((a.x+b.x)/2+nx*side*(width/2+.9),ROAD.railY,(a.y+b.y)/2+nz*side*(width/2+.9));
+      rail.rotation.y=-angle;rail.castShadow=true;group.add(rail);
+      const count=Math.max(1,Math.floor(len/22));
+      for(let p=0;p<=count;p++){
+        const t=p/count,x=a.x+dx*t+nx*side*(width/2+.9),z=a.y+dz*t+nz*side*(width/2+.9);
+        const post=new THREE.Mesh(postGeo,roadMaterials.bridgeRail);
+        post.position.set(x,ROAD.railY-.72,z);post.castShadow=true;group.add(post);
+      }
+    }
+  }
+}
+function addBridgeSupports(group,points){
+  const total=points.slice(1).reduce((n,p,i)=>n+Math.hypot(p.x-points[i].x,p.y-points[i].y),0);
+  if(total<55)return;
+  const pierGeo=new THREE.CylinderGeometry(2.4,3.1,ROAD.bridgeDeckY+10,8);
+  const capGeo=new THREE.BoxGeometry(10,1.4,3.6);
+  const beamGeo=new THREE.BoxGeometry(1,1,1);
+  const count=Math.max(1,Math.floor(total/95));
+  for(let s=1;s<=count;s++){
+    const target=total*s/(count+1);let run=0;
+    for(let i=1;i<points.length;i++){
+      const a=points[i-1],b=points[i],seg=Math.hypot(b.x-a.x,b.y-a.y);
+      if(run+seg<target){run+=seg;continue;}
+      const t=(target-run)/Math.max(1,seg),x=a.x+(b.x-a.x)*t,z=a.y+(b.y-a.y)*t;
+      const pier=new THREE.Mesh(pierGeo,roadMaterials.bridgeSupport);pier.position.set(x,-4.3,z);pier.castShadow=true;group.add(pier);
+      const cap=new THREE.Mesh(capGeo,roadMaterials.bridgeSupport);cap.position.set(x,ROAD.bridgeDeckY-.4,z);cap.castShadow=true;group.add(cap);
+      break;
+    }
+  }
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i],dx=b.x-a.x,dz=b.y-a.y,len=Math.hypot(dx,dz);
+    if(len<12)continue;
+    const angle=Math.atan2(dz,dx);
+    for(const side of[-1,1]){
+      const girder=new THREE.Mesh(new THREE.BoxGeometry(len,2.2,1.6),roadMaterials.bridgeSupport);
+      girder.position.set((a.x+b.x)/2,ROAD.bridgeDeckY-2.0,(a.y+b.y)/2+side*(ROAD.bridgeWidth*.34));
+      girder.rotation.y=-angle;girder.castShadow=true;group.add(girder);
+    }
+  }
+}
 function addBoundaryRoadEnd(group,p,width,y){const minX=WORLD_BOUNDS.minX+WORLD_MARGIN,maxX=WORLD_BOUNDS.maxX-WORLD_MARGIN,minY=WORLD_BOUNDS.minY+WORLD_MARGIN,maxY=WORLD_BOUNDS.maxY-WORLD_MARGIN,nearX=Math.abs(p.x-minX)<2||Math.abs(p.x-maxX)<2,nearY=Math.abs(p.y-minY)<2||Math.abs(p.y-maxY)<2;if(!nearX&&!nearY)return;const line=new THREE.Mesh(new THREE.BoxGeometry(width+.8,.12,1.2),roadMaterials.edge);line.position.set(p.x,y+.06,p.y);line.rotation.y=nearY?0:Math.PI/2;group.add(line);for(const side of[-1,1]){const post=new THREE.Mesh(new THREE.BoxGeometry(1.4,7,1.4),roadMaterials.edge);if(nearY)post.position.set(p.x+side*Math.min(7,width*.35),y+3.5,p.y);else post.position.set(p.x,y+3.5,p.y+side*Math.min(7,width*.35));group.add(post);}}
 function buildingForRoadEndpoint(s,p){let best=null,bd=9;for(const b of s.buildings||[]){const q=buildingConnectionPoint(b,p,0),d=Math.hypot(q.x-p.x,q.y-p.y);if(d<bd){bd=d;best={building:b,facade:q};}}return best;}
 function addBuildingAccessApron(group,building,roadPoint,facade,bridge){
@@ -129,7 +176,37 @@ function addBuildingAccessApron(group,building,roadPoint,facade,bridge){
   addRoadSurface(group,points,roadWidth,ROAD.surfaceY+.018,roadMaterials.asphalt);
   addRoadCurbs(group,points,roadWidth);
 }
-function makeRoad(points,bridge,s=null){if(!Array.isArray(points)||points.length<2)return new THREE.Group();const group=new THREE.Group(),clean=roundedRoadPoints(points);if(clean.length<2)return group;const width=bridge?ROAD.bridgeWidth:ROAD.width,shoulder=bridge?width+1.5:ROAD.shoulderWidth;if(bridge){addRoadSurface(group,clean,shoulder,ROAD.bridgeY,roadMaterials.bridgeDeck);addRoadSurface(group,clean,width,ROAD.surfaceY,roadMaterials.asphalt);addRoadMarkings(group,clean,width);addRoadRails(group,clean,width);addBridgeSupports(group,clean);}else{addRoadSurface(group,clean,shoulder,ROAD.shoulderY,roadMaterials.shoulder);addRoadSurface(group,clean,width,ROAD.surfaceY,roadMaterials.asphalt);addRoadMarkings(group,clean,width);addRoadCurbs(group,clean,width);}if(!bridge&&s)for(const p of[clean[0],clean.at(-1)]){const connection=buildingForRoadEndpoint(s,p);if(connection)addBuildingAccessApron(group,connection.building,p,connection.facade,bridge);}const capRadius=(bridge?width:shoulder)/2;addRoadEndCap(group,clean[0],capRadius,bridge?roadMaterials.bridgeDeck:roadMaterials.shoulder,bridge?ROAD.bridgeY:ROAD.shoulderY);addRoadEndCap(group,clean.at(-1),capRadius,bridge?roadMaterials.bridgeDeck:roadMaterials.shoulder,bridge?ROAD.bridgeY:ROAD.shoulderY);if(!bridge){addRoadEndpointJoin(group,clean[0],width);addRoadEndpointJoin(group,clean.at(-1),width);addBoundaryRoadEnd(group,clean[0],width,ROAD.shoulderY);addBoundaryRoadEnd(group,clean.at(-1),width,ROAD.shoulderY);}return group;}
+function makeRoad(points,bridge,s=null){
+  if(!Array.isArray(points)||points.length<2)return new THREE.Group();
+  const group=new THREE.Group(),clean=roundedRoadPoints(points);
+  if(clean.length<2)return group;
+  const width=bridge?ROAD.bridgeWidth:ROAD.width,shoulder=bridge?width+2:ROAD.shoulderWidth;
+  if(bridge){
+    // Layered bridge deck: structural concrete below, asphalt above, then restrained
+    // lane markings. All geometry uses low-poly/shared materials for predictable cost.
+    addRoadSurface(group,clean,shoulder,ROAD.bridgeDeckY,roadMaterials.bridgeDeck);
+    addRoadSurface(group,clean,width,ROAD.bridgeSurfaceY,roadMaterials.asphalt);
+    addRoadMarkings(group,clean,width,ROAD.bridgeMarkingY);
+    addRoadRails(group,clean,width);
+    addBridgeSupports(group,clean);
+  }else{
+    addRoadSurface(group,clean,shoulder,ROAD.shoulderY,roadMaterials.shoulder);
+    addRoadSurface(group,clean,width,ROAD.surfaceY,roadMaterials.asphalt);
+    addRoadMarkings(group,clean,width);
+    addRoadCurbs(group,clean,width);
+  }
+  if(!bridge&&s)for(const p of[clean[0],clean.at(-1)]){
+    const connection=buildingForRoadEndpoint(s,p);if(connection)addBuildingAccessApron(group,connection.building,p,connection.facade,bridge);
+  }
+  const capRadius=(bridge?shoulder:shoulder)/2;
+  addRoadEndCap(group,clean[0],capRadius,bridge?roadMaterials.bridgeDeck:roadMaterials.shoulder,bridge?ROAD.bridgeDeckY:ROAD.shoulderY);
+  addRoadEndCap(group,clean.at(-1),capRadius,bridge?roadMaterials.bridgeDeck:roadMaterials.shoulder,bridge?ROAD.bridgeDeckY:ROAD.shoulderY);
+  if(!bridge){
+    addRoadEndpointJoin(group,clean[0],width);addRoadEndpointJoin(group,clean.at(-1),width);
+    addBoundaryRoadEnd(group,clean[0],width,ROAD.shoulderY);addBoundaryRoadEnd(group,clean.at(-1),width,ROAD.shoulderY);
+  }
+  return group;
+}
 function roadDirection(a,b){const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);return len?{x:dx/len,y:dy/len}:null;}
 function addLaneAwareJunction(group,center,connections){
   if(connections.length<2)return;
