@@ -1,7 +1,7 @@
 import {newId} from '../../core/ids.js';
 import {dist,length,safePoint,validRoadPoints,projectSegment} from './geometry.js';
 import {validateRoadGeometry} from './validation.js';
-import {roadBuildingTarget,roadPathBlocked,segmentCrossesRiver} from './placement.js';
+import {roadBuildingTarget,roadPathBlocked,segmentCrossesRiver,chooseRoadPath} from './placement.js';
 import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate} from './intersections.js';
 import {cleanupRoadNetwork} from './editing.js';
 import {resolveBuildingRoadEndpoint} from '../buildings/connections.js';
@@ -46,6 +46,15 @@ export function addRoad(s,points,meta={}){
   if(meta.startBuilding&&startConnection)normalized[0]=startConnection.point;
   if(meta.endBuilding&&endConnection)normalized[normalized.length-1]=endConnection.point;
   points=normalized;
+  // If a legacy/center-point road request resolves to the canonical gate but
+  // its first segment heads back through the site, route that segment outward
+  // around the building instead of rejecting the command. Interactive previews
+  // use the same obstacle-aware pathing, so committed roads stay consistent.
+  if((resolvedStartBuilding||resolvedEndBuilding)&&roadPathBlocked(s,points,{start:resolvedStartBuilding,end:resolvedEndBuilding})){
+    const routed=chooseRoadPath(s,points[0],points.at(-1),{start:resolvedStartBuilding,end:resolvedEndBuilding});
+    if(!routed)return'blocked';
+    points=routed;
+  }
   // Re-check duplicates after canonical building facade endpoints are resolved.
   // Center-point duplicate checks alone can miss the same road once the larger
   // building envelopes shorten it to its connection points.
