@@ -1,5 +1,5 @@
-const CACHE='mini-factories-v9';
-const VERSION='4';
+const CACHE='mini-factories-v10';
+const VERSION='5';
 const APP_SHELL=[
   './','./index.html','./styles.css?v=1','./src/game.js?v=4','./src/state.js','./src/world.js','./src/economy.js',
   './src/core/types.js','./src/core/rng.js','./src/core/ids.js','./src/commands.js','./src/junctionControl.js',
@@ -63,5 +63,5 @@ self.addEventListener('fetch',event=>{
   const external=EXTERNAL_ASSETS.has(event.request.url);
   if(url.origin!==self.location.origin&&!external)return;
   const isNavigation=event.request.mode==='navigate'||event.request.destination==='document';
-  event.respondWith(isNavigation?networkFirst(event.request):staleWhileRevalidate(event.request));
+  event.respondWith(networkFirst(event.request));
 });
