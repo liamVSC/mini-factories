@@ -23,6 +23,7 @@ const {
   seed,
   FACTORY_MIN_DISTANCE,
   FACTORY_MIN_SPAWN_RADIUS,
+  factorySpawnCandidates,
   validateBuildingLayout,
   layoutIsValid
 } = await import('../src/world.js');
@@ -115,6 +116,13 @@ test('factories keep a full visual footprint clearance from each other',()=>{
   s.buildings.push(makeBuilding(type,0,0,'existing'));
   assert.equal(buildingPhysicalPlacementReason(s,type,260,0),null);
   assert.equal(buildingPhysicalPlacementReason(s,type,249,0),'Too close to another factory');
+});
+
+test('different layout seeds produce materially different starter positions',()=>{
+  const first=factorySpawnCandidates(1,0);
+  const second=factorySpawnCandidates(2,0);
+  const displacement=first.reduce((total,point,index)=>total+Math.hypot(point.x-second[index].x,point.y-second[index].y),0);
+  assert.ok(displacement>500,'different new-game seeds should not collapse to nearly the same starter layout');
 });
 
 test('initial factory seeding produces separated factories',()=>{
