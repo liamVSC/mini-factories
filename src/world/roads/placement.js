@@ -42,7 +42,8 @@ export function roadPathBlocked(s,points,endpointBuildings={}){
       // site envelope when legacy/overlapping layouts are loaded. Allow only
       // the first segment to escape that envelope; all later segments remain
       // fully collision-checked so roads cannot traverse the site.
-      if(startsInside&&i===1)continue;
+      const endsInside=b.x>=rect.minX&&b.x<=rect.maxX&&b.y>=rect.minY&&b.y<=rect.maxY;
+      if(startsInside&&i===1&&!endsInside)continue;
       if(segmentIntersectsRect(a,b,rect))return true;
     }
   }
