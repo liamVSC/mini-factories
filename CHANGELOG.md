@@ -9,6 +9,9 @@
 - Starter placement is checked against physical building spacing, factory separation, world bounds and river clearance.
 - Added regression coverage for deterministic, valid and district-free starter layouts.
 
+### Versioning
+- Game version is now defined in one central runtime source and consumed by the game UI and update checks.
+
 ### Platform and PWA
 - Updated the visible game version to **v3**.
 - Updated the service-worker cache/version and game asset cache-busting so the PWA can pick up the new build.
