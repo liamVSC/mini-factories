@@ -55,7 +55,7 @@ export function buildingRoadAttachment(s,building){
           segment:i-1
         };
       }
-    }    }
+    }
   }
   // Persisted/seeded worlds can still contain roads that pre-date the canonical
   // gate. Keep those roads attached to the site for routing compatibility, while
