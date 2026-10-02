@@ -70,30 +70,22 @@ export function routeOnRoadNetwork(s,a,b){
   if(startComponent===undefined||endComponent===undefined||startComponent!==endComponent)return null;
 
   const laneGraph=buildLaneGraph(network,{lanesPerDirection:2});
-  let laneResult=findLaneRoute(laneGraph,start,end);
-  let laneIds=laneResult?.laneIds||[];
-  let routeDistance=laneResult?.distance||0;
-  // The canonical road graph supports virtual near-touching endpoint edges.
-  // If lane transition search cannot traverse one of those derived edges,
-  // fall back to the same canonical node path and recover directional lane ids
-  // from the already-built lane graph. This keeps persisted road geometry
-  // untouched while making the traffic route use the actual connected graph.
-  if(!laneResult){
-    const fallback=shortestRoadPath(network,start,end);
-    if(!fallback?.path||fallback.path.length<2)return null;
-    const recovered=[];
-    for(let i=1;i<fallback.path.length;i++){
-      const from=fallback.path[i-1],to=fallback.path[i];
-      const lane=laneGraph.lanes.find(candidate=>candidate.from===from&&candidate.to===to);
-      if(!lane)return null;
-      recovered.push(lane.id);
-    }
-    if(!recovered.length)return null;
-    laneIds=recovered;
-    routeDistance=fallback.distance;
+  // The canonical road graph is authoritative for connectivity. Use its
+  // shortest path first, including virtual edges created for near-touching
+  // endpoints. Lane search remains the derived metadata layer; it must never
+  // make an otherwise connected road network appear disconnected.
+  const roadResult=shortestRoadPath(network,start,end);
+  if(!roadResult?.path||roadResult.path.length<2)return null;
+  const laneIds=[];
+  for(let i=1;i<roadResult.path.length;i++){
+    const from=roadResult.path[i-1],to=roadResult.path[i];
+    const lane=laneGraph.lanes.find(candidate=>candidate.from===from&&candidate.to===to);
+    if(!lane)return null;
+    laneIds.push(lane.id);
   }
-  const laneNodes=laneRouteToNodePath(laneGraph,laneIds);
-  if(laneNodes.length<2)return null;
+  if(!laneIds.length)return null;
+  const routeDistance=roadResult.distance;
+  const laneNodes=roadResult.path;
   const routePoints=laneNodes.map(p=>({x:p.x,y:p.y}));
   const laneGeometry=laneRouteGeometry(laneGraph,laneIds);
   const lanePoints=laneGeometry.points.length>=2?laneGeometry.points:routePoints;
