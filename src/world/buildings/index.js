@@ -5,6 +5,8 @@ export {
   nearestBuilding,
   buildingFootprint,
   buildingDockPoints,
+  buildingPrimaryDock,
+  buildingRoadEntrance,
   buildingConnectionPoint
 } from './geometry.js';
 
