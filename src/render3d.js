@@ -560,6 +560,10 @@ function updateWorld(s){
     if(building.id&&liveIds.has(building.id))continue;
     if(building.id)liveIds.add(building.id);
     const g=createBuildingModel(building);
+    // Logistics access is derived from the same persisted road/building state used
+    // by simulation. Build it once with the model so activity/truck visuals cannot
+    // silently operate without a dock attachment.
+    addBuildingAccess(g,building);
     applyBuildingWorldTransform(g,position);
     g.userData.building=building;
     g.userData.worldPosition={x:position.x,z:position.z};
