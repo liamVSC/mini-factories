@@ -29,6 +29,10 @@ function reconcileRoadJunctions(s,points,meta={}){
 export function addRoad(s,points,meta={}){
   if(!Array.isArray(points)||points.length<2)return'invalid';
   const normalized=points.map(q=>safePoint(q));
+  // Exact duplicates must be rejected before facade endpoint resolution. This
+  // keeps legacy center-to-center duplicate calls from collapsing into a
+  // too-short facade segment as building envelopes grow.
+  if((s.roads||[]).some(r=>roadsExactlyDuplicate(r,{points:normalized})))return'duplicate';
   const startConnection=resolveBuildingRoadEndpoint(s,normalized[0],meta.startBuilding,normalized.at(-1));
   const endConnection=resolveBuildingRoadEndpoint(s,normalized.at(-1),meta.endBuilding,normalized[0]);
   const startBuilding=startConnection?.building||null;
