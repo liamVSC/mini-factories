@@ -11,10 +11,9 @@ export function resolveBuildingRoadEndpoint(s,p,target=null,directionTarget=p){
 export function buildingRoadDistance(building,p){
   if(!building||!p)return Infinity;
   const hit=buildingRoadHitbox(building,0);
-  const outsideX=Math.max(hit.minX-p.x,0,p.x-hit.maxX);
-  const outsideY=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
-  if(outsideX>0||outsideY>0)return Math.hypot(outsideX,outsideY);
-  return Math.min(p.x-hit.minX,hit.maxX-p.x,p.y-hit.minY,hit.maxY-p.y);
+  const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX);
+  const dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
+  return Math.hypot(dx,dy);
 }
 
 export function resolveBuildingRoadTarget(s,p,maxDistance=46){
