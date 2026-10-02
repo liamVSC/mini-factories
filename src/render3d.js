@@ -513,7 +513,7 @@ function addIndustrialSite(g,w,d,h,metal,dark,kind){
   const dock=buildingDockPoints({kind})[0];
   const dockZ=dock?.y??front*(d/2);
   const dockNormal=dock?.normal?.y??front;
-  const gateZ=dockZ+dockNormal*(kind==='shop'?58:68);
+  const gateZ=dockZ+dockNormal*52;
   const depotWidth=kind==='warehouse'?300:kind==='factory'?250:180;
   const depotDepth=kind==='warehouse'?132:kind==='factory'?104:86;
   const depotCenter=(dockZ+gateZ)/2;
@@ -695,7 +695,7 @@ function createShopModel(building={}){
   addDumpster(g,w*.40,d*.30,metal,dark);
 
   const shopDock=buildingDockPoints({kind:'shop'})[0];
-  const shopGateZ=(shopDock?.y||(-d/2))+((shopDock?.normal?.y||-1)*58);
+  const shopGateZ=(shopDock?.y||(-d/2))+((shopDock?.normal?.y||-1)*52);
   addFenceLine(g,-w/2-12,-d/2-5,-w/2-12,shopGateZ,metal);
   addFenceLine(g,w/2+12,-d/2-5,w/2+12,shopGateZ,metal);
   addGate(g,0,shopGateZ,34,metal);
