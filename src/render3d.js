@@ -529,30 +529,46 @@ function addTruckTurningPad(g,x,z,radius,metal){
     const a=i*Math.PI/2;addBoxPart(g,new THREE.BoxGeometry(radius*.45,.12,1),metal,x+Math.cos(a)*radius*.72,.27,z+Math.sin(a)*radius*.72,a,0,false);
   }
 }
+function addYardFloor(g,width,depth,centerZ,front,kind,metal,dark){
+  const concrete=mat('#7b807d',.97);
+  const asphalt=mat('#454b4a',.98);
+  const gravel=mat('#69645a',1);
+  const line=mat('#d8d9d3',.72);
+  // Layered yard instead of one giant grass/flat slab: a concrete service apron
+  // sits outside the building, with a darker truck court and a gravel/service edge.
+  addBoxPart(g,new THREE.BoxGeometry(width,.16,depth),gravel,0,.08,centerZ,0,false);
+  const courtDepth=Math.max(24,depth*.56);
+  const courtZ=centerZ-front*(depth*.08);
+  addBoxPart(g,new THREE.BoxGeometry(width*.82,.18,courtDepth),asphalt,0,.18,courtZ,0,false);
+  addBoxPart(g,new THREE.BoxGeometry(width*.56,.20,depth*.30),concrete,0,.27,centerZ+front*depth*.19,0,false);
+  const bayDepth=Math.max(18,depth*.22);
+  for(const x of[-width*.34,-width*.17,0,width*.17,width*.34]){
+    addBoxPart(g,new THREE.BoxGeometry(.7,.07,bayDepth),line,x,.39,centerZ+front*(depth*.19),0,false);
+  }
+  // Low kerb and wheel-stop detailing keeps the yard reading as a designed site.
+  addBoxPart(g,new THREE.BoxGeometry(width+4,.5,1.4),metal,0,.45,centerZ-front*depth*.49,0,false);
+  addBoxPart(g,new THREE.BoxGeometry(1.4,.45,depth*.62),metal,-width*.49,.38,centerZ,0,false);
+  addBoxPart(g,new THREE.BoxGeometry(1.4,.45,depth*.62),metal,width*.49,.38,centerZ,0,false);
+  // Drainage strips across the truck court.
+  for(const z of[-.24,.08,.24]){
+    if(Math.abs(z)>.24)continue;
+  }
+}
 function addIndustrialSite(g,w,d,h,metal,dark,kind){
-  // Large, legible logistics yard: the yard is deliberately much bigger than
-  // the shell so trucks have a visible approach, turning space and service area.
+  // The public road terminates at the yard gate. Everything beyond the gate is
+  // yard surfacing and private turning space; no rendered road enters the shell.
   const front=kind==='shop'?-1:1;
   const dock=buildingDockPoints({kind})[0];
   const dockZ=dock?.y??front*(d/2);
   const dockNormal=dock?.normal?.y??front;
   const gateZ=dockZ+dockNormal*52;
-  const depotWidth=kind==='warehouse'?300:kind==='factory'?250:180;
-  const depotDepth=kind==='warehouse'?132:kind==='factory'?104:86;
+  const depotWidth=kind==='warehouse'?270:kind==='factory'?225:180;
+  const depotDepth=kind==='warehouse'?128:kind==='factory'?100:84;
   const depotCenter=(dockZ+gateZ)/2;
 
-  addBoxPart(g,new THREE.BoxGeometry(depotWidth,.18,depotDepth),mat('#555b59',.98),0,.1,depotCenter,0,false);
-  addBoxPart(g,new THREE.BoxGeometry(depotWidth+10,.12,depotDepth+10),mat('#777d79',.98),0,.04,depotCenter,0,false);
-
-  // A single central truck spine makes the one entrance/exit obvious.
-  const laneMat=mat('#d8dad4',.7);
-  addBoxPart(g,new THREE.BoxGeometry(3,.08,Math.max(10,depotDepth-12)),laneMat,0,.23,depotCenter,0,false);
-  for(const x of[-depotWidth*.40,depotWidth*.40]){
-    addBoxPart(g,new THREE.BoxGeometry(1.2,.08,depotDepth-12),laneMat,x,.22,depotCenter,0,false);
-  }
-  // Large turning apron at the gate.
+  addYardFloor(g,depotWidth,depotDepth,depotCenter,front,kind,metal,dark);
   const padZ=gateZ-dockNormal*10;
-  addTruckTurningPad(g,0,padZ,kind==='warehouse'?72:kind==='factory'?62:52,metal);
+  addTruckTurningPad(g,0,padZ,kind==='warehouse'?68:kind==='factory'?58:50,metal);
 
   const forklifts=[addForklift(g,-w*.28,dockZ+dockNormal*14,metal,dark),addForklift(g,w*.28,dockZ+dockNormal*14,metal,dark)];
   const pallets=[addPallet(g,-w*.35,dockZ+dockNormal*22,metal,dark),addPallet(g,-w*.18,dockZ+dockNormal*22,metal,dark),addPallet(g,w*.34,dockZ+dockNormal*22,metal,dark)];
@@ -562,7 +578,7 @@ function addIndustrialSite(g,w,d,h,metal,dark,kind){
   addFuelTank(g,-w*.42,d*.42,metal,dark);
   addStaffParking(g,front>0?w*.26:-w*.26,-front*(d/2+44),kind==='warehouse'?92:kind==='factory'?76:64,30,metal,dark);
 
-  // Security fencing encloses the full yard but leaves exactly one truck gate.
+  // Security fencing encloses the yard but leaves exactly one truck entrance/exit.
   addFenceLine(g,-depotWidth/2,front*(d/2),-depotWidth/2,gateZ,metal);
   addFenceLine(g,depotWidth/2,front*(d/2),depotWidth/2,gateZ,metal);
   addGate(g,0,gateZ,kind==='warehouse'?44:kind==='factory'?40:34,metal);
@@ -774,17 +790,15 @@ function addBuildingAccess(g,building){
   if(!dock||!entrance)return null;
   const a={x:attachment.point.x,y:attachment.point.y};
   const gate={x:entrance.x,y:entrance.y};
-  const b={x:dock.approach.x,y:dock.approach.y};
   if(Math.hypot(a.x-gate.x,a.y-gate.y)>16)return null;
-  const la={x:a.x-building.x,y:a.y-building.y},lg={x:gate.x-building.x,y:gate.y-building.y},lb={x:b.x-building.x,y:b.y-building.y};
-  if(segmentHitsBuilding(a,gate,building)||segmentHitsBuilding(gate,b,building))return null;
-  addRoadBox(g,la,lg,22,.16,.6,roadMaterials.shoulder);
-  addRoadBox(g,la,lg,16,.16,.72,roadMaterials.asphalt);
-  addRoadBox(g,lg,lb,18,.16,.72,roadMaterials.asphalt);
-  addRoadBox(g,lg,lb,20,.10,.8,roadMaterials.curb);
-  const marker=new THREE.Mesh(new THREE.BoxGeometry(Math.max(8,dock.width),.12,5),roadMaterials.edge);
-  marker.position.set(dock.x-building.x,.84,dock.y-building.y);g.add(marker);
-  const gateMarker=new THREE.Mesh(new THREE.BoxGeometry(24,.1,4),roadMaterials.edge);
+  if(segmentHitsBuilding(a,gate,building))return null;
+  // Only the short public-road apron reaches the site gate. The gate-to-dock
+  // section is represented by yard flooring/turning space, never a road mesh.
+  const la={x:a.x-building.x,y:a.y-building.y},lg={x:gate.x-building.x,y:gate.y-building.y};
+  const apronMat=mat('#666c68',.98);
+  addRoadBox(g,la,lg,36,.12,.58,apronMat);
+  addRoadBox(g,la,lg,30,.10,.72,roadMaterials.asphalt);
+  const gateMarker=new THREE.Mesh(new THREE.BoxGeometry(30,.1,3.5),roadMaterials.edge);
   gateMarker.position.set(entrance.x-building.x,.82,entrance.y-building.y);g.add(gateMarker);
   g.userData.buildingAccess={roadPoint:a,entrance:{...entrance},dock,connected:true};
   return g.userData.buildingAccess;
