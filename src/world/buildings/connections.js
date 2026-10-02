@@ -45,9 +45,11 @@ export function buildingRoadAttachment(s,building){
       }
     }
   }
-  // A logistics connection is only valid when the road actually reaches the
-  // canonical gate. Never attach a truck driveway to a random side of the site.
-  if(!best||!entrance||best.distance>14)return null;
+  // Persisted/seeded worlds can still contain roads that pre-date the canonical
+  // gate. Keep those roads attached to the site for routing compatibility, while
+  // exposing the canonical entrance separately so new road snapping and rendering
+  // always use the single gate.
+  if(!best||!entrance)return null;
   return{...best,entrance:{...entrance}};
 }
 
