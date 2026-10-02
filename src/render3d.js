@@ -966,41 +966,22 @@ function updateTrucks(s){
     if(!truck?.id)continue;live.add(truck.id);
     let mesh=truckMeshes.get(truck.id);
     if(!mesh){mesh=createTruckMesh();scene.add(mesh);truckMeshes.set(truck.id,mesh);}
-    const route=Array.isArray(truck.laneRoute)&&truck.laneRoute.length>=2?truck.laneRoute:(Array.isArray(truck.route)?truck.route:truck.route?.points);if(!route?.length)continue;
-    const progress=Math.max(0,Math.min(1,Number(truck.t)||0)),p=pointOnRoute(route,progress),q=pointOnRoute(route,Math.min(1,progress+.002));
-    let visual={x:p.x,y:p.y};
-    let nextVisual=q?{x:q.x,y:q.y}:visual;
-    const source=truck.source;
-    const destination=truck.to;
-    const sourceAccess=source?meshes.get(source.id)?.userData.buildingAccess:null;
-    const destinationAccess=destination?meshes.get(destination.id)?.userData.buildingAccess:null;
-    if(sourceAccess&&progress<.14){
-      const t=Math.max(0,Math.min(1,progress/.14));
-      if(t<.55){
-        const u=t/.55;
-        visual={x:sourceAccess.dock.point.x+(sourceAccess.entrance.x-sourceAccess.dock.point.x)*u,y:sourceAccess.dock.point.y+(sourceAccess.entrance.y-sourceAccess.dock.point.y)*u};
-      }else{
-        const u=(t-.55)/.45;
-        visual={x:sourceAccess.entrance.x+(p.x-sourceAccess.entrance.x)*u,y:sourceAccess.entrance.y+(p.y-sourceAccess.entrance.y)*u};
-      }
-      nextVisual=pointOnRoute(route,Math.min(1,progress+.012));
-    }
-    if(destinationAccess&&progress>.84){
-      const t=Math.max(0,Math.min(1,(progress-.84)/.16));
-      if(t<.45){
-        const u=t/.45;
-        visual={x:p.x+(destinationAccess.entrance.x-p.x)*u,y:p.y+(destinationAccess.entrance.y-p.y)*u};
-        nextVisual=destinationAccess.entrance;
-      }else{
-        const u=(t-.45)/.55;
-        visual={x:destinationAccess.entrance.x+(destinationAccess.dock.point.x-destinationAccess.entrance.x)*u,y:destinationAccess.entrance.y+(destinationAccess.dock.point.y-destinationAccess.entrance.y)*u};
-        nextVisual=destinationAccess.dock.point;
-      }
-    }
+    // The simulation and renderer share the same lane-aware movement route.
+    // This prevents the truck from being simulated on the road centreline while
+    // visually travelling on a different lane.
+    const route=Array.isArray(truck.laneRoute)&&truck.laneRoute.length>=2
+      ?truck.laneRoute
+      :(Array.isArray(truck.route)?truck.route:truck.route?.points);
+    if(!route?.length)continue;
+    const progress=Math.max(0,Math.min(1,Number(truck.t)||0));
+    const p=pointOnRoute(route,progress);
+    const q=pointOnRoute(route,Math.min(1,progress+.002));
+    if(!p)continue;
+    const visual=p;
+    const nextVisual=q||visual;
     mesh.position.set(visual.x,0,visual.y);
     if(nextVisual)mesh.rotation.y=-Math.atan2(nextVisual.y-visual.y,nextVisual.x-visual.x);
     if(Number(truck.wait)>0)mesh.position.y=.08;
-
     for(const wheel of mesh.userData.wheels||[])wheel.rotation.z-=(Number(truck.speed)||8)*.05;
   }
   for(const[id,mesh]of truckMeshes)if(!live.has(id)){scene.remove(mesh);disposeObject(mesh);truckMeshes.delete(id);}
