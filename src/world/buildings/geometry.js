@@ -14,9 +14,9 @@ const PLACEMENT_FOOTPRINTS=Object.freeze({
   // These are the full practical site envelopes, including the enlarged depot
   // yard and the single truck gate/driveway. They are deliberately larger than
   // the rendered building shell so neighbouring sites cannot overlap visually.
-  warehouse:Object.freeze({halfWidth:80,halfDepth:120}),
-  factory:Object.freeze({halfWidth:74,halfDepth:112}),
-  shop:Object.freeze({halfWidth:62,halfDepth:90}),
+  warehouse:Object.freeze({halfWidth:105,halfDepth:150}),
+  factory:Object.freeze({halfWidth:95,halfDepth:140}),
+  shop:Object.freeze({halfWidth:82,halfDepth:115}),
   default:Object.freeze({halfWidth:50,halfDepth:62})
 });
 
@@ -29,9 +29,9 @@ function footprintForKind(kind){
 // clearance, but must not make a road endpoint think it is still inside a
 // building after the endpoint has moved beyond the actual model.
 const ROAD_CONNECTION_FOOTPRINTS=Object.freeze({
-  warehouse:Object.freeze({halfWidth:64,halfDepth:50}),
-  factory:Object.freeze({halfWidth:56,halfDepth:46}),
-  shop:Object.freeze({halfWidth:48,halfDepth:40}),
+  warehouse:Object.freeze({halfWidth:86,halfDepth:60}),
+  factory:Object.freeze({halfWidth:72,halfDepth:56}),
+  shop:Object.freeze({halfWidth:60,halfDepth:48}),
   default:Object.freeze({halfWidth:36,halfDepth:36})
 });
 
@@ -128,16 +128,16 @@ export function buildingFootprint(building){
 
 const DOCK_SPECS={
   factory:[
-    {name:'north-loading',x:0,y:43.5,normal:{x:0,y:1},width:22},
-    {name:'south-loading',x:-33,y:-43.5,normal:{x:0,y:-1},width:13}
+    {name:'north-loading',x:0,y:56,normal:{x:0,y:1},width:28},
+    {name:'south-loading',x:-38,y:-56,normal:{x:0,y:-1},width:18}
   ],
   warehouse:[
-    {name:'north-main',x:0,y:46.5,normal:{x:0,y:1},width:24},
-    {name:'north-secondary',x:-42,y:46.5,normal:{x:0,y:1},width:14},
-    {name:'south-secondary',x:42,y:-46.5,normal:{x:0,y:-1},width:14}
+    {name:'north-main',x:0,y:60,normal:{x:0,y:1},width:32},
+    {name:'north-secondary',x:-48,y:60,normal:{x:0,y:1},width:18},
+    {name:'south-secondary',x:48,y:-60,normal:{x:0,y:-1},width:18}
   ],
   default:[
-    {name:'front-entrance',x:0,y:-36.5,normal:{x:0,y:-1},width:12}
+    {name:'front-entrance',x:0,y:-47,normal:{x:0,y:-1},width:18}
   ]
 };
 
@@ -169,7 +169,7 @@ export function buildingRoadEntrance(building){
   // point and dock.approach is the only truck entry/exit path for the site.
   // Keep the gate far enough out in the enlarged yard to give trucks a real
   // approach/turning area, while remaining inside the road-snap search envelope.
-  const gateOffset=30;
+  const gateOffset=42;
   return{
     x:dock.approach.x+dock.normal.x*gateOffset,
     y:dock.approach.y+dock.normal.y*gateOffset,
