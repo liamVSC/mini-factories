@@ -702,7 +702,7 @@ function createShopModel(building={}){
   return g;
 }
 function addBuildingStatusVisual(g,building){
-  const dims=building.kind==='warehouse'?{w:180,d:120,h:36}:building.kind==='factory'?{w:150,d:112,h:42}:{w:132,d:94,h:28};
+  const dims=building.kind==='warehouse'?{w:180,d:120,h:36}:building.kind==='factory'?{w:150,d:112,h:42}:{w:150,d:100,h:30};
   const statusMat=new THREE.MeshStandardMaterial({color:'#7b8581',roughness:.45,metalness:.15,emissive:'#26302d',emissiveIntensity:.15});
   const beacon=addBoxPart(g,new THREE.BoxGeometry(2.2,1.2,2.2),statusMat,dims.w*.38,dims.h+11,0);
   beacon.userData.statusMaterial=statusMat;
