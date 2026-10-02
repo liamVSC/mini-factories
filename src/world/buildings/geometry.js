@@ -15,7 +15,7 @@ const PLACEMENT_FOOTPRINTS=Object.freeze({
   // yard and the single truck gate/driveway. They are deliberately larger than
   // the rendered building shell so neighbouring sites cannot overlap visually.
   warehouse:Object.freeze({halfWidth:115,halfDepth:170}),
-  factory:Object.freeze({halfWidth:105,halfDepth:150}),
+  factory:Object.freeze({halfWidth:100,halfDepth:150}),
   shop:Object.freeze({halfWidth:95,halfDepth:130}),
   default:Object.freeze({halfWidth:50,halfDepth:62})
 });
