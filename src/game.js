@@ -7,7 +7,11 @@ import {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screen
 import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand,executeCommand} from './commands.js';
 
 const GAME_VERSION=globalThis.MINI_FACTORIES_VERSION;
-const CHANGELOG=[
+const CHANGELOG=[{version:'1.3',date:'2 Oct 2026',items:[
+       'Rebuilt the shop into a larger multi-volume retail/service model with a glazed frontage, canopy, service bay and roof plant.',
+       'Expanded factory and warehouse depot yards with larger truck turning areas, marked access spines and wider security gates.',
+       'Versioned the renderer and PWA cache so the new 3D assets are forced to load.'
+     ]},
   {version:'1.2',date:'2 Oct 2026',items:[
     'Reworked factory, warehouse and shop silhouettes so the 3D upgrade is visibly architectural rather than only larger dimensions.',
     'Added stronger industrial roof, service-wing and logistics-building forms while preserving the existing yard and single-gate layout.',
