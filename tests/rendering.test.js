@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {freshState} from '../src/state.js';
 import {seed} from '../src/world/buildings/index.js';
 import {savedBuildingToWorldPosition,projectWorldPointToNdc,buildingRenderTrace} from '../src/rendering/buildingTransform.js';
+import {buildingDockPoints,buildingRoadEntrance,buildingConnectionPoint} from '../src/world/buildings/geometry.js';
 
 // Column-major projection fixture: world X -> NDC X and world Z -> NDC Y.
 const ORTHOGRAPHIC_TEST_MATRIX=[
@@ -60,4 +61,29 @@ test('render trace catches the historical all-buildings-at-origin failure',()=>{
   assert.ok(originCount<2,'multiple buildings at projected origin indicates the middle-stack regression');
   const first=traces[0];
   assert.ok(traces.some(t=>Math.abs(t.ndc.x-first.ndc.x)>1e-6||Math.abs(t.ndc.y-first.ndc.y)>1e-6));
+});
+
+
+test('each building exposes exactly one canonical truck entrance for road snapping',()=>{
+  for(const kind of ['factory','warehouse','shop']){
+    const building={id:`test-${kind}`,kind,x:100,y:200};
+    const docks=buildingDockPoints(building);
+    const entrance=buildingRoadEntrance(building);
+    const snapped=buildingConnectionPoint(building,{x:900,y:-900});
+    assert.ok(docks.length>=1);
+    assert.ok(entrance);
+    assert.deepEqual(snapped,{...entrance,building});
+    assert.ok(Math.hypot(entrance.x-building.x,entrance.y-building.y)>40);
+  }
+});
+
+test('canonical truck entrance is stable regardless of which side the road approaches from',()=>{
+  const building={id:'factory-entrance',kind:'factory',x:-120,y:80};
+  const north=buildingConnectionPoint(building,{x:-120,y:900});
+  const south=buildingConnectionPoint(building,{x:-120,y:-900});
+  const east=buildingConnectionPoint(building,{x:900,y:80});
+  assert.deepEqual(north,south);
+  assert.deepEqual(south,east);
+  assert.equal(north.x,buildingRoadEntrance(building).x);
+  assert.equal(north.y,buildingRoadEntrance(building).y);
 });
