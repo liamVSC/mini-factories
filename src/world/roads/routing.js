@@ -2,7 +2,7 @@ import {dist,length,finitePoint,projectSegment} from './geometry.js';
 import {buildingRoadAttachment} from '../buildings/connections.js';
 import {buildingPrimaryDock,buildingRoadEntrance} from '../buildings/geometry.js';
 import {snap} from './placement.js';
-import {roadNetwork,nearestGraphNode} from './topology.js';
+import {roadNetwork,nearestGraphNode,shortestRoadPath} from './topology.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from '../../laneGraph.js';
 
 export {buildingRoadAttachment as roadAttachment};
@@ -70,12 +70,32 @@ export function routeOnRoadNetwork(s,a,b){
   if(startComponent===undefined||endComponent===undefined||startComponent!==endComponent)return null;
 
   const laneGraph=buildLaneGraph(network,{lanesPerDirection:2});
-  const laneResult=findLaneRoute(laneGraph,start,end);
-  if(!laneResult)return null;
-  const laneNodes=laneRouteToNodePath(laneGraph,laneResult.laneIds);
+  let laneResult=findLaneRoute(laneGraph,start,end);
+  let laneIds=laneResult?.laneIds||[];
+  let routeDistance=laneResult?.distance||0;
+  // The canonical road graph supports virtual near-touching endpoint edges.
+  // If lane transition search cannot traverse one of those derived edges,
+  // fall back to the same canonical node path and recover directional lane ids
+  // from the already-built lane graph. This keeps persisted road geometry
+  // untouched while making the traffic route use the actual connected graph.
+  if(!laneResult){
+    const fallback=shortestRoadPath(network,start,end);
+    if(!fallback?.path||fallback.path.length<2)return null;
+    const recovered=[];
+    for(let i=1;i<fallback.path.length;i++){
+      const from=fallback.path[i-1],to=fallback.path[i];
+      const lane=laneGraph.lanes.find(candidate=>candidate.from===from&&candidate.to===to);
+      if(!lane)return null;
+      recovered.push(lane.id);
+    }
+    if(!recovered.length)return null;
+    laneIds=recovered;
+    routeDistance=fallback.distance;
+  }
+  const laneNodes=laneRouteToNodePath(laneGraph,laneIds);
   if(laneNodes.length<2)return null;
   const routePoints=laneNodes.map(p=>({x:p.x,y:p.y}));
-  const laneGeometry=laneRouteGeometry(laneGraph,laneResult.laneIds);
+  const laneGeometry=laneRouteGeometry(laneGraph,laneIds);
   const lanePoints=laneGeometry.points.length>=2?laneGeometry.points:routePoints;
   const canonical=network.junctions||[];
   for(const junction of canonical){
@@ -104,11 +124,11 @@ export function routeOnRoadNetwork(s,a,b){
   const yardDistance=length(startYard)+length(endYard);
   return{
     points:combinedPoints,
-    distance:Math.max(0,laneResult.distance+yardDistance),
-    networkDistance:laneResult.distance,
+    distance:Math.max(0,routeDistance+yardDistance),
+    networkDistance:routeDistance,
     yardDistance:Math.max(0,yardDistance),
-    laneIds:laneResult.laneIds,
-    laneRoadIds:laneResult.laneIds.map(id=>laneGraph.lanesById.get(id)?.roadId||null),
+    laneIds,
+    laneRoadIds:laneIds.map(id=>laneGraph.lanesById.get(id)?.roadId||null),
     graphNodeCount:network.nodes.length,
     laneCount:laneGraph.lanes.length,
     lanePoints,
