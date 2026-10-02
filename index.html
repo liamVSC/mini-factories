@@ -3,6 +3,7 @@
  const guard=document.querySelector('#startupGuard');
  const retry=document.querySelector('#startupRetry');
  let recoveryAttempted=false;
+ let gameReady=false;
  const fail=async(message)=>{
    if(!guard)return;
    guard.style.display='grid';
@@ -15,9 +16,9 @@
    try{const reg=await navigator.serviceWorker?.ready;await reg?.update()}catch{}
    setTimeout(()=>{if(document.visibilityState==='visible')location.reload()},700);
  };
- window.addEventListener('mini-factories-ready',()=>{if(guard)guard.style.display='none'});
- window.addEventListener('error',e=>{if(e.error||e.message)fail(e.message||'Runtime error')});
- window.addEventListener('unhandledrejection',e=>fail(e.reason?.message||String(e.reason||'Runtime error')));
+ window.addEventListener('mini-factories-ready',()=>{gameReady=true;if(guard)guard.style.display='none'});
+ window.addEventListener('error',e=>{if(!gameReady&&(e.error||e.message))fail(e.message||'Runtime error')});
+ window.addEventListener('unhandledrejection',e=>{if(!gameReady)fail(e.reason?.message||String(e.reason||'Runtime error'))});
  retry?.addEventListener('click',()=>location.reload());
  setTimeout(()=>{if(guard&&guard.style.display!=='none')fail('The game did not finish starting.');},15000);
 })();
