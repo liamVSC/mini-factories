@@ -263,7 +263,11 @@ function fullLaneMovementRoute(route){
 }
 function rerouteTruck(s,t){
   if(!t?.source||!t?.to)return false;
-  const currentMovementRoute=Array.isArray(t.laneRoute)&&t.laneRoute.length>=2?t.laneRoute:t.route;
+  // Preserve the truck's canonical saved position when rerouting. The lane
+  // route is a derived physical guide and may be offset from the persisted
+  // centreline, so using it here would make a live reroute appear to teleport
+  // sideways before the new lane geometry takes over.
+  const currentMovementRoute=Array.isArray(t.route)&&t.route.length>=2?t.route:t.laneRoute;
   const p=pointOnRoute(currentMovementRoute,t.t);
   const next=route(s,t.source,t.to);
   if(!next)return false;
