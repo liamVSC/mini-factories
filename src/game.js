@@ -8,6 +8,11 @@ import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCo
 
 const GAME_VERSION=globalThis.MINI_FACTORIES_VERSION;
 const CHANGELOG=[
+  {version:'1.2',date:'2 Oct 2026',items:[
+    'Reworked factory, warehouse and shop silhouettes so the 3D upgrade is visibly architectural rather than only larger dimensions.',
+    'Added stronger industrial roof, service-wing and logistics-building forms while preserving the existing yard and single-gate layout.',
+    'Versioned the 3D renderer asset and PWA cache so deployed clients cannot silently keep the previous renderer.'
+  ]},
   {version:'1.1',date:'2 Oct 2026',items:[
     'Expanded factory, warehouse and shop yards with larger depot and truck turning areas.',
     'Buildings now use one canonical truck entrance/exit for road snapping and logistics access.',
