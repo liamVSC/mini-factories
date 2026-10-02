@@ -21,6 +21,25 @@ function footprintForKind(kind){
   return PLACEMENT_FOOTPRINTS[kind]||PLACEMENT_FOOTPRINTS.default;
 }
 
+// Road connections use the rendered building shell, not the larger site/yard
+// placement envelope. The latter is intentionally used for construction
+// clearance, but must not make a road endpoint think it is still inside a
+// building after the endpoint has moved beyond the actual model.
+const ROAD_CONNECTION_FOOTPRINTS=Object.freeze({
+  warehouse:Object.freeze({halfWidth:48,halfDepth:36}),
+  factory:Object.freeze({halfWidth:40,halfDepth:32}),
+  shop:Object.freeze({halfWidth:36,halfDepth:36}),
+  default:Object.freeze({halfWidth:36,halfDepth:36})
+});
+
+function roadConnectionFootprintForKind(kind){
+  return ROAD_CONNECTION_FOOTPRINTS[kind]||ROAD_CONNECTION_FOOTPRINTS.default;
+}
+
+export function buildingRoadFootprint(building){
+  return roadConnectionFootprintForKind(building?.kind);
+}
+
 export function buildingVisualFootprint(building){
   return {...(PLACEMENT_FOOTPRINTS[building?.kind]||PLACEMENT_FOOTPRINTS.default)};
 }
@@ -123,13 +142,23 @@ export function buildingDockPoints(building){
   }));
 }
 
+export function buildingRoadHitbox(building,tolerance=0){
+  const footprint=buildingRoadFootprint(building);
+  return{
+    minX:Number(building?.x)-footprint.halfWidth-tolerance,
+    maxX:Number(building?.x)+footprint.halfWidth+tolerance,
+    minY:Number(building?.y)-footprint.halfDepth-tolerance,
+    maxY:Number(building?.y)+footprint.halfDepth+tolerance
+  };
+}
+
 export function buildingConnectionPoint(building,target,exteriorOffset=2.5){
   const dx=Number(target?.x)-Number(building?.x);
   const dy=Number(target?.y)-Number(building?.y);
   const distanceToTarget=Math.hypot(dx,dy)||1;
   const ux=dx/distanceToTarget;
   const uy=dy/distanceToTarget;
-  const footprint=buildingFootprint(building);
+  const footprint=buildingRoadFootprint(building);
 
   const tx=Math.abs(ux)>1e-6?footprint.halfWidth/Math.abs(ux):Infinity;
   const ty=Math.abs(uy)>1e-6?footprint.halfDepth/Math.abs(uy):Infinity;
@@ -144,7 +173,7 @@ export function buildingConnectionPoint(building,target,exteriorOffset=2.5){
 }
 
 export function buildingFootprintRadius(building){
-  const footprint=buildingFootprint(building);
+  const footprint=buildingRoadFootprint(building);
   return Math.max(
     26,
     (building?.r||25)+9,
