@@ -1,5 +1,6 @@
 import {dist,finitePoint,projectSegment} from './geometry.js';
 import {buildingRoadAttachment} from '../buildings/connections.js';
+import {buildingPrimaryDock,buildingRoadEntrance} from '../buildings/geometry.js';
 import {snap} from './placement.js';
 import {roadNetwork,nearestGraphNode} from './topology.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from '../../laneGraph.js';
@@ -56,6 +57,9 @@ export function routeNetworkValid(state,route){
 export function routeOnRoadNetwork(s,a,b){
   const aa=buildingRoadAttachment(s,a),bb=buildingRoadAttachment(s,b);
   if(!aa||!bb)return null;
+  // Include the canonical yard gates as explicit graph attachment points.
+  // Roads therefore meet the site at the gate, while the truck route can continue
+  // through the private yard to the actual loading dock.
   const network=roadNetwork(s,[aa.point,bb.point]);
   const start=nearestGraphNode(network,aa.point),end=nearestGraphNode(network,bb.point);
   if(!start||!end)return null;
@@ -82,10 +86,27 @@ export function routeOnRoadNetwork(s,a,b){
       break;
     }
   }
+  const yardPath=(building,fromGateToDock=false)=>{
+    const dock=buildingPrimaryDock(building);
+    const entrance=buildingRoadEntrance(building);
+    if(!dock||!entrance)return [];
+    const turnX=dock.point.x+((dock.normal?.y||0)>0?48:-48);
+    const midY=(entrance.y+dock.approach.y)/2;
+    const turn={x:turnX,y:midY};
+    return fromGateToDock
+      ?[{x:entrance.x,y:entrance.y},turn,{x:dock.approach.x,y:dock.approach.y}]
+      :[{x:dock.approach.x,y:dock.approach.y},turn,{x:entrance.x,y:entrance.y}];
+  };
+  const startYard=yardPath(a,true);
+  const endYard=yardPath(b,false);
+  const combined=[...startYard,...routePoints,...endYard];
+  const combinedPoints=combined.filter((p,i)=>i===0||dist(p,combined[i-1])>.01);
+  const yardDistance=length(combinedPoints)-length(routePoints);
   return{
-    points:routePoints,
-    distance:laneResult.distance,
+    points:combinedPoints,
+    distance:Math.max(0,laneResult.distance+yardDistance),
     networkDistance:laneResult.distance,
+    yardDistance:Math.max(0,yardDistance),
     laneIds:laneResult.laneIds,
     laneRoadIds:laneResult.laneIds.map(id=>laneGraph.lanesById.get(id)?.roadId||null),
     graphNodeCount:network.nodes.length,
@@ -94,6 +115,8 @@ export function routeOnRoadNetwork(s,a,b){
     laneTransitions:laneGeometry.transitions,
     start:{x:aa.point.x,y:aa.point.y},
     end:{x:bb.point.x,y:bb.point.y},
+    startYard:startYard.map(p=>({...p})),
+    endYard:endYard.map(p=>({...p})),
     roadNetworkRevision:Math.max(0,Math.floor(Number(s.roadNetworkRevision)||0)),
     componentId:startComponent
   };
