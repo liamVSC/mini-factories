@@ -10,7 +10,7 @@ export function resolveBuildingRoadEndpoint(s,p,target=null,directionTarget=p){
 
 export function buildingRoadDistance(building,p){
   if(!building||!p)return Infinity;
-  const hit=buildingRoadHitbox(building,0);
+  const hit=buildingRoadHitbox(building,6);
   const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX);
   const dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
   return Math.hypot(dx,dy);
