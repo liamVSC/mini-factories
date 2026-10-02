@@ -4,7 +4,8 @@ import {buildingRoadAttachment,resolveBuildingRoadEndpoint} from './connections.
 import {
   buildingFootprint,
   nearestBuilding,
-  buildingDockPoints
+  buildingDockPoints,
+  buildingPrimaryDock
 } from './geometry.js';
 
 export function buildingPlacementTarget(s,type,p){
@@ -111,16 +112,15 @@ export function buildingLogisticsAccess(s,building){
   const attachment=buildingRoadAttachment(s,building);
   if(!attachment||!s.roads?.includes(attachment.road))return null;
 
-  const docks=buildingDockPoints(building);
-  const dock=docks.reduce((best,current)=>{
-    const score=dist(attachment.point,current.approach);
-    return !best||score<best.score?{...current,score}:best;
-  },null);
-
-  if(!dock)return null;
+  // All truck traffic uses the site's primary dock and canonical entrance.
+  // Secondary loading bays remain visual scenery only.
+  const dock=buildingPrimaryDock(building);
+  const entrance=attachment.entrance;
+  if(!dock||!entrance)return null;
 
   const driveway=[
     {x:attachment.point.x,y:attachment.point.y},
+    {x:entrance.x,y:entrance.y},
     {x:dock.approach.x,y:dock.approach.y}
   ];
 
