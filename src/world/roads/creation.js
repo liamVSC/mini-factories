@@ -1,7 +1,7 @@
 import {newId} from '../../core/ids.js';
 import {dist,length,safePoint,validRoadPoints,projectSegment} from './geometry.js';
 import {validateRoadGeometry} from './validation.js';
-import {roadBuildingTarget,roadPathBlocked,segmentNearRiver} from './placement.js';
+import {roadBuildingTarget,roadPathBlocked,segmentCrossesRiver} from './placement.js';
 import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate} from './intersections.js';
 import {cleanupRoadNetwork} from './editing.js';
 import {resolveBuildingRoadEndpoint} from '../buildings/connections.js';
@@ -72,7 +72,8 @@ export function addRoad(s,points,meta={}){
   const cost=Math.max(1,Math.ceil(roadLength/180))*2;
   if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';
   if((s.roads||[]).some(r=>roadsExactlyDuplicate(r,{points:clean})||roadsHaveMeaningfulOverlap(r,{points:clean})))return'duplicate';
-  const road={id:newId(),points:clean.map(safePoint),age:0,bridge:clean.some((p,i)=>i?segmentNearRiver(clean[i-1],p):false),condition:1};
+  const crossesWater=clean.some((p,i)=>i>0&&segmentCrossesRiver(clean[i-1],p));
+  const road={id:newId(),points:clean.map(safePoint),age:0,bridge:crossesWater,condition:1};
   const previousCash=s.cash;
   s.roads.push(road);
   cleanupRoadNetwork(s);
