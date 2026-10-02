@@ -11,10 +11,13 @@ export function buildingClearance(a,b){
 // Include the rendered site's practical envelope, not only the central building shell.
 // This keeps yards, gates and parking from visually overlapping neighbouring sites.
 const PLACEMENT_FOOTPRINTS=Object.freeze({
-  warehouse:Object.freeze({halfWidth:78,halfDepth:72}),
-  factory:Object.freeze({halfWidth:68,halfDepth:70}),
-  shop:Object.freeze({halfWidth:58,halfDepth:62}),
-  default:Object.freeze({halfWidth:45,halfDepth:55})
+  // These are the full practical site envelopes, including the enlarged depot
+  // yard and the single truck gate/driveway. They are deliberately larger than
+  // the rendered building shell so neighbouring sites cannot overlap visually.
+  warehouse:Object.freeze({halfWidth:80,halfDepth:120}),
+  factory:Object.freeze({halfWidth:74,halfDepth:104}),
+  shop:Object.freeze({halfWidth:62,halfDepth:90}),
+  default:Object.freeze({halfWidth:50,halfDepth:62})
 });
 
 function footprintForKind(kind){
@@ -164,7 +167,9 @@ export function buildingRoadEntrance(building){
   if(!dock)return null;
   // Put the road connection beyond the yard gate. The driveway between this
   // point and dock.approach is the only truck entry/exit path for the site.
-  const gateOffset=18;
+  // Keep the gate far enough out in the enlarged yard to give trucks a real
+  // approach/turning area, while remaining inside the road-snap search envelope.
+  const gateOffset=30;
   return{
     x:dock.approach.x+dock.normal.x*gateOffset,
     y:dock.approach.y+dock.normal.y*gateOffset,
