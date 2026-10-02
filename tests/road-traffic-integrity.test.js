@@ -13,6 +13,7 @@ import {
   connectedRoadComponents,
   isRouteStale,
   buildingDockPoints,
+  buildingRoadEntrance,
   buildingPhysicalPlacementReason,
   seed
 } from '../src/world.js';
