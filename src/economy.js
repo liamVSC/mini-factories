@@ -257,11 +257,17 @@ function rerouteTruck(s,t){
   // the replacement network instead of teleporting it onto that network.
   const physical=Array.isArray(next.lanePoints)&&next.lanePoints.length>=2?next.lanePoints:next.points;
   const physicalProjected=projectRouteProgress(physical,p);
-  if(!physicalProjected)return false;
-  const join=pointOnRoute(physical,physicalProjected.progress);
-  if(!join)return false;
-  const physicalRemaining=physical.slice(Math.max(1,physicalProjected.segmentIndex));
-  const physicalCompact=[]; for(const q of [p,...physicalRemaining])if(!physicalCompact.length||dist(q,physicalCompact.at(-1))>.01)physicalCompact.push(q);
+  // Lane geometry is derived and can legitimately differ from the centreline
+  // around junctions/virtual connectors. It is not allowed to make a valid
+  // centreline reroute fail. Fall back to the canonical route when the lane
+  // projection cannot be established.
+  let physicalCompact;
+  if(physicalProjected&&physicalProjected.distance<=160){
+    const physicalRemaining=physical.slice(Math.max(1,physicalProjected.segmentIndex));
+    physicalCompact=[]; for(const q of [p,...physicalRemaining])if(!physicalCompact.length||dist(q,physicalCompact.at(-1))>.01)physicalCompact.push(q);
+  }else{
+    physicalCompact=[...next.points];
+  }
   const centerProjected=projectRouteProgress(next.points,p);
   if(!centerProjected||centerProjected.distance>160)return false;
   const centerRemaining=next.points.slice(Math.max(1,centerProjected.segmentIndex));
