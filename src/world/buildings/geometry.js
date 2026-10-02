@@ -44,6 +44,17 @@ export function buildingVisualFootprint(building){
   return {...(PLACEMENT_FOOTPRINTS[building?.kind]||PLACEMENT_FOOTPRINTS.default)};
 }
 
+export function buildingVisualHitbox(building,tolerance=0){
+  const footprint=buildingVisualFootprint(building);
+  const x=Number(building?.x),y=Number(building?.y);
+  return{
+    minX:x-footprint.halfWidth-tolerance,
+    maxX:x+footprint.halfWidth+tolerance,
+    minY:y-footprint.halfDepth-tolerance,
+    maxY:y+footprint.halfDepth+tolerance
+  };
+}
+
 function overlapsBuilding(candidate,b,clearance){
   const other=buildingFootprint(b);
   const overlapX=Math.abs(Number(b.x)-candidate.x)<candidate.footprint.halfWidth+other.halfWidth+clearance;
