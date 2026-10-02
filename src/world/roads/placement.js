@@ -22,7 +22,6 @@ export function segmentNearRiver(a,b,threshold=45){const span=Math.max(1,dist(a,
 
 export function roadPathBlocked(s,points,endpointBuildings={}){
   if(!validRoadPoints(points,0))return true;
-  if((points||[]).some(p=>Number(p?.y)<=-1000))return false;
   const startBuilding=endpointBuildings.start||null,endBuilding=endpointBuildings.end||null;
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i];
@@ -67,7 +66,6 @@ function segmentIntersectsRect(a,b,rect){
 }
 
 export function roadPathIntersectsBuildingFootprint(s,points,endpointBuildings={}){
-  if((points||[]).some(p=>Number(p?.y)<=-1000))return false;
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i];
     for(const building of s.buildings||[]){
@@ -93,7 +91,7 @@ function routeBendPenalty(path){return Math.max(0,path.length-2)*18}
 
 function orthogonalObstaclePath(s,start,end,endpointBuildings={}){const obstacles=(s.buildings||[]).filter(b=>b!==endpointBuildings.start&&b!==endpointBuildings.end);if(!obstacles.length)return null;const xs=[start.x,end.x],ys=[start.y,end.y];for(const b of obstacles){const hit=buildingVisualHitbox(b,13);xs.push(hit.minX-1,hit.maxX+1);ys.push(hit.minY-1,hit.maxY+1)}const uniq=a=>[...new Set(a.map(v=>Math.round(v*10)/10))].sort((a,b)=>a-b),xvals=uniq(xs),yvals=uniq(ys),nodes=[],byKey=new Map(),key=(x,y)=>x+','+y;for(const x of xvals)for(const y of yvals){const p={x,y};const pointInsideObstacle=(s?.buildings||[]).some(building=>{if(building===endpointBuildings.start||building===endpointBuildings.end)return false;const rect=buildingVisualHitbox(building,13);return p.x>=rect.minX&&p.x<=rect.maxX&&p.y>=rect.minY&&p.y<=rect.maxY;});if(pointInsideObstacle)continue;const n={x,y,edges:[]};nodes.push(n);byKey.set(key(x,y),n)}const clearSegment=(a,b)=>!roadPathBlocked(s,[a,b],endpointBuildings);for(const y of yvals){const row=nodes.filter(n=>n.y===y).sort((a,b)=>a.x-b.x);for(let i=1;i<row.length;i++){const a=row[i-1],b=row[i];if(clearSegment(a,b)){const d=dist(a,b);a.edges.push({node:b,d});b.edges.push({node:a,d})}}}for(const x of xvals){const col=nodes.filter(n=>n.x===x).sort((a,b)=>a.y-b.y);for(let i=1;i<col.length;i++){const a=col[i-1],b=col[i];if(clearSegment(a,b)){const d=dist(a,b);a.edges.push({node:b,d});b.edges.push({node:a,d})}}}const startNode={x:start.x,y:start.y,edges:[]},endNode={x:end.x,y:end.y,edges:[]},attach=(p,node)=>{for(const n of nodes){if(n.x===p.x&&n.y===p.y)continue;const d=dist(p,n);if(p.x===n.x||p.y===n.y)if(clearSegment(p,n))node.edges.push({node:n,d})}};attach(start,startNode);attach(end,endNode);nodes.push(startNode,endNode);const queue=[{node:startNode,d:0}],best=new Map([[startNode,0]]),prev=new Map();while(queue.length){queue.sort((a,b)=>a.d-b.d);const cur=queue.shift();if(cur.d!==best.get(cur.node))continue;if(cur.node===endNode)break;for(const e of cur.node.edges){const nd=cur.d+e.d;if(nd<(best.get(e.node)??Infinity)){best.set(e.node,nd);prev.set(e.node,cur.node);queue.push({node:e.node,d:nd})}}}if(!best.has(endNode))return null;const path=[];let n=endNode;while(n){path.unshift({x:n.x,y:n.y});n=prev.get(n)}return simplifyRoad(path)}
 
-function chooseRoadPath(s,start,end,endpointBuildings={}){const obstacles=(s.buildings||[]).filter(b=>b!==endpointBuildings.start&&b!==endpointBuildings.end),candidates=candidateRoadPaths(start,end,obstacles).map(simplifyRoad),routed=orthogonalObstaclePath(s,start,end,endpointBuildings);if(routed)candidates.push(routed);const clear=candidates.filter(path=>!roadPathBlocked(s,path,endpointBuildings)&&!roadPathIntersectsBuildingFootprint(s,path,endpointBuildings));if(clear.length)return clear.sort((a,b)=>length(a)+routeBendPenalty(a)-(length(b)+routeBendPenalty(b)))[0];if(obstacles.length){const visualHits=obstacles.map(b=>buildingVisualHitbox(b,18));const top=Math.min(...visualHits.map(hit=>hit.minY))-36,bottom=Math.max(...visualHits.map(hit=>hit.maxY))+36;for(const y of [top,bottom]){const detour=simplifyRoad([start,{x:start.x,y},{x:end.x,y},end]);if(!roadPathBlocked(s,detour,endpointBuildings)&&!roadPathIntersectsBuildingFootprint(s,detour,endpointBuildings))return detour;const left=Math.min(...visualHits.map(hit=>hit.minX))-36;const side=simplifyRoad([start,{x:left,y:start.y},{x:left,y:top},{x:end.x,y:top},end]);if(side&&side.length>=3&&!roadPathBlocked(s,side,endpointBuildings)&&!roadPathIntersectsBuildingFootprint(s,side,endpointBuildings))return side;const emergency=simplifyRoad([start,{x:start.x,y:-1100},{x:end.x,y:-1100},end]);if(emergency&&emergency.length>=3)return emergency;}}return null}
+function chooseRoadPath(s,start,end,endpointBuildings={}){const obstacles=(s.buildings||[]).filter(b=>b!==endpointBuildings.start&&b!==endpointBuildings.end),candidates=candidateRoadPaths(start,end,obstacles).map(simplifyRoad),routed=orthogonalObstaclePath(s,start,end,endpointBuildings);if(routed)candidates.push(routed);const clear=candidates.filter(path=>!roadPathBlocked(s,path,endpointBuildings)&&!roadPathIntersectsBuildingFootprint(s,path,endpointBuildings));if(clear.length)return clear.sort((a,b)=>length(a)+routeBendPenalty(a)-(length(b)+routeBendPenalty(b)))[0];if(obstacles.length){const visualHits=obstacles.map(b=>buildingVisualHitbox(b,18));const top=Math.min(...visualHits.map(hit=>hit.minY))-36,bottom=Math.max(...visualHits.map(hit=>hit.maxY))+36;for(const y of [top,bottom]){const detour=simplifyRoad([start,{x:start.x,y},{x:end.x,y},end]);if(!roadPathBlocked(s,detour,endpointBuildings)&&!roadPathIntersectsBuildingFootprint(s,detour,endpointBuildings))return detour;}}return null}
 
 export {chooseRoadPath};
 
@@ -151,12 +149,9 @@ if(endBuilding){
 }if(startBuilding&&endBuilding&&startBuilding!==endBuilding){const sa=resolveBuildingRoadEndpoint(s,start,startBuilding,endBuilding)?.point,eb=resolveBuildingRoadEndpoint(s,end,endBuilding,startBuilding)?.point,path=sa&&eb?chooseRoadPath(s,sa,eb,{start:startBuilding,end:endBuilding}):null;if(!path)return{path:[sa,eb],start:sa,end:eb,snappedStart:true,snappedEnd:true,connectsBuilding:true,connectsRoad:false,blocked:true,length:Infinity,cost:Infinity};const boundary=validateRoadGeometry(path);
     const roadLength=length(path);
     return{path,start:{...sa,building:startBuilding},end:{...eb,building:endBuilding},snappedStart:true,snappedEnd:true,connectsBuilding:true,connectsRoad:false,blocked:!boundary.ok,length:roadLength,blockedReason:boundary.ok?null:boundary.reason,cost:boundary.ok?Math.max(1,Math.ceil(roadLength/180))*2:Infinity}}
-let path=chooseRoadPath(s,start,end,{start:startBuilding,end:endBuilding});
-  const candidateBoundary=path?validateRoadGeometry(path):null;
-  if(!path||!candidateBoundary?.ok||roadPathBlocked(s,path,{start:startBuilding,end:endBuilding}))path=simplifyRoad([start,{x:start.x,y:-1100},{x:end.x,y:-1100},end]);
+const path=chooseRoadPath(s,start,end,{start:startBuilding,end:endBuilding});
 const boundary=validateRoadGeometry(path||[start,end]);
-const emergencyPath=!!path&&path.some(p=>Number(p?.y)<=-1000);
-const blocked=emergencyPath?false:(!boundary.ok||!path||roadPathBlocked(s,path,{start:startBuilding,end:endBuilding}));
+const blocked=!boundary.ok||!path||roadPathBlocked(s,path,{start:startBuilding,end:endBuilding});
 const roadLength=path?length(path):Infinity;
 return{path:path||[start,end],start,end,snappedStart:Number.isFinite(start.distance),snappedEnd:Number.isFinite(end.distance),edgeSnappedStart:!!start.edgeSnapped,edgeSnappedEnd:!!end.edgeSnapped,gridSnappedStart:!!start.gridSnapped,gridSnappedEnd:!!end.gridSnapped,connectsBuilding:!!start.building||!!end.building,connectsRoad:!!start.road||!!end.road,blocked,blockedReason:!boundary.ok?boundary.reason:null,length:roadLength,cost:Number.isFinite(roadLength)?Math.max(1,Math.ceil(roadLength/180))*2:Infinity}}
 
