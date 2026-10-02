@@ -45,10 +45,17 @@ export function buildingRoadAttachment(s,building){
     for(let i=1;i<points.length;i++){
       const a=points[i-1],b=points[i],q=projectSegment(building,a,b);
       const pointInsideConnectionFootprint=q.point.x>=hit.minX&&q.point.x<=hit.maxX&&q.point.y>=hit.minY&&q.point.y<=hit.maxY;
-      if(pointInsideConnectionFootprint&&(!best||q.distance<best.distance)){
-        best={road,point:{x:q.point.x,y:q.point.y},distance:q.distance,segment:i-1};
+      const entranceDistance=entrance?projectSegment(entrance,a,b).distance:Infinity;
+      const reachesCanonicalGate=entranceDistance<=18;
+      if((pointInsideConnectionFootprint||reachesCanonicalGate)&&(!best||Math.min(q.distance,entranceDistance)<best.distance)){
+        best={
+          road,
+          point:{x:reachesCanonicalGate?entrance.x:q.point.x,y:reachesCanonicalGate?entrance.y:q.point.y},
+          distance:Math.min(q.distance,entranceDistance),
+          segment:i-1
+        };
       }
-    }
+    }    }
   }
   // Persisted/seeded worlds can still contain roads that pre-date the canonical
   // gate. Keep those roads attached to the site for routing compatibility, while
