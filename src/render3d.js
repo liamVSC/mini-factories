@@ -519,9 +519,9 @@ function buildingWorldPosition(building){
   return{x,z};
 }
 function applyBuildingWorldTransform(group,position){
-  // Building coordinates are authoritative world-space coordinates. Do not rely
-  // on inherited/default transforms: write the translation directly into the
-  // group's local matrix and immediately propagate it to matrixWorld.
+  // Building coordinates are authoritative world-space coordinates. This helper
+  // is intentionally called after the group has been parented into the live world
+  // root, so the validation below checks the real scene graph, not only local space.
   group.position.set(position.x,0,position.z);
   group.rotation.set(0,0,0);
   group.scale.set(1,1,1);
@@ -529,11 +529,19 @@ function applyBuildingWorldTransform(group,position){
   group.updateMatrixWorld(true);
   const world=group.getWorldPosition(new THREE.Vector3());
   const dx=Math.abs(world.x-position.x),dz=Math.abs(world.z-position.z);
-  if(dx>1e-6||dz>1e-6){
-    group.position.set(position.x,0,position.z);
+  if(dx>1e-5||dz>1e-5){
+    // Force the exact world transform through the parent's inverse. The current
+    // root is identity, but this remains correct if the root ever gains a transform.
+    const local=new THREE.Vector3(position.x,0,position.z);
+    root.worldToLocal(local);
+    group.position.copy(local);
     group.updateMatrix();
     group.updateMatrixWorld(true);
   }
+  const verified=group.getWorldPosition(new THREE.Vector3());
+  group.userData.worldPosition={x:verified.x,z:verified.z};
+  group.userData.worldPositionVerified=
+    Math.abs(verified.x-position.x)<=1e-5&&Math.abs(verified.z-position.z)<=1e-5;
 }
 function updateWorld(s){
   ws=s;
@@ -560,14 +568,14 @@ function updateWorld(s){
     if(building.id&&liveIds.has(building.id))continue;
     if(building.id)liveIds.add(building.id);
     const g=createBuildingModel(building);
+    // Parent first, then apply and verify the transform in actual world space.
+    root.add(g);
     // Logistics access is derived from the same persisted road/building state used
     // by simulation. Build it once with the model so activity/truck visuals cannot
     // silently operate without a dock attachment.
     addBuildingAccess(g,building);
     applyBuildingWorldTransform(g,position);
     g.userData.building=building;
-    g.userData.worldPosition={x:position.x,z:position.z};
-    root.add(g);
     meshes.set(building.id,g);
     worldObjects.add(g);
   }
