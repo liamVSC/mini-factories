@@ -7,7 +7,11 @@ import {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screen
 import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand,executeCommand} from './commands.js';
 
 const GAME_VERSION=globalThis.MINI_FACTORIES_VERSION;
-const CHANGELOG=[{version:'1.4',date:'2 Oct 2026',items:[
+const CHANGELOG=[{version:'2.0',date:'2 Oct 2026',items:[
+       'Rebuilt factories, warehouses and shops as distinct industrial buildings with multi-height roofs, loading bays and facade details.',
+       'Developed fenced sites with asphalt truck courts, concrete loading aprons, parking, utility areas and working yard gates.',
+       'Unified the active and legacy renderer entry points so obsolete road-to-building apron geometry can no longer render.'
+     ]},{version:'1.4',date:'2 Oct 2026',items:[
        'Road connections now terminate at the single building yard gate instead of the building shell.',
        'Truck routes now enter the yard, use a turning waypoint and finish at the primary loading dock before returning through the same gate.',
        'Visual yard gates are aligned with the canonical road entrance used by routing.'
