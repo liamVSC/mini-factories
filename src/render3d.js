@@ -597,7 +597,7 @@ function createFactoryModel(building={}){
   addGableRoof(g,w,d,h,roof,metal);
   addRoofEquipment(g,w,d,h,metal,dark,3);
   addSafetyDetails(g,w,d,h,metal,dark);
-  addLoadingYard(g,0,(d/2+gateZ)/2,176,64,metal,dark);
+  addLoadingYard(g,0,d/2+26,176,64,metal,dark);
   addIndustrialProps(g,w,d,h,metal,dark);
   addIndustrialSite(g,w,d,h,metal,dark,'factory');
   for(const x of[-w*.28,w*.28]){
@@ -624,7 +624,7 @@ function createWarehouseModel(building={}){
   addGableRoof(g,w,d,h,roof,metal);
   addRoofEquipment(g,w,d,h,metal,dark,4);
   addSafetyDetails(g,w,d,h,metal,dark);
-  addLoadingYard(g,0,(d/2+gateZ)/2,204,78,metal,dark);
+  addLoadingYard(g,0,d/2+26,204,78,metal,dark);
   addIndustrialProps(g,w,d,h,metal,dark);
   addIndustrialSite(g,w,d,h,metal,dark,'warehouse');
   for(const x of[-w*.3,0,w*.3]){
@@ -656,10 +656,10 @@ function createShopModel(building={}){
   addDumpster(g,w*.42,d*.38,metal,dark);
   // Customer frontage stays separate; the truck gate is the single logistics
   // entrance on the same south side as the loading dock.
-  addFenceLine(g,-w/2-10,-d/2-4,-w/2-10,shopGateZ,metal);
-  addFenceLine(g,w/2+10,-d/2-4,w/2+10,shopGateZ,metal);
   const shopDock=buildingDockPoints({kind:'shop'})[0];
   const shopGateZ=(shopDock?.y||(-d/2))+((shopDock?.normal?.y||-1)*52);
+  addFenceLine(g,-w/2-10,-d/2-4,-w/2-10,shopGateZ,metal);
+  addFenceLine(g,w/2+10,-d/2-4,w/2+10,shopGateZ,metal);
   addGate(g,0,shopGateZ,30,metal);
   return g;
 }
