@@ -654,7 +654,11 @@ function createShopModel(building={}){
   addEntrance(g,0,-d/2-.7,12,8,metal,dark);
   addStaffParking(g,0,d/2+38,46,16,metal,dark);
   addDumpster(g,w*.42,d*.38,metal,dark);
-  addFenceLine(g,-w/2-8,-d/2-4,-w/2-8,d/2+8,metal);addGate(g,0,d/2+38,16,metal);
+  // Customer frontage stays separate; the truck gate is the single logistics
+  // entrance on the same south side as the loading dock.
+  addFenceLine(g,-w/2-8,-d/2-4,-w/2-8,-d/2-52,metal);
+  addFenceLine(g,w/2+8,-d/2-4,w/2+8,-d/2-52,metal);
+  addGate(g,0,-d/2-46,18,metal);
   return g;
 }
 function addBuildingStatusVisual(g,building){
