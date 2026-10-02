@@ -4,9 +4,10 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
@@ -18,16 +19,5 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Repair truncated world module if present
-        if: contains(github.event.head_commit.message, 'Trigger one-time world recovery')
-        run: |
-          if grep -q "return... (truncated)" src/world.js; then
-            git restore --source=016b5bebebbce779ea1eb7eb5e9b41859cb21b28 -- src/world.js
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src/world.js
-            git commit -m "Restore world module after failed road fix"
-            git push origin HEAD:main
-          fi
       - name: Run test suite
         run: npm test
