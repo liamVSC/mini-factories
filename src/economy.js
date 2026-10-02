@@ -84,8 +84,8 @@ function junctionForTruck(network,t){
     }
     if(index<0||d>1.5)continue;
     const progress=routeProgressToPoint(controlRoute,j);
-    const remaining=Math.max(0,progress-t.t);
-    const routeLength=Math.max(1,length(t.route));
+    const remaining=progress-t.t;
+    const routeLength=Math.max(1,length(controlRoute));
     const metresAhead=remaining*routeLength;
     if(metresAhead< -6||metresAhead>72)continue;
     if(d<bestDistance){bestDistance=d;best={junction:j,index,progress,metresAhead,movement:movementAtJunction(controlRoute,index)}}
@@ -109,32 +109,27 @@ function preferredTrafficLane(route){
 }
 function routeCurveFactor(route,t){
   if(!Array.isArray(route)||route.length<3)return 1;
-  const p=pointOnRoute(route,t),total=length(route);
-  if(!p||!total)return 1;
-  let best=null,run=0;
-  for(let i=1;i<route.length;i++){
-    const a=route[i-1],b=route[i],seg=dist(a,b);
-    if(!seg)continue;
-    const q=Math.max(0,Math.min(1,((p.x-a.x)*(b.x-a.x)+(p.y-a.y)*(b.y-a.y))/(seg*seg)));
-    const d=run+seg*q;
-    if(best===null||Math.abs(d-total*t)<Math.abs(best-total*t))best=i;
-    run+=seg;
-  }
-  const index=Math.max(1,Math.min(route.length-2,best||1));
-  let maxTurn=0;
-  const start=Math.max(1,index-1),end=Math.min(route.length-2,index+3);
-  for(let i=start;i<=end;i++){
+  const total=length(route);
+  if(!total)return 1;
+  const progress=total*t;
+  let run=0,factor=1;
+  for(let i=1;i<route.length-1;i++){
     const a=route[i-1],b=route[i],c=route[i+1];
     const ab={x:b.x-a.x,y:b.y-a.y},bc={x:c.x-b.x,y:c.y-b.y};
     const al=Math.hypot(ab.x,ab.y),bl=Math.hypot(bc.x,bc.y);
+    const turnProgress=run+al;
+    run=turnProgress;
     if(!al||!bl)continue;
     const dot=Math.max(-1,Math.min(1,(ab.x*bc.x+ab.y*bc.y)/(al*bl)));
-    maxTurn=Math.max(maxTurn,Math.acos(dot));
+    const angle=Math.acos(dot);
+    const turnFactor=angle>.95?.48:angle>.58?.64:angle>.30?.80:1;
+    if(turnFactor===1)continue;
+    const ahead=turnProgress-progress;
+    if(ahead>40||ahead< -12)continue;
+    const proximity=ahead>=0?1-ahead/40:1+ahead/12;
+    factor=Math.min(factor,1-(1-turnFactor)*proximity);
   }
-  if(maxTurn>.95)return .48;
-  if(maxTurn>.58)return .64;
-  if(maxTurn>.30)return .80;
-  return 1;
+  return factor;
 }
 function updateTruckSpeed(t,targetFactor,dt){
   const target=Math.max(0,t.speed*Math.max(0,Math.min(1,targetFactor)));
@@ -161,6 +156,20 @@ function trafficConflict(s,t,network,laneGraph,controls){
   controls=controls||buildJunctionControls(network,laneGraph);
   const controlRoute=t.centerlineRoute||t.route;
   const here=junctionForTruck(network,t);
+  s.trafficReservations=s.trafficReservations||{};
+  const now=s.trafficClock||0;
+  const activeReservationKey=here
+    ?`${Math.round(here.junction.x*10)/10},${Math.round(here.junction.y*10)/10}`
+    :null;
+  for(const [reservationKey,reservationValue] of Object.entries(s.trafficReservations)){
+    if(!reservationValue||reservationValue.until<=now){
+      delete s.trafficReservations[reservationKey];
+      continue;
+    }
+    if(reservationValue.truckId===t.id&&reservationKey!==activeReservationKey){
+      delete s.trafficReservations[reservationKey];
+    }
+  }
   if(!here){
     // Physical crossing detection remains the fallback for saved routes that
     // do not map cleanly to an explicit junction node.
@@ -236,12 +245,7 @@ function trafficConflict(s,t,network,laneGraph,controls){
 
   if(yielding||!signal.allowed)return true;
 
-  s.trafficReservations=s.trafficReservations||{};
-  const now=s.trafficClock||0;
-  for(const [reservationKey,reservationValue] of Object.entries(s.trafficReservations)){
-    if(!reservationValue||reservationValue.until<=now)delete s.trafficReservations[reservationKey];
-  }
-  const key=`${Math.round(here.junction.x*10)/10},${Math.round(here.junction.y*10)/10}`;
+  const key=activeReservationKey;
   const reservation=s.trafficReservations[key];
   if(reservation&&reservation.truckId!==t.id)return true;
   s.trafficReservations[key]={truckId:t.id,movementId:movement?.id||null,until:now+.9};
@@ -635,7 +639,7 @@ export function updateEconomy(s,dt,flash){
       t.trafficControl=null;
       t.wait=Math.max(0,t.wait-dt*.75);
     }
-    const curveFactor=routeCurveFactor(movementRoute,t.t);
+    const curveFactor=routeCurveFactor(t.centerlineRoute||t.route,t.t);
     trafficSpeedFactor=Math.min(trafficSpeedFactor,curveFactor);
     const congestionFactor=Math.max(.55,1-(s.congestion*.18));
     const movementSpeedFactor=t.trafficControl?.movement==='right'?.94:t.trafficControl?.movement==='left'?.97:1;

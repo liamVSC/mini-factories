@@ -1064,6 +1064,40 @@ test('traffic gives an occupied junction to the first arriving movement', () => 
   assert.ok(second.wait>0);
 });
 
+test('junction reservations release after the truck clears the junction',()=>{
+  const s=baseState();
+  s.roads.push(
+    road([{x:-120,y:0},{x:0,y:0}]),
+    road([{x:0,y:0},{x:120,y:0}]),
+    road([{x:0,y:-120},{x:0,y:0}]),
+    road([{x:0,y:0},{x:0,y:120}])
+  );
+  const source={type:'Food',level:1,loading:0,logistics:0,stock:0,max:10};
+  const destination={contract:null};
+  const first={id:'first',route:[{x:-100,y:0},{x:0,y:0},{x:100,y:0}],centerlineRoute:[{x:-100,y:0},{x:0,y:0},{x:100,y:0}],routeKey:'horizontal',t:.35,speed:.1,currentSpeed:.1,value:0,cargo:1,source,to:destination,wait:0,stage:'delivery'};
+  const second={id:'second',route:[{x:0,y:-100},{x:0,y:0},{x:0,y:100}],centerlineRoute:[{x:0,y:-100},{x:0,y:0},{x:0,y:100}],routeKey:'vertical',t:.35,speed:.1,currentSpeed:.1,value:0,cargo:1,source,to:destination,wait:0,stage:'delivery'};
+  s.trucks=[first,second];
+
+  for(let i=0;i<35;i++)updateEconomy(s,.1,()=>{});
+
+  assert.ok(first.t<1,'the first truck has not reached its destination');
+  assert.ok(second.t>.5,'the following movement crosses while the first truck is still en route');
+});
+
+test('a degree-two road bend does not stop a truck or act like a junction',()=>{
+  const s=baseState();
+  const route=[{x:-120,y:0},{x:0,y:0},{x:0,y:120}];
+  s.roads.push(road(route));
+  const truck={id:'bend-truck',route,centerlineRoute:route,routeKey:'bend',t:.2,speed:.1,currentSpeed:.1,value:0,cargo:1,source:{type:'Food',stock:0,max:10},to:{contract:null},wait:0,stage:'delivery'};
+  s.trucks=[truck];
+
+  for(let i=0;i<10;i++)updateEconomy(s,.1,()=>{});
+
+  assert.ok(truck.t>.27,'the truck keeps moving at a normal approach speed');
+  assert.equal(truck.wait,0);
+  assert.equal(truck.trafficControl,null);
+});
+
 test('opposing traffic is not forced to stop on the same straight road', () => {
   const s = baseState();
   const source = {type:'Food',level:1,loading:0,logistics:0,stock:0,max:10};
