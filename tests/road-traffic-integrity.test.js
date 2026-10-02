@@ -298,7 +298,6 @@ test('routing carries the road-network revision and detects stale derived routes
 
 test('road command undo restores the topology revision and traffic reservations',()=>{
   const s=roadState();
-  const {createCommandHistory,AddRoadCommand}=await import('../src/commands.js');
   const history=createCommandHistory();
   s.trafficReservations={'0,0':{truckId:'old',until:99}};
   const beforeRevision=s.roadNetworkRevision;
