@@ -44,6 +44,10 @@ export function addRoad(s,points,meta={}){
   if(meta.startBuilding&&startConnection)normalized[0]=startConnection.point;
   if(meta.endBuilding&&endConnection)normalized[normalized.length-1]=endConnection.point;
   points=normalized;
+  // Re-check duplicates after canonical building facade endpoints are resolved.
+  // Center-point duplicate checks alone can miss the same road once the larger
+  // building envelopes shorten it to its connection points.
+  if((s.roads||[]).some(r=>roadsExactlyDuplicate(r,{points})))return'duplicate';
   const validation=validateRoadGeometry(points);
   if(!validation.ok){
     const raw=validRoadPoints(points,0);
