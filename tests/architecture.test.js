@@ -13,7 +13,7 @@ import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from
 import {createCommandHistory,AddRoadCommand,PlaceBuildingCommand,DeleteRoadCommand} from '../src/commands.js';
 import {seed} from '../src/world/buildings/index.js';
 import {factorySpawnCandidates,validateBuildingLayout,layoutIsValid} from '../src/world/buildings/layout.js';
-import {buildingFootprint,buildingVisualFootprint} from '../src/world/buildings/geometry.js';
+import {buildingFootprint,buildingVisualFootprint,buildingPrimaryDock,buildingRoadEntrance,buildingRoadHitbox} from '../src/world/buildings/geometry.js';
 
 import {buildJunctionControls,movementPermission,stopLinePoint} from '../src/junctionControl.js';
 
@@ -152,6 +152,26 @@ test('factory placement footprint covers the rendered site envelope',()=>{
   assert.deepEqual(footprint,visual);
   assert.ok(footprint.halfWidth>=50);
   assert.ok(footprint.halfDepth>=58);
+});
+
+test('building yards have a single canonical truck gate inside the protected site envelope',()=>{
+  for(const kind of ['factory','warehouse','shop']){
+    const building={id:kind,x:0,y:0,kind};
+    const footprint=buildingVisualFootprint(building);
+    const entrance=buildingRoadEntrance(building);
+    const dock=buildingPrimaryDock(building);
+    const shell=buildingRoadHitbox(building,0);
+    assert.ok(entrance&&dock,kind);
+    assert.equal(dock,buildingPrimaryDock(building));
+    const withinEnvelope=
+      Math.abs(entrance.x)<=footprint.halfWidth &&
+      Math.abs(entrance.y)<=footprint.halfDepth;
+    assert.equal(withinEnvelope,true,kind);
+    const outsideShell=
+      entrance.x<shell.minX||entrance.x>shell.maxX||
+      entrance.y<shell.minY||entrance.y>shell.maxY;
+    assert.equal(outsideShell,true,kind);
+  }
 });
 
 test('factory spawn candidates are spatially separated from the world centre',()=>{
