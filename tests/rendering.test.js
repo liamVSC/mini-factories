@@ -7,8 +7,8 @@ import {savedBuildingToWorldPosition,projectWorldPointToNdc,buildingRenderTrace}
 // Column-major projection fixture: world X -> NDC X and world Z -> NDC Y.
 const ORTHOGRAPHIC_TEST_MATRIX=[
   .001,0,0,0,
-  0,0,.001,0,
-  0,0,.001,0,
+  0,0,0,0,
+  0,.001,1,0,
   0,0,0,1
 ];
 
