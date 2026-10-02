@@ -62,29 +62,40 @@ export function validateBuildingLayout(buildings=[]){
   return issues;
 }
 
-function layoutRotation(seed){
-  // Use the full 32-bit layout seed instead of only seed % 360. Using the
-  // remainder made many different new games collapse onto the same handful
-  // of visible starter layouts.
+function mixSeed(seed){
   let value=(Math.floor(Number(seed))>>>0)||1;
-  value=Math.imul(value^0x9e3779b9,1664525)+1013904223>>>0;
-  return value/4294967296*Math.PI*2;
+  value=(value+0x9e3779b9)>>>0;
+  value=Math.imul(value^(value>>>16),0x21f0aaad)>>>0;
+  value=Math.imul(value^(value>>>15),0x735a2d97)>>>0;
+  return (value^(value>>>15))>>>0;
+}
+
+function randomFromSeed(seed){
+  return mixSeed(seed)/4294967296;
+}
+
+function layoutRotation(seed){
+  return randomFromSeed(seed)*Math.PI*2;
 }
 
 export function factorySpawnCandidates(seed,attempt=0){
-  const rotation=layoutRotation(seed);
-  // Keep starter factories decisively outside the central play area. The old 620-unit
-  // ring still looked central on the default camera, so the new ring starts at 900.
-  const radius=900+Math.floor(attempt/6)*85;
+  const baseSeed=mixSeed(seed+attempt*0x45d9f3b);
+  const rotation=baseSeed/4294967296*Math.PI*2;
   const phase=attempt%6;
   const candidates=[];
 
   for(let slot=0;slot<3;slot++){
-    const angle=rotation+slot*(Math.PI*2/3)+(phase-2.5)*0.045;
-    const radialOffset=phase>=3?(phase-2)*18:0;
+    const slotSeed=mixSeed(baseSeed+slot*0x9e3779b9);
+    const angle=rotation
+      +slot*(Math.PI*2/3)
+      +(randomFromSeed(slotSeed)-.5)*0.16
+      +(phase-2.5)*0.045;
+    const radius=880
+      +randomFromSeed(slotSeed+17)*180
+      +Math.floor(attempt/6)*45;
     candidates.push({
-      x:Math.cos(angle)*(radius+radialOffset),
-      y:Math.sin(angle)*(radius+radialOffset)
+      x:Math.cos(angle)*radius,
+      y:Math.sin(angle)*radius
     });
   }
 
