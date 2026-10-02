@@ -4,9 +4,10 @@ import {freshState} from '../src/state.js';
 import {seed} from '../src/world/buildings/index.js';
 import {savedBuildingToWorldPosition,projectWorldPointToNdc,buildingRenderTrace} from '../src/rendering/buildingTransform.js';
 
+// Column-major projection fixture: world X -> NDC X and world Z -> NDC Y.
 const ORTHOGRAPHIC_TEST_MATRIX=[
   .001,0,0,0,
-  0,.001,0,0,
+  0,0,.001,0,
   0,0,.001,0,
   0,0,0,1
 ];
