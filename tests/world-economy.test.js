@@ -968,10 +968,10 @@ test('road preview from a building faces the destination and snaps to a nearby b
   assert.ok(!preview.blocked);
   assert.equal(preview.start.building, start);
   assert.equal(preview.end.building, end);
-  assert.ok(preview.start.x > start.x);
-  assert.ok(preview.end.x < end.x);
-  assert.ok(Math.abs(preview.start.y - start.y) < 1e-9);
-  assert.ok(Math.abs(preview.end.y - end.y) < 1e-9);
+  const expectedStart=buildingRoadEntrance(start);
+  const expectedEnd=buildingRoadEntrance(end);
+  assert.deepEqual({x:preview.start.x,y:preview.start.y},{x:expectedStart.x,y:expectedStart.y});
+  assert.deepEqual({x:preview.end.x,y:preview.end.y},{x:expectedEnd.x,y:expectedEnd.y});
 });
 
 test('traffic yields at a crossing instead of driving through another truck', () => {
