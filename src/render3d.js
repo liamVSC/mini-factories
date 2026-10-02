@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=3';
 import {riverY,isInsideWorldBounds,WORLD_BOUNDS,WORLD_MARGIN,WORLD_HALF_SIZE,roadTopology,buildingConnectionPoint,buildingHitbox,buildingDockPoints,buildingRoadEntrance,roadAttachment} from './world.js';
 
 let renderer=null,scene=null,camera3d=null,root=null,previewGroup=null,buildingPreviewGroup=null,roadEditGroup=null,roadEndpointGroup=null;
@@ -600,6 +600,17 @@ function createFactoryModel(building={}){
   addLoadingYard(g,0,d/2+26,176,64,metal,dark);
   addIndustrialProps(g,w,d,h,metal,dark);
   addIndustrialSite(g,w,d,h,metal,dark,'factory');
+  // Stronger architectural silhouette: a taller central process block, side
+  // service wings and a raised mechanical roof make the factory read as an
+  // industrial facility even at the normal gameplay camera distance.
+  addBoxPart(g,new THREE.BoxGeometry(w*.34,h*.72,d*.72),body,-w*.31,h*.86+2,d*.06);
+  addBoxPart(g,new THREE.BoxGeometry(w*.24,h*.58,d*.58),dark,w*.31,h*.72+2,-d*.03);
+  addBoxPart(g,new THREE.BoxGeometry(w*.38,3.2,d*.82),metal,-w*.02,h+3.5,0);
+  addBoxPart(g,new THREE.BoxGeometry(w*.16,5,d*.72),roof,-w*.27,h+6,0);
+  for(const x of[-w*.39,w*.39]){
+    addBoxPart(g,new THREE.BoxGeometry(4,h*.48,d*.54),metal,x,h*.25+2,0);
+    addBoxPart(g,new THREE.BoxGeometry(7,2.5,d*.58),dark,x,h*.54+2,0);
+  }
   for(const x of[-w*.28,w*.28]){
     addBoxPart(g,new THREE.CylinderGeometry(4.2,5.2,26,18),dark,x,h+12,0);
     addBoxPart(g,new THREE.CylinderGeometry(4.8,4.8,1.6,18),metal,x,h+22.5,0);
@@ -627,6 +638,11 @@ function createWarehouseModel(building={}){
   addLoadingYard(g,0,d/2+26,204,78,metal,dark);
   addIndustrialProps(g,w,d,h,metal,dark);
   addIndustrialSite(g,w,d,h,metal,dark,'warehouse');
+  // Break the warehouse into recognisable logistics volumes instead of one
+  // undifferentiated box: a taller storage hall plus a lower dispatch wing.
+  addBoxPart(g,new THREE.BoxGeometry(w*.58,h*.42,d*.82),body,-w*.08,h*.68+2,-d*.01);
+  addBoxPart(g,new THREE.BoxGeometry(w*.24,h*.68,d*.58),dark,w*.34,h*.82+2,.04);
+  addBoxPart(g,new THREE.BoxGeometry(w*.72,2.8,d*.84),metal,-w*.02,h+3.2,0);
   for(const x of[-w*.3,0,w*.3]){
     addBoxPart(g,new THREE.BoxGeometry(14,4,9),dark,x,h+4.5,0);
     addBoxPart(g,new THREE.BoxGeometry(10,1.2,6),metal,x,h+6.3,0);
@@ -648,6 +664,10 @@ function createShopModel(building={}){
   addBoxPart(g,new THREE.BoxGeometry(w*.55,2.8,.8),dark,0,14,d/2+.7);
   addFacadeWindows(g,w,d,14,glass,dark,true);
   for(const x of[-w*.32,w*.32])addBoxPart(g,new THREE.BoxGeometry(5,2,4),metal,x,h+3.5,0);
+  // Give the shop a stepped retail silhouette and visible service wing.
+  addBoxPart(g,new THREE.BoxGeometry(w*.46,8,d*.62),body,-w*.24,7,-d*.02);
+  addBoxPart(g,new THREE.BoxGeometry(w*.22,5,d*.72),dark,w*.30,5,d*.02);
+  addBoxPart(g,new THREE.BoxGeometry(w*.5,2.2,d*.66),metal,-w*.18,h+2.5,-d*.02);
   addBoxPart(g,new THREE.BoxGeometry(72,.2,42),mat('#5c6260',.98),0,.12,d/2+50,0,false);
   for(const x of[-27,0,27])addBoxPart(g,new THREE.BoxGeometry(2.8,.12,22),metal,x,.27,d/2+39,0,false);
   for(const x of[-33,33])addBoxPart(g,new THREE.BoxGeometry(3,1.8,3),dark,x,.9,d/2+39);
