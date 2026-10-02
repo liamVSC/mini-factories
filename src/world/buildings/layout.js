@@ -22,6 +22,7 @@ export function buildingPlacementConflict(a,b){
 export function validateBuildingLayout(buildings=[]){
   const issues=[];
   const seenIds=new Set();
+  const coordinateKeys=new Set();
 
   for(let i=0;i<buildings.length;i++){
     const building=buildings[i];
@@ -33,6 +34,13 @@ export function validateBuildingLayout(buildings=[]){
     if(building.id){
       if(seenIds.has(building.id))issues.push({type:'duplicate-id',index:i,building});
       seenIds.add(building.id);
+    }
+
+    const coordinateKey=`${Number(building.x)},${Number(building.y)}`;
+    if(coordinateKeys.has(coordinateKey)){
+      issues.push({type:'stacked-position',index:i,building});
+    }else{
+      coordinateKeys.add(coordinateKey);
     }
 
     if(!isInsideWorldBounds(building,WORLD_MARGIN)){
