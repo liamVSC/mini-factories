@@ -4,7 +4,7 @@ import {isInsideWorldBounds,validateRoadGeometry} from './validation.js';
 import {WORLD_BOUNDS,WORLD_MARGIN} from '../terrain.js';
 import {nearestBuildingRoadTarget} from '../buildings/connections.js';
 import {buildingFootprintRadius} from '../buildings/geometry.js';
-import {roadBuildingTarget,snapRoadPoint,snapToWorldEdge,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,segmentNearRiver} from './placement.js';
+import {roadBuildingTarget,snapRoadPoint,snapToWorldEdge,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,chooseRoadPath,segmentNearRiver} from './placement.js';
 import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate} from './intersections.js';
 import {bumpRoadNetworkRevision} from './topology.js';
 
