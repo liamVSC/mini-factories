@@ -81,6 +81,8 @@ function orthogonalObstaclePath(s,start,end,endpointBuildings={}){const obstacle
 
 function chooseRoadPath(s,start,end,endpointBuildings={}){const obstacles=(s.buildings||[]).filter(b=>b!==endpointBuildings.start&&b!==endpointBuildings.end),candidates=candidateRoadPaths(start,end,obstacles).map(simplifyRoad),routed=orthogonalObstaclePath(s,start,end,endpointBuildings);if(routed)candidates.push(routed);const clear=candidates.filter(path=>!roadPathBlocked(s,path,endpointBuildings)&&!roadPathIntersectsBuildingFootprint(s,path,endpointBuildings));if(clear.length)return clear.sort((a,b)=>length(a)+routeBendPenalty(a)-(length(b)+routeBendPenalty(b)))[0];if(obstacles.length){const top=Math.min(...obstacles.map(b=>buildingHitbox(b,28).minY)),bottom=Math.max(...obstacles.map(b=>buildingHitbox(b,28).maxY));for(const y of [top,bottom]){const detour=simplifyRoad([start,{x:start.x,y},{x:end.x,y},end]);if(!roadPathBlocked(s,detour,endpointBuildings)&&!roadPathIntersectsBuildingFootprint(s,detour,endpointBuildings))return detour;}}return null}
 
+export {chooseRoadPath};
+
 export function snapToWorldEdge(p){
   if(!finitePoint(p))return null;
   const minX=WORLD_BOUNDS.minX+WORLD_MARGIN,maxX=WORLD_BOUNDS.maxX-WORLD_MARGIN;
