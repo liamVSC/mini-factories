@@ -876,3 +876,50 @@ test('stale traffic reservations expire on simulation time rather than browser t
   assert.ok(s.trucks[0].t>.45);
   assert.equal(s.trafficReservations['0,0']?.truckId,'new');
 });
+
+
+test('play-sequence regression: build, dispatch, delete road, reroute, save/load, and resume dispatch',()=>{
+  const s=freshState();
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-seq');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},240,0,'shop-seq');
+  factory.stock=4;
+  s.buildings.push(factory,shop);
+
+  const direct={id:'seq-direct',points:[{x:0,y:0},{x:240,y:0}],bridge:false,condition:1,age:0};
+  const northA={id:'seq-north-a',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0};
+  const northB={id:'seq-north-b',points:[{x:0,y:120},{x:240,y:120}],bridge:false,condition:1,age:0};
+  const northC={id:'seq-north-c',points:[{x:240,y:120},{x:240,y:0}],bridge:false,condition:1,age:0};
+  s.roads.push(direct,northA,northB,northC);
+
+  updateEconomy(s,1.2,()=>{});
+  assert.equal(s.trucks.length,1);
+  const active=s.trucks[0];
+  active.t=.35;
+  const before=pointOnRoute(active.route,active.t);
+
+  assert.equal(eraseRoad(s,{x:120,y:0}),true);
+  assert.equal(active.routeInvalidated,true);
+  updateEconomy(s,.01,()=>{});
+  assert.equal(active.routeInvalidated,false);
+  assert.equal(active.dead,undefined);
+  const after=pointOnRoute(active.route,active.t);
+  assert.ok(dist(before,after)<20);
+  assert.ok(active.route.some(p=>Math.abs(p.y-120)<1));
+
+  const snapshot=serialise(s);
+  const loaded=hydrate(snapshot);
+  assert.ok(loaded);
+  assert.equal(loaded.roads.length,3);
+  assert.equal(loaded.roads.some(r=>r.id==='seq-direct'),false);
+  assert.deepEqual(loaded.trucks,[]);
+  assert.equal(loaded.buildings.find(b=>b.id==='factory-seq').stock,factory.stock);
+
+  const loadedFactory=loaded.buildings.find(b=>b.id==='factory-seq');
+  const loadedShop=loaded.buildings.find(b=>b.id==='shop-seq');
+  loadedFactory.stock+=3;
+  loadedShop.demand=3;
+  updateEconomy(loaded,1.2,()=>{});
+  assert.equal(loaded.trucks.length,1);
+  assert.ok(loaded.trucks[0].route.length>=2);
+  assert.ok(loaded.trucks[0].route.some(p=>Math.abs(p.y-120)<1));
+});
