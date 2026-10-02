@@ -45,14 +45,6 @@ for(let ri=0;ri<valid.length;ri++)for(let qi=ri;qi<valid.length;qi++){
     connectEndpoint(bRoad,bEnd.index,n);
   }
 
-  const attachEndpointToRoad=(end,road)=>{
-    for(let j=1;j<road.points.length;j++){
-      const q=projectSegment(end.point,road.points[j-1],road.points[j]);
-      if(q.distance>junctionTolerance)continue;
-      const n=addNode(nodes,q.point,.5);
-      connectEndpoint(end===null?road: aRoad,end?.index??0,n);
-    }
-  };
 
   for(const aEnd of aEnds){
     for(let j=1;j<bRoad.points.length;j++){
