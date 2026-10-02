@@ -9,6 +9,7 @@ const {hydrate}=await import('../src/persistence/load.js');
 const {serialise}=await import('../src/persistence/save.js');
 const {pointOnRoute,length,dist,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget,roadEndpointPreview,editRoadEndpoint,editRoadSegment,roadNetwork,roadTopology,cleanupRoadNetwork,WORLD_BOUNDS,WORLD_MARGIN}=await import('../src/world.js');
 const {updateEconomy}=await import('../src/economy.js');
+const {segmentCrossesRiver}=await import('../src/world/roads/placement.js');
 
 const route=[{x:0,y:0},{x:100,y:0}];
 const truck=(overrides={})=>({
@@ -26,6 +27,13 @@ const truck=(overrides={})=>({
   wait:0,
   stage:'delivery',
   ...overrides
+});
+
+test('bridge classification only occurs when a road crosses the river',()=>{
+  assert.equal(segmentCrossesRiver({x:-200,y:360},{x:200,y:360}),false);
+  assert.equal(segmentCrossesRiver({x:-200,y:480},{x:200,y:480}),false);
+  assert.equal(segmentCrossesRiver({x:-200,y:300},{x:200,y:520}),true);
+  assert.equal(segmentCrossesRiver({x:0,y:300},{x:0,y:540}),true);
 });
 
 test('route interpolation follows distance, not point index',()=>{
