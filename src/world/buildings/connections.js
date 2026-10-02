@@ -51,6 +51,7 @@ export function buildingRoadAttachment(s,building){
         best={
           road,
           point:{x:reachesCanonicalGate?entrance.x:q.point.x,y:reachesCanonicalGate?entrance.y:q.point.y},
+          roadPoint:{x:q.point.x,y:q.point.y},
           distance:Math.min(q.distance,entranceDistance),
           segment:i-1
         };
