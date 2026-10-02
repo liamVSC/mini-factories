@@ -12,6 +12,7 @@ import {
   routeOnRoadNetwork,
   connectedRoadComponents,
   isRouteStale,
+  buildingDockPoints,
   buildingPhysicalPlacementReason,
   seed
 } from '../src/world.js';
