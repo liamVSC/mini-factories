@@ -14,9 +14,9 @@ const PLACEMENT_FOOTPRINTS=Object.freeze({
   // These are the full practical site envelopes, including the enlarged depot
   // yard and the single truck gate/driveway. They are deliberately larger than
   // the rendered building shell so neighbouring sites cannot overlap visually.
-  warehouse:Object.freeze({halfWidth:115,halfDepth:170}),
-  factory:Object.freeze({halfWidth:100,halfDepth:150}),
-  shop:Object.freeze({halfWidth:95,halfDepth:130}),
+  warehouse:Object.freeze({halfWidth:132,halfDepth:190}),
+  factory:Object.freeze({halfWidth:116,halfDepth:170}),
+  shop:Object.freeze({halfWidth:108,halfDepth:148}),
   default:Object.freeze({halfWidth:50,halfDepth:62})
 });
 
@@ -123,9 +123,9 @@ export function nearestBuilding(s,p){
 }
 
 const SHELL_FOOTPRINTS=Object.freeze({
-  warehouse:Object.freeze({halfWidth:82,halfDepth:56}),
-  factory:Object.freeze({halfWidth:75,halfDepth:56}),
-  shop:Object.freeze({halfWidth:75,halfDepth:50}),
+  warehouse:Object.freeze({halfWidth:104,halfDepth:70}),
+  factory:Object.freeze({halfWidth:90,halfDepth:64}),
+  shop:Object.freeze({halfWidth:86,halfDepth:58}),
   default:Object.freeze({halfWidth:48,halfDepth:40})
 });
 
