@@ -33,11 +33,14 @@ export function addRoad(s,points,meta={}){
   // keeps legacy center-to-center duplicate calls from collapsing into a
   // too-short facade segment as building envelopes grow.
   if((s.roads||[]).some(r=>roadsExactlyDuplicate(r,{points:normalized})))return'duplicate';
-  const startConnection=resolveBuildingRoadEndpoint(s,normalized[0],meta.startBuilding,normalized.at(-1));
-  const endConnection=resolveBuildingRoadEndpoint(s,normalized.at(-1),meta.endBuilding,normalized[0]);
-  const startBuilding=startConnection?.building||null;
-  const endBuilding=endConnection?.building||null;
-  if(startBuilding&&endBuilding&&startBuilding===endBuilding)return'blocked';
+  const startBuilding=meta.startBuilding||null,endBuilding=meta.endBuilding||null;
+  const startAtCenter=!!startBuilding&&dist(normalized[0],{x:startBuilding.x,y:startBuilding.y})<=2;
+  const endAtCenter=!!endBuilding&&dist(normalized.at(-1),{x:endBuilding.x,y:endBuilding.y})<=2;
+  const startConnection=startAtCenter?null:resolveBuildingRoadEndpoint(s,normalized[0],startBuilding,normalized.at(-1));
+  const endConnection=endAtCenter?null:resolveBuildingRoadEndpoint(s,normalized.at(-1),endBuilding,normalized[0]);
+  const resolvedStartBuilding=startConnection?.building||startBuilding;
+  const resolvedEndBuilding=endConnection?.building||endBuilding;
+  if(resolvedStartBuilding&&resolvedEndBuilding&&resolvedStartBuilding===resolvedEndBuilding)return'blocked';
   // Explicit building connections use facade endpoints. Legacy direct addRoad
   // calls may still provide a building centre as an endpoint; keep those
   // coordinates intact and let the endpoint collision rules validate them.
@@ -60,7 +63,7 @@ export function addRoad(s,points,meta={}){
     const a=meta.startBuilding||roadBuildingTarget(s,clean[0]),b=meta.endBuilding||roadBuildingTarget(s,clean.at(-1));
     if(!a||!b||a===b)return'too-short';
   }
-  if(roadPathBlocked(s,clean,{start:startBuilding,end:endBuilding}))return'blocked';
+  if(roadPathBlocked(s,clean,{start:resolvedStartBuilding,end:resolvedEndBuilding}))return'blocked';
   const cost=Math.max(1,Math.ceil(roadLength/180))*2;
   if(!Number.isFinite(cost)||!Number.isFinite(s.cash)||s.cash<cost)return'cash';
   if((s.roads||[]).some(r=>roadsExactlyDuplicate(r,{points:clean})||roadsHaveMeaningfulOverlap(r,{points:clean})))return'duplicate';
