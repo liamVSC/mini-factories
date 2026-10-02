@@ -615,9 +615,11 @@ function enforceBuildingWorldTransforms(s){
     const anchor=g?.userData.worldAnchor;
     if(!g||!anchor||!position)continue;
     applyBuildingWorldTransform(anchor,position);
+    // The model remains at local origin, but its local scale is also used by
+    // the selection highlight. Do not reset scale here or the highlight would
+    // disappear after the next render frame.
     g.position.set(0,0,0);
     g.rotation.set(0,0,0);
-    g.scale.set(1,1,1);
     g.updateMatrix();
     g.updateMatrixWorld(true);
   }
