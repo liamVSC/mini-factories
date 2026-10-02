@@ -5,6 +5,8 @@ import {buildingHitbox,buildingVisualHitbox,nearestBuilding} from '../buildings/
 import {resolveBuildingRoadEndpoint,resolveBuildingRoadTarget,buildingRoadEndpointClearance} from '../buildings/connections.js';
 
 const ROAD_BUILDING_SNAP_TOLERANCE=46;
+// Preview snapping should require proximity to the actual road facade, not merely the expanded site envelope.
+const ROAD_PREVIEW_BUILDING_SNAP_TOLERANCE=18;
 
 export function roadBuildingTarget(s,p){const target=resolveBuildingRoadTarget(s,p,ROAD_BUILDING_SNAP_TOLERANCE);return target?.building||null}
 
@@ -119,7 +121,7 @@ function roadTargetInternal(s,p){
     return resolved?{...resolved.point,building:resolved.building,distance:0}:null;
   }
   if(p.road&&Number.isFinite(p.x)&&Number.isFinite(p.y))return{x:p.x,y:p.y,road:p.road,distance:0};
-  const buildingTarget=resolveBuildingRoadTarget(s,p,ROAD_BUILDING_SNAP_TOLERANCE);
+  const buildingTarget=resolveBuildingRoadTarget(s,p,ROAD_PREVIEW_BUILDING_SNAP_TOLERANCE);
   const road=nearestRoad(s,p);
   if(buildingTarget&&road){
     if(buildingTarget.distance<=10||road.distance<=buildingTarget.distance){
