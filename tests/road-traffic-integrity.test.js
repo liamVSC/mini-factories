@@ -294,3 +294,20 @@ test('routing carries the road-network revision and detects stale derived routes
   assert.equal(eraseRoad(s,{x:0,y:0}),true);
   assert.equal(isRouteStale(s,route),true);
 });
+
+
+test('road command undo restores the topology revision and traffic reservations',()=>{
+  const s=roadState();
+  const {createCommandHistory,AddRoadCommand}=await import('../src/commands.js');
+  const history=createCommandHistory();
+  s.trafficReservations={'0,0':{truckId:'old',until:99}};
+  const beforeRevision=s.roadNetworkRevision;
+  const result=history.execute(s,new AddRoadCommand([{x:-180,y:0},{x:0,y:0}]));
+  assert.equal(result.ok,true);
+  assert.equal(s.roadNetworkRevision,beforeRevision+1);
+  s.trafficReservations={'0,0':{truckId:'new',until:99}};
+  assert.equal(history.undo(s),true);
+  assert.equal(s.roadNetworkRevision,beforeRevision);
+  assert.deepEqual(s.roads,[]);
+  assert.deepEqual(s.trafficReservations,{'0,0':{truckId:'old',until:99}});
+});
