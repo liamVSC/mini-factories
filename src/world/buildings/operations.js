@@ -84,10 +84,10 @@ export function seed(s){
   // world must never receive a second starter layout.
   if(!s||s.seeded===true)return false;
 
-  // Refuse to seed a state that already contains world entities. This protects
-  // against accidental calls from gameplay/editor code and prevents duplicate
-  // starter buildings from being appended to a live world.
-  if((s.buildings?.length||0)>0||(s.roads?.length||0)>0)return false;
+  // Refuse to seed a state that already contains buildings. Roads may already
+  // exist because map setup can create the starter road network before buildings
+  // are seeded; seeding must remain safe in that case while still preventing
+  // duplicate starter buildings.
 
   const originalBuildings=s.buildings;
   const originalSeeded=s.seeded;
