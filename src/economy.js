@@ -262,7 +262,8 @@ function fullLaneMovementRoute(route){
 }
 function rerouteTruck(s,t){
   if(!t?.source||!t?.to)return false;
-  const p=pointOnRoute(t.route,t.t);
+  const currentMovementRoute=Array.isArray(t.laneRoute)&&t.laneRoute.length>=2?t.laneRoute:t.route;
+  const p=pointOnRoute(currentMovementRoute,t.t);
   const next=route(s,t.source,t.to);
   if(!next)return false;
   const projected=projectRouteProgress(next.points,p);
