@@ -51,7 +51,7 @@ class MutationCommand{
 }
 
 export class AddRoadCommand extends MutationCommand{
-  constructor(points,meta={}){super('add-road',['roads','cash','trucks']);this.points=points;this.meta=meta}
+  constructor(points,meta={}){super('add-road',['roads','cash','trucks','roadNetworkRevision','trafficReservations']);this.points=points;this.meta=meta}
   validate(state){
     if(!Array.isArray(this.points)||this.points.length<2)return{ok:false,reason:'invalid'};
     return{ok:true};
@@ -60,13 +60,13 @@ export class AddRoadCommand extends MutationCommand{
 }
 
 export class DeleteRoadCommand extends MutationCommand{
-  constructor(point){super('delete-road',['roads','trucks']);this.point=point}
+  constructor(point){super('delete-road',['roads','trucks','roadNetworkRevision','trafficReservations']);this.point=point}
   validate(state){return roadSegmentAtPoint(state,this.point)?{ok:true}:{ok:false,reason:'no-road'}}
   apply(state){return eraseRoad(state,this.point)}
 }
 
 export class MoveRoadEndpointCommand extends MutationCommand{
-  constructor(roadId,index,point){super('move-road-endpoint',['roads','trucks']);this.roadId=roadId;this.index=index;this.point=point}
+  constructor(roadId,index,point){super('move-road-endpoint',['roads','trucks','roadNetworkRevision','trafficReservations']);this.roadId=roadId;this.index=index;this.point=point}
   validate(state){
     const road=(state.roads||[]).find(r=>r?.id===this.roadId);
     if(!road)return{ok:false,reason:'road-not-found'};
