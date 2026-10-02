@@ -77,6 +77,35 @@ test('disconnected road components do not produce a lane route',()=>{
 });
 
 
+test('truck routes enter building gates and continue through the yard to the primary dock',()=>{
+  const s=roadState();
+  const factory={id:'factory',x:0,y:160,kind:'factory',r:25,type:'Steel'};
+  const shop={id:'shop',x:0,y:-160,kind:'shop',r:25,type:'Market'};
+  s.buildings=[factory,shop];
+
+  const factoryGate={x:factory.x,y:factory.y+108};
+  const shopGate={x:shop.x,y:shop.y-110};
+  assert.equal(addRoad(s,[{x:factoryGate.x,y:factoryGate.y},{x:factoryGate.x,y:0}]),true);
+  assert.equal(addRoad(s,[{x:shopGate.x,y:shopGate.y},{x:shopGate.x,y:0}]),true);
+
+  const route=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(route);
+  assert.ok(route.startYard.length>=3);
+  assert.ok(route.endYard.length>=3);
+  assert.ok(route.yardDistance>0);
+
+  const factoryDock=buildingDockPoints(factory)[0];
+  const shopDock=buildingDockPoints(shop)[0];
+  assert.ok(Math.hypot(route.points[0].x-factoryDock.approach.x,route.points[0].y-factoryDock.approach.y)<.01);
+  const last=route.points.at(-1);
+  assert.ok(Math.hypot(last.x-shopDock.approach.x,last.y-shopDock.approach.y)<.01);
+
+  const factoryEntrance=buildingRoadEntrance(factory);
+  const shopEntrance=buildingRoadEntrance(shop);
+  assert.ok(route.points.some(p=>Math.hypot(p.x-factoryEntrance.x,p.y-factoryEntrance.y)<.01));
+  assert.ok(route.points.some(p=>Math.hypot(p.x-shopEntrance.x,p.y-shopEntrance.y)<.01));
+});
+
 test('routing traverses a junction and preserves explicit turn state',()=>{
   const s=roadState();
   const factory={id:'factory',x:-160,y:0,kind:'factory',r:25};
