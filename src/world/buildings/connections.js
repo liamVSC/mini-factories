@@ -1,5 +1,5 @@
 import {validRoadPoints,projectSegment} from '../roads/geometry.js';
-import {buildingConnectionPoint,buildingRoadFootprint,buildingRoadHitbox,buildingFootprintRadius} from './geometry.js';
+import {buildingConnectionPoint,buildingRoadEntrance,buildingRoadFootprint,buildingRoadHitbox,buildingFootprintRadius} from './geometry.js';
 
 export function resolveBuildingRoadEndpoint(s,p,target=null,directionTarget=p){
   const building=target||s.buildings?.find(candidate=>{const hit=buildingRoadHitbox(candidate,0);return Number(p?.x)>=hit.minX&&Number(p?.x)<=hit.maxX&&Number(p?.y)>=hit.minY&&Number(p?.y)<=hit.maxY;});
@@ -31,6 +31,7 @@ export function resolveBuildingRoadTarget(s,p,maxDistance=46){
 
 export function buildingRoadAttachment(s,building){
   if(!building)return null;
+  const entrance=buildingRoadEntrance(building);
   const footprint=buildingRoadFootprint(building);
   const limit=Math.max(48,Math.hypot(footprint.halfWidth,footprint.halfDepth)+6,(building.r||25)+18);
   let best=null;
@@ -38,13 +39,16 @@ export function buildingRoadAttachment(s,building){
     const points=validRoadPoints(road?.points,0);
     if(!points)continue;
     for(let i=1;i<points.length;i++){
-      const a=points[i-1],b=points[i],q=projectSegment(building,a,b);
+      const a=points[i-1],b=points[i],q=projectSegment(entrance||building,a,b);
       if(q.distance<=limit&&(!best||q.distance<best.distance)){
         best={road,point:{x:q.point.x,y:q.point.y},distance:q.distance,segment:i-1};
       }
     }
   }
-  return best;
+  // A logistics connection is only valid when the road actually reaches the
+  // canonical gate. Never attach a truck driveway to a random side of the site.
+  if(!best||!entrance||best.distance>14)return null;
+  return{...best,entrance:{...entrance}};
 }
 
 export function buildingRoadEndpointClearance(building){
