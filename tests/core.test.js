@@ -714,13 +714,13 @@ test('clear road preview stays direct while blocked preview uses a clean 90 degr
   const b=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},240,0,'shop-1');
   s.buildings.push(a,b);
 
-  const clear=roadPreview(s,{x:4,y:0},{x:236,y:0});
+  const clear=roadPreview(s,{x:60,y:0},{x:180,y:0});
   assert.equal(clear.path.length,2);
   assert.equal(clear.blocked,false);
 
   const obstacle=makeBuilding({name:'Warehouse',kind:'warehouse',need:null,color:'#fff'},120,0,'warehouse-1');
   s.buildings.push(obstacle);
-  const blocked=roadPreview(s,{x:4,y:0},{x:236,y:0});
+  const blocked=roadPreview(s,{x:60,y:0},{x:180,y:0});
   assert.ok(blocked.path.length>=3);
   assert.equal(blocked.blocked,false);
   for(let i=2;i<blocked.path.length;i++){
