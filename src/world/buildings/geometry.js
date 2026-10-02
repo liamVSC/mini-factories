@@ -153,6 +153,25 @@ export function buildingDockPoints(building){
   }));
 }
 
+// Every site has one canonical truck entrance. Secondary visual loading bays can
+// remain as scenery, but simulation/road snapping must always use this dock.
+export function buildingPrimaryDock(building){
+  return buildingDockPoints(building)[0]||null;
+}
+
+export function buildingRoadEntrance(building){
+  const dock=buildingPrimaryDock(building);
+  if(!dock)return null;
+  // Put the road connection beyond the yard gate. The driveway between this
+  // point and dock.approach is the only truck entry/exit path for the site.
+  const gateOffset=18;
+  return{
+    x:dock.approach.x+dock.normal.x*gateOffset,
+    y:dock.approach.y+dock.normal.y*gateOffset,
+    building
+  };
+}
+
 export function buildingRoadHitbox(building,tolerance=0){
   const footprint=buildingRoadFootprint(building);
   return{
@@ -164,23 +183,9 @@ export function buildingRoadHitbox(building,tolerance=0){
 }
 
 export function buildingConnectionPoint(building,target,exteriorOffset=2.5){
-  const dx=Number(target?.x)-Number(building?.x);
-  const dy=Number(target?.y)-Number(building?.y);
-  const distanceToTarget=Math.hypot(dx,dy)||1;
-  const ux=dx/distanceToTarget;
-  const uy=dy/distanceToTarget;
-  const footprint=buildingRoadFootprint(building);
-
-  const tx=Math.abs(ux)>1e-6?footprint.halfWidth/Math.abs(ux):Infinity;
-  const ty=Math.abs(uy)>1e-6?footprint.halfDepth/Math.abs(uy):Infinity;
-  const distance=Math.min(tx,ty)+exteriorOffset;
-
-  return{
-    x:building.x+ux*distance,
-    y:building.y+uy*distance,
-    building,
-    distance:0
-  };
+  const entrance=buildingRoadEntrance(building);
+  if(entrance)return entrance;
+  return null;
 }
 
 export function buildingFootprintRadius(building){
