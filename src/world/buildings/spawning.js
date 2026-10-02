@@ -186,7 +186,26 @@ function spawnBuilding(s,kind,forced,placementReason){
   const type=chooseBuildingType(s,kind,forced,random);
   if(!type)return null;
 
-  // Score deterministic candidates against the actual world constraints and existing buildings/roads.
+  // Factories use a dedicated sector slot. Do not let the general scorer pull
+  // multiple starter factories back toward the same visually central area.
+  if(kind==='factory'){
+    const factoryIndex=(s.buildings||[]).filter(building=>building.kind==='factory').length;
+    const sectorCandidates=[];
+    for(let attempt=0;attempt<30;attempt++){
+      const candidates=factorySpawnCandidates(seedFromState(s)+attempt*97,attempt);
+      const preferred=candidates[factoryIndex%3];
+      if(preferred)sectorCandidates.push(preferred);
+    }
+    for(const point of sectorCandidates){
+      if(candidateScore(s,type,point.x,point.y,()=>0)>-Infinity&&
+        !placementReason(s,type,point.x,point.y)){
+        return addBuilding(s,type,point.x,point.y);
+      }
+    }
+  }
+
+  // Non-factory buildings, and unusual/custom maps where a factory sector is blocked,
+  // still use the normal deterministic scorer and bounded fallback.
   const preferred=findBestPosition(s,type,random);
 
   if(preferred&&!placementReason(s,type,preferred.x,preferred.y)){
