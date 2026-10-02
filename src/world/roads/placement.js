@@ -21,17 +21,14 @@ function pointSegmentDistance(p,a,b){return projectSegment(p,a,b).distance}
 export function segmentCrossesRiver(a,b){
   if(!finitePoint(a)||!finitePoint(b))return false;
   const span=Math.max(1,dist(a,b)),samples=Math.max(4,Math.ceil(span/12));
-  let previous=null;
+  let previousSign=null;
   for(let i=0;i<=samples;i++){
     const t=i/samples,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
     const side=y-riverY(x);
-    if(Math.abs(side)<1){
-      if(previous!==null&&previous!==0&&Math.sign(previous)!==Math.sign(side))return true;
-      previous=0;
-      continue;
-    }
-    if(previous!==null&&previous!==0&&Math.sign(previous)!==Math.sign(side))return true;
-    previous=side;
+    if(Math.abs(side)<1)continue;
+    const sign=Math.sign(side);
+    if(previousSign!==null&&sign!==previousSign)return true;
+    previousSign=sign;
   }
   return false;
 }
