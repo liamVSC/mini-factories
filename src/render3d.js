@@ -518,6 +518,23 @@ function buildingWorldPosition(building){
   if(!Number.isFinite(x)||!Number.isFinite(z))return null;
   return{x,z};
 }
+function applyBuildingWorldTransform(group,position){
+  // Building coordinates are authoritative world-space coordinates. Do not rely
+  // on inherited/default transforms: write the translation directly into the
+  // group's local matrix and immediately propagate it to matrixWorld.
+  group.position.set(position.x,0,position.z);
+  group.rotation.set(0,0,0);
+  group.scale.set(1,1,1);
+  group.updateMatrix();
+  group.updateMatrixWorld(true);
+  const world=group.getWorldPosition(new THREE.Vector3());
+  const dx=Math.abs(world.x-position.x),dz=Math.abs(world.z-position.z);
+  if(dx>1e-6||dz>1e-6){
+    group.position.set(position.x,0,position.z);
+    group.updateMatrix();
+    group.updateMatrixWorld(true);
+  }
+}
 function updateWorld(s){
   ws=s;
   clearDynamic();
@@ -543,11 +560,7 @@ function updateWorld(s){
     if(building.id&&liveIds.has(building.id))continue;
     if(building.id)liveIds.add(building.id);
     const g=createBuildingModel(building);
-    g.position.set(position.x,0,position.z);
-    g.rotation.set(0,0,0);
-    g.scale.setScalar(1);
-    g.updateMatrix();
-    g.updateMatrixWorld(true);
+    applyBuildingWorldTransform(g,position);
     g.userData.building=building;
     g.userData.worldPosition={x:position.x,z:position.z};
     root.add(g);
