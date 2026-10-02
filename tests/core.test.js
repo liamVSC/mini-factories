@@ -726,7 +726,7 @@ test('clear road preview stays direct while blocked preview uses a clean 90 degr
   for(let i=2;i<blocked.path.length;i++){
     const a=blocked.path[i-2],b=blocked.path[i-1],c=blocked.path[i];
     const ab={x:b.x-a.x,y:b.y-a.y},bc={x:c.x-b.x,y:c.y-b.y};
-    assert.equal(ab.x*bc.x+ab.y*bc.y,0);
+    assert.equal(Math.abs(ab.x*bc.x+ab.y*bc.y),0);
   }
 });
 
