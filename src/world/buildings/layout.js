@@ -63,8 +63,12 @@ export function validateBuildingLayout(buildings=[]){
 }
 
 function layoutRotation(seed){
-  const value=Math.abs(Math.floor(Number(seed)||1))%360;
-  return value/360*Math.PI*2;
+  // Use the full 32-bit layout seed instead of only seed % 360. Using the
+  // remainder made many different new games collapse onto the same handful
+  // of visible starter layouts.
+  let value=(Math.floor(Number(seed))>>>0)||1;
+  value=Math.imul(value^0x9e3779b9,1664525)+1013904223>>>0;
+  return value/4294967296*Math.PI*2;
 }
 
 export function factorySpawnCandidates(seed,attempt=0){
