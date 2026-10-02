@@ -73,7 +73,8 @@ export function roadPathBlocked(s,points,endpointBuildings={}){
       // fully collision-checked so roads cannot traverse the site.
       const endsInside=b.x>=rect.minX&&b.x<=rect.maxX&&b.y>=rect.minY&&b.y<=rect.maxY;
       if(startsInside&&i===1&&!endsInside)continue;
-      if(endsInside&&i===points.length-1&&!startsInside)continue;
+      // An unowned road endpoint may never finish inside another building/site.
+      // Only an explicit endBuilding connection is allowed to terminate there.
       if(segmentIntersectsRect(a,b,rect))return true;
     }
   }
