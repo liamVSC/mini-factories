@@ -11,9 +11,9 @@ export function buildingClearance(a,b){
 // Include the rendered site's practical envelope, not only the central building shell.
 // This keeps yards, gates and parking from visually overlapping neighbouring sites.
 const PLACEMENT_FOOTPRINTS=Object.freeze({
-  warehouse:Object.freeze({halfWidth:60,halfDepth:62}),
-  factory:Object.freeze({halfWidth:50,halfDepth:58}),
-  shop:Object.freeze({halfWidth:45,halfDepth:55}),
+  warehouse:Object.freeze({halfWidth:78,halfDepth:72}),
+  factory:Object.freeze({halfWidth:68,halfDepth:70}),
+  shop:Object.freeze({halfWidth:58,halfDepth:62}),
   default:Object.freeze({halfWidth:45,halfDepth:55})
 });
 
@@ -26,9 +26,9 @@ function footprintForKind(kind){
 // clearance, but must not make a road endpoint think it is still inside a
 // building after the endpoint has moved beyond the actual model.
 const ROAD_CONNECTION_FOOTPRINTS=Object.freeze({
-  warehouse:Object.freeze({halfWidth:48,halfDepth:36}),
-  factory:Object.freeze({halfWidth:40,halfDepth:32}),
-  shop:Object.freeze({halfWidth:36,halfDepth:36}),
+  warehouse:Object.freeze({halfWidth:64,halfDepth:50}),
+  factory:Object.freeze({halfWidth:56,halfDepth:46}),
+  shop:Object.freeze({halfWidth:48,halfDepth:40}),
   default:Object.freeze({halfWidth:36,halfDepth:36})
 });
 
@@ -114,16 +114,16 @@ export function buildingFootprint(building){
 
 const DOCK_SPECS={
   factory:[
-    {name:'north-loading',x:0,y:31.5,normal:{x:0,y:1},width:22},
-    {name:'south-loading',x:-23.4,y:-31.5,normal:{x:0,y:-1},width:13}
+    {name:'north-loading',x:0,y:43.5,normal:{x:0,y:1},width:22},
+    {name:'south-loading',x:-33,y:-43.5,normal:{x:0,y:-1},width:13}
   ],
   warehouse:[
-    {name:'north-main',x:0,y:33.5,normal:{x:0,y:1},width:24},
-    {name:'north-secondary',x:-30.7,y:33.5,normal:{x:0,y:1},width:14},
-    {name:'south-secondary',x:30.7,y:-33.5,normal:{x:0,y:-1},width:14}
+    {name:'north-main',x:0,y:46.5,normal:{x:0,y:1},width:24},
+    {name:'north-secondary',x:-42,y:46.5,normal:{x:0,y:1},width:14},
+    {name:'south-secondary',x:42,y:-46.5,normal:{x:0,y:-1},width:14}
   ],
   default:[
-    {name:'front-entrance',x:0,y:-28.5,normal:{x:0,y:-1},width:12}
+    {name:'front-entrance',x:0,y:-36.5,normal:{x:0,y:-1},width:12}
   ]
 };
 
