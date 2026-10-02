@@ -7,7 +7,11 @@ import {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screen
 import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand,executeCommand} from './commands.js';
 
 const GAME_VERSION=globalThis.MINI_FACTORIES_VERSION;
-const CHANGELOG=[{version:'1.3',date:'2 Oct 2026',items:[
+const CHANGELOG=[{version:'1.4',date:'2 Oct 2026',items:[
+       'Road connections now terminate at the single building yard gate instead of the building shell.',
+       'Truck routes now enter the yard, use a turning waypoint and finish at the primary loading dock before returning through the same gate.',
+       'Visual yard gates are aligned with the canonical road entrance used by routing.'
+     ]},{version:'1.3',date:'2 Oct 2026',items:[
        'Rebuilt the shop into a larger multi-volume retail/service model with a glazed frontage, canopy, service bay and roof plant.',
        'Expanded factory and warehouse depot yards with larger truck turning areas, marked access spines and wider security gates.',
        'Versioned the renderer and PWA cache so the new 3D assets are forced to load.'
