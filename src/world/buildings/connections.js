@@ -2,7 +2,13 @@ import {validRoadPoints,projectSegment} from '../roads/geometry.js';
 import {buildingConnectionPoint,buildingRoadEntrance,buildingRoadFootprint,buildingRoadHitbox,buildingFootprintRadius} from './geometry.js';
 
 export function resolveBuildingRoadEndpoint(s,p,target=null,directionTarget=p){
-  const building=target||s.buildings?.find(candidate=>{const hit=buildingRoadHitbox(candidate,0);return Number(p?.x)>=hit.minX&&Number(p?.x)<=hit.maxX&&Number(p?.y)>=hit.minY&&Number(p?.y)<=hit.maxY;});
+  const building=target||s.buildings?.find(candidate=>{
+    const hit=buildingRoadHitbox(candidate,0);
+    const insideShell=Number(p?.x)>=hit.minX&&Number(p?.x)<=hit.maxX&&Number(p?.y)>=hit.minY&&Number(p?.y)<=hit.maxY;
+    const entrance=buildingRoadEntrance(candidate);
+    const nearGate=entrance&&Math.hypot(entrance.x-p.x,entrance.y-p.y)<=18;
+    return insideShell||nearGate;
+  });
   if(!building)return null;
   const point=buildingConnectionPoint(building,directionTarget);
   return{building,point};
@@ -13,7 +19,9 @@ export function buildingRoadDistance(building,p){
   const hit=buildingRoadHitbox(building,6);
   const dx=Math.max(hit.minX-p.x,0,p.x-hit.maxX);
   const dy=Math.max(hit.minY-p.y,0,p.y-hit.maxY);
-  return Math.hypot(dx,dy);
+  const entrance=buildingRoadEntrance(building);
+  const gateDistance=entrance?Math.hypot(entrance.x-p.x,entrance.y-p.y):Infinity;
+  return Math.min(Math.hypot(dx,dy),gateDistance);
 }
 
 export function resolveBuildingRoadTarget(s,p,maxDistance=46){

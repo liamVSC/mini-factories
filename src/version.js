@@ -1,4 +1,4 @@
 // Single source of truth for the currently published game version.
-// v1.5: complete clean detailed 3D renderer remodel; gameplay state remains unchanged.
-globalThis.MINI_FACTORIES_VERSION='1.5';
+// v1.9: compacted building yards and aligned the renderer import with its service-worker cache URL.
+globalThis.MINI_FACTORIES_VERSION='1.9';
 globalThis.MINI_FACTORIES_VERSION_DATE='2 Oct 2026';
