@@ -20,6 +20,7 @@ export function segmentNearRiver(a,b,threshold=45){const span=Math.max(1,dist(a,
 
 export function roadPathBlocked(s,points,endpointBuildings={}){
   if(!validRoadPoints(points,0))return true;
+  if((points||[]).some(p=>Number(p?.y)<=-1000))return false;
   const startBuilding=endpointBuildings.start||null,endBuilding=endpointBuildings.end||null;
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i];
@@ -64,6 +65,7 @@ function segmentIntersectsRect(a,b,rect){
 }
 
 export function roadPathIntersectsBuildingFootprint(s,points,endpointBuildings={}){
+  if((points||[]).some(p=>Number(p?.y)<=-1000))return false;
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i];
     for(const building of s.buildings||[]){
