@@ -18,6 +18,17 @@ const routeMetrics=new WeakMap();
 let ws=null;
 
 function mat(color,roughness=.8,metalness=0){return new THREE.MeshStandardMaterial({color,roughness,metalness});}
+function glassMat(color,opacity=.72){
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness:.18,
+    metalness:.04,
+    transparent:true,
+    opacity,
+    depthWrite:false,
+    side:THREE.DoubleSide
+  });
+}
 function box(w,h,d,color){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));}
 function roadMat(color){return new THREE.MeshStandardMaterial({color,roughness:.9,metalness:0,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});}
 function roadIntersection(a,b,c,d){const abx=b.x-a.x,aby=b.y-a.y,cdx=d.x-c.x,cdy=d.y-c.y,den=abx*cdy-aby*cdx;if(Math.abs(den)<1e-8)return null;const acx=c.x-a.x,acy=c.y-a.y,t=(acx*cdy-acy*cdx)/den,u=(acx*aby-acy*abx)/den;if(t<.0001||t>.9999||u<.0001||u>.9999)return null;return{x:a.x+abx*t,y:a.y+aby*t};}
@@ -220,20 +231,20 @@ function addLoadingYard(g,x,z,w,d,metal,dark){
   const trailerMat=mat('#858b88',.94);
   for(const offset of[-w*.28,w*.28]){
     addBoxPart(g,new THREE.BoxGeometry(16,3.8,6.5),trailerMat,x+offset,2.05,z+(z>0?d*.14:-d*.14));
-    for(const wx of[-5,-1,3])addBoxPart(g,new THREE.CylinderGeometry(1.1,1.1,.7,12),dark,x+offset+wx,.95,z+(z>0?d*.14:-d*.14)-3.3);
+    for(const wx of[-5,-1,3])addBoxPart(g,new THREE.CylinderGeometry(1.1,1.1,.7,18),dark,x+offset+wx,.95,z+(z>0?d*.14:-d*.14)-3.3);
   }
   addBoxPart(g,new THREE.BoxGeometry(w+4,1.1,1),metal,x,.65,z+(z>0?d/2:-d/2));
 }
 function addIndustrialProps(g,w,d,h,metal,dark){
   for(const x of[-w*.38,w*.38]){
-    addBoxPart(g,new THREE.CylinderGeometry(2.4,2.8,7,12),metal,x,h+4.5,d*.18);
-    addBoxPart(g,new THREE.CylinderGeometry(2.9,2.9,.8,12),dark,x,h+8.1,d*.18);
+    addBoxPart(g,new THREE.CylinderGeometry(2.4,2.8,7,20),metal,x,h+4.5,d*.18);
+    addBoxPart(g,new THREE.CylinderGeometry(2.9,2.9,.8,20),dark,x,h+8.1,d*.18);
   }
   addBoxPart(g,new THREE.BoxGeometry(9,2.4,4),dark,w*.34,2,d*.42);
   addBoxPart(g,new THREE.BoxGeometry(7,2.8,3.5),metal,-w*.34,2,d*.42);
 }
 function addCylinderPart(g,radius,height,material,x,y,z,segments=12,cast=true){
-  return addBoxPart(g,new THREE.CylinderGeometry(radius,radius,height,segments),material,x,y,z,0,cast);
+  return addBoxPart(g,new THREE.CylinderGeometry(radius,radius,height,Math.max(16,segments)),material,x,y,z,0,cast);
 }
 function addPallet(g,x,z,metal,dark){
   const wood=mat('#71675b',.96);
@@ -250,7 +261,7 @@ function addDumpster(g,x,z,metal,dark){
 }
 function addFuelTank(g,x,z,metal,dark){
   const tankMat=mat('#68706d',.78,.45),darkMat=mat('#3e4442',.92);
-  const tank=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.2,10,16),tankMat);
+  const tank=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.2,10,24),tankMat);
   tank.rotation.z=Math.PI/2;tank.position.set(x,4,z);tank.castShadow=true;tank.receiveShadow=true;g.add(tank);
   for(const px of[-3.2,3.2])addBoxPart(g,new THREE.BoxGeometry(.8,2.4,5),darkMat,x+px,1.7,z);
   addBoxPart(g,new THREE.BoxGeometry(2,1.2,1.5),darkMat,x,9,z);
@@ -279,7 +290,7 @@ function addFenceLine(g,x1,z1,x2,z2,metal,postSpacing=9){
   const fenceMat=metal||mat('#4b514f',.9,.25),dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),count=Math.max(1,Math.ceil(len/postSpacing));
   for(let i=0;i<=count;i++){const t=i/count,x=x1+dx*t,z=z1+dz*t;addCylinderPart(g,.28,4.2,fenceMat,x,2.1,z,8);}
   for(const y of[1.1,3.1]){
-    const rail=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,len,8),fenceMat);
+    const rail=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,len,12),fenceMat);
     rail.position.set((x1+x2)/2,y,(z1+z2)/2);rail.rotation.z=Math.PI/2;rail.rotation.y=-Math.atan2(dz,dx);g.add(rail);
   }
 }
@@ -354,7 +365,7 @@ function addRoofEquipment(g,w,d,h,metal,dark,count=3){
     const x=-w*.32+i*(w*.32);
     addBoxPart(g,new THREE.BoxGeometry(8,2.2,5),dark,x,h+10.5,0);
     addBoxPart(g,new THREE.BoxGeometry(5.5,.7,3.5),metal,x,h+11.9,0);
-    addBoxPart(g,new THREE.CylinderGeometry(.5,.7,1.8,10),metal,x,h+13,0);
+    addBoxPart(g,new THREE.CylinderGeometry(.5,.7,1.8,16),metal,x,h+13,0);
   }
 }
 function addBuildingFoundation(g,w,d,metal){
