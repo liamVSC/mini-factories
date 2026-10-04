@@ -12,6 +12,7 @@ import {
   routeOnRoadNetwork,
   connectedRoadComponents,
   isRouteStale,
+  routeNetworkValid,
   buildingDockPoints,
   buildingRoadEntrance,
   buildingPhysicalPlacementReason,
@@ -382,4 +383,18 @@ test('building placement command restores building list and cash on undo',()=>{
   assert.equal(history.undo(s),true);
   assert.equal(s.buildings.length,0);
   assert.equal(s.cash,cash);
+});
+
+
+test('route validation rejects stale lane IDs even when road revision and road IDs still match',()=>{
+  const s=roadState();
+  const a={id:'a',x:-120,y:0,kind:'factory',r:25};
+  const b={id:'b',x:120,y:0,kind:'shop',r:25};
+  s.buildings=[a,b];
+  assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
+  const route=routeOnRoadNetwork(s,a,b);
+  assert.ok(route);
+  assert.equal(routeNetworkValid(s,route),true);
+  const staleLane={...route,laneIds:['missing-lane'],laneRoadIds:[s.roads[0].id]};
+  assert.equal(routeNetworkValid(s,staleLane),false);
 });
