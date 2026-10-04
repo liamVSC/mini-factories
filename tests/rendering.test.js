@@ -195,6 +195,14 @@ test('3D road renderer has smooth corners, lane/edge markings, caps, junction me
   assert.match(source,/if\(isBridge\)\{/);
 });
 
+test('road ribbon uses its cleaned point count after removing short segments',()=>{
+  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  assert.match(source,/const clean=\[points\[0\]\]/);
+  assert.match(source,/for\(let i=1;i<points\.length;i\+\+\)/);
+  assert.match(source,/if\(clean\.length<2\)return null/);
+  assert.match(source,/for\(let i=0;i<clean\.length;i\+\+\)\{verts\.push\(left\[i\]\.x,y,left\[i\]\.y,right\[i\]\.x,y,right\[i\]\.y\);/);
+});
+
 test('road renderer preserves exact endpoints while smoothing a sharp turn',()=>{
   const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/function smoothRoadPath\(points\)/);
