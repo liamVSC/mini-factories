@@ -4,13 +4,13 @@ import {isInsideWorldBounds,validateRoadGeometry} from './validation.js';
 import {WORLD_BOUNDS,WORLD_MARGIN} from '../terrain.js';
 import {nearestBuildingRoadTarget} from '../buildings/connections.js';
 import {buildingFootprintRadius} from '../buildings/geometry.js';
-import {roadBuildingTarget,snapRoadPoint,snapToWorldEdge,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,chooseRoadPath,segmentNearRiver} from './placement.js';
+import {roadBuildingTarget,snapRoadPoint,snapToWorldEdge,roadPathBlocked,roadPathIntersectsBuildingFootprint,simplifyRoad,chooseRoadPath,segmentCrossesRiver} from './placement.js';
 import {roadsHaveMeaningfulOverlap,roadsExactlyDuplicate} from './intersections.js';
 import {bumpRoadNetworkRevision} from './topology.js';
 
 export const endpointSegmentBlocked=(building,a,b,side)=>endpointSegmentBlockedGeometry(building,a,b,side,building?buildingFootprintRadius(building):undefined);
 
-function normalizeRoadGeometry(road){if(!road?.points)return null;const points=simplifyRoad(road.points);const validation=validateRoadGeometry(points);if(!validation.ok)return null;const bridge=points.some((p,i)=>i?segmentNearRiver(points[i-1],p):false);return{...road,points,bridge,age:Number.isFinite(road.age)?road.age:0,condition:Number.isFinite(road.condition)?Math.max(0,Math.min(1,road.condition)):1}}
+function normalizeRoadGeometry(road){if(!road?.points)return null;const points=simplifyRoad(road.points);const validation=validateRoadGeometry(points);if(!validation.ok)return null;const bridge=points.some((p,i)=>i?segmentCrossesRiver(points[i-1],p):false);return{...road,points,bridge,age:Number.isFinite(road.age)?road.age:0,condition:Number.isFinite(road.condition)?Math.max(0,Math.min(1,road.condition)):1}}
 function invalidateTrucksForRoads(s,roads){const removed=new Set(roads);for(const truck of s.trucks||[])if((truck.routeSegments||[]).some(r=>removed.has(r))||roads.some(r=>routeTouchesRoad(truck.route,r)))truck.routeInvalidated=true}
 function cloneRoadState(roads){return (roads||[]).map(road=>({...road,points:(road.points||[]).map(safePoint)}));}
 function validateRoadNetworkState(s){
@@ -96,7 +96,7 @@ export function editRoadEndpoint(s,roadId,index,p){
   if(!preview||preview.blocked||preview.duplicate)return false;
   const oldPoints=road.points.map(safePoint),oldEndpoint=oldPoints[index],clean=preview.path;
   if(dist(oldEndpoint,clean[index])<2)return false;
-  const bridge=clean.some((point,i)=>i?segmentNearRiver(clean[i-1],point):false);
+  const bridge=clean.some((point,i)=>i?segmentCrossesRiver(clean[i-1],point):false);
   const next={...road,points:clean,bridge,condition:Number.isFinite(road.condition)?road.condition:1};
   const idx=s.roads.indexOf(road);if(idx<0)return false;
   const targetRoad=preview.target?.road||null,targetBefore=targetRoad?targetRoad.points.map(safePoint):null;
