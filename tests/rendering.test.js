@@ -238,7 +238,8 @@ test('road mesh layers use distinct heights instead of coplanar surfaces',()=>{
   assert.ok(source.includes('shoulderY=isBridge?.52:isTransition?.56:.58'));
   assert.ok(source.includes('asphaltY=isBridge?.72:isTransition?.74:.69'));
   assert.ok(source.includes('markY=isBridge?.9:isTransition?.88:.86'));
-  assert.ok(source.includes('roadSegmentMesh(points,kind,materials)'));
+  assert.ok(source.includes('roadSegmentMesh(points,kind,materials,addCaps=false)'));
+  assert.ok(source.includes('i===0||i===parts.length-1'));
 });
 
 test('tight curve offsets fall back to the incoming normal instead of producing oversized miters',()=>{
