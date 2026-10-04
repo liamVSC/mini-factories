@@ -146,15 +146,27 @@ function updateTruckSpeed(t,targetFactor,dt){
   return t.currentSpeed;
 }
 
+function truckMovementPoint(t){
+  const centerline=Array.isArray(t?.centerlineRoute)&&t.centerlineRoute.length>=2
+    ?t.centerlineRoute
+    :t?.route;
+  if(!Array.isArray(centerline)||centerline.length<2)return null;
+  const centrePoint=pointOnRoute(centerline,t.t);
+  const laneRoute=Array.isArray(t?.laneRoute)&&t.laneRoute.length>=2?t.laneRoute:null;
+  if(!laneRoute||!centrePoint)return centrePoint;
+  const projected=projectRouteProgress(laneRoute,centrePoint);
+  return projected?pointOnRoute(laneRoute,projected.progress)||centrePoint:centrePoint;
+}
+
 function trafficConflict(s,t,network,laneGraph,controls){
   const tMovementRoute=Array.isArray(t.laneRoute)&&t.laneRoute.length>=2?t.laneRoute:t.route;
-  const p=pointOnRoute(tMovementRoute,t.t);
+  const p=truckMovementPoint(t);
   if(!p)return false;
 
   for(const o of s.trucks||[]){
     if(o===t||o.dead||!Array.isArray(o.route)||o.route.length<2)continue;
     const oMovementRoute=Array.isArray(o.laneRoute)&&o.laneRoute.length>=2?o.laneRoute:o.route;
-    const q=pointOnRoute(oMovementRoute,o.t);
+    const q=truckMovementPoint(o);
     if(o.routeKey===t.routeKey&&o.t>t.t&&dist(p,q)<34)return true;
   }
 
@@ -167,7 +179,7 @@ function trafficConflict(s,t,network,laneGraph,controls){
     for(const o of s.trucks||[]){
       if(o===t||o.dead||o.wait>0||!Array.isArray(o.route)||o.route.length<2)continue;
       const oMovementRoute=Array.isArray(o.laneRoute)&&o.laneRoute.length>=2?o.laneRoute:o.route;
-      const q=pointOnRoute(oMovementRoute,o.t);
+      const q=truckMovementPoint(o);
       for(let i=1;i<tMovementRoute.length;i++){
         const a=i===1?p:tMovementRoute[i-1],b=tMovementRoute[i];
         for(let j=1;j<oMovementRoute.length;j++){
@@ -574,7 +586,7 @@ export function updateEconomy(s,dt,flash){
       continue;
     }
     const movementRoute=Array.isArray(t.laneRoute)&&t.laneRoute.length>=2?t.laneRoute:t.route;
-    const p=pointOnRoute(movementRoute,t.t);let blocked=false;
+    const p=truckMovementPoint(t);if(!p){t.dead=true;continue;}let blocked=false;
     let nearestGap=Infinity,queueAhead=null;
     // Queue using physical distance along the shared route, not just raw t.
     // This keeps vehicles ordered correctly when their route points have
@@ -582,7 +594,7 @@ export function updateEconomy(s,dt,flash){
     for(const o of s.trucks){
       if(o===t||o.dead||o.routeKey!==t.routeKey)continue;
       const otherMovementRoute=Array.isArray(o.laneRoute)&&o.laneRoute.length>=2?o.laneRoute:o.route;
-      const q=pointOnRoute(otherMovementRoute,o.t);
+      const q=truckMovementPoint(o);
       const ahead=o.t>t.t;
       if(!ahead)continue;
       const routeLen=length(movementRoute);
