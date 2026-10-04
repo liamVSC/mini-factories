@@ -170,6 +170,15 @@ test('road snapping recognizes the canonical gate inside each building yard',()=
 });
 
 
+test('3D road renderer uses stable corner offsets and explicit junction patches',()=>{
+  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  assert.match(source,/function offsetPolyline\\(points,halfWidth\\)/);
+  assert.match(source,/const miterLength=halfWidth\\/Math.max\\(\\.35,Math\\.abs\\(denom\\)\\)/);
+  assert.match(source,/function roadJunctions\\(roads\\)/);
+  assert.match(source,/rebuildJunctionPatches\\(s\\.roads\\|\\|\\[\\]\\)/);
+  assert.match(source,/offsetPolyline\\(p,side\\*14\\)/);
+});
+
 test('3D renderer reconciles truck meshes without rebuilding the static world',()=>{
   const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/function syncTruckMeshes\(s\)/);
