@@ -170,17 +170,46 @@ test('road snapping recognizes the canonical gate inside each building yard',()=
 });
 
 
-test('3D road renderer uses stable signed corner offsets, join coverage and explicit junction patches',()=>{
+test('3D road renderer has smooth corners, lane/edge markings, caps, junction meshes, yards and bridge transitions',()=>{
   const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  assert.match(source,/function smoothRoadPath\(points\)/);
+  assert.match(source,/const radius=Math\.min\(30,inLen\*\.28,outLen\*\.28\)/);
   assert.match(source,/function offsetPolyline\(points,halfWidth\)/);
   assert.match(source,/const sign=halfWidth<0\?-1:1,hw=Math\.abs\(halfWidth\)/);
   assert.match(source,/const miterLength=hw\/denom/);
   assert.match(source,/const limit=hw\*1\.8/);
-  assert.match(source,/function roadJoinDisks\(points,width,y,mat\)/);
-  assert.match(source,/roadJoinDisks\(p,roadWidth,isBridge\?\.845:\.695,asphalt\)/);
+  assert.match(source,/function roadCaps\(points,roadWidth,shoulderWidth/);
+  assert.match(source,/function dashedLaneMarkings\(points,y,mat\)/);
+  assert.match(source,/function centerRoadMarkings\(points,y,mat\)/);
   assert.match(source,/function roadJunctions\(roads\)/);
+  assert.match(source,/function junctionMesh\(p,roadsAtPoint\)/);
   assert.match(source,/rebuildJunctionPatches\(s\.roads\|\|\[\]\)/);
-  assert.match(source,/offsetPolyline\(p,side\*14\)/);
+  assert.match(source,/function roadYardTransitions\(s\)/);
+  assert.match(source,/buildingRoadAttachment\(s,building\)/);
+  assert.match(source,/segmentCrossesRiver\(p\[i-1\],q\)/);
+  assert.match(source,/if\(isBridge\)\{/);
+});
+
+test('road renderer preserves exact endpoints while smoothing a sharp turn',()=>{
+  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  assert.match(source,/function smoothRoadPath\(points\)/);
+  assert.match(source,/const out=\[src\[0\]\]/);
+  assert.match(source,/const last=src\.at\(-1\)/);
+  assert.match(source,/out\.push\(last\)/);
+});
+
+test('road junction rendering covers both T and four-way intersection cases',()=>{
+  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  assert.match(source,/degree=Math\.max\(3,roadsAtPoint\|\|4\)/);
+  assert.match(source,/const radius=degree>=4\?24:20/);
+  assert.match(source,/function junctionMesh\(p,roadsAtPoint\)/);
+});
+
+test('dead-end caps and bridge transitions are explicit renderer geometry',()=>{
+  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  assert.match(source,/for\(const p of\[points\[0\],points\.at\(-1\)\]\)/);
+  assert.match(source,/const crosses=p\.some\(\(q,i\)=>i\?segmentCrossesRiver\(p\[i-1\],q\):false\)/);
+  assert.match(source,/roadCaps\(p,roadWidth,shoulderWidth/);
 });
 
 test('3D renderer reconciles truck meshes without rebuilding the static world',()=>{
