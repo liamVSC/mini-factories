@@ -38,8 +38,8 @@ test('bridge classification only occurs when a road crosses the river',()=>{
 });
 
 test('game version has one central runtime source',()=>{
-  assert.equal(globalThis.MINI_FACTORIES_VERSION,'2.0');
-  assert.equal(globalThis.MINI_FACTORIES_VERSION_DATE,'2 Oct 2026');
+  assert.equal(globalThis.MINI_FACTORIES_VERSION,'2.1.1');
+  assert.equal(globalThis.MINI_FACTORIES_VERSION_DATE,'5 Oct 2026');
 });
 
 test('route interpolation follows distance, not point index',()=>{
