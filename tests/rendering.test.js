@@ -258,3 +258,59 @@ test('bridge renderer is segmented around the river crossing',()=>{
   assert.ok(source.includes('bridgeStart'));
   assert.ok(source.includes('bridgeEnd'));
 });
+
+
+test('mobile PWA lifecycle is suspend/resume safe and cannot create duplicate RAF loops',()=>{
+  const source=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+  assert.match(source,/function scheduleTick\(\)/);
+  assert.match(source,/if\(!loopRunning\|\|animationFrame\)return/);
+  assert.match(source,/function suspendGameLoop\(\)/);
+  assert.match(source,/function resumeGameLoop\(\)/);
+  assert.match(source,/pagehide/);
+  assert.match(source,/pageshow/);
+  assert.match(source,/visibilitychange/);
+  assert.match(source,/freeze/);
+  assert.match(source,/save\(true\)/);
+  assert.match(source,/cancelAnimationFrame\(animationFrame\)/);
+});
+
+test('mobile viewport and touch handling isolate UI scrolling from map gestures',()=>{
+  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+  const css=readFileSync(new URL('../styles.css',import.meta.url),'utf8');
+  assert.match(game,/window\.visualViewport\?\.addEventListener\('resize',resize/);
+  assert.match(game,/window\.visualViewport\?\.addEventListener\('scroll',resize/);
+  assert.match(game,/e\.target===canvas/);
+  assert.match(css,/body\{touch-action:manipulation/);
+  assert.match(css,/\.panel,.pause \.box,.modal \.box\{touch-action:auto/);
+  assert.match(css,/\.build-cards\{touch-action:pan-x/);
+});
+
+test('renderer handles WebGL context loss and uses a lower mobile pixel ratio',()=>{
+  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  assert.match(source,/webglcontextlost/);
+  assert.match(source,/webglcontextrestored/);
+  assert.match(source,/contextRecoveryPending=true/);
+  assert.match(source,/worldKey=''/);
+  assert.match(source,/if\(renderer\)return/);
+  assert.match(source,/innerWidth<700\?1\.25:2/);
+});
+
+test('renderer wrapper no longer mutates road state every frame',()=>{
+  const source=readFileSync(new URL('../src/render.js',import.meta.url),'utf8');
+  assert.doesNotMatch(source,/s\.roads\.push/);
+  assert.doesNotMatch(source,/s\.roads\.pop/);
+  assert.match(source,/renderer3d\.render\(s,W,H,canvas\)/);
+});
+
+test('PWA cache and published game version stay aligned',()=>{
+  const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
+  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+  const version=readFileSync(new URL('../src/version.js',import.meta.url),'utf8');
+  assert.match(sw,/mini-factories-v21/);
+  assert.match(sw,/VERSION='2\.1'/);
+  assert.match(sw,/game\.js\?v=8/);
+  assert.match(sw,/render3d-clean\.js\?v=8/);
+  assert.match(sw,/render\.js\?v=4/);
+  assert.match(html,/src\/game\.js\?v=8/);
+  assert.match(version,/MINI_FACTORIES_VERSION='2\.1'/);
+});
