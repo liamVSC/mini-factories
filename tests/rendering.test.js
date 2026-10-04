@@ -195,6 +195,12 @@ test('3D road renderer has smooth corners, lane/edge markings, caps, junction me
   assert.match(source,/if\(isBridge\)\{/);
 });
 
+test('road mesh and junction detection use the authoritative rounded road polyline',()=>{
+  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  assert.match(source,/function roadMesh\(r\)\{const raw=rounded\(r\.points\),p=raw/);
+  assert.match(source,/const a=rounded\(roads\[i\]\?\.points\|\|\[\]\),b=rounded\(roads\[j\]\?\.points\|\|\[\]\);/);
+});
+
 test('road ribbon uses its cleaned point count after removing short segments',()=>{
   const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/const clean=\[points\[0\]\]/);
