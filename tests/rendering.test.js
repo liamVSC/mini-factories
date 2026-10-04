@@ -176,9 +176,15 @@ test('3D road renderer has smooth corners, lane/edge markings, caps, junction me
   assert.match(source,/const radius=Math\.min\(30,inLen\*\.28,outLen\*\.28\)/);
   assert.match(source,/function offsetPolyline\(points,halfWidth\)/);
   assert.match(source,/const sign=halfWidth<0\?-1:1,hw=Math\.abs\(halfWidth\)/);
-  assert.ok(source.includes('const miter=Math.min(hw*1.5,hw/Math.max(.5,Math.abs(denom)))'));
+  assert.ok(source.includes('const miter=hw/Math.max(.55,Math.abs(denom))'));
   assert.ok(source.includes('const denom=nx*inNx+nz*inNz;'));
+  assert.ok(source.includes('if(miter<=hw*1.12){nx*=miter;nz*=miter;}else{nx=inNx;nz=inNz;}'));
   assert.match(source,/function roadCaps\(points,roadWidth,shoulderWidth/);
+  assert.match(source,/function riverCrossingPoint\(a,b\)/);
+  assert.match(source,/function bridgeRouteSegments\(points\)/);
+  assert.match(source,/function roadSegmentMesh\(points,kind,materials\)/);
+  assert.ok(source.includes("kind==='transition'"));
+  assert.ok(source.includes('const start=Math.max(0,center-half-transition)'));
   assert.ok(source.includes('function edgeRoadMarkings(points,y,mat)'));
   assert.match(source,/function centerRoadMarkings\(points,y,mat\)/);
   assert.match(source,/function roadJunctions\(roads\)/);
@@ -208,7 +214,9 @@ test('road junction rendering covers both T and four-way intersection cases',()=
 test('dead-end caps and bridge transitions are explicit renderer geometry',()=>{
   const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/for\(const p of\[points\[0\],points\.at\(-1\)\]\)/);
-  assert.match(source,/const crosses=p\.some\(\(q,i\)=>i\?segmentCrossesRiver\(p\[i-1\],q\):false\)/);
+  assert.match(source,/function bridgeRouteSegments\(points\)/);
+  assert.ok(source.includes("kind==='bridge'"));
+  assert.ok(source.includes("kind==='transition'"));
   assert.match(source,/roadCaps\(p,roadWidth,shoulderWidth/);
 });
 
@@ -222,4 +230,30 @@ test('3D renderer reconciles truck meshes without rebuilding the static world',(
 test('bridge state requires an actual river crossing, not river proximity',()=>{
   assert.equal(segmentCrossesRiver({x:0,y:390},{x:0,y:410}),false);
   assert.equal(segmentCrossesRiver({x:0,y:300},{x:0,y:550}),true);
+});
+
+
+test('road mesh layers use distinct heights instead of coplanar surfaces',()=>{
+  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  assert.ok(source.includes('shoulderY=isBridge?.52:isTransition?.56:.58'));
+  assert.ok(source.includes('asphaltY=isBridge?.72:isTransition?.74:.69'));
+  assert.ok(source.includes('markY=isBridge?.9:isTransition?.88:.86'));
+  assert.ok(source.includes('roadSegmentMesh(points,kind,materials)'));
+});
+
+test('tight curve offsets fall back to the incoming normal instead of producing oversized miters',()=>{
+  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  assert.ok(source.includes('const miter=hw/Math.max(.55,Math.abs(denom))'));
+  assert.ok(source.includes('if(miter<=hw*1.12){nx*=miter;nz*=miter;}else{nx=inNx;nz=inNz;}'));
+  assert.ok(source.includes('Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y)<.5'));
+});
+
+test('bridge renderer is segmented around the river crossing',()=>{
+  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  assert.match(source,/function riverCrossingPoint\(a,b\)/);
+  assert.match(source,/function sliceRoute\(points,start,end\)/);
+  assert.match(source,/function bridgeRouteSegments\(points\)/);
+  assert.ok(source.includes('transition'));
+  assert.ok(source.includes('bridgeStart'));
+  assert.ok(source.includes('bridgeEnd'));
 });
