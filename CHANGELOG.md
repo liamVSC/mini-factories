@@ -1,5 +1,13 @@
 # Mini Factories Change Log
 
+## v2.1.1 — 5 October 2026
+
+### CI and renderer hardening
+- Corrected release-version regression expectations to use the central v2.1.1 runtime version.
+- Hardened the 3D road renderer regression test so it validates bridge transition geometry without depending on fragile source formatting.
+- Revalidated the mobile/PWA release bookkeeping and service-worker cache version.
+
+
 ## v2.1 — 5 October 2026
 
 ### Mobile and PWA hardening
