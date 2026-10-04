@@ -170,10 +170,14 @@ test('road snapping recognizes the canonical gate inside each building yard',()=
 });
 
 
-test('3D road renderer uses stable corner offsets and explicit junction patches',()=>{
+test('3D road renderer uses stable signed corner offsets, join coverage and explicit junction patches',()=>{
   const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/function offsetPolyline\(points,halfWidth\)/);
-  assert.match(source,/const miterLength=halfWidth\/Math.max\(\.35,Math\.abs\(denom\)\)/);
+  assert.match(source,/const sign=halfWidth<0\?-1:1,hw=Math\.abs\(halfWidth\)/);
+  assert.match(source,/const miterLength=hw\/denom/);
+  assert.match(source,/const limit=hw\*1\.8/);
+  assert.match(source,/function roadJoinDisks\(points,width,y,mat\)/);
+  assert.match(source,/roadJoinDisks\(p,roadWidth,isBridge\?\.845:\.695,asphalt\)/);
   assert.match(source,/function roadJunctions\(roads\)/);
   assert.match(source,/rebuildJunctionPatches\(s\.roads\|\|\[\]\)/);
   assert.match(source,/offsetPolyline\(p,side\*14\)/);
