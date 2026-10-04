@@ -177,9 +177,9 @@ test('3D road renderer has smooth corners, lane/edge markings, caps, junction me
   assert.match(source,/function offsetPolyline\(points,halfWidth\)/);
   assert.match(source,/const sign=halfWidth<0\?-1:1,hw=Math\.abs\(halfWidth\)/);
   assert.match(source,/const miterLength=hw\/denom/);
-  assert.match(source,/limit=hw\\*1\\.8/);
+  assert.ok(source.includes('limit=hw*1.8'));
   assert.match(source,/function roadCaps\(points,roadWidth,shoulderWidth/);
-  assert.match(source,/function edgeRoadMarkings\\(points,y,mat\\)/);
+  assert.ok(source.includes('function edgeRoadMarkings(points,y,mat)'));
   assert.match(source,/function centerRoadMarkings\(points,y,mat\)/);
   assert.match(source,/function roadJunctions\(roads\)/);
   assert.match(source,/function junctionMesh\(p,roadsAtPoint\)/);
@@ -200,7 +200,7 @@ test('road renderer preserves exact endpoints while smoothing a sharp turn',()=>
 
 test('road junction rendering covers both T and four-way intersection cases',()=>{
   const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
-  assert.match(source,/degree=Math\\.max\\(3,roadsAtPoint\\|\\|3\\)/);
+  assert.ok(source.includes('degree=Math.max(3,roadsAtPoint||3)'));
   assert.match(source,/const radius=degree>=4\?24:20/);
   assert.match(source,/function junctionMesh\(p,roadsAtPoint\)/);
 });
