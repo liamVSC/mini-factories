@@ -176,7 +176,7 @@ test('3D road renderer has smooth corners, lane/edge markings, caps, junction me
   assert.match(source,/const radius=Math\.min\(30,inLen\*\.28,outLen\*\.28\)/);
   assert.match(source,/function offsetPolyline\(points,halfWidth\)/);
   assert.match(source,/const sign=halfWidth<0\?-1:1,hw=Math\.abs\(halfWidth\)/);
-  assert.match(source,/const miterLength=hw\/denom/);
+  assert.ok(source.includes('const len=Math.hypot(tx,tz)||1;tx/=len;tz/=len;'));
   assert.ok(source.includes('limit=hw*1.8'));
   assert.match(source,/function roadCaps\(points,roadWidth,shoulderWidth/);
   assert.ok(source.includes('function edgeRoadMarkings(points,y,mat)'));
