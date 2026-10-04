@@ -1,5 +1,18 @@
 # Mini Factories Change Log
 
+## v2.1 — 5 October 2026
+
+### Mobile and PWA hardening
+- Hardened touch interaction so map gestures stay isolated from scrollable mobile UI.
+- Added idempotent pause/resume handling for iOS Safari/PWA background suspension and foreground recovery.
+- Added safe saves on pagehide, visibility changes, freeze, offline transitions and before unload.
+- Hardened viewport/orientation resizing and safe-area handling for portrait and landscape devices.
+- Prevented duplicate animation loops after PWA resume and added WebGL context-loss recovery.
+- Reduced mobile WebGL pixel ratio to lower GPU pressure while retaining full-resolution desktop rendering.
+- Removed the per-frame road-array mutation used only to invalidate truck rendering, reducing unnecessary renderer work.
+- Added mobile/PWA regression coverage and bumped the published game/PWA cache version.
+
+
 ## v3 — 2 October 2026
 
 ### Starter layout and building seeding
