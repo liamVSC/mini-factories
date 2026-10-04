@@ -1,5 +1,11 @@
 # Mini Factories Change Log
 
+## v2.1.2 — 5 October 2026
+
+### Road renderer stability
+- Fixed a road-ribbon indexing regression where removing short geometry points could leave the mesh builder reading stale point indices.
+- Added regression coverage to keep cleaned road geometry and generated ribbon vertices in lockstep.
+
 ## v2.1.1 — 5 October 2026
 
 ### CI and renderer hardening
