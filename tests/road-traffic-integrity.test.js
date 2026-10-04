@@ -19,6 +19,7 @@ import {
   seed
 } from '../src/world.js';
 import {buildLaneGraph,laneRouteGeometry,laneChangeRequired} from '../src/laneGraph.js';
+import {updateEconomy} from '../src/economy.js';
 import {
   buildJunctionControls,
   laneIndexForJunction,
@@ -397,4 +398,90 @@ test('route validation rejects stale lane IDs even when road revision and road I
   assert.equal(routeNetworkValid(s,route),true);
   const staleLane={...route,laneIds:['missing-lane'],laneRoadIds:[s.roads[0].id]};
   assert.equal(routeNetworkValid(s,staleLane),false);
+});
+
+test('truck update reroutes an active truck after a road revision instead of consuming cached route geometry',()=>{
+  const s=roadState();
+  const factory={id:'factory',x:-120,y:0,kind:'factory',r:25,type:'Steel',level:1,stock:0,max:4,production:0,demand:0,served:0,satisfaction:0,loading:0,logistics:0,contract:null};
+  const shop={id:'shop',x:120,y:0,kind:'shop',r:25,type:'Market',level:1,stock:0,max:8,production:0,demand:3,served:0,satisfaction:100,loading:0,logistics:0,contract:null};
+  s.buildings=[factory,shop];
+  assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
+  const route=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(route);
+  const graph=buildLaneGraph(roadNetwork(s),{lanesPerDirection:2});
+  const staleLaneIds=['missing-lane'];
+  s.trucks.push({
+    id:'truck-stale-lane',
+    route:route.points.map(p=>({...p})),
+    laneRoute:route.lanePoints.map(p=>({...p})),
+    centerlineRoute:route.points.map(p=>({...p})),
+    routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),
+    routeNetworkRevision:s.roadNetworkRevision,
+    laneIds:staleLaneIds,
+    laneRoadIds:[s.roads[0].id],
+    currentLaneIndex:0,
+    currentLaneId:staleLaneIds[0],
+    t:.15,
+    speed:.085,
+    currentSpeed:.085,
+    value:10,
+    cargo:1,
+    cargoType:'Steel',
+    source:factory,
+    to:shop,
+    contractId:0,
+    stage:'delivery',
+    wait:0,
+    dead:false
+  });
+  assert.ok(graph.lanes.length>0);
+  const before=route.points.map(p=>({...p}));
+  updateEconomy(s,.01,()=>{});
+  assert.equal(s.trucks.length,1);
+  const truck=s.trucks[0];
+  assert.equal(truck.routeInvalidated,false);
+  assert.equal(truck.routeNetworkRevision,s.roadNetworkRevision);
+  assert.ok(Array.isArray(truck.laneIds)&&truck.laneIds.length>0);
+  assert.ok(truck.laneIds.every((id,i)=>buildLaneGraph(roadNetwork(s),{lanesPerDirection:2}).lanesById.get(id)?.roadId===truck.laneRoadIds[i]));
+  assert.notDeepEqual(truck.route,before);
+});
+
+test('truck update safely retires and returns cargo when a road mutation disconnects its route',()=>{
+  const s=roadState();
+  const factory={id:'factory',x:-120,y:0,kind:'factory',r:25,type:'Steel',level:1,stock:0,max:4,production:0,demand:0,served:0,satisfaction:0,loading:0,logistics:0,contract:null};
+  const shop={id:'shop',x:120,y:0,kind:'shop',r:25,type:'Market',level:1,stock:0,max:8,production:0,demand:3,served:0,satisfaction:100,loading:0,logistics:0,contract:null};
+  s.buildings=[factory,shop];
+  assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
+  const route=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(route);
+  const cargo=2;
+  s.trucks.push({
+    id:'truck-disconnected',
+    route:route.points.map(p=>({...p})),
+    laneRoute:route.lanePoints.map(p=>({...p})),
+    centerlineRoute:route.points.map(p=>({...p})),
+    routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),
+    routeNetworkRevision:s.roadNetworkRevision,
+    laneIds:[...route.laneIds],
+    laneRoadIds:[...route.laneRoadIds],
+    currentLaneIndex:0,
+    currentLaneId:route.laneIds[0]||null,
+    t:.35,
+    speed:.085,
+    currentSpeed:.085,
+    value:10,
+    cargo,
+    cargoType:'Steel',
+    source:factory,
+    to:shop,
+    contractId:0,
+    stage:'delivery',
+    wait:0,
+    dead:false
+  });
+  assert.equal(eraseRoad(s,{x:0,y:0}),true);
+  assert.equal(s.roadNetworkRevision,2);
+  updateEconomy(s,.01,()=>{});
+  assert.equal(s.trucks.length,0);
+  assert.equal(factory.stock,cargo);
 });
