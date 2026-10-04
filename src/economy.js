@@ -321,7 +321,7 @@ function rerouteTruck(s,t){
   t.laneRoute=physicalCompact;
   t.routeKey=compact.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join('|');
   t.laneIds=remainingLaneIds;
-  t.laneRoadIds=Array.isArray(next.laneRoadIds)?next.laneRoadIds.slice(laneStart):[];
+  t.laneRoadIds=Array.isArray(next.laneRoadIds)?[...next.laneRoadIds]:[];
   t.routeNetworkRevision=Number(s.roadNetworkRevision)||0;
   t.currentLaneIndex=0;
   t.currentLaneId=t.laneIds[0]||null;
