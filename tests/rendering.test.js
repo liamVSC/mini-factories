@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {freshState} from '../src/state.js';
@@ -166,4 +167,11 @@ test('road snapping recognizes the canonical gate inside each building yard',()=
     assert.equal(addRoad(s,[{x:snapped.x,y:snapped.y},{x:snapped.x+240,y:snapped.y}],{startBuilding:building}),true,kind);
     assert.deepEqual(s.roads[0].points[0],{x:entrance.x,y:entrance.y},kind);
   }
+});
+
+
+test('3D renderer reconciles truck meshes without rebuilding the static world',()=>{
+  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  assert.match(source,/function syncTruckMeshes\(s\)/);
+  assert.match(source,/syncTruckMeshes\(s\);const byId=new Map/);
 });
