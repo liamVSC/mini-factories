@@ -201,7 +201,7 @@ test('road renderer preserves exact endpoints while smoothing a sharp turn',()=>
 test('road junction rendering covers both T and four-way intersection cases',()=>{
   const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
   assert.ok(source.includes('degree=Math.max(3,roadsAtPoint||3)'));
-  assert.ok(source.includes('const radius=degree>=4?24:20'));
+  assert.ok(source.includes('radius=degree>=4?24:20'));
   assert.match(source,/function junctionMesh\(p,roadsAtPoint\)/);
 });
 
