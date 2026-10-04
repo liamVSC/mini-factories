@@ -184,7 +184,7 @@ test('3D road renderer has smooth corners, lane/edge markings, caps, junction me
   assert.match(source,/function bridgeRouteSegments\(points\)/);
   assert.match(source,/function roadSegmentMesh\(points,kind,materials,addCaps=false\)/);
   assert.ok(source.includes("kind==='transition'"));
-  assert.ok(source.includes('const start=Math.max(0,center-half-transition)'));
+  assert.match(source,/start=Math\.max\(0,center-half-transition\)/);
   assert.ok(source.includes('function edgeRoadMarkings(points,y,mat)'));
   assert.match(source,/function centerRoadMarkings\(points,y,mat\)/);
   assert.match(source,/function roadJunctions\(roads\)/);
