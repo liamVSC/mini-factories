@@ -6,7 +6,7 @@ import {seed} from '../src/world/buildings/index.js';
 import {savedBuildingToWorldPosition,projectWorldPointToNdc,buildingRenderTrace} from '../src/rendering/buildingTransform.js';
 import {buildingSitePlan} from '../src/rendering/sitePlan.js';
 import {buildingDockPoints,buildingRoadEntrance,buildingConnectionPoint} from '../src/world/buildings/geometry.js';
-import {roadTarget} from '../src/world/roads/placement.js';
+import {roadTarget,segmentCrossesRiver} from '../src/world/roads/placement.js';
 import {addRoad} from '../src/world/roads/creation.js';
 import {serialise} from '../src/persistence/save.js';
 import {hydrate} from '../src/persistence/load.js';
@@ -174,4 +174,10 @@ test('3D renderer reconciles truck meshes without rebuilding the static world',(
   const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/function syncTruckMeshes\(s\)/);
   assert.match(source,/syncTruckMeshes\(s\);const byId=new Map/);
+});
+
+
+test('bridge state requires an actual river crossing, not river proximity',()=>{
+  assert.equal(segmentCrossesRiver({x:0,y:390},{x:0,y:410}),false);
+  assert.equal(segmentCrossesRiver({x:0,y:300},{x:0,y:550}),true);
 });
