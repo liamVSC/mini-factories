@@ -51,7 +51,15 @@ export function routeNetworkValid(state,route){
   if(!Array.isArray(route.laneIds)||!route.laneIds.length)return false;
   if(!Array.isArray(route.laneRoadIds)||route.laneRoadIds.length!==route.laneIds.length)return false;
   const roadIds=new Set((state?.roads||[]).map(road=>road?.id).filter(Boolean));
-  return route.laneRoadIds.every(id=>roadIds.has(id));
+  if(!route.laneRoadIds.every(id=>roadIds.has(id)))return false;
+  // A route can retain the same road IDs and revision while carrying lane IDs
+  // that no longer exist (for example after loading older/hand-authored state).
+  // Validate the derived lane IDs against the current authoritative lane graph.
+  const laneGraph=buildLaneGraph(roadNetwork(state),{lanesPerDirection:2});
+  return route.laneIds.every((id,index)=>{
+    const lane=laneGraph.lanesById.get(id);
+    return !!lane&&lane.roadId===route.laneRoadIds[index];
+  });
 }
 
 export function routeOnRoadNetwork(s,a,b){
