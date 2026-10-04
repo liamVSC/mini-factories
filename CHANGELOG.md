@@ -1,5 +1,12 @@
 # Mini Factories Change Log
 
+## v2.1.3 — 5 October 2026
+
+### Road audit hardening
+- Removed renderer-only road curve smoothing from the authoritative road mesh path.
+- Road meshes and junction detection now consume the same rounded persisted polyline used by road state, preventing visual geometry from drifting away from routing/topology.
+- Added regression coverage for renderer/topology geometry authority.
+
 ## v2.1.2 — 5 October 2026
 
 ### Road renderer stability
