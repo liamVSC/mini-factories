@@ -182,7 +182,7 @@ test('3D road renderer has smooth corners, lane/edge markings, caps, junction me
   assert.match(source,/function roadCaps\(points,roadWidth,shoulderWidth/);
   assert.match(source,/function riverCrossingPoint\(a,b\)/);
   assert.match(source,/function bridgeRouteSegments\(points\)/);
-  assert.match(source,/function roadSegmentMesh\(points,kind,materials\)/);
+  assert.match(source,/function roadSegmentMesh\(points,kind,materials,addCaps=false\)/);
   assert.ok(source.includes("kind==='transition'"));
   assert.ok(source.includes('const start=Math.max(0,center-half-transition)'));
   assert.ok(source.includes('function edgeRoadMarkings(points,y,mat)'));
@@ -246,7 +246,7 @@ test('tight curve offsets fall back to the incoming normal instead of producing 
   const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
   assert.ok(source.includes('const miter=hw/Math.max(.55,Math.abs(denom))'));
   assert.ok(source.includes('if(miter<=hw*1.12){nx*=miter;nz*=miter;}else{nx=inNx;nz=inNz;}'));
-  assert.ok(source.includes('Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y)<.5'));
+  assert.ok(source.includes('Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y)>=.5'));
 });
 
 test('bridge renderer is segmented around the river crossing',()=>{
