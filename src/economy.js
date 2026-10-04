@@ -310,8 +310,12 @@ function rerouteTruck(s,t){
   // laneIds correspond to centerline road edges, not sampled lane geometry points.
   // Use the projected centerline edge so a reroute never resumes on a stale or
   // off-by-one lane after a road edit/deletion.
-  const laneStart=Math.max(0,Math.min(Array.isArray(next.laneIds)?next.laneIds.length:0,centerProjected.segmentIndex));
-  const remainingLaneIds=Array.isArray(next.laneIds)?next.laneIds.slice(laneStart):[];
+  // A route's lane IDs describe the authoritative road edges, while its point list also
+  // contains yard/gate connector geometry. Do not index lane IDs by centerline point
+  // segments: that can consume the entire lane metadata on a short yard connector.
+  // The freshly generated route is authoritative, so keep its complete lane metadata
+  // and restart lane traversal from the first valid lane.
+  const remainingLaneIds=Array.isArray(next.laneIds)?[...next.laneIds]:[];
   t.centerlineRoute=compact;
   t.route=compact;
   t.laneRoute=physicalCompact;
