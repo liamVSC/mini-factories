@@ -12,7 +12,7 @@ const {seed,nearestBuilding,buildingAtPoint,buildingCost,buildingUnlock,canBuild
 const {roadBuildingTarget,nearestRoad,roadTarget,roadPreview,addRoad,editRoadSegment,roadSegmentAtPoint,roadEndpointAtPoint,roadEndpointPreview,editRoadEndpoint,dist}:any=roadApi;
 const {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera}:any=renderApi;
 const $=(selector:string):any=>document.querySelector(selector);
-const $=(selector:string):any=>document.querySelectorAll(selector);
+const $$=(selector:string):any=>document.querySelectorAll(selector);
 const GAME_VERSION=globalThis.MINI_FACTORIES_VERSION;
 const CHANGELOG=[{version:'2.0',date:'2 Oct 2026',items:[
        'Rebuilt factories, warehouses and shops as distinct industrial buildings with multi-height roofs, loading bays and facade details.',
