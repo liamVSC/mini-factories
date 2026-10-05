@@ -6,7 +6,7 @@ import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment,roadNetwork,r
 import {buildLaneGraph} from './laneGraph.js';
 import {buildJunctionControls,laneIndexForJunction,movementForLaneRoute,movementPermission,stopLinePoint} from './junctionControl.js';
 
-export function spec(type: any){return TYPES.find(t=>t.name===type)||TYPES[0]}
+export function spec(type: any): any{return TYPES.find(t=>t.name===type)||TYPES[0]}
 
 function pointSegmentDistance(p: any, a: any, b: any){
   const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
@@ -30,7 +30,7 @@ function projectRouteProgress(points: any, p: any){
   return best;
 }
 
-export function route(s: any, a: any, b: any){
+export function route(s: any, a: any, b: any): any{
   // Route endpoints must still belong to the live world. This prevents a
   // retained building object from remaining routable after deletion/move
   // logic replaces the instance in state.
@@ -43,7 +43,7 @@ export function route(s: any, a: any, b: any){
 
 function segmentHit(a: any, b: any, c: any, d: any){
   const ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y};
-  const cross=(u,v)=>u.x*v.y-u.y*v.x;
+  const cross=(u:any,v:any)=>u.x*v.y-u.y*v.x;
   const den=cross(ab,cd);
   if(Math.abs(den)<1e-8)return null;
   const ac={x:c.x-a.x,y:c.y-a.y};
@@ -235,7 +235,7 @@ function trafficConflict(s: any, t: any, network: any, laneGraph: any, controls:
     metresAhead:here.metresAhead,
     yielding,
     priorityState:signal.allowed?(yielding?'yield':'proceed'):'signal-stop',
-    yieldReason:!signal.allowed?signal.state:(yielding?'conflicting-movement':null),
+    yieldReason:!signal.allowed?(signal as any).state:(yielding?'conflicting-movement':null),
     movement:movement?.type||here.movement?.direction||t.lane||'straight',
     laneTarget,
     laneChangeAllowed:here.metresAhead>(movement?.conflictZoneDistance??18),
@@ -251,7 +251,7 @@ function trafficConflict(s: any, t: any, network: any, laneGraph: any, controls:
 
   s.trafficReservations=s.trafficReservations||{};
   const now=s.trafficClock||0;
-  for(const [reservationKey,reservationValue] of Object.entries(s.trafficReservations)){
+  for(const [reservationKey,reservationValue] of Object.entries(s.trafficReservations as Record<string,any>)){
     if(!reservationValue||reservationValue.until<=now)delete s.trafficReservations[reservationKey];
   }
   const key=`${Math.round(here.junction.x*10)/10},${Math.round(here.junction.y*10)/10}`;
@@ -268,7 +268,7 @@ function fullLaneMovementRoute(route: any){
     for(const p of part){
       if(!Number.isFinite(Number(p?.x))||!Number.isFinite(Number(p?.y)))continue;
       const q={x:Number(p.x),y:Number(p.y)};
-      if(!parts.length||dist(q,parts.at(-1))>.01)parts.push(q);
+      if(!parts.length||!parts.at(-1)||dist(q,parts.at(-1)!)>.01)parts.push(q);
     }
   }
   if(parts.length<2)return null;
@@ -381,7 +381,7 @@ export function upgrade(s: any, b: any, n: any){
   return false;
 }
 
-function supplyWarehouseFor(s: any, factory: any, shop: any){
+function supplyWarehouseFor(s: any, factory: any, shop: any): any{
   let best=null,bestScore=Infinity;
   for(const warehouse of s.buildings.filter(b=>b.kind==='warehouse')){
     const toWarehouse=route(s,factory,warehouse);
@@ -396,7 +396,7 @@ function supplyWarehouseFor(s: any, factory: any, shop: any){
   }
   return best;
 }
-function warehouseCapacity(w: any, type: any){return Math.max(0,(w.max||24)-(w.storage||0));}
+function warehouseCapacity(w: any, type: any): number{return Math.max(0,(w.max||24)-(w.storage||0));}
 function takeFromWarehouse(warehouse: any, type: any, n: any){
   const have=Math.max(0,warehouse?.inventory?.[type]||0),take=Math.min(have,Math.max(0,n));
   if(!take)return 0;
@@ -453,7 +453,7 @@ export function updateEconomy(s: any, dt: any, flash: any){
       if(b.contract){b.contract.expires-=dt;if(b.contract.expires<=0){s.reputation=Math.max(0,s.reputation-4);b.contract=null;flash('Contract expired • reputation -4')}}
     }
   }
-  for(const f of s.buildings.filter(b=>b.kind==='factory')){
+  for(const f of s.buildings.filter((b:any)=>b.kind==='factory')){
     f.dispatchTimer=(f.dispatchTimer||0)+dt;
     if(f.dispatchTimer<Math.max(.65,1.15-f.level*.12))continue;
     // Warehouses are the default supply-chain path whenever a connected
@@ -475,7 +475,7 @@ export function updateEconomy(s: any, dt: any, flash: any){
         if(dispatched){f.stock-=cargo;f.dispatchTimer=0;continue;}
       }
     }
-    const shops=s.buildings.filter(b=>b.kind==='shop'&&b.need===f.type&&b.demand>0);
+    const shops=s.buildings.filter((b:any)=>b.kind==='shop'&&b.need===f.type&&b.demand>0);
     let choice=null,best=Infinity,choiceRoute=null,choiceHub=null,choicePriority=-Infinity;
     for(const shop of shops){
       // A warehouse only becomes the supply-chain path when the factory
@@ -672,10 +672,10 @@ export function updateEconomy(s: any, dt: any, flash: any){
       t.dead=true;
     }
   }
-  s.trucks=s.trucks.filter(t=>!t.dead);
+  s.trucks=s.trucks.filter((t:any)=>!t.dead);
   while(s.xp>=s.xpToNext){s.xp-=s.xpToNext;s.companyLevel++;s.xpToNext=Math.round(100*Math.pow(1.22,s.companyLevel-1));flash('Company Level '+s.companyLevel)}
-  s.congestion=Math.min(1,(s.trucks.length+s.trucks.filter(t=>t.wait>0).length*1.5)/Math.max(3,s.roads.length*2));
-  const reduction=s.trucks.reduce((n,t)=>n+(t.source?.logistics||0),0)/Math.max(1,s.trucks.length);
+  s.congestion=Math.min(1,(s.trucks.length+s.trucks.filter((t:any)=>t.wait>0).length*1.5)/Math.max(3,s.roads.length*2));
+  const reduction=s.trucks.reduce((n:any,t:any)=>n+(t.source?.logistics||0),0)/Math.max(1,s.trucks.length);
   s.cash-=s.roads.length*dt*.055*(1+s.congestion*Math.max(.55,1-reduction*.12));
   const g=s.goals[s.objective];if(g&&g.done(s))s.objective=Math.min(5,s.objective+1);if(s.cash<=0){s.cash=0;s.gameOver=true}
 }
