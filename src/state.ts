@@ -36,6 +36,7 @@ export interface Building {
   contract: Contract | null;
   pulse: number;
   active: number;
+  district?: unknown;
 }
 
 export interface Contract {
