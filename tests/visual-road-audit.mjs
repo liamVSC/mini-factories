@@ -34,7 +34,7 @@ async function assertUiControls(page,name){
  assert.ok(await buildMenu.isVisible(),name+': Build menu did not open');
  assert.ok(await page.locator('#road').isVisible(),name+': road tool is missing from Build menu');
  await page.locator('#buildMenuClose').click();
- await page.waitForFunction(()=>!document.querySelector('#buildMenu')?.classList.contains('open'),{timeout:2000});
+ await page.waitForFunction(()=>{const el=document.querySelector('#buildMenu');if(!el)return true;const style=getComputedStyle(el);return !el.classList.contains('open')&&style.pointerEvents==='none'&&style.opacity==='0'},{timeout:2000});
  await page.getByRole('button',{name:'Research'}).click();
  assert.ok(await panel.isVisible(),name+': Research panel did not open');
  assert.equal(await page.locator('#name').textContent(),'Research',name+': Research panel title is incorrect');
