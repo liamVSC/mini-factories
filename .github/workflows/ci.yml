@@ -12,6 +12,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,7 +31,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run real browser road audit
-        run: mkdir -p test-results && npm run test:visual
+        run: mkdir -p test-results && timeout --signal=TERM --kill-after=30s 6m npm run test:visual
       - name: Upload road audit screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -39,4 +40,4 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
       - name: Run test suite
-        run: npm test
+        run: timeout --signal=TERM --kill-after=30s 8m npm test
