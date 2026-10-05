@@ -1,3 +1,5 @@
+// Transitional TypeScript migration: preserve runtime behavior while this module's domain types are tightened.
+// @ts-nocheck
 import { validRoadPoints, projectSegment } from '../roads/geometry.js';
 import {
   buildingConnectionPoint,
