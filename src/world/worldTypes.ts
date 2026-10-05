@@ -1,4 +1,5 @@
-export interface Point { x:number; y:number; [key:string]:unknown }
+import type { Point } from './roads/geometry.js';
+export type { Point };
 export interface Road { id:string; points:Point[]; age?:number; condition?:number; bridge?:boolean; [key:string]:unknown }
 export interface Truck { route?:Point[]; routeSegments?:Road[]; routeInvalidated?:boolean; [key:string]:unknown }
 export interface RoadEdge { a:Point; b:Point; d:number; road?:Road }
