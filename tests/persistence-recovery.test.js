@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {freshState} from '../src/state.js';
-import {saveRecoveredState,loadRecoveredState,SAVE_KEY,BACKUP_KEY,RECOVERY_KEY} from '../src/persistence/recovery.js';
+import {freshState} from '../dist/state.js';
+import {saveRecoveredState,loadRecoveredState,SAVE_KEY,BACKUP_KEY,RECOVERY_KEY} from '../dist/persistence/recovery.js';
 
 function storage(){
   const data=new Map();
