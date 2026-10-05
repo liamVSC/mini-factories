@@ -112,7 +112,7 @@ export function forklift(g:THREE.Object3D,x:number,z:number,metal:THREE.Material
   for(const side of[-1,1]){const wheel=cyl(g,1.35,1,material('#252a29',.98),x,1.5,z+side*2.7,12);wheel.rotation.x=Math.PI/2;}
   for(const side of[-1,1])box(g,.5,7,.6,metal,x+4.7,4.7,z+side*1.6);box(g,3,.5,.6,metal,x+5.8,1,z,0,false);
 }
-export function siteLights(g:THREE.Object3D,plan:{site:{halfWidth:number};courtZ:number},metal:THREE.Material,lightMat:THREE.Material){
+export function roofRibs(g:THREE.Object3D,w:number,d:number,y:number,metal:THREE.Material,count=5){for(let i=0;i<count;i++){const x=-w/2+6+i*(w-12)/Math.max(1,count-1);box(g,1.6,.9,d-10,metal,x,y,0);}}\nexport function siteLights(g:THREE.Object3D,plan:{site:{halfWidth:number};courtZ:number},metal:THREE.Material,lightMat:THREE.Material){
   for(const side of[-1,1]){const x=side*(plan.site.halfWidth-15),z=plan.courtZ;box(g,.8,17,.8,metal,x,8.5,z);box(g,3,.55,1.6,lightMat,x,17.2,z);}
 }
 export function materialsIn(group:THREE.Object3D):Set<THREE.Material>{
