@@ -82,7 +82,7 @@ export interface GameState {
   buildings: Building[];
   trucks: Truck[];
   particles: Record<string, unknown>[];
-  selected: string | null;
+  selected: Building | null;
   mode: string;
   paused: boolean;
   gameOver: boolean;
