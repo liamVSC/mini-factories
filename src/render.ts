@@ -1,6 +1,4 @@
-// Transitional TypeScript migration: preserve runtime behavior while this module's domain types are tightened.
-// @ts-nocheck
-import * as renderer3d from './render3d-clean.js?v=7';
+import * as renderer3d from './render3d-clean.js';
 import type { Point } from './world/worldTypes.js';
 
 export function render(state:unknown,width:number,height:number,canvas:HTMLCanvasElement|null=document.querySelector('#game')):void{renderer3d.render(state,width,height,canvas)}
