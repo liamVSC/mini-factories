@@ -1,5 +1,6 @@
 import * as renderer3d from './render3d-clean.js';
-import type { Point } from './world/worldTypes.js';\nimport type { GameState } from './state.js';
+import type { Point } from './world/worldTypes.js';
+import type { GameState } from './state.js';
 
 export function render(state:GameState,width:number,height:number,canvas:HTMLCanvasElement|null=document.querySelector('#game')):void{renderer3d.render(state,width,height,canvas)}
 export function setBuildingPreview(type:string|null,point:Point|null,blocked=false):void{renderer3d.setBuildingPreview(type,point,blocked)}
