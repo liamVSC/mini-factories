@@ -132,8 +132,11 @@ test('legacy roads near a canonical gate get an explicit gate-to-pavement connec
   const roadIndex=route.points.findIndex(p=>Math.hypot(p.x-factoryRoadPoint.x,p.y-factoryRoadPoint.y)<.01);
   assert.ok(gateIndex>=0);
   assert.ok(roadIndex>gateIndex);
-  assert.ok(route.points.slice(gateIndex,roadIndex+1).every((p,i,a)=>i===0||Math.hypot(p.x-a[i-1].x,p.y-a[i-1].y)>0));
-  assert.ok(route.points.some((p,i)=>i>0&&Math.hypot(p.x-factoryGate.x,p.y-factoryGate.y)<.01&&Math.hypot(p.x-factoryRoadPoint.x,p.y-factoryRoadPoint.y)<.01));
+  assert.equal(roadIndex,gateIndex+1);
+  assert.ok(Math.abs(Math.hypot(
+    route.points[roadIndex].x-route.points[gateIndex].x,
+    route.points[roadIndex].y-route.points[gateIndex].y
+  )-Math.hypot(factoryRoadPoint.x-factoryGate.x,factoryRoadPoint.y-factoryGate.y))<.01);
 });
 
 
