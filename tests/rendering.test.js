@@ -258,7 +258,7 @@ test('road mesh layers use distinct heights instead of coplanar surfaces',()=>{
 test('tight curve offsets fall back to the incoming normal instead of producing oversized miters',()=>{
   const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
   assert.ok(source.includes('const denom=nx*inNx+nz*inNz,miterScale=1/Math.max(.55,Math.abs(denom))'));
-  assert.ok(source.includes('if(miter<=hw*1.12){nx*=miter;nz*=miter;}else{nx=inNx;nz=inNz;}'));
+  assert.ok(source.includes('if(miterScale<=1.12){scale=miterScale;}else{nx=inNx;nz=inNz;}'));
   assert.ok(source.includes('Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y)>=.5'));
 });
 
