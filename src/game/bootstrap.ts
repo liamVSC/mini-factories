@@ -76,7 +76,7 @@ function createGame(){
   let lastSaveAt=0;
   let flashTimer:number|undefined;
 
-  const ctx={
+  const ctx:GameContext={
     state,
     commands,
     viewport:{width:0,height:0},
@@ -137,6 +137,10 @@ function createGame(){
     setRoadEditorOpen(_open){},
     toggleRoadMode(){},
     reset(){},
+    resize(){},
+    resetCamera(){},
+    resumeGameLoop(){},
+    suspendGameLoop(){},
     updatePlacementPreview(_point){},
     clearPlacementPreview(){}
   } as GameContext;
@@ -160,6 +164,10 @@ function createGame(){
   ctx.clearPlacementPreview=build.clearBuildingPlacementPreview;
 
   const loop=createGameLoop(ctx);
+  ctx.resize=camera.resize;
+  ctx.resetCamera=camera.reset;
+  ctx.resumeGameLoop=loop.resume;
+  ctx.suspendGameLoop=loop.suspend;
   bindLifecycle(ctx,loop);
 
   ui.bind();
