@@ -1,0 +1,1 @@
+declare module "https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6";
