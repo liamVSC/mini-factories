@@ -26,6 +26,30 @@ async function assertRenderedState(page,name,beforeState){
  if(beforeState)assert.ok(state.roads.length>beforeState.roads.length,name+': road count did not increase after creation');
 }
 
-async function audit(viewport,name,points){const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport,deviceScaleFactor:1,isMobile:viewport.width<700,hasTouch:viewport.width<700,serviceWorkers:'block'});await context.addInitScript(()=>localStorage.clear());const page=await context.newPage();const consoleErrors=[],pageErrors=[];page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});page.on('pageerror',e=>pageErrors.push(String(e?.stack||e)));await page.goto('http://127.0.0.1:'+process.env.MINI_FACTORIES_PORT+'/',{waitUntil:'networkidle'});await page.waitForFunction(()=>document.querySelector('#startupGuard')?.style.display==='none',{timeout:20000});await page.waitForFunction(()=>{const c=document.querySelector('#game');return !!c?.getContext('webgl2')||!!c?.getContext('webgl')},{timeout:10000});await page.waitForFunction(()=>typeof window.__miniFactoriesRenderDiagnostics==='function',{timeout:5000});const before=await savedState(page);const initial=await page.evaluate(()=>window.__miniFactoriesRenderDiagnostics());assert.equal(initial.roadObjectCount,before?.roads?.length||0,name+': initial logical/rendered road count mismatch');await page.screenshot({path:'test-results/road-'+name+'-before.png',fullPage:false});await exerciseRoad(page,points,before?.roads?.length||0);await assertRenderedState(page,name,before);await page.screenshot({path:'test-results/road-'+name+'-after.png',fullPage:false});assert.equal(consoleErrors.length,0,name+': console errors: '+consoleErrors.join(' | '));assert.equal(pageErrors.length,0,name+': page errors: '+pageErrors.join(' | '));const size=await page.locator('#game').evaluate(el=>({width:el.width,height:el.height}));assert.ok(size.width>0&&size.height>0,name+': invalid canvas size');await context.close();await browser.close();}
+async function assertUiControls(page,name){
+ const panel=page.locator('#panel');
+ const buildMenu=page.locator('#buildMenu');
+ await page.getByRole('button',{name:'Build'}).click();
+ await page.waitForFunction(()=>document.querySelector('#buildMenu')?.classList.contains('open'));
+ assert.ok(await buildMenu.isVisible(),name+': Build menu did not open');
+ assert.ok(await page.locator('#road').isVisible(),name+': road tool is missing from Build menu');
+ await page.locator('#buildMenuClose').click();
+ await page.getByRole('button',{name:'Research'}).click();
+ assert.ok(await panel.isVisible(),name+': Research panel did not open');
+ assert.equal(await page.locator('#name').textContent(),'Research',name+': Research panel title is incorrect');
+ await page.locator('#panelClose').click();
+ await page.getByRole('button',{name:'Company'}).click();
+ assert.ok(await panel.isVisible(),name+': Company panel did not open');
+ assert.equal(await page.locator('#name').textContent(),'Company',name+': Company panel title is incorrect');
+ await page.locator('#panelClose').click();
+ await page.getByRole('button',{name:'Settings'}).click();
+ assert.equal(await page.locator('#settingsMenu').evaluate(el=>getComputedStyle(el).display),'flex',name+': Settings menu did not open');
+ assert.ok((await page.locator('#gameVersion').textContent())?.trim(),name+': Settings did not populate game version');
+ await page.locator('#settingsClose').click();
+ assert.notEqual(await page.locator('#settingsMenu').evaluate(el=>getComputedStyle(el).display),'flex',name+': Settings menu did not close');
+ await page.getByRole('button',{name:'Reset camera'}).click();
+}
+
+async function audit(viewport,name,points){const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport,deviceScaleFactor:1,isMobile:viewport.width<700,hasTouch:viewport.width<700,serviceWorkers:'block'});await context.addInitScript(()=>localStorage.clear());const page=await context.newPage();const consoleErrors=[],pageErrors=[];page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});page.on('pageerror',e=>pageErrors.push(String(e?.stack||e)));await page.goto('http://127.0.0.1:'+process.env.MINI_FACTORIES_PORT+'/',{waitUntil:'networkidle'});await page.waitForFunction(()=>document.querySelector('#startupGuard')?.style.display==='none',{timeout:20000});await page.waitForFunction(()=>{const c=document.querySelector('#game');return !!c?.getContext('webgl2')||!!c?.getContext('webgl')},{timeout:10000});await page.waitForFunction(()=>typeof window.__miniFactoriesRenderDiagnostics==='function',{timeout:5000});await assertUiControls(page,name);const before=await savedState(page);const initial=await page.evaluate(()=>window.__miniFactoriesRenderDiagnostics());assert.equal(initial.roadObjectCount,before?.roads?.length||0,name+': initial logical/rendered road count mismatch');await page.screenshot({path:'test-results/road-'+name+'-before.png',fullPage:false});await exerciseRoad(page,points,before?.roads?.length||0);await assertRenderedState(page,name,before);await page.screenshot({path:'test-results/road-'+name+'-after.png',fullPage:false});assert.equal(consoleErrors.length,0,name+': console errors: '+consoleErrors.join(' | '));assert.equal(pageErrors.length,0,name+': page errors: '+pageErrors.join(' | '));const size=await page.locator('#game').evaluate(el=>({width:el.width,height:el.height}));assert.ok(size.width>0&&size.height>0,name+': invalid canvas size');await context.close();await browser.close();}
 
 const {server,url}=await startServer();process.env.MINI_FACTORIES_PORT=new URL(url).port;try{await audit({width:1280,height:800},'desktop',[[.42,.50],[.58,.50]]);await audit({width:390,height:844},'mobile',[[.42,.50],[.58,.50]]);console.log('Visual road audit passed: logical/rendered road count, geometry, endpoints, mesh/object presence, building positions and runtime error checks are consistent on desktop + mobile.')}finally{server.close();}
