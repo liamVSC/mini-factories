@@ -1,6 +1,6 @@
 import {addRoad,eraseRoad,editRoadEndpoint,roadEndpointPreview,roadSegmentAtPoint} from './world/roads/index.js';
 import {placeBuilding} from './world/buildings/index.js';
-import type { GameState } from './state.js';
+import type { BuildingType, GameState } from './state.js';
 import type { Point } from './world/worldTypes.js';
 
 type Snapshot = Record<string,unknown>;
@@ -69,8 +69,8 @@ export class MoveRoadEndpointCommand extends MutationCommand{
   apply(state:GameState):unknown{return editRoadEndpoint(state,this.roadId,this.index,this.point)||false}
 }
 export class PlaceBuildingCommand extends MutationCommand{
-  type:string;x:number;y:number;
-  constructor(type:string,x:number,y:number){super('place-building',['buildings','cash']);this.type=type;this.x=x;this.y=y}
+  type:BuildingType;x:number;y:number;
+  constructor(type:BuildingType,x:number,y:number){super('place-building',['buildings','cash']);this.type=type;this.x=x;this.y=y}
   validate(_state:GameState):CommandResult{return!this.type||!Number.isFinite(this.x)||!Number.isFinite(this.y)?{ok:false,reason:'invalid-placement'}:{ok:true}}
   apply(state:GameState):unknown{return placeBuilding(state,this.type,this.x,this.y)||false}
 }
