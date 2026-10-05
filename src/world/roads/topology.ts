@@ -1,5 +1,3 @@
-// Transitional TypeScript migration: runtime behavior preserved while domain types are tightened incrementally.
-// @ts-nocheck
 import type { Point, Road, RoadEdge, RoadNetwork } from '../worldTypes.js';
 import type { GameState } from '../../state.js';
 import {dist,finitePoint,validRoadPoints,projectSegment,roadPointParameter,addNode} from './geometry.js';
