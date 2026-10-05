@@ -70,6 +70,8 @@ export function routeOnRoadNetwork(s,a,b){
   // through the private yard to the actual loading dock.
   const startPoint=aa.roadPoint||aa.point;
   const endPoint=bb.roadPoint||bb.point;
+  const startGate=aa.canonical?aa.entrance||aa.point:startPoint;
+  const endGate=bb.canonical?bb.entrance||bb.point:endPoint;
   const network=roadNetwork(s,[startPoint,endPoint]);
   const start=nearestGraphNode(network,startPoint),end=nearestGraphNode(network,endPoint);
   if(!start||!end)return null;
@@ -128,7 +130,9 @@ export function routeOnRoadNetwork(s,a,b){
   // destination gate and finish at its dock.
   const startYard=aa.canonical?yardPath(a,false):[];
   const endYard=bb.canonical?yardPath(b,true):[];
-  const combined=[...startYard,...routePoints,...endYard];
+  const startGateConnector=aa.canonical&&dist(startGate,startPoint)>.01?[{x:startGate.x,y:startGate.y},{x:startPoint.x,y:startPoint.y}]:[];
+  const endGateConnector=bb.canonical&&dist(endGate,endPoint)>.01?[{x:endPoint.x,y:endPoint.y},{x:endGate.x,y:endGate.y}]:[];
+  const combined=[...startYard,...startGateConnector,...routePoints,...endGateConnector,...endYard];
   const combinedPoints=combined.filter((p,i)=>i===0||dist(p,combined[i-1])>.01);
   const yardDistance=length(startYard)+length(endYard);
   return{
