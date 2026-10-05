@@ -168,6 +168,7 @@ function trafficConflict(s: any, t: any, network: any, laneGraph: any, controls:
     if(o===t||o.dead||!Array.isArray(o.route)||o.route.length<2)continue;
     const oMovementRoute=Array.isArray(o.laneRoute)&&o.laneRoute.length>=2?o.laneRoute:o.route;
     const q=truckMovementPoint(o);
+    if(!q)continue;
     if(o.routeKey===t.routeKey&&o.t>t.t&&dist(p,q)<34)return true;
   }
 
@@ -181,6 +182,7 @@ function trafficConflict(s: any, t: any, network: any, laneGraph: any, controls:
       if(o===t||o.dead||o.wait>0||!Array.isArray(o.route)||o.route.length<2)continue;
       const oMovementRoute=Array.isArray(o.laneRoute)&&o.laneRoute.length>=2?o.laneRoute:o.route;
       const q=truckMovementPoint(o);
+      if(!q)continue;
       for(let i=1;i<tMovementRoute.length;i++){
         const a=i===1?p:tMovementRoute[i-1],b=tMovementRoute[i];
         for(let j=1;j<oMovementRoute.length;j++){
@@ -262,7 +264,7 @@ function trafficConflict(s: any, t: any, network: any, laneGraph: any, controls:
 }
 function fullLaneMovementRoute(route: any){
   if(!route)return null;
-  const parts=[];
+  const parts: {x:number;y:number}[]=[];
   for(const part of [route.startYard,route.lanePoints,route.endYard]){
     if(!Array.isArray(part)||part.length<2)continue;
     for(const p of part){
@@ -383,7 +385,7 @@ export function upgrade(s: any, b: any, n: any){
 
 function supplyWarehouseFor(s: any, factory: any, shop: any): any{
   let best=null,bestScore=Infinity;
-  for(const warehouse of s.buildings.filter(b=>b.kind==='warehouse')){
+  for(const warehouse of s.buildings.filter((b:any)=>b.kind==='warehouse')){
     const toWarehouse=route(s,factory,warehouse);
     if(!toWarehouse)continue;
     const toShop=route(s,warehouse,shop);
@@ -425,7 +427,7 @@ function dispatchTruck(s: any, {route, source, destination, cargo, cargoType=sou
   const physicalRoute=fullLaneMovementRoute(route)||route.points;
   s.trucks.push({
     id:newId(),route:route.points,laneRoute:physicalRoute,centerlineRoute:route.points,
-    routeKey:route.points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),
+    routeKey:route.points.map((p:any)=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|'),
     routeNetworkRevision:Number(s.roadNetworkRevision)||0,
     laneIds:Array.isArray(route.laneIds)?[...route.laneIds]:[],
     laneRoadIds:Array.isArray(route.laneRoadIds)?[...route.laneRoadIds]:[],
@@ -558,7 +560,7 @@ export function updateEconomy(s: any, dt: any, flash: any){
     // stable reference after a road mutation. Validate the persisted road IDs
     // behind them before allowing the truck to continue.
     if(!t.routeInvalidated&&Array.isArray(t.laneIds)&&t.laneIds.length&&Array.isArray(t.laneRoadIds)){
-      if(t.laneRoadIds.length!==t.laneIds.length||t.laneIds.some((id,i)=>laneGraph?.lanesById.get(id)?.roadId!==t.laneRoadIds[i]))t.routeInvalidated=true;
+      if(t.laneRoadIds.length!==t.laneIds.length||t.laneIds.some((id:any,i:number)=>laneGraph?.lanesById.get(id)?.roadId!==t.laneRoadIds[i]))t.routeInvalidated=true;
     }
     // Road deletion can invalidate a live truck route. Re-route from the
     // truck's current physical position when an alternate network path exists.
