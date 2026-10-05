@@ -325,5 +325,5 @@ test('PWA cache and published game version stay aligned',()=>{
   assert.match(sw,/render3d-clean\.js\?v=8/);
   assert.match(sw,/render\.js\?v=4/);
   assert.match(html,/src\/game\.js\?v=8/);
-  assert.match(version,/MINI_FACTORIES_VERSION='2.1.7'/);
+  assert.match(version,/MINI_FACTORIES_VERSION='2.1.8'/);
 });
