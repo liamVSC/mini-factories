@@ -5,7 +5,7 @@ import { screenToWorld, setBuildingPreview } from '../render.js';
 import { PlaceBuildingCommand, executeCommand } from '../commands.js';
 import type { BuildingType } from '../state.js';
 import type { Point } from '../world/worldTypes.js';
-import type { BuildDragState, GameContext } from './types.js';
+import type { BuildDragState, GameContext, RoadBuildEntry } from './types.js';
 
 export function createBuildController(ctx:GameContext){
   let buildDrag:BuildDragState|null=null;
@@ -13,7 +13,8 @@ export function createBuildController(ctx:GameContext){
   const $=<T extends Element=HTMLElement>(selector:string):T=>document.querySelector<T>(selector)!;
 
   function buildIcon(type:BuildingType|{kind:string}){if(type.kind==='factory')return '🏭';if(type.kind==='shop')return '🏪';if(type.kind==='warehouse')return '📦';return '🛣️';}
-  function buildEntries(){return [{name:'Road',kind:'road',role:'Connect buildings',desc:'Drag onto the map to start a road.'},...TYPES];}
+  const roadEntry:RoadBuildEntry={name:'Road',kind:'road',role:'Connect buildings',desc:'Drag onto the map to start a road.'};
+  function buildEntries(){return [roadEntry,...TYPES];}
 
   function placementTarget(type:BuildingType,point:Point){return buildingPlacementTarget(ctx.state,type,point);}
   function placementReason(type:BuildingType,point:Point){
@@ -76,7 +77,7 @@ export function createBuildController(ctx:GameContext){
 
   function clearBuildingPlacementPreview(){
     setBuildingPreview(null,null,false);
-    if(ctx.state.mode==='build')$('#tip')!.textContent='Tap an empty area to place '+(ctx.state.buildMode||'a building');
+    if(ctx.state.mode==='build')$('#tip')!.textContent='Tap an empty area to place '+(ctx.state.buildMode?.name||'a building');
   }
 
   function startBuild(type:BuildingType|{kind:string;name:string}){
@@ -194,7 +195,7 @@ export function createBuildController(ctx:GameContext){
       const pointer=event as PointerEvent;
       const type=buildCardForTarget(pointer);
       if(!type)return;
-      buildDrag={type:type as BuildingType,pointerId:pointer.pointerId,startX:pointer.clientX,startY:pointer.clientY,dragging:false,cancelled:false};
+      buildDrag={type:type as BuildingType|RoadBuildEntry,pointerId:pointer.pointerId,startX:pointer.clientX,startY:pointer.clientY,dragging:false,cancelled:false};
       const ghost=$<HTMLElement>('#buildGhost');
       ghost.querySelector('span')!.textContent=buildIcon(type);
       ghost.querySelector('b')!.textContent=type.name;
