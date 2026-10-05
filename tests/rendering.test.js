@@ -35,6 +35,22 @@ test('every saved building x/y reaches a distinct world-space x/z position',()=>
   }
 });
 
+test('seeded factories stay outside the central build area and maintain spacing',()=>{
+  const s=freshState();
+  assert.equal(seed(s),true);
+  const factories=s.buildings.filter(b=>b.kind==='factory');
+  assert.equal(factories.length,3);
+  for(const factory of factories){
+    assert.ok(Math.hypot(Number(factory.x),Number(factory.y))>=720,'factory must not spawn in the central map area');
+  }
+  for(let i=0;i<factories.length;i++){
+    for(let j=i+1;j<factories.length;j++){
+      const distance=Math.hypot(Number(factories[i].x)-Number(factories[j].x),Number(factories[i].y)-Number(factories[j].y));
+      assert.ok(distance>=250,'seeded factories must maintain the minimum spacing');
+    }
+  }
+});
+
 test('world-space building positions remain distinct after camera projection',()=>{
   const s=freshState();
   assert.equal(seed(s),true);
