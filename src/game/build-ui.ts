@@ -32,7 +32,7 @@ export function createBuildController(ctx:GameContext){
       const subtitle=reason||type.role||type.desc||'Build';
       return '<button class="build-card'+(locked?' locked':'')+'" data-build-type="'+type.name+'" '+(locked?'disabled':'')+'><span class="build-icon">'+buildIcon(type)+'</span><span class="build-copy"><b>'+type.name+'</b><small>'+subtitle+'</small></span><strong>'+cost+'</strong>'+(locked?'<span class="build-lock">🔒</span>':'')+'</button>';
     }).join('');
-    grid.querySelector<HTMLElement>('.build-cash')?.replaceChildren(document.createTextNode('£'+Math.floor(ctx.state.cash)));
+    menu.querySelector<HTMLElement>('.build-cash')?.replaceChildren(document.createTextNode('£'+Math.floor(ctx.state.cash)));
   }
 
   function showBuild(){
