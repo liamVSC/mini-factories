@@ -12,7 +12,7 @@ const {seed,nearestBuilding,buildingAtPoint,buildingCost,buildingUnlock,canBuild
 const {roadBuildingTarget,nearestRoad,roadTarget,roadPreview,addRoad,editRoadSegment,roadSegmentAtPoint,roadEndpointAtPoint,roadEndpointPreview,editRoadEndpoint,dist}:any=roadApi;
 const {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screenToWorld,panScreen,zoomAtScreen,resetCamera}:any=renderApi;
 const $=(selector:string):any=>document.querySelector(selector);
-const $=(selector:string):any=>$(selector);
+const $=(selector:string):any=>document.querySelectorAll(selector);
 const GAME_VERSION=globalThis.MINI_FACTORIES_VERSION;
 const CHANGELOG=[{version:'2.0',date:'2 Oct 2026',items:[
        'Rebuilt factories, warehouses and shops as distinct industrial buildings with multi-height roofs, loading bays and facade details.',
@@ -86,7 +86,7 @@ function load(){
   return startNewGame();
 }
 function markWorldDirty(){s.renderVersion=(s.renderVersion||0)+1}
-function save(force=false){if(s.gameOver&&!force)return;const now=performance.now();if(!force&&now-lastSaveAt<1000)return;const ok=saveRecoveredState(s,localStorage,Date.now());lastSaveAt=now;if(!ok&&force)flash('Recovery save unavailable — storage is full')};
+function save(force=false){if(s.gameOver&&!force)return;const now=performance.now();if(!force&&now-lastSaveAt<1000)return;const ok=saveRecoveredState(s,localStorage,Date.now());lastSaveAt=now;if(!ok&&force)flash('Recovery save unavailable — storage is full')}
 function roadPreviewTip(preview: any){if(!preview)return 'Invalid road';if(preview.blocked)return 'Road blocked — move around the building';const start=preview.start?.building?.type||preview.start?.building?.kind;const end=preview.end?.building?.type||preview.end?.building?.kind;if(start&&end)return 'Connect '+start+' to '+end;if(start)return 'Road from '+start;if(end)return 'Road to '+end;return 'Drag to build road'}
 function roadResultMessage(result: any, path: any){if(result===true)return 'Road built';if(result==='cash'){const lengthEstimate=path.length>1?path.reduce((n:any,p:any,i:number)=>i?n+dist(path[i-1],p):0,0):0;const cost=Math.max(1,Math.ceil(lengthEstimate/180))*2;return 'Need £'+cost+' cash (you have £'+Math.floor(s.cash)+')'}if(result==='too-short')return 'Select two different points or buildings';if(result==='blocked')return 'Road blocked — move around the building';if(result==='duplicate')return 'Road already exists here';return 'Invalid road'}
 const flash:any=(text:any)=>{const el=$('#tip');el.textContent=text;clearTimeout(flash.timer);flash.timer=setTimeout(()=>el.textContent='Build roads between factories and shops.',1200)}
