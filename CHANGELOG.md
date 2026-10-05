@@ -1,3 +1,9 @@
+## v2.1.7 — 5 October 2026
+
+### Road regression-test hardening
+- Corrected the final stale assertion for the bounded road-corner miter implementation.
+- Kept the renderer fix unchanged; this release only aligns regression coverage and published version metadata.
+
 ## v2.1.6 — 5 October 2026
 
 ### CI regression test correction
