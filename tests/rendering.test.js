@@ -294,7 +294,7 @@ test('mobile viewport and touch handling isolate UI scrolling from map gestures'
   const css=readFileSync(new URL('../styles.css',import.meta.url),'utf8');
   assert.match(game,/window\.visualViewport\?\.addEventListener\('resize',resize/);
   assert.match(game,/window\.visualViewport\?\.addEventListener\('scroll',resize/);
-  assert.match(game,/e\.target===canvas/);
+  assert.match(game,/event\.target===canvas/);
   assert.match(css,/body\{touch-action:manipulation/);
   assert.match(css,/\.panel,.pause \.box,.modal \.box\{touch-action:auto/);
   assert.match(css,/\.build-cards\{touch-action:pan-x/);
