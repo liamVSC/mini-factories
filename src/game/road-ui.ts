@@ -146,7 +146,7 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
     const point=camera.worldPosition(event);
     if(!point)return;
     if(ctx.state.mode==='road'&&ctx.drag){
-      ctx.drag.current=roadBuildingTarget(ctx.state,point)||roadTarget(ctx.state,point)||point;
+      ctx.drag.current=roadBuildingTarget(ctx.state,point)||roadTarget(ctx.state,point as RoadTarget)||point;
       let preview:RoadPreviewResult|null=null;
       try{preview=roadPreview(ctx.state,ctx.drag.start as RoadTarget,ctx.drag.current as RoadTarget) as RoadPreviewResult|null;}
       catch{preview={path:[ctx.drag.start,ctx.drag.current],start:ctx.drag.start as RoadTarget,end:ctx.drag.current as RoadTarget,blocked:true,blockedReason:'preview-error'};}
