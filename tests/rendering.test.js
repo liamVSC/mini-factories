@@ -193,7 +193,7 @@ test('3D road renderer has smooth corners, lane/edge markings, caps, junction me
   assert.match(source,/export function smoothRoadPath\(points\)/);
   assert.match(source,/const radius=Math\.min\(30,inLen\*\.28,outLen\*\.28\)/);
   assert.match(source,/export function offsetPolyline\(points/);
-  assert.match(source,/const denom=nx\*inNx\+nz\*inNz,miterScale=1\/Math\.max\(\.55,Math\.abs\(denom\))/);
+  assert.ok(source.includes('const denom=nx*inNx+nz*inNz,miterScale=1/Math.max(.55,Math.abs(denom))'));
   assert.match(source,/function roadCaps\(points,roadWidth,shoulderWidth/);
   assert.match(source,/function riverCrossingPoint\(a,b\)/);
   assert.match(source,/function bridgeRouteSegments\(points\)/);
