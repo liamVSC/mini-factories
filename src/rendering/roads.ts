@@ -30,22 +30,22 @@ export function offsetPolyline(points:Array<{x:number;y:number}>,halfWidth:numbe
     out.push({x:p.x+nx*hw*scale*sign,y:p.y+nz*hw*scale*sign});
   }return out;
 }
-export function ribbon(points:Array<{x:number;y:number}>,width:number,y:number,mat:THREE.Material){
+export function ribbon(points:Array<{x:number;y:number}>,width:number,y:number,mat:any){
   if(points.length<2)return null;const clean=[points[0]];for(let i=1;i<points.length;i++)if(Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y)>=.5)clean.push(points[i]);if(clean.length<2)return null;
   const left=offsetPolyline(clean,width/2),right=offsetPolyline(clean,-width/2),verts:number[]=[],idx:number[]=[];
   for(let i=0;i<clean.length;i++){verts.push(left[i].x,y,left[i].y,right[i].x,y,right[i].y);if(i){const q=(i-1)*2,r=i*2;idx.push(q,q+1,r,r,r+1,q+1);}}
-  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(idx);geo.computeVertexNormals();const m=new THREE.Mesh(geo,mat);m.receiveShadow=true;m.renderOrder=2;return m;
+  const geo=new any();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(idx);geo.computeVertexNormals();const m=new THREE.Mesh(geo,mat);m.receiveShadow=true;m.renderOrder=2;return m;
 }
-function roundDisc(x:number,z:number,radius:number,y:number,mat:THREE.Material,segments=20){const g=new THREE.Mesh(new THREE.CircleGeometry(radius,segments),mat);g.rotation.x=-Math.PI/2;g.position.set(x,y,z);g.receiveShadow=true;g.renderOrder=2.05;return g;}
-function roadCaps(points:Array<{x:number;y:number}>,roadWidth:number,shoulderWidth:number,y:number,shoulderY:number,asphalt:THREE.Material,shoulder:THREE.Material){
-  if(points.length<2)return[];const out:THREE.Object3D[]=[];for(const p of[points[0],points.at(-1)!]){out.push(roundDisc(p.x,p.y,shoulderWidth/2,shoulderY,shoulder,20),roundDisc(p.x,p.y,roadWidth/2,y,asphalt,20));}return out;
+function roundDisc(x:number,z:number,radius:number,y:number,mat:any,segments=20){const g=new THREE.Mesh(new THREE.CircleGeometry(radius,segments),mat);g.rotation.x=-Math.PI/2;g.position.set(x,y,z);g.receiveShadow=true;g.renderOrder=2.05;return g;}
+function roadCaps(points:Array<{x:number;y:number}>,roadWidth:number,shoulderWidth:number,y:number,shoulderY:number,asphalt:any,shoulder:any){
+  if(points.length<2)return[];const out:any[]=[];for(const p of[points[0],points.at(-1)!]){out.push(roundDisc(p.x,p.y,shoulderWidth/2,shoulderY,shoulder,20),roundDisc(p.x,p.y,roadWidth/2,y,asphalt,20));}return out;
 }
-function centerRoadMarkings(points:Array<{x:number;y:number}>,y:number,mat:THREE.Material){
-  const out:THREE.Object3D[]=[];for(let i=0;i<points.length-1;i++){const a=points[i],b=points[i+1],len=Math.hypot(b.x-a.x,b.y-a.y),dash=14,gap=10,count=Math.max(1,Math.floor(len/(dash+gap)));
+function centerRoadMarkings(points:Array<{x:number;y:number}>,y:number,mat:any){
+  const out:any[]=[];for(let i=0;i<points.length-1;i++){const a=points[i],b=points[i+1],len=Math.hypot(b.x-a.x,b.y-a.y),dash=14,gap=10,count=Math.max(1,Math.floor(len/(dash+gap)));
     for(let n=0;n<count;n++){const s=n*(dash+gap),e=Math.min(len,s+dash);if(e<=s)continue;const t0=s/len,t1=e/len,p0={x:a.x+(b.x-a.x)*t0,y:a.y+(b.y-a.y)*t0},p1={x:a.x+(b.x-a.x)*t1,y:a.y+(b.y-a.y)*t1},m=ribbon([p0,p1],.8,y,mat);if(m)out.push(m);}
   }return out;
 }
-function edgeRoadMarkings(points:Array<{x:number;y:number}>,y:number,mat:THREE.Material){const out:THREE.Object3D[]=[];for(const lateral of[-14,14]){const m=ribbon(offsetPolyline(points,lateral),1.15,y,mat);if(m)out.push(m);}return out;}
+function edgeRoadMarkings(points:Array<{x:number;y:number}>,y:number,mat:any){const out:any[]=[];for(const lateral of[-14,14]){const m=ribbon(offsetPolyline(points,lateral),1.15,y,mat);if(m)out.push(m);}return out;}
 function riverCrossingPoint(a:{x:number;y:number},b:{x:number;y:number}){const fa=a.y-riverY(a.x),fb=b.y-riverY(b.x);if(fa===0)return a;if(fb===0)return b;if(fa*fb>0)return null;let lo=0,hi=1;for(let i=0;i<24;i++){const t=(lo+hi)/2,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t,f=y-riverY(x);if(f===0){lo=hi=t;break;}if(f*fa>0)lo=t;else hi=t;}const t=(lo+hi)/2;return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};}
 function routeLength(points:Array<{x:number;y:number}>){let total=0;for(let i=1;i<points.length;i++)total+=Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y);return total;}
 function pointAtDistance(points:Array<{x:number;y:number}>,d:number){if(points.length<2)return points[0];let remain=Math.max(0,d);for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],len=Math.hypot(b.x-a.x,b.y-a.y);if(remain<=len){const t=len<.001?0:remain/len;return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};}remain-=len;}return points.at(-1)!;}
@@ -56,7 +56,7 @@ function bridgeRouteSegments(points:Array<{x:number;y:number}>):RoadMeshPart[]{
   if(start>0)parts.push({kind:'road',points:sliceRoute(points,0,start)});if(bridgeStart>start)parts.push({kind:'transition',points:sliceRoute(points,start,bridgeStart)});if(bridgeEnd>bridgeStart)parts.push({kind:'bridge',points:sliceRoute(points,bridgeStart,bridgeEnd)});if(end>bridgeEnd)parts.push({kind:'transition',points:sliceRoute(points,bridgeEnd,end)});if(total>end)parts.push({kind:'road',points:sliceRoute(points,end,total)});return parts.filter(part=>part.points.length>1);
 }
 function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['kind'],materials:any,addCaps=false){
-  const {asphalt,shoulder,line,curb}=materials,g=new THREE.Group(),isBridge=kind==='bridge',isTransition=kind==='transition',roadWidth=isBridge?27:28,shoulderWidth=isBridge?30:36,shoulderY=isBridge?.52:isTransition?.56:.58,asphaltY=isBridge?.72:isTransition?.74:.69,markY=isBridge?.9:isTransition?.88:.86;
+  const {asphalt,shoulder,line,curb}=materials,g=new any(),isBridge=kind==='bridge',isTransition=kind==='transition',roadWidth=isBridge?27:28,shoulderWidth=isBridge?30:36,shoulderY=isBridge?.52:isTransition?.56:.58,asphaltY=isBridge?.72:isTransition?.74:.69,markY=isBridge?.9:isTransition?.88:.86;
   const sh=ribbon(points,shoulderWidth,shoulderY,shoulder),surf=ribbon(points,roadWidth,asphaltY,asphalt);if(sh)g.add(sh);if(surf)g.add(surf);
   if(addCaps)for(const cap of roadCaps(points,roadWidth,shoulderWidth,asphaltY,shoulderY,asphalt,shoulder))g.add(cap);
   if(!isBridge&&!isTransition){for(const side of[-1,1]){const c=ribbon(offsetPolyline(points,side*14),1.1,.82,curb);if(c)g.add(c);}for(const m of centerRoadMarkings(points,markY,line))g.add(m);for(const m of edgeRoadMarkings(points,.89,line))g.add(m);}
@@ -64,7 +64,7 @@ function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['ki
   return g;
 }
 export function roadMesh(r:any){
-  const p=rounded(r.points||[]),g=new THREE.Group();if(p.length<2)return g;
+  const p=rounded(r.points||[]),g=new any();if(p.length<2)return g;
   const mats={asphalt:material('#353b3c',.92),shoulder:material('#6b7370',.98),line:material('#e9ebe5',.7),curb:material('#a0a6a1',.75),rail:material('#a9895c',.8,.1)};
   const parts=bridgeRouteSegments(p);for(const [index,part] of parts.entries()){const mesh=roadSegmentMesh(part.points,part.kind,mats,index===0||index===parts.length-1);g.add(mesh);}
   return g;
@@ -78,12 +78,12 @@ function roadJunctions(roads:any[]){const clusters:any[]=[];
   }return clusters.map(v=>({x:v.x,y:v.y,degree:v.roads.size}));
 }
 function junctionMesh(p:any,roadsAtPoint:number){const asphalt=material('#353b3c',.92),shoulder=material('#6b7370',.98),degree=Math.max(3,roadsAtPoint||3),radius=degree>=4?24:20;return{shoulder:roundDisc(p.x,p.y,radius+6,.56,shoulder,24),surface:roundDisc(p.x,p.y,radius,.76,asphalt,24)};}
-function rebuildJunctionPatches(roads:any[]){const out:THREE.Object3D[]=[];for(const p of roadJunctions(roads)){const j=junctionMesh(p,p.degree);out.push(j.shoulder,j.surface);}return out;}
-export function roadYardTransitions(s:any){const out:THREE.Object3D[]=[];const asphalt=material('#353b3c',.92),apron=material('#777d78',.98),seen=new Set<string>();
+function rebuildJunctionPatches(roads:any[]){const out:any[]=[];for(const p of roadJunctions(roads)){const j=junctionMesh(p,p.degree);out.push(j.shoulder,j.surface);}return out;}
+export function roadYardTransitions(s:any){const out:any[]=[];const asphalt=material('#353b3c',.92),apron=material('#777d78',.98),seen=new Set<string>();
   for(const building of s.buildings||[]){const attachment=buildingRoadAttachment(s,building);if(!attachment?.roadPoint||!attachment?.entrance)continue;const a=attachment.roadPoint,e=attachment.entrance,key=building.id+':'+a.x.toFixed(1)+','+a.y.toFixed(1);if(seen.has(key))continue;seen.add(key);
     const mid={x:(a.x+e.x)/2,y:(a.y+e.y)/2},path=[a,mid,e],shoulder=ribbon(path,46,.60,apron),surface=ribbon(path,30,.74,asphalt);if(shoulder)out.push(shoulder);if(surface)out.push(surface);out.push(roundDisc(e.x,e.y,18,.78,asphalt,20));
   }return out;
 }
 export function buildRoadGroup(roads:any[],state:any){
-  const group=new THREE.Group();for(const r of roads||[]){const g=roadMesh(r);g.userData.road=r;group.add(g);}for(const patch of rebuildJunctionPatches(roads||[]))group.add(patch);for(const transition of roadYardTransitions(state))group.add(transition);return group;
+  const group=new any();for(const r of roads||[]){const g=roadMesh(r);g.userData.road=r;group.add(g);}for(const patch of rebuildJunctionPatches(roads||[]))group.add(patch);for(const transition of roadYardTransitions(state))group.add(transition);return group;
 }
