@@ -36,8 +36,9 @@ export interface GameContext {
 }
 
 export interface RoadDragState { start:Point; current:Point; }
+export interface RoadBuildEntry { name:'Road'; kind:'road'; role:string; desc:string; }
 export interface BuildDragState {
-  type:BuildingType;
+  type:BuildingType|RoadBuildEntry;
   pointerId:number;
   startX:number;
   startY:number;
