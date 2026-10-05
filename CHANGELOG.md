@@ -1,3 +1,10 @@
+## v2.1.8 — 5 October 2026
+
+### Real rendered road audit
+- Added a real Chromium/Playwright runtime audit that loads the actual Mini Factories application instead of only testing renderer source strings.
+- Desktop and mobile viewport checks now verify WebGL startup, rendered canvas changes after road creation, runtime/page errors and screenshots before/after road creation.
+- CI now installs Chromium, runs the browser audit and uploads the rendered road screenshots as an Actions artifact.
+
 ## v2.1.7 — 5 October 2026
 
 ### Road regression-test hardening
