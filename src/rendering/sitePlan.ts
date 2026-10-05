@@ -1,5 +1,4 @@
-export interface SitePlanBuilding { id?:string; type?:string; kind?:string; x:number; y:number; [key:string]:unknown }
-
+import type { Building } from '../state.js';
 import {
   buildingDockPoints,
   buildingFootprint,
@@ -23,7 +22,7 @@ function stableHash(value: string): number {
   return hash >>> 0;
 }
 
-export function buildingSitePlan(building: SitePlanBuilding) {
+export function buildingSitePlan(building: Pick<Building, 'id' | 'type' | 'kind' | 'x' | 'y'>) {
   const kind = MODEL_SPECS[building?.kind] ? building.kind : 'default';
   const spec = MODEL_SPECS[kind];
   const shell = buildingFootprint(building);
