@@ -1,4 +1,4 @@
-import type { GameState } from '../state.ts';
+import type { GameState } from '../state.js';
 
 export function serialise(state: GameState): Record<string, unknown> {
   const data: Record<string, unknown> = { ...state };
