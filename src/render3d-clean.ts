@@ -24,7 +24,7 @@ function rebuildWorld(state:GameState){
   sceneRuntime.clearRoot();buildingMeshes.clear();truckMeshes.clear();
   sceneRuntime.root.add(buildRoadGroup(state.roads,state));
   for(const building of state.buildings){
-    const model=makeBuilding(building),anchor=new any();
+    const model=makeBuilding(building),anchor=new THREE.Group();
     anchor.name=`building-anchor-${building.id}`;
     anchor.position.set(Number(building.x)||0,0,Number(building.y)||0);
     anchor.add(model);sceneRuntime.root.add(anchor);buildingMeshes.set(building.id,model);
