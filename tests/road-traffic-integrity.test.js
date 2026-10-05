@@ -110,6 +110,33 @@ test('truck routes enter building gates and continue through the yard to the pri
   assert.ok(route.points.some(p=>Math.hypot(p.x-shopEntrance.x,p.y-shopEntrance.y)<.01));
 });
 
+test('legacy roads near a canonical gate get an explicit gate-to-pavement connector',()=>{
+  const s=roadState();
+  const factory={id:'factory',x:0,y:160,kind:'factory',r:25,type:'Steel'};
+  const shop={id:'shop',x:0,y:-160,kind:'shop',r:25,type:'Market'};
+  s.buildings=[factory,shop];
+
+  // These roads predate the canonical gate and sit just inside the legacy
+  // attachment tolerance, so routing must not silently jump from the gate to
+  // the pavement.
+  assert.equal(addRoad(s,[{x:-180,y:260},{x:180,y:260}]),true);
+  assert.equal(addRoad(s,[{x:0,y:260},{x:0,y:-260}]),true);
+  assert.equal(addRoad(s,[{x:-180,y:-260},{x:180,y:-260}]),true);
+
+  const route=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(route);
+  const factoryGate=buildingRoadEntrance(factory);
+  const factoryRoadPoint=route.start;
+  assert.ok(Math.hypot(factoryRoadPoint.x-factoryGate.x,factoryRoadPoint.y-factoryGate.y)>0);
+  const gateIndex=route.points.findIndex(p=>Math.hypot(p.x-factoryGate.x,p.y-factoryGate.y)<.01);
+  const roadIndex=route.points.findIndex(p=>Math.hypot(p.x-factoryRoadPoint.x,p.y-factoryRoadPoint.y)<.01);
+  assert.ok(gateIndex>=0);
+  assert.ok(roadIndex>gateIndex);
+  assert.ok(route.points.slice(gateIndex,roadIndex+1).every((p,i,a)=>i===0||Math.hypot(p.x-a[i-1].x,p.y-a[i-1].y)>0));
+  assert.ok(route.points.some((p,i)=>i>0&&Math.hypot(p.x-factoryGate.x,p.y-factoryGate.y)<.01&&Math.hypot(p.x-factoryRoadPoint.x,p.y-factoryRoadPoint.y)<.01));
+});
+
+
 test('routing traverses a junction and preserves explicit turn state',()=>{
   const s=roadState();
   const factory={id:'factory',x:-160,y:0,kind:'factory',r:25};
