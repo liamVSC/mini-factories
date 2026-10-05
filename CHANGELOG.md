@@ -1,3 +1,9 @@
+## v2.1.6 — 5 October 2026
+
+### CI regression test correction
+- Updated road offset regression assertions to match the corrected bounded-miter implementation.
+- No gameplay behaviour changed beyond the already-published road stretch fix in v2.1.5.
+
 # Mini Factories Change Log
 
 ## v2.1.5 — 5 October 2026
