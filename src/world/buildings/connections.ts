@@ -1,5 +1,3 @@
-// Transitional TypeScript migration: preserve runtime behavior while this module's domain types are tightened.
-// @ts-nocheck
 import { validRoadPoints, projectSegment } from '../roads/geometry.js';
 import {
   buildingConnectionPoint,
@@ -93,6 +91,7 @@ export function buildingRoadAttachment(
 ): BuildingRoadAttachment | null {
   if (!building) return null;
   const entrance = buildingRoadEntrance(building);
+  if (!entrance) return null;
   buildingRoadFootprint(building); // Preserve the legacy geometry dependency/evaluation.
   const hit = buildingRoadHitbox(building, 18);
   let best: BuildingRoadAttachment | null = null;
