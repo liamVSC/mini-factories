@@ -8,7 +8,7 @@ import {render,setPreview,setBuildingPreview,resizeRenderer,controlCamera,screen
 import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand,executeCommand} from './commands.js';
 
 const TYPES:any=RAW_TYPES;
-const $=(selector:string):any=>$(selector);
+const $=(selector:string):any=>document.querySelector(selector);
 const GAME_VERSION=globalThis.MINI_FACTORIES_VERSION;
 const CHANGELOG=[{version:'2.0',date:'2 Oct 2026',items:[
        'Rebuilt factories, warehouses and shops as distinct industrial buildings with multi-height roofs, loading bays and facade details.',
