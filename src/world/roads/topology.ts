@@ -16,7 +16,7 @@ export function roadNetwork(s:RoadState|GameState,extraPoints:Point[]=[]):RoadNe
   buildRoadIntersections(valid,nodes,marks,virtualEdges);
   for(const p of extraPoints||[]){if(!finitePoint(p))continue;let best:{road:Road;segment:number;point:Point;distance:number}|null=null;for(const road of valid)for(let i=1;i<road.points.length;i++){const q=projectSegment(p,road.points[i-1],road.points[i]);if(!best||q.distance<best.distance)best={road,segment:i-1,point:q.point,distance:q.distance};}if(best){const n=addNode(nodes,best.point);marks.get(best.road)![best.segment].push(n);}}
   for(const road of valid)for(let i=0;i<road.points.length-1;i++){const a=road.points[i],b=road.points[i+1],list=[...new Set(marks.get(road)![i])].sort((u,v)=>roadPointParameter(a,b,u)-roadPointParameter(a,b,v));for(let j=1;j<list.length;j++){const u=list[j-1],v=list[j],d=dist(u,v);if(d>.5)edges.push({a:u,b:v,d,road});}}
-  for(const edge of virtualEdges)if(edge.d>.001)edges.push(edge);
+  for(const edge of virtualEdges)if(edge.d>.001 && edge.road)edges.push(edge);
   const nodeIds=new Map(nodes.map((node,index)=>[node,index])),uniqueEdges:RoadEdge[]=[],edgeKeys=new Set<string>();
   for(const edge of edges){if(!edge?.a||!edge?.b||edge.d<=.001)continue;const ai=nodeIds.get(edge.a),bi=nodeIds.get(edge.b);if(ai===undefined||bi===undefined||ai===bi)continue;const lo=Math.min(ai,bi),hi=Math.max(ai,bi),roadId=edge.road?.id||'road',key=lo+':'+hi+':'+roadId;if(edgeKeys.has(key))continue;edgeKeys.add(key);uniqueEdges.push(edge);}
   const adjacency=new Map(nodes.map(n=>[n,[] as {node:Point;d:number;road?:Road}[]]));for(const e of uniqueEdges){adjacency.get(e.a)!.push({node:e.b,d:e.d,road:e.road});adjacency.get(e.b)!.push({node:e.a,d:e.d,road:e.road});}
