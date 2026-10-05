@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6';
 import {buildingSitePlan} from './sitePlan.js';
-import {box,cyl,container,dockStrip,dumpster,fence,foundation,frontWindows,forklift,gate,glass,loadingDoor,material,parkedMarkings,roofRibs,siteLights,sideWindows,surface} from './three.js';
+import {box,cyl,container,dockStrip,dumpster,fence,foundation,frontWindows,forklift,gate,glass,loadingDoor,material,parkedMarkings,palletStack,roofRibs,siteLights,sideWindows,surface} from './three.js';
 
 function yard(g:any,plan:any,metal:any,accent:any){
   const concrete=material('#818681',.96),asphalt=material('#4d5554',.98),darkPave=material('#3c4443',.99),gravel=material('#6d716c',1),paint=material('#dedfd8',.7),wood=material('#8a6847',.95),lightMat=material('#d8d0a8',.6,.08);
@@ -10,7 +10,7 @@ function yard(g:any,plan:any,metal:any,accent:any){
   const parkingDepth=Math.max(28,plan.parkingDepth);surface(g,plan.parkingWidth,parkingDepth,darkPave,0,plan.parkingZ,.14);parkedMarkings(g,plan,paint);
   const serviceWidth=16,serviceDepth=Math.abs(gateZ-plan.parkingZ);surface(g,serviceWidth,serviceDepth,concrete,plan.serviceX,(gateZ+plan.parkingZ)/2,.15);
   const loadingWidth=plan.kind==='warehouse'?132:plan.kind==='factory'?88:74;surface(g,loadingWidth,18,concrete,0,plan.dockZ+dir*9,.18);
-  const turnGeometry=new any(plan.turnRadius,plan.turnRadius,.2,32),turn=new THREE.Mesh(turnGeometry,darkPave);turn.position.set(plan.turnX,.27,plan.turnZ);turn.receiveShadow=true;g.add(turn);
+  const turnGeometry=new THREE.CylinderGeometry(plan.turnRadius,plan.turnRadius,.2,32),turn=new THREE.Mesh(turnGeometry,darkPave);turn.position.set(plan.turnX,.27,plan.turnZ);turn.receiveShadow=true;g.add(turn);
   for(const side of[-1,1])fence(g,side*plan.fenceX,backZ,side*plan.fenceX,gateZ,metal);
   fence(g,-plan.fenceX,backZ,plan.fenceX,backZ,metal);fence(g,-plan.fenceX,gateZ,-plan.gateWidth/2,gateZ,metal);fence(g,plan.gateWidth/2,gateZ,plan.fenceX,gateZ,metal);
   gate(g,gateZ,plan.gateWidth,metal);box(g,plan.gateWidth-3,.08,1.2,paint,0,.27,gateZ-dir,0,false);siteLights(g,plan,metal,lightMat);
