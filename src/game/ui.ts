@@ -19,7 +19,6 @@ export function createUiController(ctx:GameContext){
   function setMenuActive(id:string|null){
     document.querySelectorAll<HTMLElement>('.actions button').forEach(element=>element.classList.remove('active'));
     if(id)$(`#${id}`)?.classList.add('active');
-    ctx.setMenuActive=id=>setMenuActive(id);
   }
 
   function clearDynamicBuildButtons(){
@@ -178,7 +177,7 @@ export function createUiController(ctx:GameContext){
   }
 
   function bind(){
-    $<HTMLButtonElement>('#road').onclick=()=>ctx.state.mode=ctx.state.mode==='road'?'select':'road';
+    $<HTMLButtonElement>('#road').onclick=()=>ctx.toggleRoadMode();
     $<HTMLButtonElement>('#erase').onclick=()=>ctx.setRoadEditorOpen(true);
     $<HTMLButtonElement>('#roadEditorClose').onclick=()=>ctx.closeRoadEditor();
     $<HTMLButtonElement>('#roadEditorCancel').onclick=()=>ctx.closeRoadEditor();
