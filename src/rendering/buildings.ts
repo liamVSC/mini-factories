@@ -2,7 +2,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6';
 import {buildingSitePlan} from './sitePlan.js';
 import {box,cyl,container,dockStrip,dumpster,fence,foundation,frontWindows,forklift,gate,glass,loadingDoor,material,parkedMarkings,roofRibs,siteLights,sideWindows,surface} from './three.js';
 
-function yard(g:THREE.Group,plan:any,metal:THREE.Material,accent:THREE.Material){
+function yard(g:any,plan:any,metal:any,accent:any){
   const concrete=material('#818681',.96),asphalt=material('#4d5554',.98),darkPave=material('#3c4443',.99),gravel=material('#6d716c',1),paint=material('#dedfd8',.7),wood=material('#8a6847',.95),lightMat=material('#d8d0a8',.6,.08);
   const lotZ=plan.lotZ,backZ=plan.rearZ,gateZ=plan.gateZ,dir=plan.direction;
   surface(g,plan.lotWidth,plan.lotDepth,gravel,0,lotZ,.04);surface(g,plan.courtWidth,plan.courtDepth,asphalt,0,plan.courtZ,.14);
@@ -10,7 +10,7 @@ function yard(g:THREE.Group,plan:any,metal:THREE.Material,accent:THREE.Material)
   const parkingDepth=Math.max(28,plan.parkingDepth);surface(g,plan.parkingWidth,parkingDepth,darkPave,0,plan.parkingZ,.14);parkedMarkings(g,plan,paint);
   const serviceWidth=16,serviceDepth=Math.abs(gateZ-plan.parkingZ);surface(g,serviceWidth,serviceDepth,concrete,plan.serviceX,(gateZ+plan.parkingZ)/2,.15);
   const loadingWidth=plan.kind==='warehouse'?132:plan.kind==='factory'?88:74;surface(g,loadingWidth,18,concrete,0,plan.dockZ+dir*9,.18);
-  const turnGeometry=new THREE.CylinderGeometry(plan.turnRadius,plan.turnRadius,.2,32),turn=new THREE.Mesh(turnGeometry,darkPave);turn.position.set(plan.turnX,.27,plan.turnZ);turn.receiveShadow=true;g.add(turn);
+  const turnGeometry=new any(plan.turnRadius,plan.turnRadius,.2,32),turn=new THREE.Mesh(turnGeometry,darkPave);turn.position.set(plan.turnX,.27,plan.turnZ);turn.receiveShadow=true;g.add(turn);
   for(const side of[-1,1])fence(g,side*plan.fenceX,backZ,side*plan.fenceX,gateZ,metal);
   fence(g,-plan.fenceX,backZ,plan.fenceX,backZ,metal);fence(g,-plan.fenceX,gateZ,-plan.gateWidth/2,gateZ,metal);fence(g,plan.gateWidth/2,gateZ,plan.fenceX,gateZ,metal);
   gate(g,gateZ,plan.gateWidth,metal);box(g,plan.gateWidth-3,.08,1.2,paint,0,.27,gateZ-dir,0,false);siteLights(g,plan,metal,lightMat);
@@ -28,7 +28,7 @@ function yard(g:THREE.Group,plan:any,metal:THREE.Material,accent:THREE.Material)
   dumpster(g,-plan.serviceSide*(plan.site.halfWidth-19),plan.parkingZ+dir*14,metal,darkPave);forklift(g,plan.turnX+plan.serviceSide*21,plan.turnZ-dir*6,metal,darkPave,glass('#4d6e72'));
 }
 
-function facadeFrame(g:THREE.Group,w:number,d:number,h:number,dir:number,metal:THREE.Material,accent:THREE.Material,centerX=0,centerZ=0){
+function facadeFrame(g:any,w:number,d:number,h:number,dir:number,metal:any,accent:any,centerX=0,centerZ=0){
   const front=centerZ+dir*d/2,bodyTop=1.5+h;
   for(const x of[centerX-w/2+2,centerX+w/2-2])box(g,1.5,h-2,1.2,metal,x,1.5+(h-2)/2,front+dir*.3);
   box(g,w,.8,1.4,accent,centerX,bodyTop-3,front+dir*.45);
@@ -36,7 +36,7 @@ function facadeFrame(g:THREE.Group,w:number,d:number,h:number,dir:number,metal:T
 }
 
 function factoryModel(b:any,plan:any){
-  const g=new THREE.Group(),{width:w,depth:d,height:h,direction:dir,variant}=plan;
+  const g=new any(),{width:w,depth:d,height:h,direction:dir,variant}=plan;
   const body=material('#747d79',.9),dark=material('#343b39',.97),metal=material('#59635f',.8,.18),accent=material(b.color||'#789a86',.55,.16),gl=glass(),roofMat=material('#414947',.96),foundationMat=material('#939891',.95);
   const front=dir*d/2,bodyTop=1.5+h,roofY=bodyTop+.55;
   yard(g,plan,metal,accent);foundation(g,w,d,foundationMat,dark);box(g,w,h,d,body,0,1.5+h/2,0);facadeFrame(g,w,d,h,dir,metal,accent);
@@ -56,7 +56,7 @@ function factoryModel(b:any,plan:any){
 }
 
 function warehouseModel(b:any,plan:any){
-  const g=new THREE.Group(),{width:w,depth:d,height:h,direction:dir,variant}=plan;
+  const g=new any(),{width:w,depth:d,height:h,direction:dir,variant}=plan;
   const body=material('#8a928e',.93),dark=material('#3b4240',.98),metal=material('#626a66',.82,.12),accent=material(b.color||'#b7a25f',.56,.14),gl=glass(),roofMat=material('#4c5350',.96),foundationMat=material('#9a9d96',.95);
   const front=dir*d/2,bodyTop=1.5+h,roofY=bodyTop+.6;
   yard(g,plan,metal,accent);foundation(g,w,d,foundationMat,dark);box(g,w,h,d,body,0,1.5+h/2,0);facadeFrame(g,w,d,h,dir,metal,accent);
@@ -71,7 +71,7 @@ function warehouseModel(b:any,plan:any){
 }
 
 function shopModel(b:any,plan:any){
-  const g=new THREE.Group(),{width:w,depth:d,height:h,direction:dir}=plan;
+  const g=new any(),{width:w,depth:d,height:h,direction:dir}=plan;
   const body=material('#7c8581',.88),dark=material('#303735',.97),metal=material('#68716d',.78,.14),accent=material(b.color||'#c39a45',.5,.16),gl=glass('#315c63'),roofMat=material('#454c49',.94),foundationMat=material('#92958e',.95);
   const mainW=w*.85,mainD=d-4,mainX=-w*.04,mainZ=plan.dockZ-dir*mainD/2,front=mainZ+dir*mainD/2,retailFront=mainZ-dir*mainD/2,bodyTop=1.5+h,roofY=bodyTop+1.4;
   yard(g,plan,metal,accent);foundation(g,mainW,mainD,foundationMat,dark,mainX,mainZ);box(g,mainW,h,mainD,body,mainX,1.5+h/2,mainZ);box(g,w*.29,h*.7,d*.48,dark,w*.34,1.5+h*.35,-dir*d*.07);facadeFrame(g,mainW,mainD,h,dir,metal,accent,mainX,mainZ);
@@ -83,7 +83,7 @@ function shopModel(b:any,plan:any){
 
 export function makeBuilding(b:any){
   const plan=buildingSitePlan(b);
-  if(!plan)return new THREE.Group();
+  if(!plan)return new any();
   if(plan.kind==='factory')return factoryModel(b,plan);
   if(plan.kind==='warehouse')return warehouseModel(b,plan);
   return shopModel(b,plan);
