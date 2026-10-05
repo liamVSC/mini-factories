@@ -4,18 +4,18 @@ import assert from 'node:assert/strict';
 globalThis.innerWidth=1280;
 globalThis.innerHeight=720;
 
-import {freshState,makeBuilding} from '../src/state.js';
-import {serialise} from '../src/persistence/save.js';
-import {hydrate} from '../src/persistence/load.js';
-import {addRoad,routeOnRoadNetwork,roadNetwork,roadAttachment,buildingRoadAttachment,buildingLogisticsAccess,endpointTarget,WORLD_HALF_SIZE,WORLD_MARGIN,WORLD_BOUNDS,isInsideWorldBounds} from '../src/world.js';
-import {resolveBuildingRoadEndpoint} from '../src/world/buildings/connections.js';
-import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from '../src/laneGraph.js';
-import {createCommandHistory,AddRoadCommand,PlaceBuildingCommand,DeleteRoadCommand} from '../src/commands.js';
-import {seed} from '../src/world/buildings/index.js';
-import {factorySpawnCandidates,validateBuildingLayout,layoutIsValid} from '../src/world/buildings/layout.js';
-import {buildingFootprint,buildingSiteFootprint,buildingVisualFootprint,buildingPrimaryDock,buildingRoadEntrance,buildingRoadHitbox} from '../src/world/buildings/geometry.js';
+import {freshState,makeBuilding} from '../dist/state.js';
+import {serialise} from '../dist/persistence/save.js';
+import {hydrate} from '../dist/persistence/load.js';
+import {addRoad,routeOnRoadNetwork,roadNetwork,roadAttachment,buildingRoadAttachment,buildingLogisticsAccess,endpointTarget,WORLD_HALF_SIZE,WORLD_MARGIN,WORLD_BOUNDS,isInsideWorldBounds} from '../dist/world.js';
+import {resolveBuildingRoadEndpoint} from '../dist/world/buildings/connections.js';
+import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from '../dist/laneGraph.js';
+import {createCommandHistory,AddRoadCommand,PlaceBuildingCommand,DeleteRoadCommand} from '../dist/commands.js';
+import {seed} from '../dist/world/buildings/index.js';
+import {factorySpawnCandidates,validateBuildingLayout,layoutIsValid} from '../dist/world/buildings/layout.js';
+import {buildingFootprint,buildingSiteFootprint,buildingVisualFootprint,buildingPrimaryDock,buildingRoadEntrance,buildingRoadHitbox} from '../dist/world/buildings/geometry.js';
 
-import {buildJunctionControls,movementPermission,stopLinePoint} from '../src/junctionControl.js';
+import {buildJunctionControls,movementPermission,stopLinePoint} from '../dist/junctionControl.js';
 
 test('seed is a one-time initialization transaction',()=>{
   const s=freshState();
