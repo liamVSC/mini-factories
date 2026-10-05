@@ -264,7 +264,7 @@ test('bridge state requires an actual river crossing, not river proximity',()=>{
 
 
 test('road mesh layers use distinct heights instead of coplanar surfaces',()=>{
-  const source=readSource(new URL('../src/render3d-clean.ts',import.meta.url),'utf8');
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
   assert.ok(source.includes('shoulderY=isBridge?.52:isTransition?.56:.58'));
   assert.ok(source.includes('asphaltY=isBridge?.72:isTransition?.74:.69'));
   assert.ok(source.includes('markY=isBridge?.9:isTransition?.88:.86'));
@@ -273,14 +273,14 @@ test('road mesh layers use distinct heights instead of coplanar surfaces',()=>{
 });
 
 test('tight curve offsets fall back to the incoming normal instead of producing oversized miters',()=>{
-  const source=readSource(new URL('../src/render3d-clean.ts',import.meta.url),'utf8');
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
   assert.ok(source.includes('const denom=nx*inNx+nz*inNz,miterScale=1/Math.max(.55,Math.abs(denom))'));
   assert.ok(source.includes('if(miterScale<=1.12){scale=miterScale;}else{nx=inNx;nz=inNz;}'));
   assert.ok(source.includes('Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y)>=.5'));
 });
 
 test('bridge renderer is segmented around the river crossing',()=>{
-  const source=readSource(new URL('../src/render3d-clean.ts',import.meta.url),'utf8');
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
   assert.match(source,/function riverCrossingPoint\(a,b\)/);
   assert.match(source,/function sliceRoute\(points,start,end\)/);
   assert.match(source,/function bridgeRouteSegments\(points\)/);
@@ -288,7 +288,6 @@ test('bridge renderer is segmented around the river crossing',()=>{
   assert.ok(source.includes('bridgeStart'));
   assert.ok(source.includes('bridgeEnd'));
 });
-
 
 test('mobile PWA lifecycle is suspend/resume safe and cannot create duplicate RAF loops',()=>{
   const source=readSource(new URL('../src/game/loop.ts',import.meta.url),'utf8')+'\n'+readSource(new URL('../src/game/lifecycle.ts',import.meta.url),'utf8');
