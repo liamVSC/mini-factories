@@ -1,5 +1,3 @@
-// Transitional TypeScript migration: preserve runtime behavior while this module's domain types are tightened.
-// @ts-nocheck
 export interface SitePlanBuilding { id?:string; type?:string; kind?:string; x:number; y:number; [key:string]:unknown }
 
 import {
@@ -16,7 +14,7 @@ const MODEL_SPECS = Object.freeze({
   default: Object.freeze({ width: 136, depth: 90, height: 31, gateWidth: 38 })
 });
 
-function stableHash(value) {
+function stableHash(value: string): number {
   let hash = 2166136261;
   for (let i = 0; i < value.length; i++) {
     hash ^= value.charCodeAt(i);
@@ -25,7 +23,7 @@ function stableHash(value) {
   return hash >>> 0;
 }
 
-export function buildingSitePlan(building) {
+export function buildingSitePlan(building: SitePlanBuilding) {
   const kind = MODEL_SPECS[building?.kind] ? building.kind : 'default';
   const spec = MODEL_SPECS[kind];
   const shell = buildingFootprint(building);
