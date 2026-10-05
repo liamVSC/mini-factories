@@ -42,11 +42,12 @@ export function createUiController(ctx:GameContext){
     panel.classList.toggle('warehouse-panel',building.kind==='warehouse');
     $<HTMLElement>('#objective').style.display='none';
     const type=TYPES.find(item=>item.name===building.type);
+    const typeMeta=type as (typeof type & {role?:string;desc?:string})|undefined;
     $<HTMLElement>('#name').textContent=building.type;
     $<HTMLElement>('#panelHint').textContent=building.kind==='factory'?'Production and upgrades':building.kind==='warehouse'?'Storage and logistics':'Demand and deliveries';
-    $<HTMLElement>('#type').textContent=type?.role||(building.kind==='factory'?'Factory':'Shop');
+    $<HTMLElement>('#type').textContent=typeMeta?.role||(building.kind==='factory'?'Factory':'Shop');
     $<HTMLElement>('#info').innerHTML=building.kind==='factory'
-      ?'<b>'+building.stock+'/'+building.max+'</b> stock • Lv '+building.level+'<br><small>'+(type?.desc||'Produces '+building.type+' for delivery.')+'</small>'
+      ?'<b>'+building.stock+'/'+building.max+'</b> stock • Lv '+building.level+'<br><small>'+(typeMeta?.desc||'Produces '+building.type+' for delivery.')+'</small>'
       :building.kind==='warehouse'
       ?'<b>'+Math.floor(building.storage||0)+'/'+building.max+'</b> storage • Lv '+building.level+'<br><small>Goods arriving from connected factories are stored here, then automatically sent to shops that need them.</small>'
       :'<b>'+Math.ceil(building.demand)+'</b> demand • '+(building.contract?(building.contract.remaining+'/'+building.contract.qty+' on current job'):'waiting for a job')+'<br><small>'+(type?.desc||'Consumes '+building.need+' for local demand.')+'</small>';
