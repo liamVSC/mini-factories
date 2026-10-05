@@ -3,7 +3,7 @@ import type { Truck } from '../world/worldTypes.js';
 import {box,cyl,glass,material,disposeObjectGroup} from './three.js';
 
 export function createTruckMesh(){
-  const g=new any(),cab=material('#5d6764',.82,.12),trailer=material('#aeb5b1',.9),dark=material('#242a2a',.98),glassMat=glass('#3b5c62'),metal=material('#6c7570',.75,.18);
+  const g=new THREE.Group(),cab=material('#5d6764',.82,.12),trailer=material('#aeb5b1',.9),dark=material('#242a2a',.98),glassMat=glass('#3b5c62'),metal=material('#6c7570',.75,.18);
   box(g,7,6.8,7,cab,4,4.3,0);box(g,3,3.2,6.5,glassMat,7.1,5.3,0);box(g,12,7.8,7.6,trailer,-4.5,4.7,0);box(g,12.2,.6,7.9,metal,-4.5,8.8,0);
   for(const x of[-7,-2.5,3.8,6.4])for(const z of[-3.85,3.85]){const w=cyl(g,1.55,1.15,dark,x,1.65,z,16);w.rotation.x=Math.PI/2;}
   box(g,.5,1.2,.6,material('#e6d7aa',.5),7.7,4,-3.1);box(g,.5,1.2,.6,material('#e6d7aa',.5),7.7,4,3.1);return g;
