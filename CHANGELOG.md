@@ -1,5 +1,14 @@
 # Mini Factories Change Log
 
+## v2.1.4 — 5 October 2026
+
+### Full road audit and connectivity hardening
+- Fixed legacy/persisted roads that attach near a canonical building gate from producing a route discontinuity between the gate and actual pavement.
+- Routing now inserts an explicit gate-to-pavement connector whenever a compatible legacy road does not physically reach the canonical gate.
+- Added regression coverage for gate continuity while preserving the existing road/lane/topology architecture.
+- Revalidated road mutation, stale-route, bridge, junction, lane and mobile/PWA regression coverage.
+
+
 ## v2.1.3 — 5 October 2026
 
 ### Road audit hardening
