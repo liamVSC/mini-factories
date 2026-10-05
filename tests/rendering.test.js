@@ -321,7 +321,7 @@ test('PWA cache and published game version stay aligned',()=>{
   const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
   const version=readSource(new URL('../src/version.ts',import.meta.url),'utf8');
-  assert.match(sw,/mini-factories-v219/);
+  assert.match(sw,/mini-factories-v220/);
   assert.match(sw,/VERSION='2.1.9'/);
   assert.match(sw,/game\.js\?v=9/);
   assert.match(sw,/render3d-clean\.js\?v=9/);
