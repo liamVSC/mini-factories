@@ -7,9 +7,9 @@ const APP_SHELL=[
   './dist/world/roads/index.js','./dist/world/roads/creation.js','./dist/world/roads/editing.js','./dist/world/roads/geometry.js','./dist/world/roads/intersections.js','./dist/world/roads/placement.js','./dist/world/roads/routing.js','./dist/world/roads/topology.js','./dist/world/roads/validation.js',
   './dist/laneGraph.js','./dist/persistence/save.js','./dist/persistence/load.js','./dist/persistence/recovery.js',
   './dist/render.js?v=5','./dist/render3d-clean.js?v=9','./dist/rendering/buildingTransform.js','./dist/rendering/sitePlan.js','./icon.svg','./manifest.webmanifest',
-  'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm'
+  'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6'
 ];
-const EXTERNAL_ASSETS=new Set(['https://cdn.jsdelivr.net/npm/three@0.180.0/+esm']);
+const EXTERNAL_ASSETS=new Set(['https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6']);
 
 async function cacheShell(){
   const cache=await caches.open(CACHE);
