@@ -201,5 +201,19 @@ function focusCamera(x,y){desired.x=Number(x)||0;desired.z=Number(y)||0;bounds()
 function clearPreview(g){while(g.children.length){const c=g.children.pop(),materials=materialsIn(c);c.traverse(o=>{if(o.geometry&&!sharedGeometries.has(o.geometry))o.geometry.dispose();});disposeMaterials(materials);}}
 function setPreview(path,start,end,blocked=false){if(!previewGroup)return;clearPreview(previewGroup);if(!Array.isArray(path)||path.length<2)return;const m=material(blocked?'#c65a54':'#e1b84b',.7);const mesh=ribbon(rounded(path),18,.95,m,.12);if(mesh)previewGroup.add(mesh);}
 function setBuildingPreview(type,point,blocked=false){if(!buildingPreviewGroup)return;clearPreview(buildingPreviewGroup);if(!point||!type)return;const plan=buildingSitePlan({...type,id:'building-preview',x:point.x,y:point.y});if(!plan)return;const m=material(blocked?'#c65a54':'#63a987',.65);m.transparent=true;m.opacity=.32;const mesh=new THREE.Mesh(new THREE.BoxGeometry(plan.width,10,plan.depth),m);mesh.position.set(point.x,5,point.y);buildingPreviewGroup.add(mesh);}
+function renderDiagnostics(){
+  const roadObjects=[];
+  const buildingObjects=[];
+  if(root)root.traverse(o=>{
+    if(o.userData?.road){
+      const box=new THREE.Box3().setFromObject(o);
+      let descendants=0;o.traverse(c=>{if(c!==o)descendants++;});
+      roadObjects.push({id:o.userData.road.id,objectChildren:o.children.length,objectDescendants:descendants,visible:o.visible,bounds:{min:{x:box.min.x,z:box.min.z},max:{x:box.max.x,z:box.max.z}},logicalPoints:rounded(o.userData.road.points)});
+    }
+    if(typeof o.name==='string'&&o.name.startsWith('building-anchor-'))buildingObjects.push({id:o.name.slice('building-anchor-'.length),position:{x:o.position.x,z:o.position.z},children:o.children.length});
+  });
+  return {roadObjectCount:roadObjects.length,roadObjects,buildingObjectCount:buildingObjects.length,buildingObjects,rootObjectCount:root?.children.length||0,rendererReady:!!renderer,sceneReady:!!scene};
+}
 function render(s,W,H,canvas=document.querySelector('#game')){if(!canvas)return;if(!renderer)init(canvas);if(contextRecoveryPending)return;resize(W,H);const k=buildingKey(s)+'|'+roadKey(s);if(k!==worldKey)rebuildWorld(s);updateTrucks(s);updateSelection(s);target.x+=(desired.x-target.x)*.16;target.z+=(desired.z-target.z)*.16;target.yaw+=(desired.yaw-target.yaw)*.16;target.pitch+=(desired.pitch-target.pitch)*.16;target.distance+=(desired.distance-target.distance)*.16;ensureCamera();renderer.render(scene,camera);}
-export{render,setPreview,setBuildingPreview,resize,controlCamera,screenToWorld,worldToScreen,panScreen,zoomAtScreen,resetCamera,focusCamera};
+export{render,setPreview,setBuildingPreview,resize,controlCamera,screenToWorld,worldToScreen,panScreen,zoomAtScreen,resetCamera,focusCamera,renderDiagnostics};
+if(typeof window!=='undefined')window.__miniFactoriesRenderDiagnostics=renderDiagnostics;
