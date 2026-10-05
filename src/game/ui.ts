@@ -187,12 +187,12 @@ export function createUiController(ctx:GameContext){
     $<HTMLButtonElement>('#company').onclick=showCompany;
     $<HTMLButtonElement>('#panelClose').onclick=hidePanel;
     $<HTMLButtonElement>('#settings').onclick=()=>{ctx.state.paused=true;ctx.save(true);$<HTMLElement>('#settingsMenu').style.display='flex';};
-    $<HTMLButtonElement>('#settingsClose').onclick=()=>{ctx.state.paused=false;$<HTMLElement>('#settingsMenu').style.display='none';};
+    $<HTMLButtonElement>('#settingsClose').onclick=()=>{ctx.state.paused=false;$<HTMLElement>('#settingsMenu').style.display='none';ctx.resumeGameLoop();};
     $<HTMLButtonElement>('#changeLogOpen').onclick=()=>{$<HTMLElement>('#settingsMenu').style.display='none';$<HTMLElement>('#changeLogPage').style.display='grid';};
     $<HTMLButtonElement>('#changeLogClose').onclick=()=>{$<HTMLElement>('#changeLogPage').style.display='none';$<HTMLElement>('#settingsMenu').style.display='flex';};
     $<HTMLButtonElement>('#newgame').onclick=()=>ctx.reset();
     $<HTMLButtonElement>('#again').onclick=()=>ctx.reset();
-    $<HTMLButtonElement>('#cameraHome').onclick=()=>ctx.camera.reset();
+    $<HTMLButtonElement>('#cameraHome').onclick=()=>ctx.resetCamera();
     return {showPanel,hidePanel,showCompany,showResearch,bind,getPanelMode:()=>panelMode,flash,setMenuActive};
   }
 
