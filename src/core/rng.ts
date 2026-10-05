@@ -12,5 +12,5 @@ export function createRng(seed = 1): () => number {
 }
 
 export function seedFromState(state: { layoutSeed?: unknown; gameSeed?: unknown } | null | undefined): number {
-  return normaliseSeed(state?.layoutSeed, state?.gameSeed);
+  return normaliseSeed(state?.layoutSeed, Number(state?.gameSeed));
 }
