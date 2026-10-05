@@ -26,10 +26,11 @@ export function createBuildController(ctx:GameContext){
     const grid=$<HTMLElement>('#buildCards');
     const entries=buildEntries().filter(type=>ctx.buildFilter==='all'||type.kind==='road'||type.kind===ctx.buildFilter);
     grid.innerHTML=entries.map(type=>{
-      const reason=type.kind==='road'?null:buildingUnlock(type,ctx.state);
-      const cost=type.kind==='road'?'From £2':'£'+buildingCost(ctx.state,type);
+      if(type.kind==='road')return '<button class="build-card" data-build-type="Road"><span class="build-icon">🛣️</span><span class="build-copy"><b>Road</b><small>Connect buildings</small></span><strong>From £2</strong></button>';
+      const reason=buildingUnlock(type,ctx.state);
+      const cost='£'+buildingCost(ctx.state,type);
       const locked=!!reason;
-      const subtitle=reason||type.role||type.desc||'Build';
+      const subtitle=reason||(('role' in type&&type.role)||('desc' in type&&type.desc)||'Build');
       return '<button class="build-card'+(locked?' locked':'')+'" data-build-type="'+type.name+'" '+(locked?'disabled':'')+'><span class="build-icon">'+buildIcon(type)+'</span><span class="build-copy"><b>'+type.name+'</b><small>'+subtitle+'</small></span><strong>'+cost+'</strong>'+(locked?'<span class="build-lock">🔒</span>':'')+'</button>';
     }).join('');
     menu.querySelector<HTMLElement>('.build-cash')?.replaceChildren(document.createTextNode('£'+Math.floor(ctx.state.cash)));
@@ -64,11 +65,11 @@ export function createBuildController(ctx:GameContext){
       setBuildingPreview(null,null,false);
       return null;
     }
-    const typed=TYPES.find(item=>item.name===type);
+    const typed=TYPES.find(item=>item.name===type.name);
     if(!typed){setBuildingPreview(null,null,false);return 'Invalid building';}
     const target=placementTarget(typed,point);
     const reason=target?canPlaceBuildingAt(ctx.state,typed,target.point.x,target.point.y):'Invalid placement';
-    setBuildingPreview(typed,target||{point},!!reason);
+    setBuildingPreview(typed.name,target?.point||point,!!reason);
     $('#tip')!.textContent=reason||((target?.snapType?'Snapped to '+target.snapType+' • ':'')+'Place '+typed.name+' • tap to build');
     return reason;
   }
@@ -91,7 +92,7 @@ export function createBuildController(ctx:GameContext){
     const reason=canBuild(ctx.state,typed);
     if(reason){ctx.flash(reason);renderBuildMenu();return;}
     closeBuildMenu();
-    ctx.state.buildMode=typed.name;
+    ctx.state.buildMode=typed;
     ctx.state.mode='build';
     ctx.setMenuActive('build');
     $('#road')?.classList.remove('active');
@@ -148,7 +149,7 @@ export function createBuildController(ctx:GameContext){
     const point=canvasDropPoint(event.clientX,event.clientY);
     if(!point){ctx.flash('Drop the building on the map');return;}
     if(current.type.kind==='road'){
-      const target=roadBuildingTarget(ctx.state,point)||roadTarget(ctx.state,point)||point;
+      const target=roadBuildingTarget(ctx.state,point)||roadTarget(ctx.state,point as Parameters<typeof roadTarget>[1])||point;
       ctx.startRoadFromPoint(target);
       closeBuildMenu();
       ctx.setMenuActive('road');
@@ -167,6 +168,7 @@ export function createBuildController(ctx:GameContext){
       $('#buildMenu')?.setAttribute('aria-hidden','false');
       return;
     }
+    if(!target){ctx.flash('Invalid placement');return;}
     const result=executeCommand(ctx.commands,ctx.state,new PlaceBuildingCommand(type,target.point.x,target.point.y));
     if(result.ok){
       ctx.markWorldDirty();ctx.save(true);ctx.sync();renderBuildMenu();ctx.flash(type.name+' constructed');
