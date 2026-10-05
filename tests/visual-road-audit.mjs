@@ -34,6 +34,7 @@ async function assertUiControls(page,name){
  assert.ok(await buildMenu.isVisible(),name+': Build menu did not open');
  assert.ok(await page.locator('#road').isVisible(),name+': road tool is missing from Build menu');
  await page.locator('#buildMenuClose').click();
+ await page.waitForFunction(()=>!document.querySelector('#buildMenu')?.classList.contains('open'),{timeout:2000});
  await page.getByRole('button',{name:'Research'}).click();
  assert.ok(await panel.isVisible(),name+': Research panel did not open');
  assert.equal(await page.locator('#name').textContent(),'Research',name+': Research panel title is incorrect');
@@ -46,6 +47,7 @@ async function assertUiControls(page,name){
  assert.equal(await page.locator('#settingsMenu').evaluate(el=>getComputedStyle(el).display),'flex',name+': Settings menu did not open');
  assert.ok((await page.locator('#gameVersion').textContent())?.trim(),name+': Settings did not populate game version');
  await page.locator('#settingsClose').click();
+ await page.waitForFunction(()=>getComputedStyle(document.querySelector('#settingsMenu')).display!=='flex',{timeout:2000});
  assert.notEqual(await page.locator('#settingsMenu').evaluate(el=>getComputedStyle(el).display),'flex',name+': Settings menu did not close');
  await page.getByRole('button',{name:'Reset camera'}).click();
 }
