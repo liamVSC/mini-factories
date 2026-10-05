@@ -1,4 +1,4 @@
-import { TYPES } from './core/types.ts';
+import { TYPES } from './core/types.js';
 
 export { TYPES };
 
@@ -131,8 +131,8 @@ export function freshState(): GameState {
     roadNetworkRevision: 0,
     buildMode: null,
     camera: {
-      x: globalThis.innerWidth || 1280,
-      y: globalThis.innerHeight || 720,
+      x: (globalThis.innerWidth || 1280) / 2,
+      y: (globalThis.innerHeight || 720) / 2,
       zoom: 1
     }
   };
