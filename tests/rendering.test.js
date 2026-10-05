@@ -276,7 +276,7 @@ test('bridge renderer is segmented around the river crossing',()=>{
 
 
 test('mobile PWA lifecycle is suspend/resume safe and cannot create duplicate RAF loops',()=>{
-  const source=readSource(new URL('../src/game.ts',import.meta.url),'utf8');
+  const source=readSource(new URL('../src/game/lifecycle.ts',import.meta.url),'utf8');
   assert.match(source,/function scheduleTick\(\)/);
   assert.match(source,/if\(!loopRunning\|\|animationFrame\)return/);
   assert.match(source,/function suspendGameLoop\(\)/);
