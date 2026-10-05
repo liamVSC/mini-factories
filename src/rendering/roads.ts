@@ -66,7 +66,7 @@ function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['ki
 export function roadMesh(r:any){
   const p=rounded(r.points||[]),g=new THREE.Group();if(p.length<2)return g;
   const mats={asphalt:material('#353b3c',.92),shoulder:material('#6b7370',.98),line:material('#e9ebe5',.7),curb:material('#a0a6a1',.75),rail:material('#a9895c',.8,.1)};
-  for(const [index,part] of bridgeRouteSegments(p).entries()){const mesh=roadSegmentMesh(part.points,part.kind,mats,index===0||index===bridgeRouteSegments(p).length-1);g.add(mesh);}
+  const parts=bridgeRouteSegments(p);for(const [index,part] of parts.entries()){const mesh=roadSegmentMesh(part.points,part.kind,mats,index===0||index===parts.length-1);g.add(mesh);}
   return g;
 }
 function roadJunctions(roads:any[]){const clusters:any[]=[];
