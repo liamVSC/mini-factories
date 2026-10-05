@@ -1,4 +1,4 @@
-const CACHE='mini-factories-v219';
+const CACHE='mini-factories-v220';
 const VERSION='2.1.9';
 const APP_SHELL=[
   './','./index.html','./styles.css?v=1','./dist/game.js?v=9','./dist/version.js?v=9','./dist/state.js','./dist/world.js','./dist/economy.js',
@@ -15,17 +15,27 @@ async function cacheShell(){
   const cache=await caches.open(CACHE);
   await Promise.allSettled(APP_SHELL.map(url=>cache.add(url)));
 }
-self.addEventListener('install',event=>{event.waitUntil(cacheShell().then(()=>self.skipWaiting()));});
-self.addEventListener('activate',event=>{event.waitUntil(
-  caches.keys()
-    .then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))
-    .then(()=>self.clients.claim())
-    .then(async()=>{
-      const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-      for(const client of clients)client.postMessage({type:'mini-factories-update',version:VERSION});
-    })
-);});
-self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting();});
+
+async function notifyClients(){
+  const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+  for(const client of clients)client.postMessage({type:'mini-factories-update',version:VERSION});
+}
+
+self.addEventListener('install',event=>{
+  event.waitUntil(cacheShell().then(notifyClients));
+});
+
+self.addEventListener('activate',event=>{
+  event.waitUntil(
+    caches.keys()
+      .then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))
+      .then(()=>self.clients.claim())
+  );
+});
+
+self.addEventListener('message',event=>{
+  if(event.data?.type==='SKIP_WAITING')self.skipWaiting();
+});
 
 async function networkFirst(request){
   const controller=new AbortController();
@@ -40,9 +50,12 @@ async function networkFirst(request){
   }catch{
     const cached=await caches.match(request);
     if(cached)return cached;
-    return caches.match('./index.html');
-  }finally{clearTimeout(timer);}
+    throw new Error('Offline navigation unavailable');
+  }finally{
+    clearTimeout(timer);
+  }
 }
+
 async function staleWhileRevalidate(request){
   const cached=await caches.match(request);
   const refresh=fetch(request,{cache:'no-store'}).then(async response=>{
@@ -52,16 +65,23 @@ async function staleWhileRevalidate(request){
     }
     return response;
   }).catch(()=>null);
-  if(cached){refresh.catch(()=>{});return cached;}
+
+  if(cached){
+    refresh.catch(()=>{});
+    return cached;
+  }
+
   const response=await refresh;
   if(response)return response;
   throw new Error('Offline asset unavailable');
 }
+
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET')return;
   const url=new URL(event.request.url);
   const external=EXTERNAL_ASSETS.has(event.request.url);
   if(url.origin!==self.location.origin&&!external)return;
+
   const isNavigation=event.request.mode==='navigate'||event.request.destination==='document';
-  event.respondWith(networkFirst(event.request));
+  event.respondWith(isNavigation?networkFirst(event.request):staleWhileRevalidate(event.request));
 });
