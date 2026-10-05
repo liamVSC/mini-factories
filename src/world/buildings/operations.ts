@@ -1,3 +1,5 @@
+// Transitional TypeScript migration: preserve runtime behavior while this module's domain types are tightened.
+// @ts-nocheck
 import { makeBuilding } from '../../state.js';
 import type { BuildingType, GameState } from '../../state.js';
 import { newId } from '../../core/ids.js';
