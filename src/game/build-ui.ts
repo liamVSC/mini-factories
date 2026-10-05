@@ -192,7 +192,7 @@ export function createBuildController(ctx:GameContext){
       const pointer=event as PointerEvent;
       const type=buildCardForTarget(pointer);
       if(!type)return;
-      buildDrag={type:pointer?type as BuildingType:pointer as never,pointerId:pointer.pointerId,startX:pointer.clientX,startY:pointer.clientY,dragging:false,cancelled:false};
+      buildDrag={type:type as BuildingType,pointerId:pointer.pointerId,startX:pointer.clientX,startY:pointer.clientY,dragging:false,cancelled:false};
       const ghost=$<HTMLElement>('#buildGhost');
       ghost.querySelector('span')!.textContent=buildIcon(type);
       ghost.querySelector('b')!.textContent=type.name;
