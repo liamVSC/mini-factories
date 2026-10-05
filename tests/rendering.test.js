@@ -189,38 +189,35 @@ test('road snapping recognizes the canonical gate inside each building yard',()=
 
 
 test('3D road renderer has smooth corners, lane/edge markings, caps, junction meshes, yards and bridge transitions',()=>{
-  const source=readSource(new URL('../src/render3d-clean.ts',import.meta.url),'utf8');
-  assert.match(source,/function smoothRoadPath\(points\)/);
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
+  assert.match(source,/export function smoothRoadPath\(points\)/);
   assert.match(source,/const radius=Math\.min\(30,inLen\*\.28,outLen\*\.28\)/);
-  assert.match(source,/function offsetPolyline\(points,halfWidth\)/);
-  assert.match(source,/const sign=halfWidth<0\?-1:1,hw=Math\.abs\(halfWidth\)/);
-  assert.ok(source.includes('const denom=nx*inNx+nz*inNz,miterScale=1/Math.max(.55,Math.abs(denom))'));
-  assert.ok(source.includes('const denom=nx*inNx+nz*inNz,miterScale=1/Math.max(.55,Math.abs(denom))'));
-  assert.ok(source.includes('if(miterScale<=1.12){scale=miterScale;}else{nx=inNx;nz=inNz;}'));
+  assert.match(source,/export function offsetPolyline\(points/);
+  assert.match(source,/const denom=nx\*inNx\+nz\*inNz,miterScale=1\/Math\.max\(\.55,Math\.abs\(denom\))/);
   assert.match(source,/function roadCaps\(points,roadWidth,shoulderWidth/);
   assert.match(source,/function riverCrossingPoint\(a,b\)/);
   assert.match(source,/function bridgeRouteSegments\(points\)/);
   assert.match(source,/function roadSegmentMesh\(points,kind,materials,addCaps=false\)/);
   assert.ok(source.includes("kind==='transition'"));
-  assert.match(source,/start=Math\.max\(0,center-half-transition\)/);
   assert.ok(source.includes('function edgeRoadMarkings(points,y,mat)'));
   assert.match(source,/function centerRoadMarkings\(points,y,mat\)/);
   assert.match(source,/function roadJunctions\(roads\)/);
   assert.match(source,/function junctionMesh\(p,roadsAtPoint\)/);
-  assert.match(source,/rebuildJunctionPatches\(s\.roads\|\|\[\]\)/);
+  assert.match(source,/function rebuildJunctionPatches\(roads\)/);
   assert.match(source,/function roadYardTransitions\(s\)/);
   assert.match(source,/buildingRoadAttachment\(s,building\)/);
-  assert.match(source,/if\(isBridge\)\{/);
+  assert.match(source,/if\(addCaps\)/);
 });
 
 test('road mesh and junction detection use the authoritative rounded road polyline',()=>{
-  const source=readSource(new URL('../src/render3d-clean.ts',import.meta.url),'utf8');
-  assert.match(source,/function roadMesh\(r\)\{const raw=rounded\(r\.points\),p=raw/);
-  assert.match(source,/const a=rounded\(roads\[i\]\?\.points\|\|\[\]\),b=rounded\(roads\[j\]\?\.points\|\|\[\]\);/);
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
+  assert.match(source,/export function roadMesh\(r\)/);
+  assert.match(source,/const p=rounded\(r\.points\|\|\[\]\),g=new THREE\.Group\(\)/);
+  assert.match(source,/const a=rounded\(roads\[i\]\?\.points\|\|\[\]\),b=rounded\(roads\[j\]\?\.points\|\|\[\]\)/);
 });
 
 test('road ribbon uses its cleaned point count after removing short segments',()=>{
-  const source=readSource(new URL('../src/render3d-clean.ts',import.meta.url),'utf8');
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
   assert.match(source,/const clean=\[points\[0\]\]/);
   assert.match(source,/for\(let i=1;i<points\.length;i\+\+\)/);
   assert.match(source,/if\(clean\.length<2\)return null/);
@@ -228,33 +225,35 @@ test('road ribbon uses its cleaned point count after removing short segments',()
 });
 
 test('road renderer preserves exact endpoints while smoothing a sharp turn',()=>{
-  const source=readSource(new URL('../src/render3d-clean.ts',import.meta.url),'utf8');
-  assert.match(source,/function smoothRoadPath\(points\)/);
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
+  assert.match(source,/export function smoothRoadPath\(points\)/);
   assert.match(source,/const out=\[src\[0\]\]/);
   assert.match(source,/const last=src\.at\(-1\)/);
   assert.match(source,/out\.push\(last\)/);
 });
 
 test('road junction rendering covers both T and four-way intersection cases',()=>{
-  const source=readSource(new URL('../src/render3d-clean.ts',import.meta.url),'utf8');
-  assert.ok(source.includes('degree=Math.max(3,roadsAtPoint||3)'));
-  assert.ok(source.includes('radius=degree>=4?24:20'));
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
+  assert.match(source,/degree=Math\.max\(3,roadsAtPoint\|\|3\)/);
+  assert.match(source,/radius=degree>=4\?24:20/);
   assert.match(source,/function junctionMesh\(p,roadsAtPoint\)/);
 });
 
 test('dead-end caps and bridge transitions are explicit renderer geometry',()=>{
-  const source=readSource(new URL('../src/render3d-clean.ts',import.meta.url),'utf8');
-  assert.match(source,/for\(const p of\[points\[0\],points\.at\(-1\)\]\)/);
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
+  assert.match(source,/for\(const p of\[points\[0\],points\.at\(-1\)!\]\)/);
   assert.match(source,/function bridgeRouteSegments\(points\)/);
   assert.ok(source.includes("kind==='bridge'"));
   assert.ok(source.includes("kind==='transition'"));
-  assert.match(source,/roadCaps\(p,roadWidth,shoulderWidth/);
+  assert.match(source,/roadCaps\(points,roadWidth,shoulderWidth/);
 });
 
 test('3D renderer reconciles truck meshes without rebuilding the static world',()=>{
-  const source=readSource(new URL('../src/render3d-clean.ts',import.meta.url),'utf8');
-  assert.match(source,/function syncTruckMeshes\(s\)/);
-  assert.match(source,/syncTruckMeshes\(s\);const byId=new Map/);
+  const source=readSource(new URL('../src/rendering/trucks.ts',import.meta.url));
+  assert.match(source,/export function syncTrucks\(/);
+  assert.match(source,/export function updateTrucks\(/);
+  assert.match(source,/const active=new Set/);
+  assert.match(source,/for\(const truck of trucks\|\|\[\]\)/);
 });
 
 
@@ -316,15 +315,31 @@ test('mobile viewport and touch handling isolate UI scrolling from map gestures'
   assert.match(css,/\.build-cards\{touch-action:pan-x/);
 });
 
-test('renderer handles WebGL context loss and uses a lower mobile pixel ratio',()=>{
-  const source=readSource(new URL('../src/render3d-clean.ts',import.meta.url),'utf8');
-  assert.match(source,/webglcontextlost/);
-  assert.match(source,/webglcontextrestored/);
+test('renderer scene owns WebGL context recovery and mobile pixel ratio',()=>{
+  const source=readSource(new URL('../src/rendering/scene.ts',import.meta.url));
+  assert.match(source,/canvas\.addEventListener\('webglcontextlost'/);
+  assert.match(source,/canvas\.addEventListener\('webglcontextrestored'/);
   assert.match(source,/contextRecoveryPending=true/);
-  assert.match(source,/worldKey=''/);
-  assert.match(source,/if\(renderer\)return/);
+  assert.match(source,/contextRecoveryPending=false/);
+  assert.match(source,/if\(this\.renderer\)return/);
   assert.match(source,/innerWidth<700\?1\.25:2/);
+  assert.match(source,/get recovering\(\)/);
 });
+
+test('render facade delegates scene, camera, roads, buildings and trucks to focused modules',()=>{
+  const source=readSource(new URL('../src/render3d-clean.ts',import.meta.url));
+  assert.match(source,/new RenderScene\(\)/);
+  assert.match(source,/new RenderCamera\(\)/);
+  assert.match(source,/makeBuilding\(building\)/);
+  assert.match(source,/buildRoadGroup\(state\.roads,state\)/);
+  assert.match(source,/syncTrucks\(sceneRuntime\.root,truckMeshes,state\.trucks\)/);
+  assert.match(source,/updateTrucks\(sceneRuntime\.root,truckMeshes,state\.trucks\)/);
+  assert.match(source,/sceneRuntime\.render\(cameraRuntime\.threeCamera\)/);
+  assert.doesNotMatch(source,/function smoothRoadPath\(/);
+  assert.doesNotMatch(source,/function riverCrossingPoint\(/);
+  assert.doesNotMatch(source,/function syncTruckMeshes\(/);
+});
+
 
 test('renderer wrapper no longer mutates road state every frame',()=>{
   const source=readSource(new URL('../src/render.ts',import.meta.url),'utf8');
