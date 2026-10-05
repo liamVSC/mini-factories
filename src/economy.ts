@@ -414,7 +414,7 @@ function addToWarehouse(warehouse: any, type: any, n: any){
   warehouse.storage=(warehouse.storage||0)+take;
   return take;
 }
-function dispatchTruck(s: any, {route: any, source: any, destination: any, cargo: any, cargoType=source?.type: any, contractId=0: any, longDistance=false: any, valuePerUnit=0: any, stage='delivery'}: any){
+function dispatchTruck(s: any, {route, source, destination, cargo, cargoType=source?.type, contractId=0, longDistance=false, valuePerUnit=0, stage='delivery'}: any){
   if(!route||!cargo||!routeNetworkValid(s,route))return false;
   // Keep the simulation bounded under sustained demand. Finished trucks are
   // removed each tick, so this only limits genuinely in-flight congestion.
