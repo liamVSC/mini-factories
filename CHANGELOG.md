@@ -1,5 +1,13 @@
 # Mini Factories Change Log
 
+## v2.1.5 — 5 October 2026
+
+### Road mesh stretch fix
+- Fixed the road offset/miter calculation applying the corner scale twice, which could stretch road surfaces and markings dramatically around bends and junctions.
+- Kept miter limits bounded while applying the offset distance exactly once.
+- Added regression coverage for the corrected offset geometry and release cache/version alignment.
+
+
 ## v2.1.4 — 5 October 2026
 
 ### Full road audit and connectivity hardening
