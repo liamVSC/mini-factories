@@ -36,7 +36,7 @@ function facadeFrame(g:any,w:number,d:number,h:number,dir:number,metal:any,accen
 }
 
 function factoryModel(b:any,plan:any){
-  const g=new any(),{width:w,depth:d,height:h,direction:dir,variant}=plan;
+  const g=new THREE.Group(),{width:w,depth:d,height:h,direction:dir,variant}=plan;
   const body=material('#747d79',.9),dark=material('#343b39',.97),metal=material('#59635f',.8,.18),accent=material(b.color||'#789a86',.55,.16),gl=glass(),roofMat=material('#414947',.96),foundationMat=material('#939891',.95);
   const front=dir*d/2,bodyTop=1.5+h,roofY=bodyTop+.55;
   yard(g,plan,metal,accent);foundation(g,w,d,foundationMat,dark);box(g,w,h,d,body,0,1.5+h/2,0);facadeFrame(g,w,d,h,dir,metal,accent);
@@ -56,7 +56,7 @@ function factoryModel(b:any,plan:any){
 }
 
 function warehouseModel(b:any,plan:any){
-  const g=new any(),{width:w,depth:d,height:h,direction:dir,variant}=plan;
+  const g=new THREE.Group(),{width:w,depth:d,height:h,direction:dir,variant}=plan;
   const body=material('#8a928e',.93),dark=material('#3b4240',.98),metal=material('#626a66',.82,.12),accent=material(b.color||'#b7a25f',.56,.14),gl=glass(),roofMat=material('#4c5350',.96),foundationMat=material('#9a9d96',.95);
   const front=dir*d/2,bodyTop=1.5+h,roofY=bodyTop+.6;
   yard(g,plan,metal,accent);foundation(g,w,d,foundationMat,dark);box(g,w,h,d,body,0,1.5+h/2,0);facadeFrame(g,w,d,h,dir,metal,accent);
@@ -71,7 +71,7 @@ function warehouseModel(b:any,plan:any){
 }
 
 function shopModel(b:any,plan:any){
-  const g=new any(),{width:w,depth:d,height:h,direction:dir}=plan;
+  const g=new THREE.Group(),{width:w,depth:d,height:h,direction:dir}=plan;
   const body=material('#7c8581',.88),dark=material('#303735',.97),metal=material('#68716d',.78,.14),accent=material(b.color||'#c39a45',.5,.16),gl=glass('#315c63'),roofMat=material('#454c49',.94),foundationMat=material('#92958e',.95);
   const mainW=w*.85,mainD=d-4,mainX=-w*.04,mainZ=plan.dockZ-dir*mainD/2,front=mainZ+dir*mainD/2,retailFront=mainZ-dir*mainD/2,bodyTop=1.5+h,roofY=bodyTop+1.4;
   yard(g,plan,metal,accent);foundation(g,mainW,mainD,foundationMat,dark,mainX,mainZ);box(g,mainW,h,mainD,body,mainX,1.5+h/2,mainZ);box(g,w*.29,h*.7,d*.48,dark,w*.34,1.5+h*.35,-dir*d*.07);facadeFrame(g,mainW,mainD,h,dir,metal,accent,mainX,mainZ);
@@ -83,7 +83,7 @@ function shopModel(b:any,plan:any){
 
 export function makeBuilding(b:any){
   const plan=buildingSitePlan(b);
-  if(!plan)return new any();
+  if(!plan)return new THREE.Group();
   if(plan.kind==='factory')return factoryModel(b,plan);
   if(plan.kind==='warehouse')return warehouseModel(b,plan);
   return shopModel(b,plan);
