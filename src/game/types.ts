@@ -27,6 +27,10 @@ export interface GameContext {
   setRoadEditorOpen(open:boolean):void;
   toggleRoadMode():void;
   reset():void;
+  resize():void;
+  resetCamera():void;
+  resumeGameLoop():void;
+  suspendGameLoop():void;
   updatePlacementPreview(point:Point|null):void;
   clearPlacementPreview():void;
 }
