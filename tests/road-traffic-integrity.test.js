@@ -119,9 +119,11 @@ test('legacy roads near a canonical gate get an explicit gate-to-pavement connec
   // These roads predate the canonical gate and sit just inside the legacy
   // attachment tolerance, so routing must not silently jump from the gate to
   // the pavement.
-  assert.equal(addRoad(s,[{x:-180,y:260},{x:180,y:260}]),true);
-  assert.equal(addRoad(s,[{x:0,y:260},{x:0,y:-260}]),true);
-  assert.equal(addRoad(s,[{x:-180,y:-260},{x:180,y:-260}]),true);
+  s.roads=[
+    {id:'legacy-top',points:[{x:-180,y:260},{x:180,y:260}],bridge:false,condition:1,age:0},
+    {id:'legacy-spine',points:[{x:0,y:260},{x:0,y:-260}],bridge:false,condition:1,age:0},
+    {id:'legacy-bottom',points:[{x:-180,y:-260},{x:180,y:-260}],bridge:false,condition:1,age:0}
+  ];
 
   const route=routeOnRoadNetwork(s,factory,shop);
   assert.ok(route);
