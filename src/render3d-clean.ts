@@ -10,8 +10,8 @@ import { syncTrucks, updateTrucks } from './rendering/trucks.js';
 
 const sceneRuntime=new RenderScene();
 const cameraRuntime=new RenderCamera();
-const buildingMeshes=new Map<string,THREE.Group>();
-const truckMeshes=new Map<string,THREE.Group>();
+const buildingMeshes=new Map<string,any>();
+const truckMeshes=new Map<string,any>();
 let worldKey='';
 
 function buildingKey(state:GameState){
@@ -24,7 +24,7 @@ function rebuildWorld(state:GameState){
   sceneRuntime.clearRoot();buildingMeshes.clear();truckMeshes.clear();
   sceneRuntime.root.add(buildRoadGroup(state.roads,state));
   for(const building of state.buildings){
-    const model=makeBuilding(building),anchor=new THREE.Group();
+    const model=makeBuilding(building),anchor=new any();
     anchor.name=`building-anchor-${building.id}`;
     anchor.position.set(Number(building.x)||0,0,Number(building.y)||0);
     anchor.add(model);sceneRuntime.root.add(anchor);buildingMeshes.set(building.id,model);
