@@ -50,7 +50,7 @@ export function createUiController(ctx:GameContext){
       ?'<b>'+building.stock+'/'+building.max+'</b> stock • Lv '+building.level+'<br><small>'+(typeMeta?.desc||'Produces '+building.type+' for delivery.')+'</small>'
       :building.kind==='warehouse'
       ?'<b>'+Math.floor(building.storage||0)+'/'+building.max+'</b> storage • Lv '+building.level+'<br><small>Goods arriving from connected factories are stored here, then automatically sent to shops that need them.</small>'
-      :'<b>'+Math.ceil(building.demand)+'</b> demand • '+(building.contract?(building.contract.remaining+'/'+building.contract.qty+' on current job'):'waiting for a job')+'<br><small>'+(type?.desc||'Consumes '+building.need+' for local demand.')+'</small>';
+      :'<b>'+Math.ceil(building.demand)+'</b> demand • '+(building.contract?(building.contract.remaining+'/'+building.contract.qty+' on current job'):'waiting for a job')+'<br><small>'+(typeMeta?.desc||'Consumes '+building.need+' for local demand.')+'</small>';
 
     for(let i=1;i<=4;i++){
       const element=$<HTMLButtonElement>(`#u${i}`);
