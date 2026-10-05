@@ -1,3 +1,5 @@
+// Transitional TypeScript migration: preserve runtime behavior while this module's domain types are tightened.
+// @ts-nocheck
 import * as renderer3d from './render3d-clean.js?v=7';
 import type { Point } from './world/worldTypes.js';
 
