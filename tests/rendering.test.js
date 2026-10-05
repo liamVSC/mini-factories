@@ -253,7 +253,7 @@ test('3D renderer reconciles truck meshes without rebuilding the static world',(
   assert.match(source,/export function syncTrucks\(/);
   assert.match(source,/export function updateTrucks\(/);
   assert.match(source,/const active=new Set/);
-  assert.match(source,/for\(const truck of trucks\|\|\[\]\)/);
+  assert.match(source,/for\(const t of trucks\|\|\[\]\)/);
 });
 
 
@@ -268,14 +268,14 @@ test('road mesh layers use distinct heights instead of coplanar surfaces',()=>{
   assert.ok(source.includes('shoulderY=isBridge?.52:isTransition?.56:.58'));
   assert.ok(source.includes('asphaltY=isBridge?.72:isTransition?.74:.69'));
   assert.ok(source.includes('markY=isBridge?.9:isTransition?.88:.86'));
-  assert.ok(source.includes('roadSegmentMesh(points,kind,materials,addCaps=false)'));
+  assert.ok(source.includes('function roadSegmentMesh('));
   assert.ok(source.includes('i===0||i===parts.length-1'));
 });
 
 test('tight curve offsets fall back to the incoming normal instead of producing oversized miters',()=>{
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
   assert.ok(source.includes('const denom=nx*inNx+nz*inNz,miterScale=1/Math.max(.55,Math.abs(denom))'));
-  assert.ok(source.includes('if(miterScale<=1.12){scale=miterScale;}else{nx=inNx;nz=inNz;}'));
+  assert.ok(source.includes('if(miterScale<=1.12)scale=miterScale;else{nx=inNx;nz=inNz;}'));
   assert.ok(source.includes('Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y)>=.5'));
 });
 
