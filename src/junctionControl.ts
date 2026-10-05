@@ -78,6 +78,7 @@ function phaseAxis(movement:Movement):'horizontal'|'vertical'{const x=Math.abs(m
 
 export function buildJunctionControls(network:{nodes?:Point[]}|null|undefined,laneGraph:LaneGraph|null|undefined):Map<string,JunctionControl>{
   const controls=new Map<string,JunctionControl>();
+  if (!laneGraph) return controls;
   for(const node of network?.nodes||[]){
     const incoming=laneGraph?.incoming?.get(node)||[],outgoing=laneGraph?.outgoing?.get(node)||[],movements:Movement[]=[],byId=new Map<string,Movement>();
     for(const fromLane of incoming)for(const toLane of outgoing){
