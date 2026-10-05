@@ -1,15 +1,15 @@
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {freshState} from '../src/state.js';
-import {seed} from '../src/world/buildings/index.js';
-import {savedBuildingToWorldPosition,projectWorldPointToNdc,buildingRenderTrace} from '../src/rendering/buildingTransform.js';
-import {buildingSitePlan} from '../src/rendering/sitePlan.js';
-import {buildingDockPoints,buildingRoadEntrance,buildingConnectionPoint} from '../src/world/buildings/geometry.js';
-import {roadTarget,segmentCrossesRiver} from '../src/world/roads/placement.js';
-import {addRoad} from '../src/world/roads/creation.js';
-import {serialise} from '../src/persistence/save.js';
-import {hydrate} from '../src/persistence/load.js';
+import {freshState} from '../dist/state.js';
+import {seed} from '../dist/world/buildings/index.js';
+import {savedBuildingToWorldPosition,projectWorldPointToNdc,buildingRenderTrace} from '../dist/rendering/buildingTransform.js';
+import {buildingSitePlan} from '../dist/rendering/sitePlan.js';
+import {buildingDockPoints,buildingRoadEntrance,buildingConnectionPoint} from '../dist/world/buildings/geometry.js';
+import {roadTarget,segmentCrossesRiver} from '../dist/world/roads/placement.js';
+import {addRoad} from '../dist/world/roads/creation.js';
+import {serialise} from '../dist/persistence/save.js';
+import {hydrate} from '../dist/persistence/load.js';
 
 // Column-major projection fixture: world X -> NDC X and world Z -> NDC Y.
 const ORTHOGRAPHIC_TEST_MATRIX=[
@@ -171,7 +171,7 @@ test('road snapping recognizes the canonical gate inside each building yard',()=
 
 
 test('3D road renderer has smooth corners, lane/edge markings, caps, junction meshes, yards and bridge transitions',()=>{
-  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/function smoothRoadPath\(points\)/);
   assert.match(source,/const radius=Math\.min\(30,inLen\*\.28,outLen\*\.28\)/);
   assert.match(source,/function offsetPolyline\(points,halfWidth\)/);
@@ -196,13 +196,13 @@ test('3D road renderer has smooth corners, lane/edge markings, caps, junction me
 });
 
 test('road mesh and junction detection use the authoritative rounded road polyline',()=>{
-  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/function roadMesh\(r\)\{const raw=rounded\(r\.points\),p=raw/);
   assert.match(source,/const a=rounded\(roads\[i\]\?\.points\|\|\[\]\),b=rounded\(roads\[j\]\?\.points\|\|\[\]\);/);
 });
 
 test('road ribbon uses its cleaned point count after removing short segments',()=>{
-  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/const clean=\[points\[0\]\]/);
   assert.match(source,/for\(let i=1;i<points\.length;i\+\+\)/);
   assert.match(source,/if\(clean\.length<2\)return null/);
@@ -210,7 +210,7 @@ test('road ribbon uses its cleaned point count after removing short segments',()
 });
 
 test('road renderer preserves exact endpoints while smoothing a sharp turn',()=>{
-  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/function smoothRoadPath\(points\)/);
   assert.match(source,/const out=\[src\[0\]\]/);
   assert.match(source,/const last=src\.at\(-1\)/);
@@ -218,14 +218,14 @@ test('road renderer preserves exact endpoints while smoothing a sharp turn',()=>
 });
 
 test('road junction rendering covers both T and four-way intersection cases',()=>{
-  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/render3d-clean.js',import.meta.url),'utf8');
   assert.ok(source.includes('degree=Math.max(3,roadsAtPoint||3)'));
   assert.ok(source.includes('radius=degree>=4?24:20'));
   assert.match(source,/function junctionMesh\(p,roadsAtPoint\)/);
 });
 
 test('dead-end caps and bridge transitions are explicit renderer geometry',()=>{
-  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/for\(const p of\[points\[0\],points\.at\(-1\)\]\)/);
   assert.match(source,/function bridgeRouteSegments\(points\)/);
   assert.ok(source.includes("kind==='bridge'"));
@@ -234,7 +234,7 @@ test('dead-end caps and bridge transitions are explicit renderer geometry',()=>{
 });
 
 test('3D renderer reconciles truck meshes without rebuilding the static world',()=>{
-  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/function syncTruckMeshes\(s\)/);
   assert.match(source,/syncTruckMeshes\(s\);const byId=new Map/);
 });
@@ -247,7 +247,7 @@ test('bridge state requires an actual river crossing, not river proximity',()=>{
 
 
 test('road mesh layers use distinct heights instead of coplanar surfaces',()=>{
-  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/render3d-clean.js',import.meta.url),'utf8');
   assert.ok(source.includes('shoulderY=isBridge?.52:isTransition?.56:.58'));
   assert.ok(source.includes('asphaltY=isBridge?.72:isTransition?.74:.69'));
   assert.ok(source.includes('markY=isBridge?.9:isTransition?.88:.86'));
@@ -256,14 +256,14 @@ test('road mesh layers use distinct heights instead of coplanar surfaces',()=>{
 });
 
 test('tight curve offsets fall back to the incoming normal instead of producing oversized miters',()=>{
-  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/render3d-clean.js',import.meta.url),'utf8');
   assert.ok(source.includes('const denom=nx*inNx+nz*inNz,miterScale=1/Math.max(.55,Math.abs(denom))'));
   assert.ok(source.includes('if(miterScale<=1.12){scale=miterScale;}else{nx=inNx;nz=inNz;}'));
   assert.ok(source.includes('Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y)>=.5'));
 });
 
 test('bridge renderer is segmented around the river crossing',()=>{
-  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/function riverCrossingPoint\(a,b\)/);
   assert.match(source,/function sliceRoute\(points,start,end\)/);
   assert.match(source,/function bridgeRouteSegments\(points\)/);
@@ -274,7 +274,7 @@ test('bridge renderer is segmented around the river crossing',()=>{
 
 
 test('mobile PWA lifecycle is suspend/resume safe and cannot create duplicate RAF loops',()=>{
-  const source=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/game.js',import.meta.url),'utf8');
   assert.match(source,/function scheduleTick\(\)/);
   assert.match(source,/if\(!loopRunning\|\|animationFrame\)return/);
   assert.match(source,/function suspendGameLoop\(\)/);
@@ -288,7 +288,7 @@ test('mobile PWA lifecycle is suspend/resume safe and cannot create duplicate RA
 });
 
 test('mobile viewport and touch handling isolate UI scrolling from map gestures',()=>{
-  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+  const game=readFileSync(new URL('../dist/game.js',import.meta.url),'utf8');
   const css=readFileSync(new URL('../styles.css',import.meta.url),'utf8');
   assert.match(game,/window\.visualViewport\?\.addEventListener\('resize',resize/);
   assert.match(game,/window\.visualViewport\?\.addEventListener\('scroll',resize/);
@@ -299,7 +299,7 @@ test('mobile viewport and touch handling isolate UI scrolling from map gestures'
 });
 
 test('renderer handles WebGL context loss and uses a lower mobile pixel ratio',()=>{
-  const source=readFileSync(new URL('../src/render3d-clean.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/render3d-clean.js',import.meta.url),'utf8');
   assert.match(source,/webglcontextlost/);
   assert.match(source,/webglcontextrestored/);
   assert.match(source,/contextRecoveryPending=true/);
@@ -309,7 +309,7 @@ test('renderer handles WebGL context loss and uses a lower mobile pixel ratio',(
 });
 
 test('renderer wrapper no longer mutates road state every frame',()=>{
-  const source=readFileSync(new URL('../src/render.js',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../dist/render.js',import.meta.url),'utf8');
   assert.doesNotMatch(source,/s\.roads\.push/);
   assert.doesNotMatch(source,/s\.roads\.pop/);
   assert.match(source,/renderer3d\.render\(s,W,H,canvas\)/);
@@ -318,7 +318,7 @@ test('renderer wrapper no longer mutates road state every frame',()=>{
 test('PWA cache and published game version stay aligned',()=>{
   const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-  const version=readFileSync(new URL('../src/version.js',import.meta.url),'utf8');
+  const version=readFileSync(new URL('../dist/version.js',import.meta.url),'utf8');
   assert.match(sw,/mini-factories-v218/);
   assert.match(sw,/VERSION='2.1.8'/);
   assert.match(sw,/game\.js\?v=8/);
