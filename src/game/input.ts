@@ -48,7 +48,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
       if(!point||!type)return;
       const target=buildingPlacementTarget(ctx.state,type,point);
       const reason=target?canPlaceBuildingAt(ctx.state,type,target.point.x,target.point.y):'Invalid placement';
-      if(reason){build.updateBuildingPlacementPreview(point);ctx.flash(reason);return;}
+      if(reason||!target){build.updateBuildingPlacementPreview(point);ctx.flash(reason||'Invalid placement');return;}
       const result=executeCommand(ctx.commands,ctx.state,new PlaceBuildingCommand(type,target.point.x,target.point.y));
       if(result.ok){
         ctx.markWorldDirty();
@@ -129,7 +129,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
       const point=camera.worldPosition(event);
       if(point){
         const building=buildingAtPoint(ctx.state,point,camera.worldHitTolerance(24));
-        ctx.state.selected=building?.id||null;
+        ctx.state.selected=building||null;
         if(building)ctx.showPanel(building);
         else ctx.hidePanel();
       }
