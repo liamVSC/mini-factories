@@ -1,5 +1,4 @@
 // Transitional TypeScript migration: runtime logic is preserved verbatim while this rendering module is typed incrementally.
-// @ts-nocheck
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6';
 import {segmentCrossesRiver} from './world/roads/placement.js';
 import {riverY,WORLD_BOUNDS,WORLD_MARGIN} from './world.js';
