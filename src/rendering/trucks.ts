@@ -16,5 +16,5 @@ export function syncTrucks(root:THREE.Group,truckMeshes:Map<string,THREE.Group>,
 }
 export function updateTrucks(root:THREE.Group,truckMeshes:Map<string,THREE.Group>,trucks:Truck[]){
   syncTrucks(root,truckMeshes,trucks);const byId=new Map((trucks||[]).map(t=>[String(t?.id||''),t]));
-  for(const [id,m] of truckMeshes){const t=byId.get(id);if(!t||t.dead||!Array.isArray(t.route)){m.visible=false;continue;}const p=routePoint(t.route,t.t??0);if(!p){m.visible=false;continue;}m.visible=true;m.position.set(p.x,1,p.y);const q=routePoint(t.route,Math.min(1,(t.t??0)+.015))||p;m.rotation.y=-Math.atan2(q.y-p.y,q.x-p.x);}
+  for(const [id,m] of truckMeshes){const t=byId.get(id) as any;if(!t||t.dead||!Array.isArray(t.route)){m.visible=false;continue;}const progress=typeof t.t==='number'?t.t:0;const p=routePoint(t.route,progress);if(!p){m.visible=false;continue;}m.visible=true;m.position.set(p.x,1,p.y);const q=routePoint(t.route,Math.min(1,progress+.015))||p;m.rotation.y=-Math.atan2(q.y-p.y,q.x-p.x);}
 }
