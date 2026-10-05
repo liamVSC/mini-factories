@@ -281,9 +281,9 @@ test('tight curve offsets fall back to the incoming normal instead of producing 
 
 test('bridge renderer is segmented around the river crossing',()=>{
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
-  assert.match(source,/function riverCrossingPoint\(a,b\)/);
-  assert.match(source,/function sliceRoute\(points,start,end\)/);
-  assert.match(source,/function bridgeRouteSegments\(points\)/);
+  assert.ok(source.includes('function riverCrossingPoint(a:{x:number;y:number},b:{x:number;y:number})'));
+  assert.ok(source.includes('function sliceRoute(points:Array<{x:number;y:number}>,start:number,end:number)'));
+  assert.ok(source.includes('function bridgeRouteSegments(points:Array<{x:number;y:number}>)'));
   assert.ok(source.includes('transition'));
   assert.ok(source.includes('bridgeStart'));
   assert.ok(source.includes('bridgeEnd'));
