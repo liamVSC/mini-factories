@@ -319,11 +319,11 @@ test('PWA cache and published game version stay aligned',()=>{
   const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
   const version=readFileSync(new URL('../src/version.js',import.meta.url),'utf8');
-  assert.match(sw,/mini-factories-v215/);
-  assert.match(sw,/VERSION='2.1.5'/);
+  assert.match(sw,/mini-factories-v216/);
+  assert.match(sw,/VERSION='2.1.6'/);
   assert.match(sw,/game\.js\?v=8/);
   assert.match(sw,/render3d-clean\.js\?v=8/);
   assert.match(sw,/render\.js\?v=4/);
   assert.match(html,/src\/game\.js\?v=8/);
-  assert.match(version,/MINI_FACTORIES_VERSION='2.1.5'/);
+  assert.match(version,/MINI_FACTORIES_VERSION='2.1.6'/);
 });
