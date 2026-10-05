@@ -150,7 +150,7 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
       let preview:RoadPreviewResult|null=null;
       try{preview=roadPreview(ctx.state,ctx.drag.start as RoadTarget,ctx.drag.current as RoadTarget) as RoadPreviewResult|null;}
       catch{preview={path:[ctx.drag.start,ctx.drag.current],start:ctx.drag.start as RoadTarget,end:ctx.drag.current as RoadTarget,blocked:true,blockedReason:'preview-error'};}
-      setPreview(preview?.path,preview?.start,preview?.end,preview?.blocked);
+      setPreview(preview?.path??null,preview?.start??null,preview?.end??null,preview?.blocked??false);
       $('#tip')!.textContent=roadPreviewTip(preview);
       return;
     }
