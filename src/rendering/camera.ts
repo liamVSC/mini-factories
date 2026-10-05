@@ -11,7 +11,7 @@ export class RenderCamera{
   private camera:any|null=null;
 
   resize(width:number,height:number){this.viewport.width=Math.max(1,width||globalThis.innerWidth);this.viewport.height=Math.max(1,height||globalThis.innerHeight);if(this.camera){this.camera.aspect=this.viewport.width/this.viewport.height;this.camera.updateProjectionMatrix();}}
-  get threeCamera(){if(!this.camera)this.camera=new any(46,this.viewport.width/this.viewport.height,2,3400);return this.camera;}
+  get threeCamera(){if(!this.camera)this.camera=new THREE.PerspectiveCamera(46,this.viewport.width/this.viewport.height,2,3400);return this.camera;}
   update(){const p=Math.max(.35,Math.min(1.35,this.target.pitch)),h=Math.cos(p)*this.target.distance,camera=this.threeCamera;camera.position.set(this.target.x+Math.sin(this.target.yaw)*h,Math.sin(p)*this.target.distance,this.target.z+Math.cos(this.target.yaw)*h);camera.lookAt(this.target.x,0,this.target.z);}
   interpolate(){this.target.x+=(this.desired.x-this.target.x)*.16;this.target.z+=(this.desired.z-this.target.z)*.16;this.target.yaw+=(this.desired.yaw-this.target.yaw)*.16;this.target.pitch+=(this.desired.pitch-this.target.pitch)*.16;this.target.distance+=(this.desired.distance-this.target.distance)*.16;this.update();}
   private bounds(){const limit=(WORLD_BOUNDS.maxX-WORLD_BOUNDS.minX)/2-WORLD_MARGIN;this.desired.x=Math.max(-limit,Math.min(limit,this.desired.x));this.desired.z=Math.max(-limit,Math.min(limit,this.desired.z));}
