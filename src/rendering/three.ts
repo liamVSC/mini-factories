@@ -5,7 +5,7 @@ const boxGeometries = new Map<string, any>();
 const cylinderGeometries = new Map<string, any>();
 const sharedGeometries = new WeakSet<any>();
 
-export function material(color:string,roughness=.82,metalness=0):THREE.MeshStandardMaterial{
+export function material(color:string,roughness=.82,metalness=0):any{
   const m=new THREE.MeshStandardMaterial({color,roughness,metalness});
   sharedMaterials.add(m);
   return m;
@@ -22,7 +22,7 @@ export function cachedGeometry<T extends any>(cache:Map<string,T>,key:string,cre
 }
 export function boxGeometry(w:number,h:number,d:number){
   const dims=[w,h,d].map(value=>Math.max(.1,Math.round(value*2)/2));
-  return cachedGeometry(boxGeometries,dims.join(','),()=>new any(...dims as [number,number,number]));
+  return cachedGeometry(boxGeometries,dims.join(','),()=>new THREE.BoxGeometry(...dims as [number,number,number]));
 }
 export function box(g:any,w:number,h:number,d:number,mat:any,x:number,y:number,z:number,ry=0,cast=true){
   return part(g,boxGeometry(w,h,d),mat,x,y,z,ry,cast);
@@ -39,11 +39,11 @@ export function instancedBoxes(g:any,w:number,h:number,d:number,mat:any,position
 }
 export function cyl(g:any,r:number,h:number,mat:any,x:number,y:number,z:number,segments=16){
   const radius=Math.max(.1,Math.round(r*2)/2),height=Math.max(.1,Math.round(h*2)/2),key=`${radius},${height},${segments}`;
-  return part(g,cachedGeometry(cylinderGeometries,key,()=>new any(radius,radius,height,segments)),mat,x,y,z);
+  return part(g,cachedGeometry(cylinderGeometries,key,()=>new THREE.CylinderGeometry(radius,radius,height,segments)),mat,x,y,z);
 }
 export function surface(g:any,w:number,d:number,mat:any,x:number,z:number,y=.12){box(g,w,.14,d,mat,x,y,z,0,false);}
 export function foundation(g:any,w:number,d:number,concrete:any,dark:any,x=0,z=0){
-  box(g,w+8,.7,d+8,concrete,x,.45,z,false);box(g,w+3,1.1,d+3,dark,x,.95,z,false);
+  box(g,w+8,.7,d+8,concrete,x,.45,z,0,false);box(g,w+3,1.1,d+3,dark,x,.95,z,0,false);
 }
 export function windowPanel(g:any,x:number,y:number,z:number,w:number,h:number,glassMat:any,frameMat:any,axis='front',direction=1,divisions=0){
   if(axis==='front'){
@@ -82,7 +82,7 @@ export function gate(g:any,z:number,width:number,metal:any){
 export function fence(g:any,x1:number,z1:number,x2:number,z2:number,metal:any){
   const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),a=Math.atan2(dz,dx);if(len<1)return;
   for(const y of[.55,2.15,3.8])box(g,len,.3,.7,metal,(x1+x2)/2,y,(z1+z2)/2,a,false);
-  const count=Math.ceil(len/18)+1,geometry=cachedGeometry(cylinderGeometries,'fence-post',()=>new any(.35,.35,4,8)),posts=new THREE.InstancedMesh(geometry,metal,count),matrix=new THREE.Matrix4();
+  const count=Math.ceil(len/18)+1,geometry=cachedGeometry(cylinderGeometries,'fence-post',()=>new THREE.CylinderGeometry(.35,.35,4,8)),posts=new THREE.InstancedMesh(geometry,metal,count),matrix=new THREE.Matrix4();
   for(let i=0;i<count;i++){const d=len*i/(count-1),x=x1+Math.cos(a)*d,z=z1+Math.sin(a)*d;posts.setMatrixAt(i,matrix.compose(new THREE.Vector3(x,2.1,z),new THREE.Quaternion(),new THREE.Vector3(1,1,1)));}
   posts.instanceMatrix.needsUpdate=true;posts.castShadow=true;posts.receiveShadow=true;g.add(posts);
 }
