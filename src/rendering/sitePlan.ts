@@ -1,3 +1,5 @@
+export interface SitePlanBuilding { id?:string; type?:string; kind?:string; x:number; y:number; [key:string]:unknown }
+
 import {
   buildingDockPoints,
   buildingFootprint,
