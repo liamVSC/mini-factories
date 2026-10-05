@@ -1,8 +1,11 @@
 import { AddRoadCommand, DeleteRoadCommand, MoveRoadEndpointCommand, executeCommand } from '../commands.js';
 import { roadBuildingTarget, roadTarget, roadPreview, roadSegmentAtPoint, roadEndpointAtPoint, roadEndpointPreview, dist } from '../world/roads/index.js';
+import type { RoadTarget } from '../world/roads/placement.js';
 import { setPreview } from '../render.js';
 import type { Point } from '../world/worldTypes.js';
 import type { GameContext, RoadDragState } from './types.js';
+
+interface RoadPreviewResult { path:Point[]; start:RoadTarget; end:RoadTarget; blocked:boolean; [key:string]:unknown; }
 
 interface CameraApi {
   worldPosition(event:PointerEvent):Point|null;
@@ -11,7 +14,7 @@ interface CameraApi {
 }
 
 export function createRoadController(ctx:GameContext,camera:CameraApi){
-  function roadPreviewTip(preview:ReturnType<typeof roadPreview>|null){
+  function roadPreviewTip(preview:RoadPreviewResult|null){
     if(!preview)return 'Invalid road';
     if(preview.blocked)return 'Road blocked — move around the building';
     const start=preview.start?.building?.type||preview.start?.building?.kind;
@@ -36,7 +39,7 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
   }
 
   function roadPathSafe(a:Point,b:Point){
-    try{return roadPreview(ctx.state,a,b)?.path||[a,b];}
+    try{return (roadPreview(ctx.state,a as RoadTarget,b as RoadTarget) as RoadPreviewResult|null)?.path||[a,b];}
     catch{return[a,b];}
   }
 
@@ -115,7 +118,7 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
     const point=camera.worldPosition(event);
     if(!point)return;
     if(ctx.state.mode==='road'){
-      const target=roadBuildingTarget(ctx.state,point)||roadTarget(ctx.state,point)||point;
+      const target=roadBuildingTarget(ctx.state,point)||roadTarget(ctx.state,point as RoadTarget)||point;
       if(!ctx.drag)ctx.drag={start:target,current:target};
       return;
     }
@@ -144,9 +147,9 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
     if(!point)return;
     if(ctx.state.mode==='road'&&ctx.drag){
       ctx.drag.current=roadBuildingTarget(ctx.state,point)||roadTarget(ctx.state,point)||point;
-      let preview:null|ReturnType<typeof roadPreview>=null;
-      try{preview=roadPreview(ctx.state,ctx.drag.start,ctx.drag.current);}
-      catch{preview={path:[ctx.drag.start,ctx.drag.current],start:ctx.drag.start,end:ctx.drag.current,blocked:true,blockedReason:'preview-error'} as ReturnType<typeof roadPreview>;}
+      let preview:RoadPreviewResult|null=null;
+      try{preview=roadPreview(ctx.state,ctx.drag.start as RoadTarget,ctx.drag.current as RoadTarget) as RoadPreviewResult|null;}
+      catch{preview={path:[ctx.drag.start,ctx.drag.current],start:ctx.drag.start as RoadTarget,end:ctx.drag.current as RoadTarget,blocked:true,blockedReason:'preview-error'};}
       setPreview(preview?.path,preview?.start,preview?.end,preview?.blocked);
       $('#tip')!.textContent=roadPreviewTip(preview);
       return;
@@ -169,12 +172,12 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
       const drag=ctx.drag;
       ctx.drag=null;
       const point=camera.worldPosition(event)||drag.current;
-      const target=roadBuildingTarget(ctx.state,point)||roadTarget(ctx.state,point)||point;
-      let preview:null|ReturnType<typeof roadPreview>=null;
-      try{preview=roadPreview(ctx.state,drag.start,target);}
+      const target=roadBuildingTarget(ctx.state,point)||roadTarget(ctx.state,point as RoadTarget)||point;
+      let preview:RoadPreviewResult|null=null;
+      try{preview=roadPreview(ctx.state,drag.start as RoadTarget,target as RoadTarget) as RoadPreviewResult|null;}
       catch{preview=null;}
       const path=preview?.path||roadPathSafe(drag.start,target);
-      const meta={startBuilding:preview?.start?.building||drag.start?.building,endBuilding:preview?.end?.building||target?.building};
+      const meta={startBuilding:preview?.start?.building||undefined,endBuilding:preview?.end?.building||undefined};
       let result:{ok:boolean;result?:unknown};
       try{
         const command=executeCommand(ctx.commands,ctx.state,new AddRoadCommand(path,meta));
