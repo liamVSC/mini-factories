@@ -1,5 +1,4 @@
 // Transitional TypeScript migration: runtime logic is preserved verbatim while this large module is typed incrementally.
-// @ts-nocheck
 import {TYPES} from './core/types.js';
 import {newId} from './core/ids.js';
 
