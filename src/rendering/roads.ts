@@ -56,7 +56,7 @@ function bridgeRouteSegments(points:Array<{x:number;y:number}>):RoadMeshPart[]{
   if(start>0)parts.push({kind:'road',points:sliceRoute(points,0,start)});if(bridgeStart>start)parts.push({kind:'transition',points:sliceRoute(points,start,bridgeStart)});if(bridgeEnd>bridgeStart)parts.push({kind:'bridge',points:sliceRoute(points,bridgeStart,bridgeEnd)});if(end>bridgeEnd)parts.push({kind:'transition',points:sliceRoute(points,bridgeEnd,end)});if(total>end)parts.push({kind:'road',points:sliceRoute(points,end,total)});return parts.filter(part=>part.points.length>1);
 }
 function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['kind'],materials:any,addCaps=false){
-  const {asphalt,shoulder,line,curb}=materials,g=new any(),isBridge=kind==='bridge',isTransition=kind==='transition',roadWidth=isBridge?27:28,shoulderWidth=isBridge?30:36,shoulderY=isBridge?.52:isTransition?.56:.58,asphaltY=isBridge?.72:isTransition?.74:.69,markY=isBridge?.9:isTransition?.88:.86;
+  const {asphalt,shoulder,line,curb}=materials,g=new THREE.Group(),isBridge=kind==='bridge',isTransition=kind==='transition',roadWidth=isBridge?27:28,shoulderWidth=isBridge?30:36,shoulderY=isBridge?.52:isTransition?.56:.58,asphaltY=isBridge?.72:isTransition?.74:.69,markY=isBridge?.9:isTransition?.88:.86;
   const sh=ribbon(points,shoulderWidth,shoulderY,shoulder),surf=ribbon(points,roadWidth,asphaltY,asphalt);if(sh)g.add(sh);if(surf)g.add(surf);
   if(addCaps)for(const cap of roadCaps(points,roadWidth,shoulderWidth,asphaltY,shoulderY,asphalt,shoulder))g.add(cap);
   if(!isBridge&&!isTransition){for(const side of[-1,1]){const c=ribbon(offsetPolyline(points,side*14),1.1,.82,curb);if(c)g.add(c);}for(const m of centerRoadMarkings(points,markY,line))g.add(m);for(const m of edgeRoadMarkings(points,.89,line))g.add(m);}
@@ -64,7 +64,7 @@ function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['ki
   return g;
 }
 export function roadMesh(r:any){
-  const p=rounded(r.points||[]),g=new any();if(p.length<2)return g;
+  const p=rounded(r.points||[]),g=new THREE.Group();if(p.length<2)return g;
   const mats={asphalt:material('#353b3c',.92),shoulder:material('#6b7370',.98),line:material('#e9ebe5',.7),curb:material('#a0a6a1',.75),rail:material('#a9895c',.8,.1)};
   const parts=bridgeRouteSegments(p);for(const [index,part] of parts.entries()){const mesh=roadSegmentMesh(part.points,part.kind,mats,index===0||index===parts.length-1);g.add(mesh);}
   return g;
@@ -85,5 +85,5 @@ export function roadYardTransitions(s:any){const out:any[]=[];const asphalt=mate
   }return out;
 }
 export function buildRoadGroup(roads:any[],state:any){
-  const group=new any();for(const r of roads||[]){const g=roadMesh(r);g.userData.road=r;group.add(g);}for(const patch of rebuildJunctionPatches(roads||[]))group.add(patch);for(const transition of roadYardTransitions(state))group.add(transition);return group;
+  const group=new THREE.Group();for(const r of roads||[]){const g=roadMesh(r);g.userData.road=r;group.add(g);}for(const patch of rebuildJunctionPatches(roads||[]))group.add(patch);for(const transition of roadYardTransitions(state))group.add(transition);return group;
 }
