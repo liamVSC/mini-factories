@@ -23,6 +23,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Run TypeScript typecheck
         run: npm run typecheck
+      - name: Build browser runtime
+        run: npm run build
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run real browser road audit
