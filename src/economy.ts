@@ -7,15 +7,15 @@ import {dist,length,pointOnRoute,routeOnRoadNetwork,roadAttachment,roadNetwork,r
 import {buildLaneGraph} from './laneGraph.js';
 import {buildJunctionControls,laneIndexForJunction,movementForLaneRoute,movementPermission,stopLinePoint} from './junctionControl.js';
 
-export function spec(type){return TYPES.find(t=>t.name===type)||TYPES[0]}
+export function spec(type: any){return TYPES.find(t=>t.name===type)||TYPES[0]}
 
-function pointSegmentDistance(p,a,b){
+function pointSegmentDistance(p: any, a: any, b: any){
   const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
   if(!len2)return dist(p,a);
   const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len2));
   return dist(p,{x:a.x+dx*t,y:a.y+dy*t});
 }
-function projectRouteProgress(points,p){
+function projectRouteProgress(points: any, p: any){
   if(!Array.isArray(points)||points.length<2)return null;
   let total=length(points),run=0,best=null;
   for(let i=1;i<points.length;i++){
@@ -31,7 +31,7 @@ function projectRouteProgress(points,p){
   return best;
 }
 
-export function route(s,a,b){
+export function route(s: any, a: any, b: any){
   // Route endpoints must still belong to the live world. This prevents a
   // retained building object from remaining routable after deletion/move
   // logic replaces the instance in state.
@@ -42,7 +42,7 @@ export function route(s,a,b){
   return r;
 }
 
-function segmentHit(a,b,c,d){
+function segmentHit(a: any, b: any, c: any, d: any){
   const ab={x:b.x-a.x,y:b.y-a.y},cd={x:d.x-c.x,y:d.y-c.y};
   const cross=(u,v)=>u.x*v.y-u.y*v.x;
   const den=cross(ab,cd);
@@ -52,11 +52,11 @@ function segmentHit(a,b,c,d){
   if(ta<0||ta>1||tc<0||tc>1)return null;
   return{x:a.x+ab.x*ta,y:a.y+ab.y*ta,ta,tc};
 }
-function routeProgressToPoint(route,p){
+function routeProgressToPoint(route: any, p: any){
   const projected=projectRouteProgress(route,p);
   return projected?.progress??0;
 }
-function movementAtJunction(route,junctionIndex){
+function movementAtJunction(route: any, junctionIndex: any){
   if(junctionIndex<0||junctionIndex>=route.length)return null;
   const node=route[junctionIndex];
   const before=route[Math.max(0,junctionIndex-1)];
@@ -73,7 +73,7 @@ function movementAtJunction(route,junctionIndex){
   const direction=turn?(cross>0?'left':'right'):'straight';
   return {node,straight,turn,incoming,outgoing,direction};
 }
-function junctionForTruck(network,t){
+function junctionForTruck(network: any, t: any){
   const controlRoute=t.centerlineRoute||t.route;
   const p=pointOnRoute(controlRoute,t.t);
   if(!p)return null;
@@ -94,12 +94,12 @@ function junctionForTruck(network,t){
   }
   return best;
 }
-function laneOffsetForMovement(movement){
+function laneOffsetForMovement(movement: any){
   if(movement==='left')return 7;
   if(movement==='right')return 1.8;
   return 4.5;
 }
-function preferredTrafficLane(route){
+function preferredTrafficLane(route: any){
   if(!Array.isArray(route)||route.length<3)return 'straight';
   for(let i=1;i<route.length-1;i++){
     const a=route[i-1],b=route[i],c=route[i+1],ab={x:b.x-a.x,y:b.y-a.y},bc={x:c.x-b.x,y:c.y-b.y};
@@ -109,7 +109,7 @@ function preferredTrafficLane(route){
   }
   return 'straight';
 }
-function routeCurveFactor(route,t){
+function routeCurveFactor(route: any, t: any){
   if(!Array.isArray(route)||route.length<3)return 1;
   const p=pointOnRoute(route,t),total=length(route);
   if(!p||!total)return 1;
@@ -138,7 +138,7 @@ function routeCurveFactor(route,t){
   if(maxTurn>.30)return .80;
   return 1;
 }
-function updateTruckSpeed(t,targetFactor,dt){
+function updateTruckSpeed(t: any, targetFactor: any, dt: any){
   const target=Math.max(0,t.speed*Math.max(0,Math.min(1,targetFactor)));
   const current=Number.isFinite(t.currentSpeed)?t.currentSpeed:t.speed;
   const acceleration=target<current?.34:.20;
@@ -148,7 +148,7 @@ function updateTruckSpeed(t,targetFactor,dt){
   return t.currentSpeed;
 }
 
-function truckMovementPoint(t){
+function truckMovementPoint(t: any){
   const centerline=Array.isArray(t?.centerlineRoute)&&t.centerlineRoute.length>=2
     ?t.centerlineRoute
     :t?.route;
@@ -160,7 +160,7 @@ function truckMovementPoint(t){
   return projected?pointOnRoute(laneRoute,projected.progress)||centrePoint:centrePoint;
 }
 
-function trafficConflict(s,t,network,laneGraph,controls){
+function trafficConflict(s: any, t: any, network: any, laneGraph: any, controls: any){
   const tMovementRoute=Array.isArray(t.laneRoute)&&t.laneRoute.length>=2?t.laneRoute:t.route;
   const p=truckMovementPoint(t);
   if(!p)return false;
@@ -261,7 +261,7 @@ function trafficConflict(s,t,network,laneGraph,controls){
   s.trafficReservations[key]={truckId:t.id,movementId:movement?.id||null,until:now+.9};
   return false;
 }
-function fullLaneMovementRoute(route){
+function fullLaneMovementRoute(route: any){
   if(!route)return null;
   const parts=[];
   for(const part of [route.startYard,route.lanePoints,route.endYard]){
@@ -275,7 +275,7 @@ function fullLaneMovementRoute(route){
   if(parts.length<2)return null;
   return parts;
 }
-function rerouteTruck(s,t){
+function rerouteTruck(s: any, t: any){
   if(!t?.source||!t?.to)return false;
   // Preserve the truck's canonical saved position when rerouting. The lane
   // route is a derived physical guide and may be offset from the persisted
@@ -332,7 +332,7 @@ function rerouteTruck(s,t){
   return true;
 }
 
-export function newContract(s,shop){
+export function newContract(s: any, shop: any){
   if(shop.contract)return;
   const f=spec(shop.need);
   const qty=Math.max(2,Math.min(12,Math.round((3+Math.random()*3+(shop.level-1))*f.qty)));
@@ -340,12 +340,12 @@ export function newContract(s,shop){
   shop.contract={id:s.contractId++,type:shop.need,qty,remaining:qty,reward,expires:65+shop.level*10,initial:qty,urgent:Math.random()>.72,inFlight:0};
 }
 
-export function researchCost(s,type){
+export function researchCost(s: any, type: any){
   const level=s.research?.[type]||0;
   return Math.round(180*Math.pow(1.65,level));
 }
 
-export function research(s,type){
+export function research(s: any, type: any){
   if(!s.research||!(type in s.research))return false;
   const level=s.research[type];
   const cost=researchCost(s,type);
@@ -355,7 +355,7 @@ export function research(s,type){
   return true;
 }
 
-export function upgrade(s,b,n){
+export function upgrade(s: any, b: any, n: any){
   if(b.kind==='factory'){
     const price=n===1?120*b.level:n===2?180+(b.max-4)/2*70:n===3?220*(b.loading+1):300*(b.logistics+1);
     if(s.cash<price)return false;
@@ -382,7 +382,7 @@ export function upgrade(s,b,n){
   return false;
 }
 
-function supplyWarehouseFor(s,factory,shop){
+function supplyWarehouseFor(s: any, factory: any, shop: any){
   let best=null,bestScore=Infinity;
   for(const warehouse of s.buildings.filter(b=>b.kind==='warehouse')){
     const toWarehouse=route(s,factory,warehouse);
@@ -397,15 +397,15 @@ function supplyWarehouseFor(s,factory,shop){
   }
   return best;
 }
-function warehouseCapacity(w,type){return Math.max(0,(w.max||24)-(w.storage||0));}
-function takeFromWarehouse(warehouse,type,n){
+function warehouseCapacity(w: any, type: any){return Math.max(0,(w.max||24)-(w.storage||0));}
+function takeFromWarehouse(warehouse: any, type: any, n: any){
   const have=Math.max(0,warehouse?.inventory?.[type]||0),take=Math.min(have,Math.max(0,n));
   if(!take)return 0;
   warehouse.inventory[type]-=take;
   warehouse.storage=Math.max(0,(warehouse.storage||0)-take);
   return take;
 }
-function addToWarehouse(warehouse,type,n){
+function addToWarehouse(warehouse: any, type: any, n: any){
   if(!warehouse||n<=0)return 0;
   const free=warehouseCapacity(warehouse,type),take=Math.min(free,n);
   if(!take)return 0;
@@ -414,7 +414,7 @@ function addToWarehouse(warehouse,type,n){
   warehouse.storage=(warehouse.storage||0)+take;
   return take;
 }
-function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,contractId=0,longDistance=false,valuePerUnit=0,stage='delivery'}){
+function dispatchTruck(s: any, {route: any, source: any, destination: any, cargo: any, cargoType=source?.type: any, contractId=0: any, longDistance=false: any, valuePerUnit=0: any, stage='delivery'}: any){
   if(!route||!cargo||!routeNetworkValid(s,route))return false;
   // Keep the simulation bounded under sustained demand. Finished trucks are
   // removed each tick, so this only limits genuinely in-flight congestion.
@@ -438,7 +438,7 @@ function dispatchTruck(s,{route,source,destination,cargo,cargoType=source?.type,
   return true;
 }
 
-export function updateEconomy(s,dt,flash){
+export function updateEconomy(s: any, dt: any, flash: any){
   const elapsed=Number.isFinite(dt)?Math.max(0,dt):0;
   s.trafficClock=(s.trafficClock||0)+elapsed;
   for(const b of s.buildings){
