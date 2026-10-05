@@ -1,5 +1,3 @@
-// Transitional TypeScript migration: preserve runtime behavior while this module's domain types are tightened.
-// @ts-nocheck
 import { freshState, goalList } from '../state.js';
 import type { Building, Contract, GameState } from '../state.js';
 import {buildingFootprint,buildingClearance} from '../world/buildings/geometry.js';
