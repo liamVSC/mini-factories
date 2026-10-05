@@ -27,7 +27,15 @@ function startServer(){
   });
 }
 
-async function exerciseRoad(page,points){
+async function savedRoadCount(page){
+  return page.evaluate(()=>{
+    const raw=localStorage.getItem('miniFactoriesSaveV6');
+    if(!raw)return 0;
+    try{return JSON.parse(raw)?.state?.roads?.length||0}catch{return 0}
+  });
+}
+
+async function exerciseRoad(page,points,beforeRoadCount){
   const canvas=page.locator('#game');
   await page.getByRole('button',{name:'Build'}).click();
   await page.locator('#road').click();
@@ -38,7 +46,16 @@ async function exerciseRoad(page,points){
   await page.mouse.down();
   await page.mouse.move(box.x+box.width*b[0],box.y+box.height*b[1],{steps:12});
   await page.mouse.up();
-  await page.waitForTimeout(250);
+  await page.waitForFunction(
+    expected=>{
+      const raw=localStorage.getItem('miniFactoriesSaveV6');
+      if(!raw)return false;
+      try{return (JSON.parse(raw)?.state?.roads?.length||0)>expected}catch{return false}
+    },
+    beforeRoadCount,
+    {timeout:5000}
+  );
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   return canvas.evaluate(el=>el.toDataURL('image/png'));
 }
 
@@ -58,10 +75,11 @@ async function audit(viewport,name,points){
     return !!c?.getContext('webgl2')||!!c?.getContext('webgl');
   },{timeout:10000});
   const before=await page.locator('#game').evaluate(el=>el.toDataURL('image/png'));
+  const beforeRoadCount=await savedRoadCount(page);
   await page.screenshot({path:`test-results/road-${name}-before.png`,fullPage:false});
-  const after=await exerciseRoad(page,points);
+  const after=await exerciseRoad(page,points,beforeRoadCount);
   await page.screenshot({path:`test-results/road-${name}-after.png`,fullPage:false});
-  assert.notEqual(after,before,`${name}: rendered canvas did not change after road creation`);
+  assert.notEqual(after,before,`${name}: rendered canvas did not change after successful road creation`);
   assert.equal(consoleErrors.length,0,`${name}: console errors: ${consoleErrors.join(' | ')}`);
   assert.equal(pageErrors.length,0,`${name}: page errors: ${pageErrors.join(' | ')}`);
   const canvasSize=await page.locator('#game').evaluate(el=>({width:el.width,height:el.height}));
@@ -73,7 +91,10 @@ async function audit(viewport,name,points){
 const {server,url}=await startServer();
 process.env.MINI_FACTORIES_PORT=new URL(url).port;
 try{
-  await audit({width:1280,height:800},'desktop',[[.18,.30],[.82,.30]]);
-  await audit({width:390,height:844},'mobile',[[.20,.28],[.80,.28]]);
+  // Keep the browser gesture in the central construction area. Starter buildings
+  // are deliberately distributed around the outer ring, so this avoids making the
+  // visual audit depend on a particular seeded building arrangement.
+  await audit({width:1280,height:800},'desktop',[[.42,.50],[.58,.50]]);
+  await audit({width:390,height:844},'mobile',[[.42,.50],[.58,.50]]);
   console.log('Visual road audit passed: desktop + mobile rendered road creation, WebGL startup, screenshots and runtime error checks.');
 }finally{server.close();}
