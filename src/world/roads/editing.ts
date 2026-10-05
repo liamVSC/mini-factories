@@ -1,5 +1,4 @@
 // Transitional TypeScript migration: runtime behavior preserved while domain types are tightened incrementally.
-// @ts-nocheck
 import type { GameState } from '../../state.js';
 import type { Point, Road, Truck } from '../worldTypes.js';
 import {dist,finitePoint,validRoadPoints,projectOnPolyline,length,safePoint,collinearOverlapLength,segmentDistance} from './geometry.js';
