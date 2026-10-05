@@ -1,7 +1,14 @@
-export function serialise(s){
-  const d={...s};
-  delete d.week;
-  delete d.weekTime;
-  delete d.version;
-  return{version:6,...d,selected:null,trucks:[],particles:[]};
+export function serialise(state) {
+    const data = { ...state };
+    delete data.week;
+    delete data.weekTime;
+    delete data.version;
+    return {
+        version: 6,
+        ...data,
+        selected: null,
+        trucks: [],
+        particles: []
+    };
 }
+//# sourceMappingURL=save.js.map
