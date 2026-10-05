@@ -1,4 +1,5 @@
 import { TYPES } from './core/types.js';
+import type { Road, Truck } from './world/worldTypes.js';
 
 export { TYPES };
 
@@ -77,9 +78,9 @@ export interface GameState {
   xp: number;
   xpToNext: number;
   reputation: number;
-  roads: Record<string, unknown>[];
+  roads: Road[];
   buildings: Building[];
-  trucks: Record<string, unknown>[];
+  trucks: Truck[];
   particles: Record<string, unknown>[];
   selected: string | null;
   mode: string;
