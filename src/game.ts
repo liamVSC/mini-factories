@@ -1,5 +1,4 @@
 // Transitional TypeScript migration: runtime logic is preserved verbatim while this large module is typed incrementally.
-// @ts-nocheck
 import {freshState,TYPES} from './state.js';
 import {loadRecoveredState,saveRecoveredState,clearRecoveredState} from './persistence/recovery.js';
 import {seed,nearestBuilding,buildingAtPoint,buildingCost,buildingUnlock,canBuild,canPlaceBuildingAt,buildingPlacementTarget,placeBuilding} from './world/buildings/index.js';
