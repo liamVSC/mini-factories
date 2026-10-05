@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {freshState,TYPES} from '../src/state.js';
-import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand} from '../src/commands.js';
+import {freshState,TYPES} from '../dist/state.js';
+import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand} from '../dist/commands.js';
 import {
   addRoad,
   eraseRoad,
@@ -17,16 +17,16 @@ import {
   buildingRoadEntrance,
   buildingPhysicalPlacementReason,
   seed
-} from '../src/world.js';
-import {buildLaneGraph,laneRouteGeometry,laneChangeRequired} from '../src/laneGraph.js';
-import {updateEconomy} from '../src/economy.js';
+} from '../dist/world.js';
+import {buildLaneGraph,laneRouteGeometry,laneChangeRequired} from '../dist/laneGraph.js';
+import {updateEconomy} from '../dist/economy.js';
 import {
   buildJunctionControls,
   laneIndexForJunction,
   movementForLaneRoute,
   movementPermission,
   signalForMovement
-} from '../src/junctionControl.js';
+} from '../dist/junctionControl.js';
 
 function roadState(){
   const s=freshState();
@@ -281,7 +281,7 @@ test('procedural layout uses its own seed without mutating the saved game seed',
 
 
 test('road editing helpers are exported from the editing module without world dependency',async()=>{
-  const editing=await import('../src/world/roads/editing.js');
+  const editing=await import('../dist/world/roads/editing.js');
   for(const name of ['roadAtPoint','roadSegmentAtPoint','roadEndpointCandidate','roadEndpointAtPoint','endpointTarget','roadEndpointPreview','editRoadSegment','editRoadEndpoint','endpointSegmentBlocked'])assert.equal(typeof editing[name],'function',name);
 });
 
