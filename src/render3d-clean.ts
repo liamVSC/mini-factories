@@ -200,11 +200,11 @@ function zoomAtScreen(x:any,y:any,z:any,w:any=viewport.width,h:any=viewport.heig
 function resetCamera(){desired={x:0,z:0,yaw:0,pitch:.82,distance:620};}
 function focusCamera(x:any,y:any){desired.x=Number(x)||0;desired.z=Number(y)||0;bounds();}
 function clearPreview(g:any){while(g.children.length){const c=g.children.pop(),materials=materialsIn(c);c.traverse((o:any)=>{if(o.geometry&&!sharedGeometries.has(o.geometry))o.geometry.dispose();});disposeMaterials(materials);}}
-function setPreview(path:any,start:any,end:any,blocked:any=false){if(!previewGroup)return;clearPreview(previewGroup);if(!Array.isArray(path)||path.length<2)return;const m=material(blocked?'#c65a54':'#e1b84b',.7);const mesh=ribbon(rounded(path),18,.95,m,.12);if(mesh)previewGroup.add(mesh);}
+function setPreview(path:any,start:any,end:any,blocked:any=false){if(!previewGroup)return;clearPreview(previewGroup);if(!Array.isArray(path)||path.length<2)return;const m=material(blocked?'#c65a54':'#e1b84b',.7);const mesh=ribbon(rounded(path),18,.95,m);if(mesh)previewGroup.add(mesh);}
 function setBuildingPreview(type:any,point:any,blocked:any=false){if(!buildingPreviewGroup)return;clearPreview(buildingPreviewGroup);if(!point||!type)return;const plan=buildingSitePlan({...type,id:'building-preview',x:point.x,y:point.y});if(!plan)return;const m=material(blocked?'#c65a54':'#63a987',.65);m.transparent=true;m.opacity=.32;const mesh=new THREE.Mesh(new THREE.BoxGeometry(plan.width,10,plan.depth),m);mesh.position.set(point.x,5,point.y);buildingPreviewGroup.add(mesh);}
 function renderDiagnostics(){
-  const roadObjects=[];
-  const buildingObjects=[];
+  const roadObjects:any[]=[];
+  const buildingObjects:any[]=[];
   if(root)root.traverse((o:any)=>{
     if(o.userData?.road){
       const box=new THREE.Box3().setFromObject(o);
