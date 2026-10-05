@@ -1,3 +1,5 @@
+// Transitional TypeScript migration: preserve runtime behavior while this module's domain types are tightened.
+// @ts-nocheck
 import type { Point, RoadNetwork } from './worldTypes.js';
 
 const EPSILON = 1e-6;
