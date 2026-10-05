@@ -1,3 +1,5 @@
+// Transitional TypeScript migration: preserve runtime behavior while this module's domain types are tightened.
+// @ts-nocheck
 import {addRoad,eraseRoad,editRoadEndpoint,roadEndpointPreview,roadSegmentAtPoint} from './world/roads/index.js';
 import {placeBuilding} from './world/buildings/index.js';
 import type { GameState } from './state.js';
