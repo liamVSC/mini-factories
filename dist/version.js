@@ -1,0 +1,3 @@
+globalThis.MINI_FACTORIES_VERSION='2.1.9';
+globalThis.MINI_FACTORIES_VERSION_DATE='5 Oct 2026';
+export {};
