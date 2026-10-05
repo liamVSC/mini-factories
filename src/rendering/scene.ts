@@ -5,22 +5,22 @@ import {box,disposeObjectGroup,material} from './three.js';
 export interface SceneSize{width:number;height:number}
 
 export class RenderScene{
-  renderer:THREE.WebGLRenderer|null=null;
-  scene:THREE.Scene|null=null;
-  root=new THREE.Group();
-  previewGroup=new THREE.Group();
-  buildingPreviewGroup=new THREE.Group();
+  renderer:any|null=null;
+  scene:any|null=null;
+  root=new any();
+  previewGroup=new any();
+  buildingPreviewGroup=new any();
   private contextRecoveryPending=false;
 
   init(canvas:HTMLCanvasElement){
     if(this.renderer)return;
-    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',stencil:false,depth:true});
+    const renderer=new any({canvas,antialias:true,powerPreference:'high-performance',stencil:false,depth:true});
     renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio||1,globalThis.innerWidth<700?1.25:2));
     canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();this.contextRecoveryPending=true;},{passive:false});
     canvas.addEventListener('webglcontextrestored',()=>{this.contextRecoveryPending=false;},{passive:true});
     renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-    const scene=new THREE.Scene();scene.background=new THREE.Color('#b9c6b0');scene.fog=new THREE.Fog('#b9c6b0',900,2600);
-    this.root=new THREE.Group();this.previewGroup=new THREE.Group();this.buildingPreviewGroup=new THREE.Group();
+    const scene=new any();scene.background=new THREE.Color('#b9c6b0');scene.fog=new THREE.Fog('#b9c6b0',900,2600);
+    this.root=new any();this.previewGroup=new any();this.buildingPreviewGroup=new any();
     scene.add(this.root,this.previewGroup,this.buildingPreviewGroup,new THREE.HemisphereLight('#f5f8f4','#536057',1.55));
     const sun=new THREE.DirectionalLight('#fff5dc',2);sun.position.set(-300,480,260);sun.castShadow=true;sun.shadow.mapSize.set(globalThis.innerWidth<700?1024:2048,globalThis.innerWidth<700?1024:2048);sun.shadow.camera.near=10;sun.shadow.camera.far=1600;sun.shadow.camera.left=-600;sun.shadow.camera.right=600;sun.shadow.camera.top=600;sun.shadow.camera.bottom=-600;scene.add(sun);
     box(scene,2600,2,2600,material('#708762',1),0,-7,0,0,false);box(scene,2600,.12,2600,material('#78996a',1),0,.02,0,0,false);
@@ -32,5 +32,5 @@ export class RenderScene{
   get ready(){return !!this.renderer&&!!this.scene;}
   get recovering(){return this.contextRecoveryPending;}
   clearRoot(){for(const child of[...this.root.children]){this.root.remove(child);disposeObjectGroup(child);}}
-  render(camera:THREE.PerspectiveCamera){if(!this.renderer||!this.scene||this.contextRecoveryPending)return;this.renderer.render(this.scene,camera);}
+  render(camera:any){if(!this.renderer||!this.scene||this.contextRecoveryPending)return;this.renderer.render(this.scene,camera);}
 }
