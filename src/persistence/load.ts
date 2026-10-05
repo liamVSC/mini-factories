@@ -12,7 +12,7 @@ type PersistedData = Partial<GameState> & { version?: number; week?: unknown; we
 
 
 export function hydrate(d: PersistedData | null | undefined): GameState | null {
-  if(!d||d.version<2||!Array.isArray(d.buildings)||!Array.isArray(d.roads))return null;
+  if(!d||Number(d.version) < 2||!Array.isArray(d.buildings)||!Array.isArray(d.roads))return null;
   const s = freshState();
   s.gameSeed=Math.max(1,Math.floor(finite(d.gameSeed,Math.floor(Math.random()*0x7fffffff)||1)));
   s.layoutSeed=Math.max(1,Math.floor(finite(d.layoutSeed,s.gameSeed)));
@@ -21,12 +21,12 @@ export function hydrate(d: PersistedData | null | undefined): GameState | null {
   s.seeded=typeof d.seeded==='boolean'?d.seeded:(Array.isArray(d.buildings)&&d.buildings.length>0);
   const keys = Object.keys(s) as Array<keyof GameState>;
   for (const k of keys) {
-    if (Object.prototype.hasOwnProperty.call(d, k) && k !== 'week' && k !== 'weekTime' && k !== 'version') {
+    if (Object.prototype.hasOwnProperty.call(d, k) && true) {
       const value = d[k];
       if (value !== undefined) (s as unknown as Record<string, unknown>)[k] = value;
     }
   }
-  s.version=6;s.renderVersion=Math.max(0,Math.floor(finite(s.renderVersion,0)));s.selected=null;s.trucks=[];s.particles=[];s.goals=goalList();
+  s.renderVersion=Math.max(0,Math.floor(finite(s.renderVersion,0)));s.selected=null;s.trucks=[];s.particles=[];s.goals=goalList();
   // Runtime/UI state is never restored from a persisted snapshot. A save can be
   // captured while a panel is open or the tab is being suspended, so resuming
   // should always start the simulation in a clean interactive state.
@@ -49,7 +49,7 @@ export function hydrate(d: PersistedData | null | undefined): GameState | null {
   s.trafficSignals.enabled=!!s.trafficSignals.enabled;
   s.trafficSignals.cycle=Math.max(8,Math.min(30,finite(s.trafficSignals.cycle,12)));
   s.roadNetworkRevision=Math.max(0,Math.floor(finite(s.roadNetworkRevision,0)));
-  for(const key of Object.keys(s.research))s.research[key]=clampNumber(s.research[key],0,3,0);
+  for(const key of Object.keys(s.research) as Array<keyof GameState['research']>)s.research[key]=clampNumber(s.research[key],0,3,0);
   s.buildings = s.buildings.filter((b): b is Building => !!b && Number.isFinite(Number(b.x)) && Number.isFinite(Number(b.y)) && !!b.type && !!b.kind).map((b: Building) => {
     b.x=finite(b.x);b.y=finite(b.y);b.r=clampNumber(b.r,20,60,25);b.level=Math.max(1,Math.floor(finite(b.level,1)));
     b.max=Math.max(1,Math.floor(finite(b.max,b.kind==='factory'?4:b.kind==='warehouse'?24:8)));
@@ -78,7 +78,17 @@ export function hydrate(d: PersistedData | null | undefined): GameState | null {
   });
   s.buildings=repairBuildingLayout(s.buildings,s.layoutSeed);
   if(validateBuildingLayout(s.buildings).length)s.buildings=repairBuildingLayout(s.buildings,s.layoutSeed+7919);
-  s.roads=s.roads.filter(r=>r&&Array.isArray(r.points)&&r.points.length>=2&&r.points.every(p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y))).map(r=>({...r,points:r.points.map(p=>({x:Number(p.x),y:Number(p.y)})),bridge:!!r.bridge,condition:Number.isFinite(r.condition)?r.condition:1,age:Number.isFinite(r.age)?r.age:0}));
+  interface PersistedRoad { points: Array<{x: number; y: number}>; bridge?: unknown; condition?: unknown; age?: unknown; [key: string]: unknown }
+  const roads = s.roads as PersistedRoad[];
+  s.roads = roads
+    .filter(r => r && Array.isArray(r.points) && r.points.length >= 2 && r.points.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y)))
+    .map(r => ({
+      ...r,
+      points: r.points.map((p: {x: number; y: number}) => ({x: Number(p.x), y: Number(p.y)})),
+      bridge: !!r.bridge,
+      condition: Number.isFinite(Number(r.condition)) ? Number(r.condition) : 1,
+      age: Number.isFinite(Number(r.age)) ? Number(r.age) : 0
+    }));
   s.buildMode=null;
   return s;
 }
