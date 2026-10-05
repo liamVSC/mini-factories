@@ -21,6 +21,8 @@ jobs:
           node-version: 24
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Run TypeScript typecheck
+        run: npm run typecheck
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run real browser road audit
