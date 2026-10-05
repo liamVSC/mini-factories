@@ -466,8 +466,8 @@ export function updateEconomy(s: any, dt: any, flash: any){
     const connectedHubs=s.buildings
       .filter(b=>b.kind==='warehouse')
       .map(hub=>({hub,route:route(s,f,hub)}))
-      .filter(x=>x.route)
-      .sort((a,b)=>a.route.distance-b.route.distance);
+      .filter((x:any)=>x.route)
+      .sort((a:any,b:any)=>a.route.distance-b.route.distance);
     const supplyHub=connectedHubs[0]?.hub||null;
     if(supplyHub&&f.stock>0&&warehouseCapacity(supplyHub,f.type)>0){
       const toHub=connectedHubs[0].route;
