@@ -276,7 +276,7 @@ test('bridge renderer is segmented around the river crossing',()=>{
 
 
 test('mobile PWA lifecycle is suspend/resume safe and cannot create duplicate RAF loops',()=>{
-  const source=readSource(new URL('../src/game/lifecycle.ts',import.meta.url),'utf8');
+  const source=readSource(new URL('../src/game/loop.ts',import.meta.url),'utf8')+'\n'+readSource(new URL('../src/game/lifecycle.ts',import.meta.url),'utf8');
   assert.match(source,/function scheduleTick\(\)/);
   assert.match(source,/if\(!loopRunning\|\|animationFrame\)return/);
   assert.match(source,/function suspendGameLoop\(\)/);
@@ -290,7 +290,7 @@ test('mobile PWA lifecycle is suspend/resume safe and cannot create duplicate RA
 });
 
 test('mobile viewport and touch handling isolate UI scrolling from map gestures',()=>{
-  const game=readSource(new URL('../src/game.ts',import.meta.url),'utf8');
+  const game=readSource(new URL('../src/game/camera.ts',import.meta.url),'utf8')+'\n'+readSource(new URL('../src/game/input.ts',import.meta.url),'utf8');
   const css=readFileSync(new URL('../styles.css',import.meta.url),'utf8');
   assert.match(game,/window\.visualViewport\?\.addEventListener\('resize',resize/);
   assert.match(game,/window\.visualViewport\?\.addEventListener\('scroll',resize/);
