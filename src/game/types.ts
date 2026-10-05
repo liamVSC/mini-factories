@@ -25,22 +25,19 @@ export interface GameContext {
   startRoadFromPoint(point:Point):void;
   setRoadEditAction(action:'move'|'remove'):void;
   setRoadEditorOpen(open:boolean):void;
+  toggleRoadMode():void;
+  reset():void;
   updatePlacementPreview(point:Point|null):void;
   clearPlacementPreview():void;
 }
 
-export interface RoadDragState {
-  start: Point;
-  current: Point;
-}
-
+export interface RoadDragState { start:Point; current:Point; }
 export interface BuildDragState {
-  type: BuildingType;
+  type:BuildingType;
   pointerId:number;
   startX:number;
   startY:number;
   dragging:boolean;
   cancelled:boolean;
 }
-
 export type PanelMode = 'none'|'building'|'build'|'company'|'research';
