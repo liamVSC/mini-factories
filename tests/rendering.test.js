@@ -279,8 +279,8 @@ test('mobile PWA lifecycle is suspend/resume safe and cannot create duplicate RA
   const source=readSource(new URL('../src/game/loop.ts',import.meta.url),'utf8')+'\n'+readSource(new URL('../src/game/lifecycle.ts',import.meta.url),'utf8');
   assert.match(source,/function schedule\(\)/);
   assert.match(source,/if\(!running\|\|animationFrame\)return/);
-  assert.match(source,/function suspendGameLoop\(\)/);
-  assert.match(source,/function resumeGameLoop\(\)/);
+  assert.match(source,/function suspend\(\)/);
+  assert.match(source,/function resume\(\)/);
   assert.match(source,/pagehide/);
   assert.match(source,/pageshow/);
   assert.match(source,/visibilitychange/);
