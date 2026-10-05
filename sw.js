@@ -1,12 +1,12 @@
-const CACHE='mini-factories-v218';
-const VERSION='2.1.8';
+const CACHE='mini-factories-v219';
+const VERSION='2.1.9';
 const APP_SHELL=[
-  './','./index.html','./styles.css?v=1','./src/game.js?v=8','./src/version.js','./src/state.js','./src/world.js','./src/economy.js',
-  './src/core/types.js','./src/core/rng.js','./src/core/ids.js','./src/commands.js','./src/junctionControl.js',
-  './src/world/terrain.js','./src/world/buildings/spawning.js','./src/world/buildings/index.js','./src/world/buildings/layout.js','./src/world/buildings/geometry.js','./src/world/buildings/connections.js','./src/world/buildings/placement.js','./src/world/buildings/operations.js',
-  './src/world/roads/index.js','./src/world/roads/creation.js','./src/world/roads/editing.js','./src/world/roads/geometry.js','./src/world/roads/intersections.js','./src/world/roads/placement.js','./src/world/roads/routing.js','./src/world/roads/topology.js','./src/world/roads/validation.js',
-  './src/laneGraph.js','./src/persistence/save.js','./src/persistence/load.js','./src/persistence/recovery.js',
-  './src/render.js?v=4','./src/render3d-clean.js?v=8','./src/rendering/buildingTransform.js','./src/rendering/sitePlan.js','./icon.svg','./manifest.webmanifest',
+  './','./index.html','./styles.css?v=1','./dist/game.js?v=9','./dist/version.js?v=9','./dist/state.js','./dist/world.js','./dist/economy.js',
+  './dist/core/types.js','./dist/core/rng.js','./dist/core/ids.js','./dist/commands.js','./dist/junctionControl.js',
+  './dist/world/terrain.js','./dist/world/buildings/spawning.js','./dist/world/buildings/index.js','./dist/world/buildings/layout.js','./dist/world/buildings/geometry.js','./dist/world/buildings/connections.js','./dist/world/buildings/placement.js','./dist/world/buildings/operations.js',
+  './dist/world/roads/index.js','./dist/world/roads/creation.js','./dist/world/roads/editing.js','./dist/world/roads/geometry.js','./dist/world/roads/intersections.js','./dist/world/roads/placement.js','./dist/world/roads/routing.js','./dist/world/roads/topology.js','./dist/world/roads/validation.js',
+  './dist/laneGraph.js','./dist/persistence/save.js','./dist/persistence/load.js','./dist/persistence/recovery.js',
+  './dist/render.js?v=5','./dist/render3d-clean.js?v=9','./dist/rendering/buildingTransform.js','./dist/rendering/sitePlan.js','./icon.svg','./manifest.webmanifest',
   'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm'
 ];
 const EXTERNAL_ASSETS=new Set(['https://cdn.jsdelivr.net/npm/three@0.180.0/+esm']);
