@@ -4,7 +4,7 @@ import test from 'node:test';
 globalThis.innerWidth = 390;
 globalThis.innerHeight = 844;
 
-const {freshState, makeBuilding, TYPES} = await import('../src/state.js');
+const {freshState, makeBuilding, TYPES} = await import('../dist/state.js');
 const {
   addRoad,
   eraseRoad,
@@ -26,13 +26,13 @@ const {
   factorySpawnCandidates,
   validateBuildingLayout,
   layoutIsValid
-} = await import('../src/world.js');
-const {route, updateEconomy} = await import('../src/economy.js');
-const buildingModule = await import('../src/world/buildings/index.js');
-const {hydrate} = await import('../src/persistence/load.js');
-const {serialise} = await import('../src/persistence/save.js');
-const {roadPathIntersectsBuildingFootprint,roadPathBlocked} = await import('../src/world/roads/placement.js');
-const {routeNetworkValid} = await import('../src/world/roads/routing.js');
+} = await import('../dist/world.js');
+const {route, updateEconomy} = await import('../dist/economy.js');
+const buildingModule = await import('../dist/world/buildings/index.js');
+const {hydrate} = await import('../dist/persistence/load.js');
+const {serialise} = await import('../dist/persistence/save.js');
+const {roadPathIntersectsBuildingFootprint,roadPathBlocked} = await import('../dist/world/roads/placement.js');
+const {routeNetworkValid} = await import('../dist/world/roads/routing.js');
 
 function road(points) {
   return {id: crypto.randomUUID(), points, age:0, bridge:false, condition:1};
