@@ -176,7 +176,7 @@ test('3D road renderer has smooth corners, lane/edge markings, caps, junction me
   assert.match(source,/const radius=Math\.min\(30,inLen\*\.28,outLen\*\.28\)/);
   assert.match(source,/function offsetPolyline\(points,halfWidth\)/);
   assert.match(source,/const sign=halfWidth<0\?-1:1,hw=Math\.abs\(halfWidth\)/);
-  assert.ok(source.includes('const miter=hw/Math.max(.55,Math.abs(denom))'));
+  assert.ok(source.includes('const denom=nx*inNx+nz*inNz,miterScale=1/Math.max(.55,Math.abs(denom))'));
   assert.ok(source.includes('const denom=nx*inNx+nz*inNz;'));
   assert.ok(source.includes('if(miter<=hw*1.12){nx*=miter;nz*=miter;}else{nx=inNx;nz=inNz;}'));
   assert.match(source,/function roadCaps\(points,roadWidth,shoulderWidth/);
@@ -319,11 +319,11 @@ test('PWA cache and published game version stay aligned',()=>{
   const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
   const version=readFileSync(new URL('../src/version.js',import.meta.url),'utf8');
-  assert.match(sw,/mini-factories-v214/);
-  assert.match(sw,/VERSION='2.1.4'/);
+  assert.match(sw,/mini-factories-v215/);
+  assert.match(sw,/VERSION='2.1.5'/);
   assert.match(sw,/game\.js\?v=8/);
   assert.match(sw,/render3d-clean\.js\?v=8/);
   assert.match(sw,/render\.js\?v=4/);
   assert.match(html,/src\/game\.js\?v=8/);
-  assert.match(version,/MINI_FACTORIES_VERSION='2.1.4'/);
+  assert.match(version,/MINI_FACTORIES_VERSION='2.1.5'/);
 });
