@@ -1,5 +1,3 @@
-// Transitional TypeScript migration: preserve runtime behavior while this module's domain types are tightened.
-// @ts-nocheck
 import { makeBuilding } from '../../state.js';
 import type { BuildingType, GameState } from '../../state.js';
 import { newId } from '../../core/ids.js';
@@ -42,8 +40,11 @@ export function buildingCost(state: Pick<GameState, 'buildings'>, type: Building
 }
 
 export function buildingUnlock(type: BuildingType, state: Pick<GameState, 'research' | 'companyLevel'>): string | null {
-  if (type.unlock && (state.research?.[type.unlock] ?? 0) < type.unlockLevel) {
-    return `Requires ${type.unlock} research Lv ${type.unlockLevel}`;
+  if ('unlock' in type && 'unlockLevel' in type) {
+    const unlock = type.unlock as keyof GameState['research'];
+    if ((state.research?.[unlock] ?? 0) < type.unlockLevel) {
+      return `Requires ${type.unlock} research Lv ${type.unlockLevel}`;
+    }
   }
 
   const minimum = MIN_COMPANY_LEVEL[type.name] ?? 1;
