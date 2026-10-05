@@ -1,6 +1,4 @@
-// Transitional TypeScript migration: preserve runtime behavior while this module's domain types are tightened.
-// @ts-nocheck
-import type { Point, RoadNetwork } from './worldTypes.js';
+import type { Point, RoadEdge, RoadNetwork } from './world/worldTypes.js';
 
 const EPSILON = 1e-6;
 
@@ -13,7 +11,6 @@ export interface Lane {
   id:string; roadId:string|null; from:Point; to:Point; edge:RoadEdge;
   laneIndex:number; lateralOffset:number; lanesPerDirection:number; direction:Point; reverse:boolean;
 }
-export interface RoadEdge { a:Point; b:Point; d:number; road?: {id?:string}; }
 export interface LaneTransition { toLaneId:string; type:string; angle:number; }
 export interface LaneGraph {
   nodes:Point[]; edges:RoadEdge[]; lanes:Lane[]; lanesById:Map<string,Lane>;
