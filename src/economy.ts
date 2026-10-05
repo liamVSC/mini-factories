@@ -464,8 +464,8 @@ export function updateEconomy(s: any, dt: any, flash: any){
     // warehouse exists, keeping the warehouse strategically meaningful without
     // adding manual dispatch controls.
     const connectedHubs=s.buildings
-      .filter(b=>b.kind==='warehouse')
-      .map(hub=>({hub,route:route(s,f,hub)}))
+      .filter((b:any)=>b.kind==='warehouse')
+      .map((hub:any)=>({hub,route:route(s,f,hub)}))
       .filter((x:any)=>x.route)
       .sort((a:any,b:any)=>a.route.distance-b.route.distance);
     const supplyHub=connectedHubs[0]?.hub||null;
@@ -602,6 +602,7 @@ export function updateEconomy(s: any, dt: any, flash: any){
       if(o===t||o.dead||o.routeKey!==t.routeKey)continue;
       const otherMovementRoute=Array.isArray(o.laneRoute)&&o.laneRoute.length>=2?o.laneRoute:o.route;
       const q=truckMovementPoint(o);
+      if(!q)continue;
       const ahead=o.t>t.t;
       if(!ahead)continue;
       const routeLen=length(movementRoute);
