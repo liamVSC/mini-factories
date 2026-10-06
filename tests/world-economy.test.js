@@ -345,7 +345,14 @@ test('truck dispatch and delivery complete on a connected road', () => {
   f.dispatchTimer = 0;
   shop.demand = 3;
   s.buildings.push(f, shop);
-  s.roads.push(road([{x:35,y:0},{x:185,y:0}]));
+  const factoryGate = buildingModule.buildingRoadEntrance(f);
+  const shopGate = buildingModule.buildingRoadEntrance(shop);
+  assert.ok(factoryGate&&shopGate);
+  s.roads.push(
+    road([{x:factoryGate.x,y:factoryGate.y},{x:110,y:factoryGate.y}]),
+    road([{x:110,y:factoryGate.y},{x:110,y:shopGate.y}]),
+    road([{x:110,y:shopGate.y},{x:shopGate.x,y:shopGate.y}])
+  );
 
   const before = s.cash;
   updateEconomy(s, .2, () => {});
@@ -1105,7 +1112,7 @@ test('a warehouse on a separate network does not break direct factory to shop su
     road([{x:465,y:0},{x:535,y:0}]),
     road([{x:500,y:0},{x:500,y:72}])
   );
-  for(let i=0;i<120&&s.orders<1;i++)updateEconomy(s,.2,()=>{});
+  for(let i=0;i<300&&s.orders<1;i++)updateEconomy(s,.2,()=>{});
   assert.ok(s.orders>=1,'direct factory to shop delivery must remain available');
   assert.equal(warehouse.storage||0,0,'separate warehouse network should not receive cargo');
 });

@@ -1,3 +1,11 @@
+## v2.1.46 — 6 October 2026
+
+### CI regression hardening
+- Updated the remaining economy delivery fixture to use the canonical exterior yard gates instead of offset pavement endpoints.
+- Extended the direct-supply regression window so it covers the complete truck delivery lifecycle.
+- Made the published-version regression follow the central runtime version instead of a stale literal.
+- Kept the generated runtime and service-worker cache synchronized at v2.1.46.
+
 ## v2.1.45 — 6 October 2026
 
 ### CI economy regression alignment

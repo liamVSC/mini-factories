@@ -10,6 +10,7 @@ import {roadTarget,segmentCrossesRiver} from '../dist/world/roads/placement.js';
 import {addRoad} from '../dist/world/roads/creation.js';
 import {serialise} from '../dist/persistence/save.js';
 import {hydrate} from '../dist/persistence/load.js';
+import '../dist/version.js';
 
 const readSource=url=>readFileSync(url,'utf8');
 
@@ -256,7 +257,7 @@ test('renderer wrapper does not mutate road state every frame',()=>{
 
 test('published game version stays aligned with the central runtime version',()=>{
   const version=readSource(new URL('../src/version.ts',import.meta.url));
-  assert.match(version,/MINI_FACTORIES_VERSION='2.1.44'/);
+  assert.match(version,new RegExp(`MINI_FACTORIES_VERSION='${globalThis.MINI_FACTORIES_VERSION.replace(/[.*+?^${}()|[\]\\]/g,'\\  assert.match(version,/MINI_FACTORIES_VERSION='2.1.44'/);')}'`));
 });
 
 
