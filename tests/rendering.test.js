@@ -175,7 +175,7 @@ test('truck renderer reconciles meshes without rebuilding the static world',()=>
   assert.match(source,/export function syncTrucks\(/);
   assert.match(source,/export function updateTrucks\(/);
   assert.match(source,/const active=new Set/);
-  assert.match(source,/for\(const truck of trucks\|\|\[\]\)/);
+  assert.match(source,/for\(const (truck|t) of trucks\|\|\[\]\)/);
 });
 
 test('bridge state requires an actual river crossing',()=>{
