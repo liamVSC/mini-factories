@@ -195,9 +195,9 @@ test('3D road renderer has smooth corners, lane/edge markings, caps, junction me
   assert.match(source,/export function offsetPolyline\(points/);
   assert.ok(source.includes('const denom=nx*inNx+nz*inNz,miterScale=1/Math.max(.55,Math.abs(denom))'));
   assert.match(source,/function roadCaps\(points,roadWidth,shoulderWidth/);
-  assert.match(source,/function riverCrossingPoint\(a,b\)/);
-  assert.match(source,/function bridgeRouteSegments\(points\)/);
-  assert.match(source,/function roadSegmentMesh\(points,kind,materials,addCaps=false\)/);
+  assert.ok(source.includes('function riverCrossingPoint(a:{x:number;y:number},b:{x:number;y:number})'));
+  assert.ok(source.includes('function bridgeRouteSegments(points:Array<{x:number;y:number}>)'));
+  assert.ok(source.includes("function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['kind'],materials,addCaps=false)"));
   assert.ok(source.includes("kind==='transition'"));
   assert.ok(source.includes('function edgeRoadMarkings(points,y,mat)'));
   assert.match(source,/function centerRoadMarkings\(points,y,mat\)/);
@@ -269,7 +269,7 @@ test('road mesh layers use distinct heights instead of coplanar surfaces',()=>{
   assert.ok(source.includes('asphaltY=isBridge?.72:isTransition?.74:.69'));
   assert.ok(source.includes('markY=isBridge?.9:isTransition?.88:.86'));
   assert.ok(source.includes('function roadSegmentMesh('));
-  assert.ok(source.includes('i===0||i===parts.length-1'));
+  assert.ok(source.includes('index===0||index===parts.length-1'));
 });
 
 test('tight curve offsets fall back to the incoming normal instead of producing oversized miters',()=>{
