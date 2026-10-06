@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -39,8 +40,13 @@ test('bridge classification only occurs when a road crosses the river',()=>{
 });
 
 test('game version has one central runtime source',()=>{
-  assert.equal(globalThis.MINI_FACTORIES_VERSION,'2.1.79');
-  assert.equal(globalThis.MINI_FACTORIES_VERSION_DATE,'6 Oct 2026');
+  const source=readFileSync(new URL('../src/version.ts',import.meta.url),'utf8');
+  const version=source.match(/MINI_FACTORIES_VERSION='([^']+)'/)?.[1];
+  const date=source.match(/MINI_FACTORIES_VERSION_DATE='([^']+)'/)?.[1];
+  assert.ok(version);
+  assert.ok(date);
+  assert.equal(globalThis.MINI_FACTORIES_VERSION,version);
+  assert.equal(globalThis.MINI_FACTORIES_VERSION_DATE,date);
 });
 
 test('route interpolation follows distance, not point index',()=>{
