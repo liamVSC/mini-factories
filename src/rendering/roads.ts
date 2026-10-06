@@ -30,22 +30,23 @@ export function offsetPolyline(points:Array<{x:number;y:number}>,halfWidth:numbe
     out.push({x:p.x+nx*hw*scale*sign,y:p.y+nz*hw*scale*sign});
   }return out;
 }
-export function ribbon(points:Array<{x:number;y:number}>,width:number,y:number,mat:any){
+export function ribbon(points:Array<{x:number;y:number}>,width:number,y:number|number[],mat:any){
   if(points.length<2)return null;const clean=[points[0]];for(let i=1;i<points.length;i++)if(Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y)>=.5)clean.push(points[i]);if(clean.length<2)return null;
+  const heights=Array.isArray(y)?y:y;const heightAt=(i:number)=>Array.isArray(heights)?(heights[i]??heights.at(-1)??0):heights;
   const left=offsetPolyline(clean,width/2),right=offsetPolyline(clean,-width/2),verts:number[]=[],idx:number[]=[];
-  for(let i=0;i<clean.length;i++){verts.push(left[i].x,y,left[i].y,right[i].x,y,right[i].y);if(i){const q=(i-1)*2,r=i*2;idx.push(q,q+1,r,r,r+1,q+1);}}
+  for(let i=0;i<clean.length;i++){const h=heightAt(i);verts.push(left[i].x,h,left[i].y,right[i].x,h,right[i].y);if(i){const q=(i-1)*2,r=i*2;idx.push(q,q+1,r,r,r+1,q+1);}}
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(idx);geo.computeVertexNormals();const m=new THREE.Mesh(geo,mat);m.receiveShadow=true;m.renderOrder=2;return m;
 }
 function roundDisc(x:number,z:number,radius:number,y:number,mat:any,segments=20){const g=new THREE.Mesh(new THREE.CircleGeometry(radius,segments),mat);g.rotation.x=-Math.PI/2;g.position.set(x,y,z);g.receiveShadow=true;g.renderOrder=2.05;return g;}
 function roadCaps(points:Array<{x:number;y:number}>,roadWidth:number,shoulderWidth:number,y:number,shoulderY:number,asphalt:any,shoulder:any){
   if(points.length<2)return[];const out:any[]=[];for(const p of[points[0],points.at(-1)!]){out.push(roundDisc(p.x,p.y,shoulderWidth/2,shoulderY,shoulder,20),roundDisc(p.x,p.y,roadWidth/2,y,asphalt,20));}return out;
 }
-function centerRoadMarkings(points:Array<{x:number;y:number}>,y:number,mat:any){
+function centerRoadMarkings(points:Array<{x:number;y:number}>,y:number|number[],mat:any){
   const out:any[]=[];for(let i=0;i<points.length-1;i++){const a=points[i],b=points[i+1],len=Math.hypot(b.x-a.x,b.y-a.y),dash=14,gap=10,count=Math.max(1,Math.floor(len/(dash+gap)));
-    for(let n=0;n<count;n++){const s=n*(dash+gap),e=Math.min(len,s+dash);if(e<=s)continue;const t0=s/len,t1=e/len,p0={x:a.x+(b.x-a.x)*t0,y:a.y+(b.y-a.y)*t0},p1={x:a.x+(b.x-a.x)*t1,y:a.y+(b.y-a.y)*t1},m=ribbon([p0,p1],.8,y,mat);if(m)out.push(m);}
+    for(let n=0;n<count;n++){const s=n*(dash+gap),e=Math.min(len,s+dash);if(e<=s)continue;const t0=s/len,t1=e/len,p0={x:a.x+(b.x-a.x)*t0,y:a.y+(b.y-a.y)*t0},p1={x:a.x+(b.x-a.x)*t1,y:a.y+(b.y-a.y)*t1},h0=Array.isArray(y)?((y[i]??y.at(-1)??0)*(1-t0)+(y[i+1]??y.at(-1)??0)*t0):y,h1=Array.isArray(y)?((y[i]??y.at(-1)??0)*(1-t1)+(y[i+1]??y.at(-1)??0)*t1):y,m=ribbon([p0,p1],.8,[h0,h1],mat);if(m)out.push(m);}
   }return out;
 }
-function edgeRoadMarkings(points:Array<{x:number;y:number}>,y:number,mat:any){const out:any[]=[];for(const lateral of[-14,14]){const m=ribbon(offsetPolyline(points,lateral),1.15,y,mat);if(m)out.push(m);}return out;}
+function edgeRoadMarkings(points:Array<{x:number;y:number}>,y:number|number[],mat:any){const out:any[]=[];for(const lateral of[-14,14]){const m=ribbon(offsetPolyline(points,lateral),1.15,y,mat);if(m)out.push(m);}return out;}
 function riverCrossingPoint(a:{x:number;y:number},b:{x:number;y:number}){const fa=a.y-riverY(a.x),fb=b.y-riverY(b.x);if(fa===0)return a;if(fb===0)return b;if(fa*fb>0)return null;let lo=0,hi=1;for(let i=0;i<24;i++){const t=(lo+hi)/2,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t,f=y-riverY(x);if(f===0){lo=hi=t;break;}if(f*fa>0)lo=t;else hi=t;}const t=(lo+hi)/2;return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};}
 function routeLength(points:Array<{x:number;y:number}>){let total=0;for(let i=1;i<points.length;i++)total+=Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y);return total;}
 function pointAtDistance(points:Array<{x:number;y:number}>,d:number){if(points.length<2)return points[0];let remain=Math.max(0,d);for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],len=Math.hypot(b.x-a.x,b.y-a.y);if(remain<=len){const t=len<.001?0:remain/len;return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};}remain-=len;}return points.at(-1)!;}
@@ -55,20 +56,24 @@ function bridgeRouteSegments(points:Array<{x:number;y:number}>):RoadMeshPart[]{
   if(!crossings.length)return[{kind:'road',points}];const center=crossings[0],total=routeLength(points),half=Math.min(38,total/4),transition=8,start=Math.max(0,center-half-transition),bridgeStart=Math.max(0,center-half),bridgeEnd=Math.min(total,center+half),end=Math.min(total,center+half+transition),parts:RoadMeshPart[]=[];
   if(start>0)parts.push({kind:'road',points:sliceRoute(points,0,start)});if(bridgeStart>start)parts.push({kind:'transition',points:sliceRoute(points,start,bridgeStart)});if(bridgeEnd>bridgeStart)parts.push({kind:'bridge',points:sliceRoute(points,bridgeStart,bridgeEnd)});if(end>bridgeEnd)parts.push({kind:'transition',points:sliceRoute(points,bridgeEnd,end)});if(total>end)parts.push({kind:'road',points:sliceRoute(points,end,total)});return parts.filter(part=>part.points.length>1);
 }
-function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['kind'],materials:any,addCaps=false){
-  const {asphalt,shoulder,line,curb}=materials,g=new THREE.Group(),isBridge=kind==='bridge',isTransition=kind==='transition',roadWidth=isBridge?27:28,shoulderWidth=isBridge?30:36,shoulderY=isBridge?.52:isTransition?.56:.58,asphaltY=isBridge?.72:isTransition?.74:.69,markY=isBridge?.9:isTransition?.88:.86;
+function transitionHeights(count:number,start:number,end:number){return Array.from({length:count},(_,i)=>start+(end-start)*(count<=1?0:i/(count-1)));}
+function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['kind'],materials:any,addCaps=false,rising=false){
+  const {asphalt,shoulder,line,curb}=materials,g=new THREE.Group(),isBridge=kind==='bridge',isTransition=kind==='transition',roadWidth=isBridge?27:28,shoulderWidth=isBridge?30:36;
+  const shoulderY=isBridge?.52:isTransition?transitionHeights(points.length,.12,rising?.52:.12):.12;
+  const asphaltY=isBridge?.72:isTransition?transitionHeights(points.length,.16,rising?.72:.16):.16;
+  const markY=isBridge?.9:isTransition?transitionHeights(points.length,.24,rising?.9:.24):.24;
   const sh=ribbon(points,shoulderWidth,shoulderY,shoulder),surf=ribbon(points,roadWidth,asphaltY,asphalt);if(sh)g.add(sh);if(surf)g.add(surf);
   if(addCaps){
-    for(const cap of roadCaps(points,roadWidth,shoulderWidth,asphaltY+.025,shoulderY+.025,asphalt,shoulder))g.add(cap);
+    for(const cap of roadCaps(points,roadWidth,shoulderWidth,(Array.isArray(asphaltY)?asphaltY.at(-1)??.16:asphaltY)+.01,(Array.isArray(shoulderY)?shoulderY.at(-1)??.12:shoulderY)+.01,asphalt,shoulder))g.add(cap);
   }
-  if(!isBridge&&!isTransition){for(const side of[-1,1]){const c=ribbon(offsetPolyline(points,side*14),1.1,.82,curb);if(c)g.add(c);}for(const m of centerRoadMarkings(points,markY,line))g.add(m);for(const m of edgeRoadMarkings(points,.89,line))g.add(m);}
+  if(!isBridge&&!isTransition){for(const side of[-1,1]){const c=ribbon(offsetPolyline(points,side*14),1.1,.21,curb);if(c)g.add(c);}for(const m of centerRoadMarkings(points,markY,line))g.add(m);for(const m of edgeRoadMarkings(points,markY,line))g.add(m);}
   else if(isBridge){for(const m of centerRoadMarkings(points,markY,line))g.add(m);for(const side of[-1,1])for(let i=0;i<points.length-1;i++){const a=points[i],b=points[i+1],dx=b.x-a.x,dz=b.y-a.y,l=Math.hypot(dx,dz)||1;box(g,l,.7,.8,materials.rail,(a.x+b.x)/2-(dz/l)*side*16,2.3,(a.y+b.y)/2+(dx/l)*side*16,-Math.atan2(dz,dx));}}
   return g;
 }
 export function roadMesh(r:any){
   const p=rounded(r.points||[]),g=new THREE.Group();if(p.length<2)return g;
   const mats={asphalt:material('#353b3c',.92),shoulder:material('#6b7370',.98),line:material('#e9ebe5',.7),curb:material('#a0a6a1',.75),rail:material('#a9895c',.8,.1)};
-  const parts=bridgeRouteSegments(p);for(const [index,part] of parts.entries()){const mesh=roadSegmentMesh(part.points,part.kind,mats,index===0||index===parts.length-1);g.add(mesh);}
+  const parts=bridgeRouteSegments(p);for(const [index,part] of parts.entries()){const rising=part.kind==='transition'&&parts[index+1]?.kind==='bridge';const mesh=roadSegmentMesh(part.points,part.kind,mats,index===0||index===parts.length-1,rising);g.add(mesh);}
   return g;
 }
 function roadJunctions(roads:any[]){const clusters:any[]=[];
@@ -85,14 +90,14 @@ function junctionMesh(p:any,roadsAtPoint:number){
   // Keep the junction cover above the overlapping road ribbons so crossings
   // have one authoritative visible surface instead of coplanar depth fighting.
   return{
-    shoulder:roundDisc(p.x,p.y,radius+6,.63,shoulder,24),
-    surface:roundDisc(p.x,p.y,radius,.79,asphalt,24)
+    shoulder:roundDisc(p.x,p.y,radius+6,.12,shoulder,24),
+    surface:roundDisc(p.x,p.y,radius,.16,asphalt,24)
   };
 }
 function rebuildJunctionPatches(roads:any[]){const out:any[]=[];for(const p of roadJunctions(roads)){const j=junctionMesh(p,p.degree);out.push(j.shoulder,j.surface);}return out;}
 export function roadYardTransitions(s:any){const out:any[]=[];const asphalt=material('#353b3c',.92),apron=material('#777d78',.98),seen=new Set<string>();
   for(const building of s.buildings||[]){const attachment=buildingRoadAttachment(s,building);if(!attachment?.roadPoint||!attachment?.entrance)continue;const a=attachment.roadPoint,e=attachment.entrance,key=building.id+':'+a.x.toFixed(1)+','+a.y.toFixed(1);if(seen.has(key))continue;seen.add(key);
-    const mid={x:(a.x+e.x)/2,y:(a.y+e.y)/2},path=[a,mid,e],shoulder=ribbon(path,46,.60,apron),surface=ribbon(path,30,.74,asphalt);if(shoulder)out.push(shoulder);if(surface)out.push(surface);out.push(roundDisc(e.x,e.y,18,.78,asphalt,20));
+    const mid={x:(a.x+e.x)/2,y:(a.y+e.y)/2},path=[a,mid,e],shoulder=ribbon(path,46,.12,apron),surface=ribbon(path,30,.16,asphalt);if(shoulder)out.push(shoulder);if(surface)out.push(surface);out.push(roundDisc(e.x,e.y,18,.20,asphalt,20));
   }return out;
 }
 export function buildRoadGroup(roads:any[],state:any){
