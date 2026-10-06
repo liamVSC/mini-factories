@@ -517,3 +517,30 @@ test('truck update safely retires and returns cargo when a road mutation disconn
   assert.equal(s.trucks.length,0);
   assert.equal(factory.stock,cargo);
 });
+
+
+test('truck deliveries transition into a directional return trip instead of disappearing',()=>{
+  const source=readSource(new URL('../src/economy.ts',import.meta.url));
+  assert.match(source,/if\(t\.stage==='return'\)/);
+  assert.match(source,/const returnFrom=t\.to/);
+  assert.match(source,/const returnTo=t\.source/);
+  assert.match(source,/const returnRoute=route\(s,returnFrom,returnTo\)/);
+  assert.match(source,/t\.stage='return'/);
+  assert.match(source,/t\.cargo=0/);
+  assert.match(source,/t\.value=0/);
+});
+
+test('return trips rebuild lane metadata for the opposite carriageway',()=>{
+  const source=readSource(new URL('../src/economy.ts',import.meta.url));
+  assert.match(source,/Never simply reverse laneIds/);
+  assert.match(source,/t\.laneIds=Array\.isArray\(returnRoute\.laneIds\)\?\[\.\.\.returnRoute\.laneIds\]:\[\]/);
+  assert.match(source,/t\.laneRoute=physicalReturn/);
+  assert.match(source,/t\.t=0/);
+});
+
+test('lane graph gives trucks one lane on each side of the carriageway',()=>{
+  const source=readSource(new URL('../src/laneGraph.ts',import.meta.url));
+  assert.match(source,/lanesPerDirection=1/);
+  assert.match(source,/const carriagewayCenter=reverse\?7:-7/);
+  assert.match(source,/const lateral=carriagewayCenter/);
+});
