@@ -1,3 +1,9 @@
+## v2.1.69 — 6 October 2026
+
+### CI diagnostics
+- Added executable `dist` filename/stat output to identify the remaining generated-runtime mismatch.
+- Synchronized the published runtime and service-worker cache at v2.1.69.
+
 ## v2.1.68 — 6 October 2026
 
 ### CI verification
