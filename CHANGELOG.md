@@ -1,3 +1,10 @@
+## v2.1.27 — 6 October 2026
+
+### Yard-to-pavement routing
+- Fixed route graph anchoring so legacy roads near an exterior gate are joined through their actual pavement projection.
+- Keeps the building gate as the visible route endpoint while using the road point for topology/lane traversal.
+- Includes gate-to-pavement connector distance in the derived route length.
+
 ## v2.1.26 — 6 October 2026
 
 ### Yard gate compatibility
