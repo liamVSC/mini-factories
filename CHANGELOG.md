@@ -1,3 +1,10 @@
+## v2.1.71 — 6 October 2026
+
+### CI verification
+- Removed the unsupported CI-side push of generated artifacts.
+- Reproducibility now compares exactly the generated `.js` runtime files and intentionally ignores non-runtime source-map metadata.
+- Synchronized the published runtime and service-worker cache at v2.1.71.
+
 ## v2.1.70 — 6 October 2026
 
 ### CI runtime synchronization
