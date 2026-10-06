@@ -103,26 +103,19 @@ export function buildingRoadAttachment(
       const a = points[i - 1];
       const b = points[i];
       const q = projectSegment(building, a, b);
-      const pointInsideConnectionFootprint =
-        q.point.x >= hit.minX &&
-        q.point.x <= hit.maxX &&
-        q.point.y >= hit.minY &&
-        q.point.y <= hit.maxY;
+      // A building is never a valid road endpoint. Roads attach only through
+      // the building's exterior yard gate/entrance. This prevents the old
+      // footprint-based fallback from routing asphalt into or through a building.
       const entranceDistance = entrance ? projectSegment(entrance, a, b).distance : Infinity;
-      const reachesCanonicalGate = entranceDistance <= 18;
-      const candidateDistance = Math.min(q.distance, entranceDistance);
-      if (
-        (pointInsideConnectionFootprint || reachesCanonicalGate) &&
-        (!best || candidateDistance < best.distance)
-      ) {
+      const reachesCanonicalGate = entranceDistance <= 12;
+      if (reachesCanonicalGate && (!best || entranceDistance < best.distance)) {
+        const projected = projectSegment(entrance, a, b);
         best = {
           road,
-          point: reachesCanonicalGate
-            ? { x: entrance.x, y: entrance.y }
-            : { x: q.point.x, y: q.point.y },
-          roadPoint: { x: q.point.x, y: q.point.y },
-          canonical: reachesCanonicalGate,
-          distance: candidateDistance,
+          point: { x: entrance.x, y: entrance.y },
+          roadPoint: { x: projected.point.x, y: projected.point.y },
+          canonical: true,
+          distance: entranceDistance,
           segment: i - 1,
           entrance
         };
