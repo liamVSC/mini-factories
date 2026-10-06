@@ -1,3 +1,11 @@
+## v2.1.20 — 6 October 2026
+
+### Truck traffic
+- Trucks now use directional carriageway lanes instead of sharing the road centre.
+- After delivering, the same truck remains visible and receives a fresh reverse route back to its source.
+- Return routes rebuild lane metadata so the truck uses the correct opposite-direction lane.
+- Trucks are only retired after completing their return trip, or when no safe return route remains.
+
 ## v2.1.19 — 6 October 2026
 
 ### Road streetscape rebuild
