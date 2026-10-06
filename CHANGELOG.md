@@ -1,3 +1,9 @@
+## v2.1.16 — 6 October 2026
+
+### CI regression-test alignment
+- Corrected the central game-version regression expectation and the road shadow-flag assertion exposed by CI.
+- Bumped the published game and service-worker cache version.
+
 ## v2.1.15 — 6 October 2026
 
 ### CI regression-test alignment
