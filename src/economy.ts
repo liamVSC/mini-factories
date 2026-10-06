@@ -674,14 +674,55 @@ export function updateEconomy(s: any, dt: any, flash: any){
     if(actualSpeed<=0)continue;
     t.t+=dt*actualSpeed;
     if(t.t>=1){
+      // Deliveries now have a complete vehicle lifecycle: deliver at the
+      // destination, then route the same truck back to its source. This keeps
+      // trucks visible on the network instead of deleting them at delivery.
+      if(t.stage==='return'){
+        t.dead=true;
+        continue;
+      }
       if(t.stage==='warehouse'){
         const accepted=addToWarehouse(t.to,t.source.type,t.cargo);
         if(accepted<t.cargo){t.source.stock=Math.min(t.source.max,t.source.stock+(t.cargo-accepted));}
-        t.dead=true;continue;
+      }else{
+        const units=Math.max(1,t.cargo||1);
+        s.cash+=t.value;s.deliveryIncome+=t.value;s.orders+=units;s.xp+=Math.max(2,Math.round(t.value*.08));t.to.served=(t.to.served||0)+units;t.to.satisfaction=Math.min(100,(t.to.satisfaction||50)+4*units);s.deliveredBy[t.cargoType||t.source?.type]=(s.deliveredBy[t.cargoType||t.source?.type]||0)+units;
+        if(t.contractId&&t.to.contract?.id===t.contractId){const c=t.to.contract;c.remaining=Math.max(0,c.remaining-units);c.inFlight=Math.max(0,(c.inFlight||0)-units);if(c.remaining<=0){const bonus=c.urgent?Math.round(c.reward*.18):0;s.cash+=c.reward+bonus;s.reputation=Math.min(100,s.reputation+2);if(t.longDistance)s.longContracts++;t.to.contract=null;flash('Contract complete • £'+(c.reward+bonus))}}
       }
-      const units=Math.max(1,t.cargo||1);
-      s.cash+=t.value;s.deliveryIncome+=t.value;s.orders+=units;s.xp+=Math.max(2,Math.round(t.value*.08));t.to.served=(t.to.served||0)+units;t.to.satisfaction=Math.min(100,(t.to.satisfaction||50)+4*units);s.deliveredBy[t.cargoType||t.source?.type]=(s.deliveredBy[t.cargoType||t.source?.type]||0)+units;
-      if(t.contractId&&t.to.contract?.id===t.contractId){const c=t.to.contract;c.remaining=Math.max(0,c.remaining-units);c.inFlight=Math.max(0,(c.inFlight||0)-units);if(c.remaining<=0){const bonus=c.urgent?Math.round(c.reward*.18):0;s.cash+=c.reward+bonus;s.reputation=Math.min(100,s.reputation+2);if(t.longDistance)s.longContracts++;t.to.contract=null;flash('Contract complete • £'+(c.reward+bonus))}}
+      // Build a fresh reverse route so the truck uses the correct lane for the
+      // opposite carriageway. Never simply reverse laneIds: each lane is
+      // directional and reversing IDs would put the truck on the wrong side.
+      const returnFrom=t.to;
+      const returnTo=t.source;
+      const returnRoute=route(s,returnFrom,returnTo);
+      if(returnRoute&&Array.isArray(returnRoute.points)&&returnRoute.points.length>=2){
+        const physicalReturn=fullLaneMovementRoute(returnRoute)||returnRoute.points;
+        t.source=returnFrom;
+        t.to=returnTo;
+        t.route=returnRoute.points;
+        t.centerlineRoute=returnRoute.points;
+        t.laneRoute=physicalReturn;
+        t.routeKey=returnRoute.points.map((p:any)=>p.x.toFixed(1)+','+p.y.toFixed(1)).join('|');
+        t.routeNetworkRevision=Number(s.roadNetworkRevision)||0;
+        t.laneIds=Array.isArray(returnRoute.laneIds)?[...returnRoute.laneIds]:[];
+        t.laneRoadIds=Array.isArray(returnRoute.laneRoadIds)?[...returnRoute.laneRoadIds]:[];
+        t.currentLaneIndex=0;
+        t.currentLaneId=t.laneIds[0]||null;
+        t.routeInvalidated=false;
+        t.t=0;
+        t.wait=0;
+        t.trafficControl=null;
+        t.queueAheadId=null;
+        t.queueGap=null;
+        t.stage='return';
+        t.cargo=0;
+        t.value=0;
+        t.contractId=0;
+        t.longDistance=false;
+        continue;
+      }
+      // If the network changed while the truck was delivering and no return
+      // route exists, safely retire it rather than leaving a broken vehicle.
       t.dead=true;
     }
   }
