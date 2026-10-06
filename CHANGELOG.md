@@ -1,3 +1,8 @@
+## v2.1.36 — 6 October 2026
+
+### Core routing fixtures
+- Aligned core economy/routing fixtures with the real type-specific exterior gate geometry.
+
 ## v2.1.35 — 6 October 2026
 
 ### Release regression alignment
