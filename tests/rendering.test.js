@@ -130,6 +130,8 @@ test('road renderer contains explicit anti-z-fighting surface layers and caps',(
   assert.match(source,/asphaltY\.at\(-1\).*\.01/);
   assert.match(source,/ribbon\(offsetPolyline\(points,side\*14\),1\.1,\.21,curb\)/);
   assert.match(source,/renderOrder=2\.05/);
+  assert.match(source,/shoulder:roundDisc\(p\.x,p\.y,radius\+6,\.135,shoulder,24\)/);
+  assert.match(source,/surface:roundDisc\(p\.x,p\.y,radius,\.185,asphalt,24\)/);
 });
 
 test('road renderer keeps ordinary roads grounded and ramps bridge transitions',()=>{
@@ -139,7 +141,9 @@ test('road renderer keeps ordinary roads grounded and ramps bridge transitions',
   assert.match(source,/ribbon\(points,roadWidth,asphaltY,asphalt\)/);
   assert.match(source,/const rising=part\.kind==='transition'&&parts\[index\+1\]\?\.kind==='bridge'/);
   assert.match(source,/shoulder=ribbon\(path,46,\.12,apron\)/);
-  assert.match(source,/surface=ribbon\(path,30,\.16,asphalt\)/);
+  assert.match(source,/surface=ribbon\(path,30,\.185,asphalt\)/);
+  assert.match(source,/shoulder=ribbon\(path,46,\.135,apron\)/);
+  assert.match(source,/roundDisc\(e\.x,e\.y,18,\.22,asphalt,20\)/);
 });
 
 test('road renderer uses rounded geometry, smooth paths and bounded miters',()=>{
