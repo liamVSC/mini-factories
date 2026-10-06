@@ -549,7 +549,7 @@ export function updateEconomy(s: any, dt: any, flash: any){
   }
 
   const trafficNetwork=roadNetwork(s);
-  const laneGraph=trafficNetwork?.edges?.length?buildLaneGraph(trafficNetwork,{lanesPerDirection:2}):null;
+  const laneGraph=trafficNetwork?.edges?.length?buildLaneGraph(trafficNetwork,{lanesPerDirection:1}):null;
   const junctionControls=trafficNetwork&&laneGraph?buildJunctionControls(trafficNetwork,laneGraph):null;
   for(const t of s.trucks){
     // Buildings are live state, not stable object identities. If a building
