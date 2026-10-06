@@ -1,3 +1,8 @@
+## v2.1.30 — 6 October 2026
+
+### TypeScript routing fix
+- Narrowed point-only and building routing endpoints explicitly so strict TypeScript checking remains clean.
+
 ## v2.1.29 — 6 October 2026
 
 ### Regression fixture alignment
