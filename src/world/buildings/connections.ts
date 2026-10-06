@@ -104,10 +104,11 @@ export function buildingRoadAttachment(
       const b = points[i];
       const q = projectSegment(building, a, b);
       // A building is never a valid road endpoint. Roads attach only through
-      // the building's exterior yard gate/entrance. This prevents the old
-      // footprint-based fallback from routing asphalt into or through a building.
+      // the building's exterior yard gate/entrance. A wider tolerance preserves
+      // legacy pavement that stops near the gate while routing through the
+      // yard rather than accepting the building footprint itself.
       const entranceDistance = entrance ? projectSegment(entrance, a, b).distance : Infinity;
-      const reachesCanonicalGate = entranceDistance <= 12;
+      const reachesCanonicalGate = entranceDistance <= 46;
       if (reachesCanonicalGate && (!best || entranceDistance < best.distance)) {
         const projected = projectSegment(entrance, a, b);
         best = {
