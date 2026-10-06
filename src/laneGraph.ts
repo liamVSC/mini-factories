@@ -27,11 +27,11 @@ export function buildLaneGraph(network:RoadNetwork,{lanesPerDirection=1}:{lanesP
   for(const edge of edges){
     if(!edge?.a||!edge?.b||!(edge.d>EPSILON))continue;
     const directionAB=vector(edge.a,edge.b), directionBA={x:-directionAB.x,y:-directionAB.y};
-    for(let laneIndex=0;laneIndex<1;laneIndex++){
+    for(let laneIndex=0;laneIndex<Math.max(1,lanesPerDirection);laneIndex++){
       const width=7,laneCount=Math.max(1,lanesPerDirection);
       const create=(from:Point,to:Point,direction:Point,reverse:boolean)=>{
         const id='lane-'+lanes.length, carriagewayCenter=reverse?7:-7;
-        const lateral=carriagewayCenter;
+        const lateral=carriagewayCenter+(laneIndex-(laneCount-1)/2)*width;
         const lane:Lane={id,roadId:edge.road?.id||null,from,to,edge,laneIndex,lateralOffset:lateral,lanesPerDirection:laneCount,direction,reverse};
         lanes.push(lane); lanesById.set(id,lane); outgoing.get(from)?.push(lane); incoming.get(to)?.push(lane);
       };
