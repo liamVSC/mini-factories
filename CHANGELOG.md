@@ -1,3 +1,10 @@
+## v2.1.39 — 6 October 2026
+
+### Route metadata
+- Route `start`/`end` metadata now reports the actual pavement attachment points.
+- Yard gates remain represented explicitly in the route point sequence.
+- Updated regressions for gate-to-pavement routing semantics.
+
 ## v2.1.38 — 6 October 2026
 
 ### Gate-aware preview fixtures
