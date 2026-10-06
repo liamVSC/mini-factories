@@ -1,9 +1,3 @@
-## v2.1.42 — 6 October 2026
-
-### CI reliability
-- Hardened the GitHub Actions pipeline so CI never mutates `main` by committing generated `dist` files from inside the workflow.
-- CI now installs dependencies without rewriting the stale lockfile and verifies the committed browser runtime is reproducible after the build.
-
 ## v2.1.41 — 6 October 2026
 
 ### Release assertions
