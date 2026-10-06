@@ -1,3 +1,9 @@
+## v2.1.15 — 6 October 2026
+
+### CI regression-test alignment
+- Corrected the remaining road cap, junction and yard-transition renderer assertions to match the explicit shadow-reception controls now used by the renderer.
+- Bumped the published game and service-worker cache version.
+
 ## v2.1.14 — 6 October 2026
 
 ### CI regression-test alignment
