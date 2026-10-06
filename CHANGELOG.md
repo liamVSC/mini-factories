@@ -1,3 +1,9 @@
+## v2.1.32 — 6 October 2026
+
+### Type-specific gate fixtures
+- Corrected factory/warehouse north-gate and shop south-gate regression fixture offsets.
+- Keeps tests representative of the actual exterior yard geometry.
+
 ## v2.1.31 — 6 October 2026
 
 ### Regression alignment
