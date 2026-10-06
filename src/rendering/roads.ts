@@ -34,7 +34,7 @@ export function ribbon(points:Array<{x:number;y:number}>,width:number,y:number|n
   if(points.length<2)return null;const clean=[points[0]];for(let i=1;i<points.length;i++)if(Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y)>=.5)clean.push(points[i]);if(clean.length<2)return null;
   const heights=Array.isArray(y)?y:y;const heightAt=(i:number)=>Array.isArray(heights)?(heights[i]??heights.at(-1)??0):heights;
   const left=offsetPolyline(clean,width/2),right=offsetPolyline(clean,-width/2),verts:number[]=[],idx:number[]=[];
-  for(let i=0;i<clean.length;i++){const h=heightAt(i);verts.push(left[i].x,h,left[i].y,right[i].x,h,right[i].y);if(i){const q=(i-1)*2,r=i*2;idx.push(q,q+1,r,r,r+1,q+1);}}
+  for(let i=0;i<clean.length;i++){const h=heightAt(i);verts.push(left[i].x,h,left[i].y,right[i].x,h,right[i].y);if(i){const q=(i-1)*2,r=i*2;idx.push(q,r,q+1,q+1,r,r+1);}}
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(idx);geo.computeVertexNormals();const m=new THREE.Mesh(geo,mat);m.receiveShadow=receiveShadow;m.renderOrder=2;return m;
 }
 function roundDisc(x:number,z:number,radius:number,y:number,mat:any,segments=20,receiveShadow=true){const g=new THREE.Mesh(new THREE.CircleGeometry(radius,segments),mat);g.rotation.x=-Math.PI/2;g.position.set(x,y,z);g.receiveShadow=receiveShadow;g.renderOrder=2.05;return g;}
