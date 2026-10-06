@@ -555,7 +555,7 @@ test('road endpoint targeting uses tight building and road snap zones',()=>{
   s.buildings.push(factory);
   s.roads.push({id:'road-1',points:[{x:120,y:-80},{x:120,y:80}],bridge:false,condition:1,age:0});
 
-  const building=roadTarget(s,{x:50,y:0});
+  const building=roadTarget(s,{x:50,y:-108});
   assert.equal(building.building,factory);
 
   const road=roadTarget(s,{x:120,y:30});
@@ -576,7 +576,7 @@ test('road snapping stays stable at building edges and road intersections',()=>{
     {id:'road-b',points:[{x:40,y:0},{x:200,y:0}],bridge:false,condition:1,age:0}
   );
 
-  const building=roadTarget(s,{x:42,y:0});
+  const building=roadTarget(s,{x:42,y:-108});
   assert.equal(building.building,factory);
   assert.ok(Number.isFinite(building.x)&&Number.isFinite(building.y));
 
@@ -698,7 +698,7 @@ test('road preview snaps to buildings, roads and the placement grid',()=>{
   s.buildings.push(factory,shop);
   s.roads.push({id:'road-1',points:[{x:120,y:-80},{x:120,y:80}],bridge:false,condition:1,age:0});
 
-  const buildingPreview=roadPreview(s,{x:4,y:3},{x:236,y:-2});
+  const buildingPreview=roadPreview(s,{x:4,y:-105},{x:236,y:96});
   assert.equal(buildingPreview.start.building,factory);
   assert.equal(buildingPreview.end.building,shop);
   assert.equal(buildingPreview.snappedStart,true);
@@ -727,13 +727,13 @@ test('clear road preview stays direct while blocked preview uses a clean 90 degr
   const b=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},300,0,'shop-1');
   s.buildings.push(a,b);
 
-  const clear=roadPreview(s,{x:-200,y:0},{x:-120,y:0});
+  const clear=roadPreview(s,{x:-200,y:-108},{x:-120,y:-108});
   assert.equal(clear.path.length,2);
   assert.equal(clear.blocked,false);
 
   const obstacle=makeBuilding({name:'Warehouse',kind:'warehouse',need:null,color:'#fff'},0,0,'warehouse-1');
   s.buildings.push(obstacle);
-  const blocked=roadPreview(s,{x:-200,y:0},{x:100,y:0});
+  const blocked=roadPreview(s,{x:-200,y:-108},{x:100,y:-108});
   assert.ok(blocked.path.length>=3);
   assert.equal(blocked.blocked,false);
   for(let i=2;i<blocked.path.length;i++){
@@ -786,7 +786,7 @@ test('road preview path is exactly the path committed by road construction',()=>
   const obstacle=makeBuilding({name:'Warehouse',kind:'warehouse',need:null,color:'#fff'},120,0,'warehouse-1');
   s.buildings.push(factory,shop,obstacle);
 
-  const preview=roadPreview(s,{x:4,y:0},{x:236,y:0});
+  const preview=roadPreview(s,{x:4,y:-108},{x:236,y:-108});
   assert.ok(preview);
   assert.equal(preview.blocked,false);
 
