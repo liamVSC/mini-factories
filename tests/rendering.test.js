@@ -129,7 +129,7 @@ test('road renderer contains explicit anti-z-fighting surface layers and caps',(
   assert.match(source,/markY=isBridge\?\.9:isTransition\?transitionHeights\(points\.length,\.24,rising\?\.9:\.24\):\.24/);
   assert.match(source,/asphaltY\.at\(-1\).*\.01/);
   assert.match(source,/ribbon\(offsetPolyline\(points,side\*14\),1\.1,\.21,curb\)/);
-  assert.match(source,/renderOrder=2\.05/);
+  assert.match(source,/renderOrder=2\.05/);\n  assert.match(source,/receiveShadow=false/);\n  assert.match(source,/shoulderY,shoulder,false\),surf=ribbon\(points,roadWidth,asphaltY,asphalt,false\)/);\n  assert.match(source,/ribbon\(offsetPolyline\(points,side\*14\),1\.1,\.21,curb,false\)/);
   assert.match(source,/shoulder:roundDisc\(p\.x,p\.y,radius\+6,\.135,shoulder,24\)/);
   assert.match(source,/surface:roundDisc\(p\.x,p\.y,radius,\.185,asphalt,24\)/);
 });
@@ -262,10 +262,10 @@ test('published game version stays aligned across app shell and service worker',
   const sw=readSource(new URL('../sw.js',import.meta.url));
   const html=readSource(new URL('../index.html',import.meta.url));
   const version=readSource(new URL('../src/version.ts',import.meta.url));
-  assert.match(sw,/mini-factories-v220/);
-  assert.match(sw,/VERSION='2\.1\.9'/);
+  assert.match(sw,/mini-factories-v221/);
+  assert.match(sw,/VERSION='2\.1\.10'/);
   assert.match(sw,/dist\/game\.js\?v=9/);
   assert.match(sw,/render3d-clean\.js\?v=9/);
   assert.match(html,/dist\/game\.js\?v=9/);
-  assert.match(version,/MINI_FACTORIES_VERSION='2\.1\.9'/);
+  assert.match(version,/MINI_FACTORIES_VERSION='2\.1\.10'/);
 });

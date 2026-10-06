@@ -1,3 +1,11 @@
+## v2.1.10 — 6 October 2026
+
+### Road visual stability
+- Prevented road ribbons, caps, junction covers, yard transitions and road markings from receiving shadow-map data.
+- Removed the long dark shadow/depth aliasing artifact visible across road surfaces at shallow mobile camera angles.
+- Kept the existing explicit road elevation separation and junction/yard overlay offsets intact.
+- Added regression coverage so road render layers cannot accidentally re-enable the unstable shadow path.
+
 ## v2.1.8 — 5 October 2026
 
 ### Real rendered road audit

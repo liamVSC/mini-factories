@@ -30,14 +30,14 @@ export function offsetPolyline(points:Array<{x:number;y:number}>,halfWidth:numbe
     out.push({x:p.x+nx*hw*scale*sign,y:p.y+nz*hw*scale*sign});
   }return out;
 }
-export function ribbon(points:Array<{x:number;y:number}>,width:number,y:number|number[],mat:any){
+export function ribbon(points:Array<{x:number;y:number}>,width:number,y:number|number[],mat:any,receiveShadow=false){
   if(points.length<2)return null;const clean=[points[0]];for(let i=1;i<points.length;i++)if(Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y)>=.5)clean.push(points[i]);if(clean.length<2)return null;
   const heights=Array.isArray(y)?y:y;const heightAt=(i:number)=>Array.isArray(heights)?(heights[i]??heights.at(-1)??0):heights;
   const left=offsetPolyline(clean,width/2),right=offsetPolyline(clean,-width/2),verts:number[]=[],idx:number[]=[];
   for(let i=0;i<clean.length;i++){const h=heightAt(i);verts.push(left[i].x,h,left[i].y,right[i].x,h,right[i].y);if(i){const q=(i-1)*2,r=i*2;idx.push(q,q+1,r,r,r+1,q+1);}}
-  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(idx);geo.computeVertexNormals();const m=new THREE.Mesh(geo,mat);m.receiveShadow=true;m.renderOrder=2;return m;
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(idx);geo.computeVertexNormals();const m=new THREE.Mesh(geo,mat);m.receiveShadow=receiveShadow;m.renderOrder=2;return m;
 }
-function roundDisc(x:number,z:number,radius:number,y:number,mat:any,segments=20){const g=new THREE.Mesh(new THREE.CircleGeometry(radius,segments),mat);g.rotation.x=-Math.PI/2;g.position.set(x,y,z);g.receiveShadow=true;g.renderOrder=2.05;return g;}
+function roundDisc(x:number,z:number,radius:number,y:number,mat:any,segments=20,receiveShadow=false){const g=new THREE.Mesh(new THREE.CircleGeometry(radius,segments),mat);g.rotation.x=-Math.PI/2;g.position.set(x,y,z);g.receiveShadow=receiveShadow;g.renderOrder=2.05;return g;}
 function roadCaps(points:Array<{x:number;y:number}>,roadWidth:number,shoulderWidth:number,y:number,shoulderY:number,asphalt:any,shoulder:any){
   if(points.length<2)return[];const out:any[]=[];for(const p of[points[0],points.at(-1)!]){out.push(roundDisc(p.x,p.y,shoulderWidth/2,shoulderY,shoulder,20),roundDisc(p.x,p.y,roadWidth/2,y,asphalt,20));}return out;
 }
@@ -62,11 +62,11 @@ function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['ki
   const shoulderY=isBridge?.52:isTransition?transitionHeights(points.length,.12,rising?.52:.12):.12;
   const asphaltY=isBridge?.72:isTransition?transitionHeights(points.length,.16,rising?.72:.16):.16;
   const markY=isBridge?.9:isTransition?transitionHeights(points.length,.24,rising?.9:.24):.24;
-  const sh=ribbon(points,shoulderWidth,shoulderY,shoulder),surf=ribbon(points,roadWidth,asphaltY,asphalt);if(sh)g.add(sh);if(surf)g.add(surf);
+  const sh=ribbon(points,shoulderWidth,shoulderY,shoulder,false),surf=ribbon(points,roadWidth,asphaltY,asphalt,false);if(sh)g.add(sh);if(surf)g.add(surf);
   if(addCaps){
     for(const cap of roadCaps(points,roadWidth,shoulderWidth,(Array.isArray(asphaltY)?asphaltY.at(-1)??.16:asphaltY)+.01,(Array.isArray(shoulderY)?shoulderY.at(-1)??.12:shoulderY)+.01,asphalt,shoulder))g.add(cap);
   }
-  if(!isBridge&&!isTransition){for(const side of[-1,1]){const c=ribbon(offsetPolyline(points,side*14),1.1,.21,curb);if(c)g.add(c);}for(const m of centerRoadMarkings(points,markY,line))g.add(m);for(const m of edgeRoadMarkings(points,markY,line))g.add(m);}
+  if(!isBridge&&!isTransition){for(const side of[-1,1]){const c=ribbon(offsetPolyline(points,side*14),1.1,.21,curb,false);if(c)g.add(c);}for(const m of centerRoadMarkings(points,markY,line))g.add(m);for(const m of edgeRoadMarkings(points,markY,line))g.add(m);}
   else if(isBridge){for(const m of centerRoadMarkings(points,markY,line))g.add(m);for(const side of[-1,1])for(let i=0;i<points.length-1;i++){const a=points[i],b=points[i+1],dx=b.x-a.x,dz=b.y-a.y,l=Math.hypot(dx,dz)||1;box(g,l,.7,.8,materials.rail,(a.x+b.x)/2-(dz/l)*side*16,2.3,(a.y+b.y)/2+(dx/l)*side*16,-Math.atan2(dz,dx));}}
   return g;
 }
@@ -97,7 +97,7 @@ function junctionMesh(p:any,roadsAtPoint:number){
 function rebuildJunctionPatches(roads:any[]){const out:any[]=[];for(const p of roadJunctions(roads)){const j=junctionMesh(p,p.degree);out.push(j.shoulder,j.surface);}return out;}
 export function roadYardTransitions(s:any){const out:any[]=[];const asphalt=material('#353b3c',.92),apron=material('#777d78',.98),seen=new Set<string>();
   for(const building of s.buildings||[]){const attachment=buildingRoadAttachment(s,building);if(!attachment?.roadPoint||!attachment?.entrance)continue;const a=attachment.roadPoint,e=attachment.entrance,key=building.id+':'+a.x.toFixed(1)+','+a.y.toFixed(1);if(seen.has(key))continue;seen.add(key);
-    const mid={x:(a.x+e.x)/2,y:(a.y+e.y)/2},path=[a,mid,e],shoulder=ribbon(path,46,.135,apron),surface=ribbon(path,30,.185,asphalt);if(shoulder)out.push(shoulder);if(surface)out.push(surface);out.push(roundDisc(e.x,e.y,18,.22,asphalt,20));
+    const mid={x:(a.x+e.x)/2,y:(a.y+e.y)/2},path=[a,mid,e],shoulder=ribbon(path,46,.135,apron,false),surface=ribbon(path,30,.185,asphalt,false);if(shoulder)out.push(shoulder);if(surface)out.push(surface);out.push(roundDisc(e.x,e.y,18,.22,asphalt,20));
   }return out;
 }
 export function buildRoadGroup(roads:any[],state:any){
