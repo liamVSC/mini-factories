@@ -108,8 +108,8 @@ function pointOnRouteForTest(points,t){const total=points.reduce((n,p,i)=>i?n+Ma
 function building(typeName, x, y) {
   const type = TYPES.find(t => t.name === typeName);
   // Keep fixture roads on the exterior gate side of each building type.
-  const gateOffset = type?.kind === 'shop' ? 99 : 108;
-  return makeBuilding(type, x, y + gateOffset, crypto.randomUUID());
+  const yOffset = type?.kind === 'shop' ? 99 : -108;
+  return makeBuilding(type, x, y + yOffset, crypto.randomUUID());
 }
 
 test('factories keep a full visual footprint clearance from each other',()=>{
