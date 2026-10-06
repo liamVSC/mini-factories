@@ -1,3 +1,9 @@
+## v2.1.18 — 6 October 2026
+
+### Road geometry
+- Fixed road ribbon triangle winding so both halves of every road surface render consistently instead of producing missing/black triangular sections.
+- Preserved the existing separated road elevations and shadow settings while correcting the underlying mesh topology.
+
 ## v2.1.17 — 6 October 2026
 
 ### Road rendering stability
