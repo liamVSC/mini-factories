@@ -201,7 +201,7 @@ test('lane graph keeps opposing traffic in separate carriageways and prefers tur
   assert.deepEqual(forward.map(l=>l.lateralOffset),[-10.5,-3.5]);
   assert.deepEqual(reverse.map(l=>l.lateralOffset),[3.5,10.5]);
 
-  const route=routeOnRoadNetwork(s,{id:'a',x:-140,y:-108,kind:'factory',r:25},{id:'b',x:0,y:32,kind:'shop',r:25});
+  const route=routeOnRoadNetwork(s,{id:'a',x:-140,y:-108,kind:'factory',r:25},{id:'b',x:0,y:239,kind:'shop',r:25});
   assert.ok(route);
   assert.ok(route.laneTransitions.some(t=>t.type==='left'));
   const turn=route.laneTransitions.find(t=>t.type==='left');
@@ -351,7 +351,7 @@ test('routing exposes connected components and rejects disconnected endpoints be
 test('routing carries the road-network revision and detects stale derived routes',()=>{
   const s=roadState();
   const a={id:'a',x:-120,y:0,kind:'factory',r:25};
-  const b={id:'b',x:120,y:-108,kind:'shop',r:25};
+  const b={id:'b',x:120,y:99,kind:'shop',r:25};
   s.buildings=[a,b];
   assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
   const route=routeOnRoadNetwork(s,a,b);
@@ -423,7 +423,7 @@ test('building placement command restores building list and cash on undo',()=>{
 test('route validation rejects stale lane IDs even when road revision and road IDs still match',()=>{
   const s=roadState();
   const a={id:'a',x:-120,y:0,kind:'factory',r:25};
-  const b={id:'b',x:120,y:-108,kind:'shop',r:25};
+  const b={id:'b',x:120,y:99,kind:'shop',r:25};
   s.buildings=[a,b];
   assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
   const route=routeOnRoadNetwork(s,a,b);
@@ -436,7 +436,7 @@ test('route validation rejects stale lane IDs even when road revision and road I
 test('truck update reroutes an active truck after a road revision instead of consuming cached route geometry',()=>{
   const s=roadState();
   const factory={id:'factory',x:-120,y:0,kind:'factory',r:25,type:'Steel',level:1,stock:0,max:4,production:0,demand:0,served:0,satisfaction:0,loading:0,logistics:0,contract:null};
-  const shop={id:'shop',x:120,y:-108,kind:'shop',r:25,type:'Market',level:1,stock:0,max:8,production:0,demand:3,served:0,satisfaction:100,loading:0,logistics:0,contract:null};
+  const shop={id:'shop',x:120,y:99,kind:'shop',r:25,type:'Market',level:1,stock:0,max:8,production:0,demand:3,served:0,satisfaction:100,loading:0,logistics:0,contract:null};
   s.buildings=[factory,shop];
   assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
   const route=routeOnRoadNetwork(s,factory,shop);
@@ -482,7 +482,7 @@ test('truck update reroutes an active truck after a road revision instead of con
 test('truck update safely retires and returns cargo when a road mutation disconnects its route',()=>{
   const s=roadState();
   const factory={id:'factory',x:-120,y:0,kind:'factory',r:25,type:'Steel',level:1,stock:0,max:4,production:0,demand:0,served:0,satisfaction:0,loading:0,logistics:0,contract:null};
-  const shop={id:'shop',x:120,y:-108,kind:'shop',r:25,type:'Market',level:1,stock:0,max:8,production:0,demand:3,served:0,satisfaction:100,loading:0,logistics:0,contract:null};
+  const shop={id:'shop',x:120,y:99,kind:'shop',r:25,type:'Market',level:1,stock:0,max:8,production:0,demand:3,served:0,satisfaction:100,loading:0,logistics:0,contract:null};
   s.buildings=[factory,shop];
   assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
   const route=routeOnRoadNetwork(s,factory,shop);
