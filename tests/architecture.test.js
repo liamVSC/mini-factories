@@ -55,7 +55,7 @@ test('seed marker survives save/load and legacy populated saves become initializ
 });
 
 test('lane graph creates directional lanes and connects through a four-way junction',()=>{const s=freshState();s.roads.push({id:'west',points:[{x:-120,y:0},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'east',points:[{x:0,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},{id:'north',points:[{x:0,y:-120},{x:0,y:0}],bridge:false,condition:1,age:0},{id:'south',points:[{x:0,y:0},{x:0,y:120}],bridge:false,condition:1,age:0});const network=roadNetwork(s),graph=buildLaneGraph(network);assert.equal(graph.lanes.length,network.edges.length*2);const east=network.nodes.find(n=>Math.abs(n.x-120)<1e-9&&Math.abs(n.y)<1e-9);assert.ok(east);const route=findLaneRoute(graph,network.nodes.find(n=>Math.abs(n.x+120)<1e-9&&Math.abs(n.y)<1e-9),east);assert.ok(route);assert.ok(route.laneIds.length>=2);assert.ok(laneRouteToNodePath(graph,route.laneIds).length>=3);});
-test('routeOnRoadNetwork returns lane metadata while preserving canonical centreline geometry',()=>{const s=freshState(),factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},-120,0,'factory-1'),shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},120,0,'shop-1');s.buildings.push(factory,shop);assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}],{startBuilding:factory,endBuilding:shop}),true);const route=routeOnRoadNetwork(s,factory,shop);assert.ok(route);assert.ok(Array.isArray(route.laneIds));assert.ok(route.laneIds.length>=1);assert.ok(Array.isArray(route.lanePoints));assert.ok(route.lanePoints.length>=2);assert.ok(route.points.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));});
+test('routeOnRoadNetwork returns lane metadata while preserving canonical centreline geometry',()=>{const s=freshState(),factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},-120,-108,'factory-1'),shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},120,-108,'shop-1');s.buildings.push(factory,shop);assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}],{startBuilding:factory,endBuilding:shop}),true);const route=routeOnRoadNetwork(s,factory,shop);assert.ok(route);assert.ok(Array.isArray(route.laneIds));assert.ok(route.laneIds.length>=1);assert.ok(Array.isArray(route.lanePoints));assert.ok(route.lanePoints.length>=2);assert.ok(route.points.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));});
 test('command history makes road/building mutations pass through one execution path',()=>{const s=freshState(),history=createCommandHistory(),factoryType={name:'Food',kind:'factory',need:null,color:'#fff',price:18,speed:1,value:1,qty:1},placed=history.execute(s,new PlaceBuildingCommand(factoryType,0,-300));assert.equal(placed.ok,true);assert.equal(s.buildings.length,1);const gate=buildingRoadEntrance(s.buildings[0]);
   const road=history.execute(s,new AddRoadCommand([{x:gate.x,y:gate.y},{x:gate.x+300,y:gate.y}],{startBuilding:s.buildings[0]}));assert.equal(road.ok,true);assert.equal(s.roads.length,1);const deletePoint=s.roads[0].points[0];
 const deleted=history.execute(s,new DeleteRoadCommand(deletePoint));assert.equal(deleted.ok,true);assert.equal(s.roads.length,0);assert.equal(history.undo(s),true);assert.equal(s.roads.length,1);});
@@ -69,7 +69,7 @@ test('world bounds and renderer coordinate contract remain consistent',()=>{asse
 
 test('building-road attachment has one canonical source shared by routing compatibility export',()=>{
   const s=freshState();
-  const building=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const building=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,-108,'factory-1');
   s.buildings.push(building);
   s.roads.push({id:'road-1',points:[{x:35,y:0},{x:180,y:0}],bridge:false,condition:1,age:0});
   const canonical=buildingRoadAttachment(s,building);
@@ -83,7 +83,7 @@ test('building-road attachment has one canonical source shared by routing compat
 test('road creation uses the canonical building endpoint connection',()=>{
   const s=freshState();
   s.cash=5000;
-  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,-108,'factory-1');
   s.buildings.push(factory);
   const expected=resolveBuildingRoadEndpoint(s,{x:0,y:0},factory,{x:180,y:0});
   assert.ok(expected);
