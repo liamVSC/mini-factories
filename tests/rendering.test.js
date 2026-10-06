@@ -122,9 +122,24 @@ test('road snapping recognizes the canonical gate',()=>{
   }
 });
 
-test('road renderer builds the requested carriageway and roadside profile',()=>{ const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url)); assert.match(source,/roadWidth=30,roadHalfWidth=15,curbWidth=1\.4,sidewalkWidth=15/); assert.match(source,/sidewalkStrips/); assert.match(source,/curbY=isBridge/); assert.match(source,/centerRoadMarkings/); assert.doesNotMatch(source,/edgeRoadMarkings/); assert.doesNotMatch(source,/shoulderWidth/); assert.doesNotMatch(source,/shoulderY/); });
+test('road renderer builds the requested carriageway and roadside profile',()=>{
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
+  assert.match(source,/roadWidth=30,roadHalfWidth=15,curbWidth=1\.4,sidewalkWidth=15/);
+  assert.match(source,/function sidewalkStrips/);
+  assert.match(source,/const sidewalkY=isBridge/);
+  assert.match(source,/const curbY=isBridge/);
+  assert.match(source,/centerRoadMarkings/);
+  assert.match(source,/offsetPolyline\(points,side\*roadHalfWidth\)/);
+  assert.doesNotMatch(source,/const shoulderWidth=/);
+});
 
-test('road renderer keeps junction sidewalks without a giant road slab',()=>{ const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url)); assert.match(source,/function junctionMesh/); assert.match(source,/const inner=16\.4,outer=31\.4,segments=24/); assert.match(source,/geometry\.setIndex/); assert.doesNotMatch(source,/shoulder:roundDisc/); assert.doesNotMatch(source,/surface:roundDisc/); });
+test('road renderer keeps junction sidewalks without a giant road slab',()=>{
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
+  assert.match(source,/function junctionMesh/);
+  assert.match(source,/const inner=16\.4,outer=31\.4,segments=24/);
+  assert.match(source,/geometry\.setIndex/);
+  assert.match(source,/function rebuildJunctionPatches/);
+});
 
 test('road renderer uses rounded geometry, smooth paths and bounded miters',()=>{
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
@@ -140,12 +155,13 @@ test('road renderer handles caps, junctions, yards and bridge transitions',()=>{
   assert.match(source,/function roadCaps\(points:Array<\{x:number;y:number\}>/);
   assert.match(source,/function bridgeRouteSegments\(points:Array<\{x:number;y:number\}>\)/);
   assert.match(source,/function roadJunctions\(roads:any\[\]\)/);
-  assert.ok(source.includes('function junctionMesh(p:any,roadsAtPoint:number)'));
+  assert.match(source,/function junctionMesh\(p:any,roadsAtPoint:number\)/);
   assert.match(source,/function rebuildJunctionPatches\(roads:any\[\]\)/);
   assert.match(source,/export function roadYardTransitions\(s:any\)/);
+  assert.match(source,/function transitionHeights/);
 });
 
-test('road mesh and junction detection share the authoritative rounded polyline',()=>{
+test('road mesh and junction detection share the authoritative smooth polyline',()=>{
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
   assert.match(source,/export function roadMesh\(r:any\)/);
   assert.match(source,/const p=smoothRoadPath\(r\.points\|\|\[\]\),g=new THREE\.Group\(\)/);
