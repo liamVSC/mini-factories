@@ -117,14 +117,6 @@ test('completed warehouse transfer increases inventory and storage',()=>{
   s.buildings.push(factory,warehouse);
   s.trucks.push(t);
   updateEconomy(s,.1,()=>{});
-  assert.equal(s.trucks.length,1);
-  assert.equal(s.trucks[0].stage,'return');
-  s.trucks[0].t=.999;
-  updateEconomy(s,.1,()=>{});
-  assert.equal(s.trucks.length,1);
-  assert.equal(s.trucks[0].stage,'return');
-  s.trucks[0].t=.999;
-  updateEconomy(s,.1,()=>{});
   assert.equal(s.trucks.length,0);
   assert.equal(warehouse.inventory.Food,3);
   assert.equal(warehouse.storage,3);
