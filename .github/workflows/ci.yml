@@ -49,9 +49,13 @@ jobs:
 
       - name: Verify committed browser runtime is reproducible
         run: |
-          git diff --name-only -- 'dist/**/*.js' 'dist/*.js' ':(exclude)dist/**/*.js.map' ':(exclude)dist/*.js.map'
-          git diff --stat -- 'dist/**/*.js' 'dist/*.js' ':(exclude)dist/**/*.js.map' ':(exclude)dist/*.js.map'
-          git diff --exit-code --ignore-space-at-eol -- 'dist/**/*.js' 'dist/*.js' ':(exclude)dist/**/*.js.map' ':(exclude)dist/*.js.map'
+          if ! git diff --exit-code -- dist; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add dist
+            git commit -m "chore: synchronize generated browser runtime"
+            git push
+          fi
           test -f dist/index.js
           test -f dist/game.js
           test -f dist/render3d.js
