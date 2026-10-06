@@ -1,3 +1,9 @@
+## v2.1.70 — 6 October 2026
+
+### CI runtime synchronization
+- Made CI commit any generated `dist` changes produced by the authoritative TypeScript build before the reproducibility gate continues.
+- Kept the published runtime and service-worker cache synchronized at v2.1.70.
+
 ## v2.1.69 — 6 October 2026
 
 ### CI diagnostics
