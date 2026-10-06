@@ -1,3 +1,10 @@
+## v2.1.49 — 6 October 2026
+
+### CI verification
+- Synchronized the audited lifecycle build output and source map with TypeScript source.
+- Corrected the generated-runtime verification command structure so CI executes both reproducibility checks.
+- Bumped and synchronized the published runtime and service-worker cache.
+
 ## v2.1.48 — 6 October 2026
 
 ### Full bug audit
