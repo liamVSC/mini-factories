@@ -1,3 +1,8 @@
+## v2.1.35 — 6 October 2026
+
+### Release regression alignment
+- Updated release-version regression expectations to the current central version source.
+
 ## v2.1.34 — 6 October 2026
 
 ### Signed gate fixtures
