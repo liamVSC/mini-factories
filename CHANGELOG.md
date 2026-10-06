@@ -1,3 +1,9 @@
+## v2.1.34 — 6 October 2026
+
+### Signed gate fixtures
+- Corrected factory/warehouse fixtures to sit south of their north-facing gates.
+- Corrected shop fixtures to sit north of their south-facing gates.
+
 ## v2.1.33 — 6 October 2026
 
 ### Shop gate fixtures
