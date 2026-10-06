@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {freshState,TYPES} from '../dist/state.js';
 import {createCommandHistory,AddRoadCommand,DeleteRoadCommand,MoveRoadEndpointCommand,PlaceBuildingCommand} from '../dist/commands.js';
 import {
@@ -520,7 +521,7 @@ test('truck update safely retires and returns cargo when a road mutation disconn
 
 
 test('truck deliveries transition into a directional return trip instead of disappearing',()=>{
-  const source=readSource(new URL('../src/economy.ts',import.meta.url));
+  const source=fs.readFileSync('src/economy.ts','utf8');
   assert.match(source,/if\(t\.stage==='return'\)/);
   assert.match(source,/const returnFrom=t\.to/);
   assert.match(source,/const returnTo=t\.source/);
@@ -531,7 +532,7 @@ test('truck deliveries transition into a directional return trip instead of disa
 });
 
 test('return trips rebuild lane metadata for the opposite carriageway',()=>{
-  const source=readSource(new URL('../src/economy.ts',import.meta.url));
+  const source=fs.readFileSync('src/economy.ts','utf8');
   assert.match(source,/Never simply reverse laneIds/);
   assert.match(source,/t\.laneIds=Array\.isArray\(returnRoute\.laneIds\)\?\[\.\.\.returnRoute\.laneIds\]:\[\]/);
   assert.match(source,/t\.laneRoute=physicalReturn/);
@@ -539,7 +540,7 @@ test('return trips rebuild lane metadata for the opposite carriageway',()=>{
 });
 
 test('lane graph gives trucks one lane on each side of the carriageway',()=>{
-  const source=readSource(new URL('../src/laneGraph.ts',import.meta.url));
+  const source=fs.readFileSync('src/laneGraph.ts','utf8');
   assert.match(source,/lanesPerDirection=1/);
   assert.match(source,/const carriagewayCenter=reverse\?7:-7/);
   assert.match(source,/const lateral=carriagewayCenter/);
