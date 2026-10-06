@@ -1,3 +1,10 @@
+## v2.1.57 — 6 October 2026
+
+### Economy fix
+- Moved the matching-shop set before warehouse discovery so connected warehouse routes can be evaluated without temporal-dead-zone errors.
+- Preserved direct factory-to-shop fallback when no complete warehouse-to-shop path exists.
+- Synchronized the release version and service-worker cache at v2.1.57.
+
 ## v2.1.56 — 6 October 2026
 
 ### Release synchronization

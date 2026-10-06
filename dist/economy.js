@@ -574,6 +574,7 @@ export function updateEconomy(s, dt, flash) {
         // to shops. Direct factory-to-shop delivery is only used when no connected
         // warehouse exists, keeping the warehouse strategically meaningful without
         // adding manual dispatch controls.
+        const shops = s.buildings.filter((b) => b.kind === 'shop' && b.need === f.type && b.demand > 0);
         const connectedHubs = s.buildings
             .filter((b) => b.kind === 'warehouse')
             .map((hub) => ({ hub, route: route(s, f, hub) }))
@@ -592,7 +593,6 @@ export function updateEconomy(s, dt, flash) {
                 }
             }
         }
-        const shops = s.buildings.filter((b) => b.kind === 'shop' && b.need === f.type && b.demand > 0);
         let choice = null, best = Infinity, choiceRoute = null, choiceHub = null, choicePriority = -Infinity;
         for (const shop of shops) {
             // A warehouse only becomes the supply-chain path when the factory
