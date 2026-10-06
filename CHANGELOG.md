@@ -1,3 +1,9 @@
+## v2.1.64 — 6 October 2026
+
+### CI diagnostics
+- Added generated-runtime diff names/statistics to CI so any remaining executable dist drift is immediately attributable.
+- Synchronized the published runtime and service-worker cache at v2.1.64.
+
 ## v2.1.63 — 6 October 2026
 
 ### CI verification
