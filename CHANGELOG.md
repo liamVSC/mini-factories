@@ -1,5 +1,7 @@
 ## v2.1.20 — 6 October 2026
 
+CI verification: directional truck lanes and return-trip runtime is covered by the committed browser build.
+
 ### Truck traffic
 - Trucks now use directional carriageway lanes instead of sharing the road centre.
 - After delivering, the same truck remains visible and receives a fresh reverse route back to its source.
