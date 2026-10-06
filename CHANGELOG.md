@@ -1,3 +1,9 @@
+## v2.1.21 — 6 October 2026
+
+### Truck lane positioning
+- Truck rendering now follows the derived directional lane route instead of the road centreline.
+- Trucks remain visually on their assigned carriageway side while travelling between yards and deliveries.
+
 ## v2.1.20 — 6 October 2026
 
 CI verification: directional truck lanes and return-trip runtime is covered by the committed browser build.
