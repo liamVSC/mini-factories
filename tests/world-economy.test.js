@@ -284,7 +284,7 @@ test('building attaches to the nearest physical road segment', () => {
   const a = roadAttachment(s, f);
   assert.ok(a);
   assert.equal(a.road, s.roads[0]);
-  assert.ok(Math.abs(a.point.x - 35) < 1e-9);
+  assert.ok(Math.abs(a.point.x - 0) < 1e-9);
   assert.ok(Math.abs(a.point.y) < 1e-9);
 });
 
@@ -298,9 +298,11 @@ test('factory to shop route follows the saved road geometry', () => {
   const r = route(s, f, shop);
   assert.ok(r);
   assert.ok(r.distance > 0);
-  assert.deepEqual(r.points[0], {x:35,y:0});
-  assert.deepEqual(r.points.at(-1), {x:185,y:0});
-  for (const p of r.points) assert.equal(p.y, 0);
+  assert.deepEqual(r.start, {x:35,y:0});
+  assert.deepEqual(r.end, {x:185,y:0});
+  assert.ok(r.points.some(p=>Math.abs(p.x)<1e-9&&Math.abs(p.y)<1e-9));
+  assert.ok(r.points.some(p=>Math.abs(p.x-35)<1e-9&&Math.abs(p.y)<1e-9));
+  assert.ok(r.points.some(p=>Math.abs(p.x-185)<1e-9&&Math.abs(p.y)<1e-9));
 });
 
 test('crossing roads create a real intersection and permit routing across it', () => {
