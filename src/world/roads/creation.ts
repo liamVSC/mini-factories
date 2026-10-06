@@ -20,9 +20,8 @@ export function addRoad(s:GameState,points:Point[],meta:RoadMeta={}):true|string
   let startBuilding=meta.startBuilding||null,endBuilding=meta.endBuilding||null;
   const canonicalAt=(point:Point):Building|null=>{for(const building of s.buildings){const entrance=buildingRoadEntrance(building);if(entrance&&dist(point,entrance)<=2)return building;}return null;};
   startBuilding=startBuilding||canonicalAt(normalized[0]);endBuilding=endBuilding||canonicalAt(normalized.at(-1)!);
-  const centerPair=!!startBuilding&&!!endBuilding&&dist(normalized[0],{x:startBuilding.x,y:startBuilding.y})<=2&&dist(normalized.at(-1)!,{x:endBuilding.x,y:endBuilding.y})<=2;
-  const startConnection=centerPair?null:resolveBuildingRoadEndpoint(s,normalized[0],meta.startBuilding||null,normalized.at(-1)!);
-  const endConnection=centerPair?null:resolveBuildingRoadEndpoint(s,normalized.at(-1)!,meta.endBuilding||null,normalized[0]);
+  const startConnection=resolveBuildingRoadEndpoint(s,normalized[0],meta.startBuilding||startBuilding,normalized.at(-1)!);
+  const endConnection=resolveBuildingRoadEndpoint(s,normalized.at(-1)!,meta.endBuilding||endBuilding,normalized[0]);
   const resolvedStartBuilding=startConnection?.building||startBuilding,resolvedEndBuilding=endConnection?.building||endBuilding;
   if(resolvedStartBuilding&&resolvedEndBuilding&&resolvedStartBuilding===resolvedEndBuilding)return'blocked';
   if(meta.startBuilding&&startConnection)normalized[0]=startConnection.point;if(meta.endBuilding&&endConnection)normalized[normalized.length-1]=endConnection.point;points=normalized;

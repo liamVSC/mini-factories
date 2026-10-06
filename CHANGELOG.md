@@ -1,3 +1,12 @@
+## v2.1.48 — 6 October 2026
+
+### Full bug audit
+- Fixed lifecycle binding so repeated bootstrap/bind calls cannot register duplicate page lifecycle listeners.
+- Removed the legacy road-creation centre-point bypass; building-connected roads now resolve through the canonical exterior yard gate.
+- Hardened generated dist verification so the version source map is compared semantically while harmless EOF formatting is ignored.
+- Added regression coverage for the gate-only road endpoint invariant.
+- Bumped and synchronized the published runtime and service-worker cache.
+
 ## v2.1.47 — 6 October 2026
 
 ### CI reproducibility and PWA release

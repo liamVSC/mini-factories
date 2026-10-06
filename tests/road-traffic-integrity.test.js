@@ -547,6 +547,19 @@ test('lane graph gives trucks one lane on each side of the carriageway',()=>{
 });
 
 
+test('building-connected road creation resolves centre-point endpoints to the exterior yard gate',()=>{
+  const s=roadState();
+  const factory={id:'factory',x:0,y:160,kind:'factory',r:25,type:'Steel'};
+  s.buildings=[factory];
+  const result=addRoad(s,[{x:factory.x,y:factory.y},{x:factory.x,y:0}],{startBuilding:factory});
+  assert.equal(result,true);
+  const road=s.roads[0];
+  const gate=buildingRoadEntrance(factory);
+  assert.ok(Math.hypot(road.points[0].x-gate.x,road.points[0].y-gate.y)<.01);
+  assert.ok(Math.hypot(road.points[0].x-factory.x,road.points[0].y-factory.y)>20);
+});
+
+
 test('building road attachments only accept the exterior yard gate',()=>{
   const source=fs.readFileSync('src/world/buildings/connections.ts','utf8');
   assert.match(source,/A building is never a valid road endpoint/);

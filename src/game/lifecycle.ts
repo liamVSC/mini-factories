@@ -1,9 +1,10 @@
 import type { GameContext } from './types.js';
 
+const boundContexts = new WeakSet<object>();
+
 export function bindLifecycle(ctx:GameContext,loop:{resume():void;suspend():void}){
-  let bound=false;
-  if(bound)return;
-  bound=true;
+  if(boundContexts.has(ctx))return;
+  boundContexts.add(ctx);
 
   window.addEventListener('pagehide',loop.suspend,{capture:true});
   window.addEventListener('beforeunload',()=>ctx.save(true),{capture:true});
