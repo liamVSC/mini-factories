@@ -7,7 +7,11 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -16,23 +20,48 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
+          check-latest: true
+
+      - name: Print toolchain
+        run: |
+          node --version
+          npm --version
+          npx playwright --version
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund --no-package-lock
+
       - name: Run TypeScript typecheck
         run: npm run typecheck
+
+      - name: Clean generated browser runtime
+        run: rm -rf dist
+
       - name: Build browser runtime
         run: npm run build
+
       - name: Verify committed browser runtime is reproducible
         run: |
-          git diff --exit-code -- 'dist/**/*.js' 'dist/*.js'
+          git diff --exit-code -- dist
+          test -f dist/index.js
+          test -f dist/game.js
+          test -f dist/render3d.js
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+
       - name: Run real browser road audit
-        run: mkdir -p test-results && timeout --signal=TERM --kill-after=30s 6m npm run test:visual
+        run: |
+          mkdir -p test-results
+          timeout --signal=TERM --kill-after=30s 6m npm run test:visual
+
       - name: Upload road audit screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -40,5 +69,9 @@ jobs:
           name: road-render-audit
           path: test-results/
           if-no-files-found: ignore
-      - name: Run test suite
+
+      - name: Run full test suite
         run: timeout --signal=TERM --kill-after=30s 8m npm test
+
+      - name: Verify working tree is clean
+        run: git diff --exit-code -- . ':(exclude)test-results'
