@@ -129,7 +129,10 @@ test('road renderer contains explicit anti-z-fighting surface layers and caps',(
   assert.match(source,/markY=isBridge\?\.9:isTransition\?transitionHeights\(points\.length,\.24,rising\?\.9:\.24\):\.24/);
   assert.match(source,/asphaltY\.at\(-1\).*\.01/);
   assert.match(source,/ribbon\(offsetPolyline\(points,side\*14\),1\.1,\.21,curb\)/);
-  assert.match(source,/renderOrder=2\.05/);\n  assert.match(source,/receiveShadow=false/);\n  assert.match(source,/shoulderY,shoulder,false\),surf=ribbon\(points,roadWidth,asphaltY,asphalt,false\)/);\n  assert.match(source,/ribbon\(offsetPolyline\(points,side\*14\),1\.1,\.21,curb,false\)/);
+  assert.match(source,/renderOrder=2\\.05/);
+  assert.match(source,/receiveShadow=false/);
+  assert.match(source,/shoulderY,shoulder,false\\),surf=ribbon\\(points,roadWidth,asphaltY,asphalt,false\\)/);
+  assert.match(source,/ribbon\\(offsetPolyline\\(points,side\\*14\\),1\\.15,y,mat\\)/);
   assert.match(source,/shoulder:roundDisc\(p\.x,p\.y,radius\+6,\.135,shoulder,24\)/);
   assert.match(source,/surface:roundDisc\(p\.x,p\.y,radius,\.185,asphalt,24\)/);
 });
