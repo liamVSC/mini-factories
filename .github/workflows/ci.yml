@@ -29,7 +29,7 @@ jobs:
       - name: Verify committed browser runtime is reproducible
         run: |
           git diff --exit-code -- dist ':!dist/version.js.map'
-          node --input-type=module -e "import fs from 'node:fs'; import {execFileSync} from 'node:child_process'; const committed=JSON.parse(execFileSync('git',['show','HEAD:dist/version.js.map'],{encoding:'utf8'})); const generated=JSON.parse(fs.readFileSync('dist/version.js.map','utf8')); if(JSON.stringify(committed)!==JSON.stringify(generated)){console.error('dist/version.js.map differs semantically from the committed source map');process.exit(1)}"
+          node --input-type=module -e "import fs from 'node:fs'; import {execFileSync} from 'node:child_process'; const committed=execFileSync('git',['show','HEAD:dist/version.js.map'],{encoding:'utf8'}); const generated=fs.readFileSync('dist/version.js.map','utf8'); const normalize=value=>value.replace(/\s+$/,''); if(normalize(committed)!==normalize(generated)){console.error('dist/version.js.map differs from the committed source map after trailing-whitespace normalization');process.exit(1)}"
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run real browser road audit

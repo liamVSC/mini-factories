@@ -1,3 +1,9 @@
+## v2.1.52 — 6 October 2026
+
+### CI verification
+- Fixed source-map reproducibility verification to compare normalized source-map text without failing on harmless EOF/control-character formatting.
+- Kept the published runtime and service-worker cache synchronized at v2.1.52.
+
 ## v2.1.51 — 6 October 2026
 
 ### CI/runtime synchronization
