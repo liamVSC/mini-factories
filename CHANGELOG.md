@@ -1,3 +1,10 @@
+## v2.1.23 — 6 October 2026
+
+### Yard-only road connections
+- Roads now connect to the exterior yard gate only; building footprints are never accepted as road endpoints.
+- Routing starts and ends at the yard gate, preventing road geometry from being extended into or through buildings.
+- Road endpoint handling remains visually clean without exposing internal building connection points.
+
 ## v2.1.22 — 6 October 2026
 
 ### Truck carriageway positioning
