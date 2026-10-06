@@ -1,3 +1,9 @@
+## v2.1.74 — 6 October 2026
+
+### CI verification
+- Limited committed-runtime comparison to the tracked generated browser entry (`dist/game.js`) while still asserting the generated PWA entry files exist after the build.
+- Synchronized the published runtime and service-worker cache at v2.1.74.
+
 ## v2.1.73 — 6 October 2026
 
 ### CI verification
