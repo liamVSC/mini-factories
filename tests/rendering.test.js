@@ -140,7 +140,7 @@ test('road renderer keeps ordinary roads grounded and ramps bridge transitions',
   assert.match(source,/ribbon\(points,shoulderWidth,shoulderY,shoulder\)/);
   assert.match(source,/ribbon\(points,roadWidth,asphaltY,asphalt\)/);
   assert.match(source,/const rising=part\.kind==='transition'&&parts\[index\+1\]\?\.kind==='bridge'/);
-  assert.match(source,/shoulder=ribbon\(path,46,\.12,apron\)/);
+  assert.match(source,/shoulder=ribbon\(path,46,\.135,apron\)/);
   assert.match(source,/surface=ribbon\(path,30,\.185,asphalt\)/);
   assert.match(source,/shoulder=ribbon\(path,46,\.135,apron\)/);
   assert.match(source,/roundDisc\(e\.x,e\.y,18,\.22,asphalt,20\)/);
