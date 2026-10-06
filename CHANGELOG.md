@@ -1,3 +1,9 @@
+## v2.1.73 — 6 October 2026
+
+### CI verification
+- Changed runtime reproducibility to content-level comparison of the three published entry bundles with newline normalization.
+- Synchronized the published runtime and service-worker cache at v2.1.73.
+
 ## v2.1.72 — 6 October 2026
 
 ### CI verification
