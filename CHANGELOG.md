@@ -1,3 +1,9 @@
+## v2.1.28 — 6 October 2026
+
+### Routing endpoint compatibility
+- Restored point-only routing compatibility for topology tests and internal road-path callers.
+- Live building objects still require a valid exterior gate attachment and cannot bypass building-road validation.
+
 ## v2.1.27 — 6 October 2026
 
 ### Yard-to-pavement routing
