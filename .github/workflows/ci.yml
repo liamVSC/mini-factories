@@ -36,7 +36,7 @@ jobs:
           npx playwright --version
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund --no-package-lock --ignore-scripts
+        run: npm ci --no-audit --no-fund
 
       - name: Run TypeScript typecheck
         run: npm run typecheck
@@ -49,7 +49,7 @@ jobs:
 
       - name: Verify committed browser runtime is reproducible
         run: |
-          git diff --exit-code --ignore-space-at-eol -- 'dist/**/*.js' 'dist/*.js' ':!dist/**/*.js.map' ':!dist/*.js.map'
+          git diff --exit-code -- dist
           test -f dist/index.js
           test -f dist/game.js
           test -f dist/render3d.js
