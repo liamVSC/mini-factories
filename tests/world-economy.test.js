@@ -217,7 +217,14 @@ test('save/load does not persist stale truck or building logistics route referen
   const f=building('Food',0,0);
   const shop=building('Market',360,0);
   s.buildings.push(f,shop);
-  s.roads.push(road([{x:35,y:0},{x:185,y:0}]));
+  const factoryGate=buildingModule.buildingRoadEntrance(f);
+  const shopGate=buildingModule.buildingRoadEntrance(shop);
+  assert.ok(factoryGate&&shopGate);
+  s.roads.push(
+    road([{x:factoryGate.x,y:factoryGate.y},{x:180,y:factoryGate.y}]),
+    road([{x:180,y:factoryGate.y},{x:180,y:shopGate.y}]),
+    road([{x:180,y:shopGate.y},{x:shopGate.x,y:shopGate.y}])
+  );
   const r=route(s,f,shop);
   assert.ok(r);
   s.trucks.push({
@@ -1097,7 +1104,7 @@ test('factory to shop remains direct when no warehouse is present',()=>{
 test('a warehouse on a separate network does not break direct factory to shop supply',()=>{
   const s=baseState();
   const f=building('Food',0,0);
-  const shop=building('Market',220,0);
+  const shop=building('Market',360,0);
   const otherShop=building('Market',500,100);
   const warehouse=building('Warehouse',500,0);
   f.stock=3;shop.demand=3;
