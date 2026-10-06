@@ -1,3 +1,10 @@
+## v2.1.10 — 6 October 2026
+
+### Road visual stability
+- Disabled shadow-map reception on road pavement, shoulders, caps, junctions and yard transition surfaces to remove the dark road rendering artifact seen at shallow camera angles.
+- Preserved the explicit road elevation/depth separation used to prevent Z-fighting.
+- Updated the published game version and service-worker cache version.
+
 ## v2.1.8 — 5 October 2026
 
 ### Real rendered road audit
