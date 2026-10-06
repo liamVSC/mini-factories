@@ -87,9 +87,12 @@ export function ribbon(points, width, y, mat) {
             clean.push(points[i]);
     if (clean.length < 2)
         return null;
+    const heights = Array.isArray(y) ? y : y;
+    const heightAt = (i) => Array.isArray(heights) ? (heights[i] ?? heights.at(-1) ?? 0) : heights;
     const left = offsetPolyline(clean, width / 2), right = offsetPolyline(clean, -width / 2), verts = [], idx = [];
     for (let i = 0; i < clean.length; i++) {
-        verts.push(left[i].x, y, left[i].y, right[i].x, y, right[i].y);
+        const h = heightAt(i);
+        verts.push(left[i].x, h, left[i].y, right[i].x, h, right[i].y);
         if (i) {
             const q = (i - 1) * 2, r = i * 2;
             idx.push(q, q + 1, r, r, r + 1, q + 1);
@@ -122,7 +125,7 @@ function centerRoadMarkings(points, y, mat) {
             const s = n * (dash + gap), e = Math.min(len, s + dash);
             if (e <= s)
                 continue;
-            const t0 = s / len, t1 = e / len, p0 = { x: a.x + (b.x - a.x) * t0, y: a.y + (b.y - a.y) * t0 }, p1 = { x: a.x + (b.x - a.x) * t1, y: a.y + (b.y - a.y) * t1 }, m = ribbon([p0, p1], .8, y, mat);
+            const t0 = s / len, t1 = e / len, p0 = { x: a.x + (b.x - a.x) * t0, y: a.y + (b.y - a.y) * t0 }, p1 = { x: a.x + (b.x - a.x) * t1, y: a.y + (b.y - a.y) * t1 }, h0 = Array.isArray(y) ? ((y[i] ?? y.at(-1) ?? 0) * (1 - t0) + (y[i + 1] ?? y.at(-1) ?? 0) * t0) : y, h1 = Array.isArray(y) ? ((y[i] ?? y.at(-1) ?? 0) * (1 - t1) + (y[i + 1] ?? y.at(-1) ?? 0) * t1) : y, m = ribbon([p0, p1], .8, [h0, h1], mat);
             if (m)
                 out.push(m);
         }
@@ -189,26 +192,30 @@ function bridgeRouteSegments(points) {
         parts.push({ kind: 'road', points: sliceRoute(points, end, total) });
     return parts.filter(part => part.points.length > 1);
 }
-function roadSegmentMesh(points, kind, materials, addCaps = false) {
-    const { asphalt, shoulder, line, curb } = materials, g = new THREE.Group(), isBridge = kind === 'bridge', isTransition = kind === 'transition', roadWidth = isBridge ? 27 : 28, shoulderWidth = isBridge ? 30 : 36, shoulderY = isBridge ? .52 : isTransition ? .56 : .58, asphaltY = isBridge ? .72 : isTransition ? .74 : .69, markY = isBridge ? .9 : isTransition ? .88 : .86;
+function transitionHeights(count, start, end) { return Array.from({ length: count }, (_, i) => start + (end - start) * (count <= 1 ? 0 : i / (count - 1))); }
+function roadSegmentMesh(points, kind, materials, addCaps = false, rising = false) {
+    const { asphalt, shoulder, line, curb } = materials, g = new THREE.Group(), isBridge = kind === 'bridge', isTransition = kind === 'transition', roadWidth = isBridge ? 27 : 28, shoulderWidth = isBridge ? 30 : 36;
+    const shoulderY = isBridge ? .52 : isTransition ? transitionHeights(points.length, .12, rising ? .52 : .12) : .12;
+    const asphaltY = isBridge ? .72 : isTransition ? transitionHeights(points.length, .16, rising ? .72 : .16) : .16;
+    const markY = isBridge ? .9 : isTransition ? transitionHeights(points.length, .24, rising ? .9 : .24) : .24;
     const sh = ribbon(points, shoulderWidth, shoulderY, shoulder), surf = ribbon(points, roadWidth, asphaltY, asphalt);
     if (sh)
         g.add(sh);
     if (surf)
         g.add(surf);
     if (addCaps) {
-        for (const cap of roadCaps(points, roadWidth, shoulderWidth, asphaltY + .025, shoulderY + .025, asphalt, shoulder))
+        for (const cap of roadCaps(points, roadWidth, shoulderWidth, (Array.isArray(asphaltY) ? asphaltY.at(-1) ?? .16 : asphaltY) + .01, (Array.isArray(shoulderY) ? shoulderY.at(-1) ?? .12 : shoulderY) + .01, asphalt, shoulder))
             g.add(cap);
     }
     if (!isBridge && !isTransition) {
         for (const side of [-1, 1]) {
-            const c = ribbon(offsetPolyline(points, side * 14), 1.1, .82, curb);
+            const c = ribbon(offsetPolyline(points, side * 14), 1.1, .21, curb);
             if (c)
                 g.add(c);
         }
         for (const m of centerRoadMarkings(points, markY, line))
             g.add(m);
-        for (const m of edgeRoadMarkings(points, .89, line))
+        for (const m of edgeRoadMarkings(points, markY, line))
             g.add(m);
     }
     else if (isBridge) {
@@ -229,7 +236,8 @@ export function roadMesh(r) {
     const mats = { asphalt: material('#353b3c', .92), shoulder: material('#6b7370', .98), line: material('#e9ebe5', .7), curb: material('#a0a6a1', .75), rail: material('#a9895c', .8, .1) };
     const parts = bridgeRouteSegments(p);
     for (const [index, part] of parts.entries()) {
-        const mesh = roadSegmentMesh(part.points, part.kind, mats, index === 0 || index === parts.length - 1);
+        const rising = part.kind === 'transition' && parts[index + 1]?.kind === 'bridge';
+        const mesh = roadSegmentMesh(part.points, part.kind, mats, index === 0 || index === parts.length - 1, rising);
         g.add(mesh);
     }
     return g;
@@ -267,8 +275,8 @@ function junctionMesh(p, roadsAtPoint) {
     // Keep the junction cover above the overlapping road ribbons so crossings
     // have one authoritative visible surface instead of coplanar depth fighting.
     return {
-        shoulder: roundDisc(p.x, p.y, radius + 6, .63, shoulder, 24),
-        surface: roundDisc(p.x, p.y, radius, .79, asphalt, 24)
+        shoulder: roundDisc(p.x, p.y, radius + 6, .12, shoulder, 24),
+        surface: roundDisc(p.x, p.y, radius, .16, asphalt, 24)
     };
 }
 function rebuildJunctionPatches(roads) { const out = []; for (const p of roadJunctions(roads)) {
@@ -286,12 +294,12 @@ export function roadYardTransitions(s) {
         if (seen.has(key))
             continue;
         seen.add(key);
-        const mid = { x: (a.x + e.x) / 2, y: (a.y + e.y) / 2 }, path = [a, mid, e], shoulder = ribbon(path, 46, .60, apron), surface = ribbon(path, 30, .74, asphalt);
+        const mid = { x: (a.x + e.x) / 2, y: (a.y + e.y) / 2 }, path = [a, mid, e], shoulder = ribbon(path, 46, .12, apron), surface = ribbon(path, 30, .16, asphalt);
         if (shoulder)
             out.push(shoulder);
         if (surface)
             out.push(surface);
-        out.push(roundDisc(e.x, e.y, 18, .78, asphalt, 20));
+        out.push(roundDisc(e.x, e.y, 18, .20, asphalt, 20));
     }
     return out;
 }
