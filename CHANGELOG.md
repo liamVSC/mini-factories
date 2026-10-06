@@ -1,3 +1,9 @@
+## v2.1.22 — 6 October 2026
+
+### Truck carriageway positioning
+- Fixed return-trip truck positioning so vehicles stay on the correct side of the road.
+- Enforced a single physical traffic lane per direction for the current road width.
+
 ## v2.1.21 — 6 October 2026
 
 ### Truck lane positioning
