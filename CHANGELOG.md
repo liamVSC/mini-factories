@@ -1,3 +1,8 @@
+## v2.1.41 — 6 October 2026
+
+### Release assertions
+- Updated the final central and published-version regression expectations.
+
 ## v2.1.40 — 6 October 2026
 
 ### Final regression alignment
