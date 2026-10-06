@@ -1,3 +1,10 @@
+## v2.1.26 — 6 October 2026
+
+### Yard gate compatibility
+- Restored a bounded legacy-road tolerance around exterior building gates.
+- Building footprints remain invalid road endpoints; routing continues to use the exterior gate and yard path.
+- Updated routing regression fixtures so test roads remain outside protected building shells.
+
 ## v2.1.25 — 6 October 2026
 
 ### Routing typecheck
