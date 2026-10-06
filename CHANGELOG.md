@@ -1,3 +1,10 @@
+## v2.1.50 — 6 October 2026
+
+### CI/runtime synchronization
+- Fixed the CI generated-runtime verification command so the two shell commands execute as separate commands.
+- Synchronized committed lifecycle and road-creation JavaScript and source maps with the TypeScript build output.
+- Bumped and synchronized the published runtime and service-worker cache.
+
 ## v2.1.49 — 6 October 2026
 
 ### CI verification
