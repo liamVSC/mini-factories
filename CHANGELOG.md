@@ -1,3 +1,10 @@
+## v2.1.24 — 6 October 2026
+
+### Truck collision safety
+- Added a physical proximity safety envelope between all active trucks.
+- Return trips now yield before entering the space occupied by an oncoming delivery truck.
+- Collision protection runs before junction priority logic, covering opposing routes as well as same-route queues.
+
 ## v2.1.23 — 6 October 2026
 
 ### Yard-only road connections
