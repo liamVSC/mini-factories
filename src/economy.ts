@@ -169,7 +169,18 @@ function trafficConflict(s: any, t: any, network: any, laneGraph: any, controls:
     const oMovementRoute=Array.isArray(o.laneRoute)&&o.laneRoute.length>=2?o.laneRoute:o.route;
     const q=truckMovementPoint(o);
     if(!q)continue;
-    if(o.routeKey===t.routeKey&&o.t>t.t&&dist(p,q)<34)return true;
+    const separation=dist(p,q);
+    if(separation<24){
+      // Hard physical safety envelope: delivery and return trips may share the
+      // same road network but must never occupy the same space. Do this before
+      // junction logic so opposing-direction trucks are stopped as well.
+      const otherProgress=Number.isFinite(o.t)?o.t:0;
+      const sameRoute=o.routeKey===t.routeKey;
+      const sameDirection=sameRoute && Math.abs(otherProgress-(Number.isFinite(t.t)?t.t:0))<0.18;
+      const otherIsAhead=sameRoute && otherProgress>(Number.isFinite(t.t)?t.t:0);
+      if(sameDirection||otherIsAhead||String(o.id).localeCompare(String(t.id))<0)return true;
+      if(separation<12)return true;
+    }
   }
 
   controls=controls||buildJunctionControls(network,laneGraph);
