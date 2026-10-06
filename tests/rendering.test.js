@@ -243,3 +243,11 @@ test('published game version stays aligned with the central runtime version',()=
   assert.match(version,/MINI_FACTORIES_VERSION='2\.1\.20'/);
 });
 
+
+
+test('truck renderer follows the derived directional lane route instead of the road centreline',()=>{
+  const source=readSource(new URL('../src/rendering/trucks.ts',import.meta.url));
+  assert.match(source,/const visualRoute=Array\.isArray\(t\.laneRoute\)&&t\.laneRoute\.length>=2\?t\.laneRoute:t\.route/);
+  assert.match(source,/routePoint\(visualRoute,progress\)/);
+  assert.match(source,/routePoint\(visualRoute,Math\.min\(1,progress\+\.015\)\)/);
+});
