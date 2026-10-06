@@ -1,5 +1,5 @@
-const CACHE='mini-factories-v285';
-const VERSION='2.1.74';
+const CACHE='mini-factories-v286';
+const VERSION='2.1.75';
 const APP_SHELL=[
   './','./index.html','./styles.css?v=1','./dist/game.js?v=28','./dist/version.js?v=28','./dist/state.js','./dist/world.js','./dist/economy.js',
   './dist/core/types.js','./dist/core/rng.js','./dist/core/ids.js','./dist/commands.js','./dist/junctionControl.js',
