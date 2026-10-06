@@ -1,7 +1,7 @@
 // Transitional TypeScript migration: runtime logic is preserved verbatim while this large module is typed incrementally.
 import { TYPES } from './core/types.js';
 import { newId } from './core/ids.js';
-import { dist, length, pointOnRoute, routeOnRoadNetwork, roadAttachment, roadNetwork, routeNetworkValid } from './world/roads/index.js';
+import { dist, length, pointOnRoute, routeOnRoadNetwork, roadAttachment, roadNetwork } from './world/roads/index.js';
 import { buildLaneGraph } from './laneGraph.js';
 import { buildJunctionControls, laneIndexForJunction, movementForLaneRoute, movementPermission, stopLinePoint } from './junctionControl.js';
 export function spec(type) { return TYPES.find(t => t.name === type) || TYPES[0]; }
@@ -520,8 +520,8 @@ function dispatchTruck(s, { route, source, destination, cargo, cargoType = sourc
     const routeRevision = Number(route.roadNetworkRevision);
     if (!Number.isFinite(routeRevision) || routeRevision !== (Number(s.roadNetworkRevision) || 0))
         return false;
-    const liveRoadIds = new Set((s.roads || []).map(road => road?.id).filter(Boolean));
-    if (!Array.isArray(route.laneRoadIds) || !route.laneRoadIds.length || route.laneRoadIds.some(id => !id || !liveRoadIds.has(id)))
+    const liveRoadIds = new Set((s.roads || []).map((road) => road?.id).filter(Boolean));
+    if (!Array.isArray(route.laneRoadIds) || !route.laneRoadIds.length || route.laneRoadIds.some((id) => !id || !liveRoadIds.has(id)))
         return false;
     // Keep the simulation bounded under sustained demand. Finished trucks are
     // removed each tick, so this only limits genuinely in-flight congestion.
@@ -905,4 +905,16 @@ export function updateEconomy(s, dt, flash) {
         s.xp -= s.xpToNext;
         s.companyLevel++;
         s.xpToNext = Math.round(100 * Math.pow(1.22, s.companyLevel - 1));
-        flash('Company Level ' + s.companyLevel);
+        flash('Company Level ' + s.companyLevel);    }
+    s.congestion = Math.min(1, (s.trucks.length + s.trucks.filter((t) => t.wait > 0).length * 1.5) / Math.max(3, s.roads.length * 2));
+    const reduction = s.trucks.reduce((n, t) => n + (t.source?.logistics || 0), 0) / Math.max(1, s.trucks.length);
+    s.cash -= s.roads.length * dt * .055 * (1 + s.congestion * Math.max(.55, 1 - reduction * .12));
+    const g = s.goals[s.objective];
+    if (g && g.done(s))
+        s.objective = Math.min(5, s.objective + 1);
+    if (s.cash <= 0) {
+        s.cash = 0;
+        s.gameOver = true;
+    }
+}
+//# sourceMappingURL=economy.js.map
