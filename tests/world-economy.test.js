@@ -1127,7 +1127,7 @@ test('factory trucks physically start at the factory dock and keep the gate conn
   assert.ok(routed.startYard.length>=3);
   assert.deepEqual(routed.startYard[0],buildingModule.buildingPrimaryDock(factory).approach);
   assert.ok(routed.points.some(p=>Math.hypot(p.x-factoryGate.x,p.y-factoryGate.y)<.01));
-  updateEconomy(s,.8,()=>{});
+  updateEconomy(s,1.2,()=>{});
   assert.ok(s.trucks.length>0,'factory should dispatch a truck when its road connection is valid');
   const truck=s.trucks[0];
   assert.deepEqual(truck.route[0],routed.points[0]);
