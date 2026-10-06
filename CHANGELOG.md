@@ -1,3 +1,8 @@
+## v2.1.59 — 6 October 2026
+
+### Release synchronization
+- Bumped the central runtime, generated version runtime, and service-worker cache after the direct-supply regression fixture correction.
+
 ## v2.1.57 — 6 October 2026
 
 ### Economy fix
