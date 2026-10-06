@@ -139,11 +139,11 @@ test('road renderer contains explicit anti-z-fighting surface layers and caps',(
 test('road renderer keeps ordinary roads grounded and ramps bridge transitions',()=>{
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
   assert.match(source,/transitionHeights\(count:number,start:number,end:number\)/);
-  assert.match(source,/ribbon\(points,shoulderWidth,shoulderY,shoulder\)/);
-  assert.match(source,/ribbon\(points,roadWidth,asphaltY,asphalt\)/);
+  assert.ok(source.includes('ribbon(points,shoulderWidth,shoulderY,shoulder,false)'));
+  assert.ok(source.includes('ribbon(points,roadWidth,asphaltY,asphalt,false)'));
   assert.match(source,/const rising=part\.kind==='transition'&&parts\[index\+1\]\?\.kind==='bridge'/);
-  assert.match(source,/shoulder=ribbon\(path,46,\.135,apron\)/);
-  assert.match(source,/surface=ribbon\(path,30,\.185,asphalt\)/);
+  assert.ok(source.includes('shoulder=ribbon(path,46,.135,apron,false)'));
+  assert.ok(source.includes('surface=ribbon(path,30,.185,asphalt,false)'));
   assert.match(source,/shoulder=ribbon\(path,46,\.135,apron\)/);
   assert.match(source,/roundDisc\(e\.x,e\.y,18,\.22,asphalt,20\)/);
 });
@@ -265,9 +265,9 @@ test('published game version stays aligned across app shell and service worker',
   const html=readSource(new URL('../index.html',import.meta.url));
   const version=readSource(new URL('../src/version.ts',import.meta.url));
   assert.match(sw,/mini-factories-v223/);
-  assert.match(sw,/VERSION='2\.1\.11'/);
+  assert.match(sw,/VERSION='2\.1\.13'/);
   assert.match(sw,/dist\/game\.js\?v=9/);
   assert.match(sw,/render3d-clean\.js\?v=9/);
   assert.match(html,/dist\/game\.js\?v=9/);
-  assert.match(version,/MINI_FACTORIES_VERSION='2\.1\.11'/);
+  assert.match(version,/MINI_FACTORIES_VERSION='2\.1\.13'/);
 });

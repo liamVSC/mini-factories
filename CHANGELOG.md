@@ -1,3 +1,10 @@
+## v2.1.13 — 6 October 2026
+
+### CI regression-test alignment
+- Updated the road renderer regression checks to match the explicit receiveShadow=false calls now used by the renderer's ribbon primitives.
+- Updated the published-version assertions and service-worker cache contract to the current release.
+- Bumped the published game and service-worker cache version.
+
 ## v2.1.12 — 6 October 2026
 
 ### Road renderer CI fix
