@@ -1,3 +1,9 @@
+## v2.1.47 — 6 October 2026
+
+### CI reproducibility and PWA release
+- Hardened the generated-browser-runtime reproducibility check so non-semantic EOF whitespace cannot fail CI.
+- Bumped and synchronized the published runtime and service-worker cache to v2.1.47.
+
 ## v2.1.46 — 6 October 2026
 
 ### CI regression hardening

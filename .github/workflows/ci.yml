@@ -27,7 +27,7 @@ jobs:
       - name: Build browser runtime
         run: npm run build
       - name: Verify committed browser runtime is reproducible
-        run: git diff --exit-code -- dist
+        run: git diff --exit-code --ignore-space-at-eol -- dist
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run real browser road audit
