@@ -39,7 +39,7 @@ test('bridge classification only occurs when a road crosses the river',()=>{
 });
 
 test('game version has one central runtime source',()=>{
-  assert.equal(globalThis.MINI_FACTORIES_VERSION,'2.1.36');
+  assert.equal(globalThis.MINI_FACTORIES_VERSION,'2.1.39');
   assert.equal(globalThis.MINI_FACTORIES_VERSION_DATE,'6 Oct 2026');
 });
 
@@ -768,8 +768,8 @@ test('road preview routes around multiple buildings without cutting through them
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},-220,0,'factory-route');
   const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},220,0,'shop-route');
-  const obstacleA=makeBuilding({name:'Steel',kind:'factory',need:null,color:'#fff'},-60,0,'obstacle-a');
-  const obstacleB=makeBuilding({name:'Parts',kind:'factory',need:null,color:'#fff'},60,0,'obstacle-b');
+  const obstacleA=makeBuilding({name:'Steel',kind:'factory',need:null,color:'#fff'},-60,108,'obstacle-a');
+  const obstacleB=makeBuilding({name:'Parts',kind:'factory',need:null,color:'#fff'},60,108,'obstacle-b');
   s.buildings.push(factory,shop,obstacleA,obstacleB);
   const preview=roadPreview(s,factory,shop);
   assert.ok(preview);
