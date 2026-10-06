@@ -1,3 +1,9 @@
+## v2.1.40 — 6 October 2026
+
+### Final regression alignment
+- Updated gate-aware obstacle fixtures and lane-transition assertions.
+- Extended economy regression windows to cover the complete yard-to-road delivery lifecycle.
+
 ## v2.1.39 — 6 October 2026
 
 ### Route metadata
