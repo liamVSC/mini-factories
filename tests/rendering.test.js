@@ -242,7 +242,7 @@ test('road junction rendering covers both T and four-way intersection cases',()=
 test('dead-end caps and bridge transitions are explicit renderer geometry',()=>{
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
   assert.match(source,/for\(const p of\[points\[0\],points\.at\(-1\)!\]\)/);
-  assert.match(source,/function bridgeRouteSegments\(points\)/);
+  assert.ok(source.includes('function bridgeRouteSegments(points:Array<{x:number;y:number}>)'));
   assert.ok(source.includes("kind==='bridge'"));
   assert.ok(source.includes("kind==='transition'"));
   assert.match(source,/roadCaps\(points,roadWidth,shoulderWidth/);
