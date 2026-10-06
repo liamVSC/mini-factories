@@ -107,9 +107,9 @@ test('building facade exposes refactored operations without routing through worl
 function pointOnRouteForTest(points,t){const total=points.reduce((n,p,i)=>i?n+Math.hypot(p.x-points[i-1].x,p.y-points[i-1].y):0,0);let target=total*t,run=0;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],seg=Math.hypot(b.x-a.x,b.y-a.y);if(target<=run+seg){const u=seg?Math.max(0,Math.min(1,(target-run)/seg)):0;return{x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u}}run+=seg}return points.at(-1)}
 function building(typeName, x, y) {
   const type = TYPES.find(t => t.name === typeName);
-  // Test buildings sit one gate-length south of their logical road anchor so
-  // the fixture roads remain outside the protected building shell.
-  return makeBuilding(type, x, y - 108, crypto.randomUUID());
+  // Keep fixture roads on the exterior gate side of each building type.
+  const gateOffset = type?.kind === 'shop' ? -99 : 108;
+  return makeBuilding(type, x, y + gateOffset, crypto.randomUUID());
 }
 
 test('factories keep a full visual footprint clearance from each other',()=>{
