@@ -31,7 +31,7 @@ export function buildLaneGraph(network:RoadNetwork,{lanesPerDirection=1}:{lanesP
       const width=7,laneCount=Math.max(1,lanesPerDirection);
       const create=(from:Point,to:Point,direction:Point,reverse:boolean)=>{
         const id='lane-'+lanes.length, carriagewayCenter=reverse?7:-7;
-        const lateral=carriagewayCenter+(laneIndex-(laneCount-1)/2)*width;
+        const lateral=carriagewayCenter;
         const lane:Lane={id,roadId:edge.road?.id||null,from,to,edge,laneIndex,lateralOffset:lateral,lanesPerDirection:laneCount,direction,reverse};
         lanes.push(lane); lanesById.set(id,lane); outgoing.get(from)?.push(lane); incoming.get(to)?.push(lane);
       };
