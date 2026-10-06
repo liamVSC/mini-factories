@@ -1,3 +1,10 @@
+## v2.1.45 — 6 October 2026
+
+### CI economy regression alignment
+- Updated the stale-route regression assertion to treat an absent invalidation flag as the expected non-invalidated state.
+- Updated direct factory-to-shop economy fixtures to attach roads through the canonical exterior yard gates instead of the building centres.
+- Kept the published runtime and service-worker cache synchronized at v2.1.45.
+
 ## v2.1.44 — 6 October 2026
 
 ### Economy lane metadata regression

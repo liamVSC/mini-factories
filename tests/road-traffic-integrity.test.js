@@ -472,7 +472,7 @@ test('truck update reroutes an active truck after a road revision instead of con
   updateEconomy(s,.01,()=>{});
   assert.equal(s.trucks.length,1);
   const truck=s.trucks[0];
-  assert.equal(truck.routeInvalidated,false);
+  assert.ok(!truck.routeInvalidated);
   assert.equal(truck.routeNetworkRevision,s.roadNetworkRevision);
   assert.ok(Array.isArray(truck.laneIds)&&truck.laneIds.length>0);
   assert.ok(truck.laneIds.every((id,i)=>buildLaneGraph(roadNetwork(s),{lanesPerDirection:2}).lanesById.get(id)?.roadId===truck.laneRoadIds[i]));
