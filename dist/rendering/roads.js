@@ -108,12 +108,12 @@ export function ribbon(points, width, y, mat, receiveShadow = true) {
     return m;
 }
 function roundDisc(x, z, radius, y, mat, segments = 20, receiveShadow = true) { const g = new THREE.Mesh(new THREE.CircleGeometry(radius, segments), mat); g.rotation.x = -Math.PI / 2; g.position.set(x, y, z); g.receiveShadow = receiveShadow; g.renderOrder = 2.05; return g; }
-function roadCaps(points, roadWidth, shoulderWidth, y, shoulderY, asphalt, shoulder) {
+function roadCaps(points, roadWidth, sidewalkEnvelopeWidth, y, sidewalkY, asphalt, sidewalk) {
     if (points.length < 2)
         return [];
     const out = [];
     for (const p of [points[0], points.at(-1)]) {
-        out.push(roundDisc(p.x, p.y, shoulderWidth / 2, shoulderY + .025, shoulder, 20, false), roundDisc(p.x, p.y, roadWidth / 2, y + .035, asphalt, 20, false));
+        out.push(roundDisc(p.x, p.y, sidewalkEnvelopeWidth / 2, sidewalkY + .025, sidewalk, 20, false), roundDisc(p.x, p.y, roadWidth / 2, y + .035, asphalt, 20, false));
     }
     return out;
 }
@@ -132,11 +132,17 @@ function centerRoadMarkings(points, y, mat) {
     }
     return out;
 }
-function edgeRoadMarkings(points, y, mat) { const out = []; for (const lateral of [-14, 14]) {
-    const m = ribbon(offsetPolyline(points, lateral), 1.15, y, mat, false);
-    if (m)
-        out.push(m);
-} return out; }
+function sidewalkStrips(points, roadHalfWidth, curbWidth, sidewalkWidth, y, mat) {
+    const out = [];
+    const inner = roadHalfWidth + curbWidth;
+    const center = inner + sidewalkWidth / 2;
+    for (const side of [-1, 1]) {
+        const strip = ribbon(offsetPolyline(points, side * center), sidewalkWidth, y, mat, false);
+        if (strip)
+            out.push(strip);
+    }
+    return out;
+}
 function riverCrossingPoint(a, b) { const fa = a.y - riverY(a.x), fb = b.y - riverY(b.x); if (fa === 0)
     return a; if (fb === 0)
     return b; if (fa * fb > 0)
@@ -194,41 +200,40 @@ function bridgeRouteSegments(points) {
 }
 function transitionHeights(count, start, end) { return Array.from({ length: count }, (_, i) => start + (end - start) * (count <= 1 ? 0 : i / (count - 1))); }
 function roadSegmentMesh(points, kind, materials, addCaps = false, rising = false) {
-    const { asphalt, shoulder, line, curb } = materials, g = new THREE.Group(), isBridge = kind === 'bridge', isTransition = kind === 'transition', roadWidth = isBridge ? 27 : 28, shoulderWidth = isBridge ? 30 : 36;
-    const shoulderY = isBridge ? .52 : isTransition ? transitionHeights(points.length, .12, rising ? .52 : .12) : .12;
+    const { asphalt, sidewalk, line, curb } = materials, g = new THREE.Group(), isBridge = kind === 'bridge', isTransition = kind === 'transition', roadWidth = 30, roadHalfWidth = 15, curbWidth = 1.4, sidewalkWidth = 15;
+    const sidewalkY = isBridge ? .58 : isTransition ? transitionHeights(points.length, .23, rising ? .58 : .23) : .23;
     const asphaltY = isBridge ? .72 : isTransition ? transitionHeights(points.length, .16, rising ? .72 : .16) : .16;
+    const curbY = isBridge ? .78 : isTransition ? transitionHeights(points.length, .38, rising ? .78 : .38) : .38;
     const markY = isBridge ? .9 : isTransition ? transitionHeights(points.length, .24, rising ? .9 : .24) : .24;
-    const sh = ribbon(points, shoulderWidth, shoulderY, shoulder, false), surf = ribbon(points, roadWidth, asphaltY, asphalt, false);
-    if (sh) {
-        sh.position.y += .015;
-        g.add(sh);
+    const sidewalkMeshes = sidewalkStrips(points, roadHalfWidth, curbWidth, sidewalkWidth, sidewalkY, sidewalk);
+    for (const mesh of sidewalkMeshes) {
+        mesh.position.y += .015;
+        g.add(mesh);
     }
+    const surf = ribbon(points, roadWidth, asphaltY, asphalt, false);
     if (surf) {
         surf.position.y += .035;
         g.add(surf);
     }
     if (addCaps) {
-        for (const cap of roadCaps(points, roadWidth, shoulderWidth, (Array.isArray(asphaltY) ? asphaltY.at(-1) ?? .16 : asphaltY) + .01, (Array.isArray(shoulderY) ? shoulderY.at(-1) ?? .12 : shoulderY) + .01, asphalt, shoulder))
+        for (const cap of roadCaps(points, roadWidth, roadWidth + 2 * (curbWidth + sidewalkWidth), (Array.isArray(asphaltY) ? asphaltY.at(-1) ?? .16 : asphaltY) + .01, (Array.isArray(sidewalkY) ? sidewalkY.at(-1) ?? .23 : sidewalkY) + .01, asphalt, sidewalk))
             g.add(cap);
     }
-    if (!isBridge && !isTransition) {
-        for (const side of [-1, 1]) {
-            const c = ribbon(offsetPolyline(points, side * 14), 1.1, .21, curb, false);
-            if (c)
-                g.add(c);
+    for (const side of [-1, 1]) {
+        const c = ribbon(offsetPolyline(points, side * roadHalfWidth), curbWidth, curbY, curb, false);
+        if (c) {
+            c.position.y += .01;
+            g.add(c);
         }
-        for (const m of centerRoadMarkings(points, markY, line))
-            g.add(m);
-        for (const m of edgeRoadMarkings(points, markY, line))
-            g.add(m);
     }
-    else if (isBridge) {
-        for (const m of centerRoadMarkings(points, markY, line))
-            g.add(m);
+    for (const m of centerRoadMarkings(points, markY, line))
+        g.add(m);
+    if (isBridge) {
+        const outer = roadHalfWidth + curbWidth + sidewalkWidth;
         for (const side of [-1, 1])
             for (let i = 0; i < points.length - 1; i++) {
                 const a = points[i], b = points[i + 1], dx = b.x - a.x, dz = b.y - a.y, l = Math.hypot(dx, dz) || 1;
-                box(g, l, .7, .8, materials.rail, (a.x + b.x) / 2 - (dz / l) * side * 16, 2.3, (a.y + b.y) / 2 + (dx / l) * side * 16, -Math.atan2(dz, dx));
+                box(g, l, .7, .8, materials.rail, (a.x + b.x) / 2 - (dz / l) * side * outer, 2.3, (a.y + b.y) / 2 + (dx / l) * side * outer, -Math.atan2(dz, dx));
             }
     }
     return g;
@@ -237,7 +242,7 @@ export function roadMesh(r) {
     const p = smoothRoadPath(r.points || []), g = new THREE.Group();
     if (p.length < 2)
         return g;
-    const mats = { asphalt: material('#353b3c', .92), shoulder: material('#6b7370', .98), line: material('#e9ebe5', .7), curb: material('#a0a6a1', .75), rail: material('#a9895c', .8, .1) };
+    const mats = { asphalt: material('#353b3c', .92), sidewalk: material('#777d78', .98), line: material('#e9ebe5', .7), curb: material('#a0a6a1', .75), rail: material('#a9895c', .8, .1) };
     const parts = bridgeRouteSegments(p);
     for (const [index, part] of parts.entries()) {
         const rising = part.kind === 'transition' && parts[index + 1]?.kind === 'bridge';
@@ -274,18 +279,29 @@ function roadJunctions(roads) {
     return clusters.map(v => ({ x: v.x, y: v.y, degree: v.roads.size }));
 }
 function junctionMesh(p, roadsAtPoint) {
-    const asphalt = material('#353b3c', .92), shoulder = material('#6b7370', .98);
-    const degree = Math.max(3, roadsAtPoint || 3), radius = degree >= 4 ? 24 : 20;
-    // Keep the junction cover above the overlapping road ribbons so crossings
-    // have one authoritative visible surface instead of coplanar depth fighting.
-    return {
-        shoulder: roundDisc(p.x, p.y, radius + 6, .17, shoulder, 24, false),
-        surface: roundDisc(p.x, p.y, radius, .22, asphalt, 24, false)
-    };
+    const sidewalk = material('#777d78', .98);
+    const inner = 16.4, outer = 31.4, segments = 24;
+    const vertices = [], indices = [];
+    for (let i = 0; i < segments; i++) {
+        const a = (i / segments) * Math.PI * 2, b = ((i + 1) / segments) * Math.PI * 2;
+        vertices.push(p.x + Math.cos(a) * inner, .205, p.y + Math.sin(a) * inner);
+        vertices.push(p.x + Math.cos(a) * outer, .205, p.y + Math.sin(a) * outer);
+        vertices.push(p.x + Math.cos(b) * inner, .205, p.y + Math.sin(b) * inner);
+        vertices.push(p.x + Math.cos(b) * outer, .205, p.y + Math.sin(b) * outer);
+        const q = i * 4;
+        indices.push(q, q + 1, q + 2, q + 1, q + 3, q + 2);
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(geometry, sidewalk);
+    mesh.receiveShadow = false;
+    mesh.renderOrder = 2.04;
+    return mesh;
 }
 function rebuildJunctionPatches(roads) { const out = []; for (const p of roadJunctions(roads)) {
-    const j = junctionMesh(p, p.degree);
-    out.push(j.shoulder, j.surface);
+    out.push(junctionMesh(p, p.degree));
 } return out; }
 export function roadYardTransitions(s) {
     const out = [];
@@ -309,9 +325,11 @@ export function roadYardTransitions(s) {
 }
 export function buildRoadGroup(roads, state) {
     const group = new THREE.Group();
-    for (const r of roads || []) {
+    for (const [index, r] of (roads || []).entries()) {
         const g = roadMesh(r);
         g.userData.road = r;
+        g.position.y = index * .002;
+        g.renderOrder = 2 + index * .001;
         group.add(g);
     }
     for (const patch of rebuildJunctionPatches(roads || []))
