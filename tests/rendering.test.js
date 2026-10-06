@@ -196,7 +196,7 @@ test('bridge state requires an actual river crossing',()=>{
 
 test('settings and changelog modals stay contained within mobile viewport',()=>{
   const css=readSource(new URL('../styles.css',import.meta.url));
-  const settingsCss=css.slice(css.indexOf('/* Settings modal mobile containment */'));
+  const settingsCss=css.slice(css.lastIndexOf('/* Settings modal mobile containment */'));
   const mobileBlock=settingsCss.slice(0,settingsCss.indexOf('@media (max-width:700px) and (orientation:landscape)'));
   const landscapeBlock=settingsCss.slice(settingsCss.indexOf('@media (max-width:700px) and (orientation:landscape)'),settingsCss.indexOf('@media (max-width:390px)'));
   const modalBase=mobileBlock.match(/#settingsMenu,#changeLogPage\{([^}]*)\}/)?.[1]||'';
