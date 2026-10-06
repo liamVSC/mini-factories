@@ -1,3 +1,9 @@
+## v2.1.55 — 6 October 2026
+
+### Generated runtime synchronization
+- Removed the final generated `dist/economy.js` whitespace mismatch exposed by CI after the direct-supply fix.
+- Kept the central runtime version and service-worker cache synchronized at v2.1.55.
+
 ## v2.1.54 — 6 October 2026
 
 ### Economy and test integrity
