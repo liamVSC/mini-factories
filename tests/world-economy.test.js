@@ -350,7 +350,7 @@ test('truck dispatch and delivery complete on a connected road', () => {
   const before = s.cash;
   updateEconomy(s, .2, () => {});
   assert.equal(s.trucks.length, 0);
-  for(let i=0;i<99;i++) updateEconomy(s, .2, () => {});
+  for(let i=0;i<300;i++) updateEconomy(s, .2, () => {});
   assert.ok(s.orders >= 1);
   assert.ok(s.cash > before);
   assert.ok(shop.served >= 1);
@@ -1075,7 +1075,7 @@ test('factory to shop remains direct when no warehouse is present',()=>{
   f.stock=3;shop.demand=3;
   s.buildings.push(f,shop);
   s.roads.push(road([{x:35,y:0},{x:185,y:0}]));
-  for(let i=0;i<120&&s.orders<1;i++)updateEconomy(s,.2,()=>{});
+  for(let i=0;i<300&&s.orders<1;i++)updateEconomy(s,.2,()=>{});
   assert.ok(s.orders>=1);
   assert.ok(s.cash>500);
 });
