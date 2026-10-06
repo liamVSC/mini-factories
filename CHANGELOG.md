@@ -1,3 +1,9 @@
+## v2.1.78 — 6 October 2026
+
+### Economy regression hardening
+- Updated the connected truck-delivery regression fixture to use valid current road geometry.
+- Synchronized the central runtime version, generated version runtime, and service-worker cache at v2.1.78.
+
 ## v2.1.77 — 6 October 2026
 
 ### Economy regression fixtures
