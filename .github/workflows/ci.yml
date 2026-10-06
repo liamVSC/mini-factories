@@ -50,9 +50,7 @@ jobs:
       - name: Verify committed browser runtime is reproducible
         run: |
           node --input-type=module -e "import fs from 'node:fs'; import {execFileSync} from 'node:child_process'; const files=['dist/game.js']; const normalize=s=>s.replace(/\\r\\n/g,'\\n').replace(/\\n+$/,''); for(const file of files){const committed=execFileSync('git',['show','HEAD:'+file],{encoding:'utf8'}); const generated=fs.readFileSync(file,'utf8'); if(normalize(committed)!==normalize(generated)){console.error(file+' differs from the committed runtime after newline normalization'); process.exit(1);}}"
-          test -f dist/index.js
           test -f dist/game.js
-          test -f dist/render3d.js
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
