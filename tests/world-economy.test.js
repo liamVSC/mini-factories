@@ -1107,3 +1107,30 @@ test('warehouse delivery respects total storage capacity',()=>{
   assert.ok(f.stock>=3);
 });
 
+
+
+test('factory trucks physically start at the factory dock and keep the gate connector in their movement route',()=>{
+  const s=baseState();
+  const factory=building('Food',0,160);
+  const shop=building('Market',0,-160);
+  factory.stock=3; shop.demand=3;
+  s.buildings.push(factory,shop);
+  const factoryGate=buildingModule.buildingRoadEntrance(factory);
+  const shopGate=buildingModule.buildingRoadEntrance(shop);
+  assert.ok(factoryGate&&shopGate);
+  s.roads.push(
+    road([{x:factoryGate.x,y:factoryGate.y},{x:factoryGate.x,y:0}]),
+    road([{x:shopGate.x,y:shopGate.y},{x:shopGate.x,y:0}])
+  );
+  const routed=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(routed);
+  assert.ok(routed.startYard.length>=3);
+  assert.deepEqual(routed.startYard[0],buildingModule.buildingPrimaryDock(factory).approach);
+  assert.ok(routed.points.some(p=>Math.hypot(p.x-factoryGate.x,p.y-factoryGate.y)<.01));
+  updateEconomy(s,.8,()=>{});
+  assert.ok(s.trucks.length>0,'factory should dispatch a truck when its road connection is valid');
+  const truck=s.trucks[0];
+  assert.deepEqual(truck.route[0],routed.points[0]);
+  assert.deepEqual(truck.laneRoute[0],routed.startYard[0]);
+  assert.ok(truck.laneRoute.some(p=>Math.hypot(p.x-factoryGate.x,p.y-factoryGate.y)<.01),'truck movement route must pass through the factory gate');
+});
