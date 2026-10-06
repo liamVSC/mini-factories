@@ -1,3 +1,9 @@
+## v2.1.14 — 6 October 2026
+
+### CI regression-test alignment
+- Corrected the remaining road-renderer and service-worker release assertions exposed by CI.
+- Bumped the published game and service-worker cache version.
+
 ## v2.1.13 — 6 October 2026
 
 ### CI regression-test alignment
