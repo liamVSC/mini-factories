@@ -275,8 +275,8 @@ function junctionMesh(p, roadsAtPoint) {
     // Keep the junction cover above the overlapping road ribbons so crossings
     // have one authoritative visible surface instead of coplanar depth fighting.
     return {
-        shoulder: roundDisc(p.x, p.y, radius + 6, .12, shoulder, 24),
-        surface: roundDisc(p.x, p.y, radius, .16, asphalt, 24)
+        shoulder: roundDisc(p.x, p.y, radius + 6, .135, shoulder, 24),
+        surface: roundDisc(p.x, p.y, radius, .185, asphalt, 24)
     };
 }
 function rebuildJunctionPatches(roads) { const out = []; for (const p of roadJunctions(roads)) {
@@ -294,12 +294,12 @@ export function roadYardTransitions(s) {
         if (seen.has(key))
             continue;
         seen.add(key);
-        const mid = { x: (a.x + e.x) / 2, y: (a.y + e.y) / 2 }, path = [a, mid, e], shoulder = ribbon(path, 46, .12, apron), surface = ribbon(path, 30, .16, asphalt);
+        const mid = { x: (a.x + e.x) / 2, y: (a.y + e.y) / 2 }, path = [a, mid, e], shoulder = ribbon(path, 46, .135, apron), surface = ribbon(path, 30, .185, asphalt);
         if (shoulder)
             out.push(shoulder);
         if (surface)
             out.push(surface);
-        out.push(roundDisc(e.x, e.y, 18, .20, asphalt, 20));
+        out.push(roundDisc(e.x, e.y, 18, .22, asphalt, 20));
     }
     return out;
 }
