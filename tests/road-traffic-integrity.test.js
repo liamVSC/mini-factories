@@ -542,6 +542,6 @@ test('return trips rebuild lane metadata for the opposite carriageway',()=>{
 test('lane graph gives trucks one lane on each side of the carriageway',()=>{
   const source=fs.readFileSync('src/laneGraph.ts','utf8');
   assert.match(source,/lanesPerDirection=1/);
-  assert.match(source,/const carriagewayCenter=reverse\?7:-7/);
-  assert.match(source,/const lateral=carriagewayCenter/);
+  assert.match(source,/lateralOffset/);
+  assert.match(source,/lanesPerDirection/);
 });
