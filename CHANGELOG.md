@@ -1,3 +1,9 @@
+## v2.1.80 — 6 October 2026
+
+### Test synchronization
+- Updated the central runtime assertion to the current v2.1.79 release before the next synchronized v2.1.80 build.
+- Synchronized the published runtime and service-worker cache at v2.1.80.
+
 ## v2.1.79 — 6 October 2026
 
 ### CI verification
