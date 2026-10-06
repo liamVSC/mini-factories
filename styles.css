@@ -196,3 +196,21 @@ button{-webkit-appearance:none;appearance:none;-webkit-touch-callout:none;}
 /* Mobile/PWA interaction hardening v2.1 */
 @media(max-width:700px){.panel,.pause .box,.modal .box{touch-action:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.actions,.build-menu,.road-editor{touch-action:manipulation}.build-cards{touch-action:pan-x;overscroll-behavior-x:contain}.build-card{touch-action:none}button{min-width:44px;min-height:44px}#ui{padding-bottom:env(safe-area-inset-bottom)}}
 @media(orientation:landscape) and (max-height:520px){#ui{padding-bottom:env(safe-area-inset-bottom)}}
+
+/* Settings modal mobile containment */
+#settingsMenu,#changeLogPage{overflow:auto;box-sizing:border-box;}
+#settingsMenu .box,#changeLogPage .box{box-sizing:border-box;position:relative;left:auto;right:auto;top:auto;bottom:auto;transform:none;margin:0;}
+@media (max-width:700px){
+  #settingsMenu,#changeLogPage{position:fixed;inset:0;width:100vw;max-width:100vw;height:100dvh;min-height:100svh;padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));display:none;place-items:center;overflow:auto;}
+  #settingsMenu .box,#changeLogPage .box{width:min(380px,100%);max-width:100%;max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px);margin:0;overflow:auto;}
+  #changeLogPage .box{width:min(620px,100%);}
+}
+@media (max-width:700px) and (orientation:landscape){
+  #settingsMenu,#changeLogPage{inset:0;width:100vw;height:100dvh;padding:8px;}
+  #settingsMenu .box,#changeLogPage .box{width:min(520px,100%);max-width:100%;max-height:calc(100dvh - 16px);}
+  #changeLogPage .box{width:min(720px,100%);}
+}
+@media (max-width:390px){
+  #settingsMenu,#changeLogPage{padding:8px;}
+  #settingsMenu .box,#changeLogPage .box{width:100%;max-width:100%;max-height:calc(100dvh - 16px);}
+}
