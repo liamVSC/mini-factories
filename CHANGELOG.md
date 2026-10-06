@@ -1,3 +1,9 @@
+## v2.1.17 — 6 October 2026
+
+### Road rendering stability
+- Raised road, cap, junction and yard-transition layers to explicit separated elevations to eliminate coplanar terrain and overlay Z-fighting.
+- Kept road and overlay shadow reception disabled so shadow-map aliasing cannot reintroduce surface flicker.
+
 ## v2.1.16 — 6 October 2026
 
 ### CI regression-test alignment
