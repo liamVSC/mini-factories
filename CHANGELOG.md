@@ -1,3 +1,9 @@
+## v2.1.62 — 6 October 2026
+
+### CI verification
+- Normalized generated JavaScript EOF-only differences in the reproducibility gate while continuing to enforce executable runtime content.
+- Synchronized the published runtime and service-worker cache at v2.1.62.
+
 ## v2.1.61 — 6 October 2026
 
 ### CI verification
