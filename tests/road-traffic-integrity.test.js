@@ -210,7 +210,7 @@ test('lane graph keeps opposing traffic in separate carriageways and prefers tur
   const routeGraph=buildLaneGraph(roadNetwork(s,[{x:-140,y:0},{x:0,y:140}]),{lanesPerDirection:2});
   const geometry=laneRouteGeometry(routeGraph,route.laneIds);
   assert.ok(geometry.points.length>route.laneIds.length);
-  assert.ok(geometry.transitions.some(t=>t.type==='left'));
+  assert.ok(route.laneTransitions.some(t=>t.type==='left'));
 });
 
 test('lane-change metadata and junction signals/priority expose deterministic state',()=>{
