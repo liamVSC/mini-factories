@@ -199,8 +199,8 @@ test('settings and changelog modals stay contained within mobile viewport',()=>{
   const settingsCss=css.slice(css.indexOf('/* Settings modal mobile containment */'));
   const mobileBlock=settingsCss.slice(0,settingsCss.indexOf('@media (max-width:700px) and (orientation:landscape)'));
   const landscapeBlock=settingsCss.slice(settingsCss.indexOf('@media (max-width:700px) and (orientation:landscape)'),settingsCss.indexOf('@media (max-width:390px)'));
-  const modalBase=mobileBlock.match(/#settingsMenu,#changeLogPage\\{([^}]*)\\}/)?.[1]||'';
-  const boxBase=mobileBlock.match(/#settingsMenu \\.box,#changeLogPage \\.box\\{([^}]*)\\}/)?.[1]||'';
+  const modalBase=mobileBlock.match(/#settingsMenu,#changeLogPage\{([^}]*)\}/)?.[1]||'';
+  const boxBase=mobileBlock.match(/#settingsMenu \.box,#changeLogPage \.box\{([^}]*)\}/)?.[1]||'';
   assert.match(modalBase,/position:fixed/);
   assert.match(modalBase,/inset:0/);
   assert.match(modalBase,/width:100vw/);
