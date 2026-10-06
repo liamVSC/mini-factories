@@ -113,7 +113,7 @@ function roadCaps(points, roadWidth, shoulderWidth, y, shoulderY, asphalt, shoul
         return [];
     const out = [];
     for (const p of [points[0], points.at(-1)]) {
-        out.push(roundDisc(p.x, p.y, shoulderWidth / 2, shoulderY, shoulder, 20, false), roundDisc(p.x, p.y, roadWidth / 2, y, asphalt, 20, false));
+        out.push(roundDisc(p.x, p.y, shoulderWidth / 2, shoulderY + .025, shoulder, 20, false), roundDisc(p.x, p.y, roadWidth / 2, y + .035, asphalt, 20, false));
     }
     return out;
 }
@@ -199,10 +199,14 @@ function roadSegmentMesh(points, kind, materials, addCaps = false, rising = fals
     const asphaltY = isBridge ? .72 : isTransition ? transitionHeights(points.length, .16, rising ? .72 : .16) : .16;
     const markY = isBridge ? .9 : isTransition ? transitionHeights(points.length, .24, rising ? .9 : .24) : .24;
     const sh = ribbon(points, shoulderWidth, shoulderY, shoulder, false), surf = ribbon(points, roadWidth, asphaltY, asphalt, false);
-    if (sh)
+    if (sh) {
+        sh.position.y += .015;
         g.add(sh);
-    if (surf)
+    }
+    if (surf) {
+        surf.position.y += .035;
         g.add(surf);
+    }
     if (addCaps) {
         for (const cap of roadCaps(points, roadWidth, shoulderWidth, (Array.isArray(asphaltY) ? asphaltY.at(-1) ?? .16 : asphaltY) + .01, (Array.isArray(shoulderY) ? shoulderY.at(-1) ?? .12 : shoulderY) + .01, asphalt, shoulder))
             g.add(cap);
@@ -275,8 +279,8 @@ function junctionMesh(p, roadsAtPoint) {
     // Keep the junction cover above the overlapping road ribbons so crossings
     // have one authoritative visible surface instead of coplanar depth fighting.
     return {
-        shoulder: roundDisc(p.x, p.y, radius + 6, .135, shoulder, 24, false),
-        surface: roundDisc(p.x, p.y, radius, .185, asphalt, 24, false)
+        shoulder: roundDisc(p.x, p.y, radius + 6, .17, shoulder, 24, false),
+        surface: roundDisc(p.x, p.y, radius, .22, asphalt, 24, false)
     };
 }
 function rebuildJunctionPatches(roads) { const out = []; for (const p of roadJunctions(roads)) {
@@ -294,12 +298,12 @@ export function roadYardTransitions(s) {
         if (seen.has(key))
             continue;
         seen.add(key);
-        const mid = { x: (a.x + e.x) / 2, y: (a.y + e.y) / 2 }, path = [a, mid, e], shoulder = ribbon(path, 46, .135, apron, false), surface = ribbon(path, 30, .185, asphalt, false);
+        const mid = { x: (a.x + e.x) / 2, y: (a.y + e.y) / 2 }, path = [a, mid, e], shoulder = ribbon(path, 46, .17, apron, false), surface = ribbon(path, 30, .22, asphalt, false);
         if (shoulder)
             out.push(shoulder);
         if (surface)
             out.push(surface);
-        out.push(roundDisc(e.x, e.y, 18, .22, asphalt, 20, false));
+        out.push(roundDisc(e.x, e.y, 18, .255, asphalt, 20, false));
     }
     return out;
 }
