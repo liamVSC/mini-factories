@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 globalThis.innerWidth=1280;
 globalThis.innerHeight=720;
 
-const {freshState,makeBuilding}=await import('../dist/state.js');
+const {freshState,makeBuilding:rawMakeBuilding}=await import('../dist/state.js');
+const makeBuilding=(type,x,y,id)=>rawMakeBuilding(type,x,y+(type?.kind==='shop'?99:-108),id);
 const {hydrate}=await import('../dist/persistence/load.js');
 const {serialise}=await import('../dist/persistence/save.js');
 const {pointOnRoute,length,dist,addRoad,eraseRoad,routeOnRoadNetwork,roadPreview,roadTarget,roadEndpointPreview,editRoadEndpoint,editRoadSegment,roadNetwork,roadTopology,cleanupRoadNetwork,WORLD_BOUNDS,WORLD_MARGIN}=await import('../dist/world.js');
