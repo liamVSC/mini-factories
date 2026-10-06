@@ -16,5 +16,5 @@ export function syncTrucks(root:any,truckMeshes:Map<string,any>,trucks:Truck[]){
 }
 export function updateTrucks(root:any,truckMeshes:Map<string,any>,trucks:Truck[]){
   syncTrucks(root,truckMeshes,trucks);const byId=new Map((trucks||[]).map(t=>[String(t?.id||''),t]));
-  for(const [id,m] of truckMeshes){const t=byId.get(id) as any;if(!t||t.dead||!Array.isArray(t.route)){m.visible=false;continue;}const progress=typeof t.t==='number'?t.t:0;const p=routePoint(t.route,progress);if(!p){m.visible=false;continue;}m.visible=true;m.position.set(p.x,1,p.y);const q=routePoint(t.route,Math.min(1,progress+.015))||p;m.rotation.y=-Math.atan2(q.y-p.y,q.x-p.x);}
+  for(const [id,m] of truckMeshes){const t=byId.get(id) as any;if(!t||t.dead||!Array.isArray(t.route)){m.visible=false;continue;}const progress=typeof t.t==='number'?t.t:0;const visualRoute=Array.isArray(t.laneRoute)&&t.laneRoute.length>=2?t.laneRoute:t.route;const p=routePoint(visualRoute,progress);if(!p){m.visible=false;continue;}m.visible=true;m.position.set(p.x,1,p.y);const q=routePoint(visualRoute,Math.min(1,progress+.015))||p;m.rotation.y=-Math.atan2(q.y-p.y,q.x-p.x);}
 }
