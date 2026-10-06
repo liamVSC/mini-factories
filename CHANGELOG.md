@@ -1,3 +1,11 @@
+## v2.1.19 — 6 October 2026
+
+### Road streetscape rebuild
+- Rebuilt roads with dark asphalt, wide sidewalks and raised curbs.
+- Kept white dashed centre markings and truck routes on the asphalt corridor.
+- Reworked junction treatment to keep sidewalks continuous without giant floating road slabs.
+- Bumped the published game version.
+
 ## v2.1.18 — 6 October 2026
 
 ### Road geometry
