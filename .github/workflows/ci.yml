@@ -36,7 +36,7 @@ jobs:
           npx playwright --version
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm install --no-audit --no-fund --no-package-lock --ignore-scripts
 
       - name: Run TypeScript typecheck
         run: npm run typecheck
