@@ -1,3 +1,8 @@
+## v2.1.56 — 6 October 2026
+
+### Release synchronization
+- Synchronized the central runtime version, generated version runtime, service-worker cache, and release assertion at v2.1.56.
+
 ## v2.1.55 — 6 October 2026
 
 ### Generated runtime synchronization
