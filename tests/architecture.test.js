@@ -94,7 +94,7 @@ test('road creation uses the canonical building endpoint connection',()=>{
 test('road endpoint editing uses the canonical building target',()=>{
   const s=freshState();
   s.cash=5000;
-  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,-108,'factory-1');
   s.buildings.push(factory);
   assert.equal(addRoad(s,[{x:100,y:0},{x:260,y:0}]),true);
   const target=endpointTarget(s,{x:42,y:0},s.roads[0],0);
@@ -105,7 +105,7 @@ test('road endpoint editing uses the canonical building target',()=>{
 test('building logistics uses the same canonical road attachment',()=>{
   const s=freshState();
   s.cash=5000;
-  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,-108,'factory-1');
   s.buildings.push(factory);
   s.roads.push({id:'road-1',points:[{x:40,y:0},{x:180,y:0}],bridge:false,condition:1,age:0});
   const attachment=buildingRoadAttachment(s,factory);
@@ -118,8 +118,8 @@ test('building logistics uses the same canonical road attachment',()=>{
 
 test('disconnected and deleted roads produce no stale building logistics relationship',()=>{
   const s=freshState();
-  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
-  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},500,0,'shop-1');
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,-108,'factory-1');
+  const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},500,-108,'shop-1');
   s.buildings.push(factory,shop);
   s.roads.push({id:'road-a',points:[{x:40,y:0},{x:180,y:0}],bridge:false,condition:1,age:0});
   s.roads.push({id:'road-b',points:[{x:540,y:0},{x:680,y:0}],bridge:false,condition:1,age:0});
@@ -134,7 +134,7 @@ test('disconnected and deleted roads produce no stale building logistics relatio
 
 test('save/load preserves valid derived building-road relationships and drops stale ones',()=>{
   const s=freshState();
-  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
+  const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,-108,'factory-1');
   s.buildings.push(factory);
   s.roads.push({id:'road-1',points:[{x:40,y:0},{x:180,y:0}],bridge:false,condition:1,age:0});
   const loaded=hydrate(serialise(s));
