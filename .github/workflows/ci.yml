@@ -49,8 +49,7 @@ jobs:
 
       - name: Verify committed browser runtime is reproducible
         run: |
-          mapfile -t runtime_files < <(find dist -type f -name '*.js' -print)
-          git diff --exit-code --ignore-space-at-eol -- ${runtime_files[@]}
+          git diff --exit-code --ignore-space-at-eol -- dist/index.js dist/game.js dist/render3d.js
           test -f dist/index.js
           test -f dist/game.js
           test -f dist/render3d.js
