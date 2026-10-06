@@ -1,3 +1,8 @@
+## v2.1.38 — 6 October 2026
+
+### Gate-aware preview fixtures
+- Updated road targeting and preview regression fixtures to use the actual exterior gate coordinates.
+
 ## v2.1.37 — 6 October 2026
 
 ### Release regression alignment
