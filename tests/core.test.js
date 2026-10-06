@@ -117,6 +117,10 @@ test('completed warehouse transfer increases inventory and storage',()=>{
   s.buildings.push(factory,warehouse);
   s.trucks.push(t);
   updateEconomy(s,.1,()=>{});
+  assert.equal(s.trucks.length,1);
+  assert.equal(s.trucks[0].stage,'return');
+  s.trucks[0].t=.999;
+  updateEconomy(s,.1,()=>{});
   assert.equal(s.trucks.length,0);
   assert.equal(warehouse.inventory.Food,3);
   assert.equal(warehouse.storage,3);
@@ -338,9 +342,13 @@ test('truck follows an intersection route across the junction instead of stoppin
 
   t.t=.999;
   updateEconomy(s,.1,()=>{});
-  assert.equal(s.trucks.length,0);
+  assert.equal(s.trucks.length,1);
+  assert.equal(s.trucks[0].stage,'return');
   assert.ok(s.cash>500);
   assert.equal(s.orders,1);
+  s.trucks[0].t=.999;
+  updateEconomy(s,.1,()=>{});
+  assert.equal(s.trucks.length,0);
 });
 
 test('disconnected buildings cannot be routed together',()=>{
@@ -517,9 +525,13 @@ test('truck delivery completes across a river bridge route',()=>{
   s.trucks.push(t);
 
   updateEconomy(s,.1,()=>{});
-  assert.equal(s.trucks.length,0);
+  assert.equal(s.trucks.length,1);
+  assert.equal(s.trucks[0].stage,'return');
   assert.equal(s.orders,1);
   assert.ok(s.cash>500);
+  s.trucks[0].t=.999;
+  updateEconomy(s,.1,()=>{});
+  assert.equal(s.trucks.length,0);
 });
 
 test('roads crossing the river are marked as bridges and remain routable',()=>{
