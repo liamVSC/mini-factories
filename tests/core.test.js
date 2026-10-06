@@ -38,7 +38,7 @@ test('bridge classification only occurs when a road crosses the river',()=>{
 });
 
 test('game version has one central runtime source',()=>{
-  assert.equal(globalThis.MINI_FACTORIES_VERSION,'2.1.19');
+  assert.equal(globalThis.MINI_FACTORIES_VERSION,'2.1.20');
   assert.equal(globalThis.MINI_FACTORIES_VERSION_DATE,'6 Oct 2026');
 });
 
