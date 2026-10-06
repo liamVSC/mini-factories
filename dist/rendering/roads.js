@@ -78,7 +78,7 @@ export function offsetPolyline(points, halfWidth) {
     }
     return out;
 }
-export function ribbon(points, width, y, mat) {
+export function ribbon(points, width, y, mat, receiveShadow = false) {
     if (points.length < 2)
         return null;
     const clean = [points[0]];
@@ -103,11 +103,11 @@ export function ribbon(points, width, y, mat) {
     geo.setIndex(idx);
     geo.computeVertexNormals();
     const m = new THREE.Mesh(geo, mat);
-    m.receiveShadow = true;
+    m.receiveShadow = receiveShadow;
     m.renderOrder = 2;
     return m;
 }
-function roundDisc(x, z, radius, y, mat, segments = 20) { const g = new THREE.Mesh(new THREE.CircleGeometry(radius, segments), mat); g.rotation.x = -Math.PI / 2; g.position.set(x, y, z); g.receiveShadow = true; g.renderOrder = 2.05; return g; }
+function roundDisc(x, z, radius, y, mat, segments = 20, receiveShadow = false) { const g = new THREE.Mesh(new THREE.CircleGeometry(radius, segments), mat); g.rotation.x = -Math.PI / 2; g.position.set(x, y, z); g.receiveShadow = receiveShadow; g.renderOrder = 2.05; return g; }
 function roadCaps(points, roadWidth, shoulderWidth, y, shoulderY, asphalt, shoulder) {
     if (points.length < 2)
         return [];
@@ -198,7 +198,7 @@ function roadSegmentMesh(points, kind, materials, addCaps = false, rising = fals
     const shoulderY = isBridge ? .52 : isTransition ? transitionHeights(points.length, .12, rising ? .52 : .12) : .12;
     const asphaltY = isBridge ? .72 : isTransition ? transitionHeights(points.length, .16, rising ? .72 : .16) : .16;
     const markY = isBridge ? .9 : isTransition ? transitionHeights(points.length, .24, rising ? .9 : .24) : .24;
-    const sh = ribbon(points, shoulderWidth, shoulderY, shoulder), surf = ribbon(points, roadWidth, asphaltY, asphalt);
+    const sh = ribbon(points, shoulderWidth, shoulderY, shoulder, false), surf = ribbon(points, roadWidth, asphaltY, asphalt, false);
     if (sh)
         g.add(sh);
     if (surf)
@@ -209,7 +209,7 @@ function roadSegmentMesh(points, kind, materials, addCaps = false, rising = fals
     }
     if (!isBridge && !isTransition) {
         for (const side of [-1, 1]) {
-            const c = ribbon(offsetPolyline(points, side * 14), 1.1, .21, curb);
+            const c = ribbon(offsetPolyline(points, side * 14), 1.1, .21, curb, false);
             if (c)
                 g.add(c);
         }
@@ -294,7 +294,7 @@ export function roadYardTransitions(s) {
         if (seen.has(key))
             continue;
         seen.add(key);
-        const mid = { x: (a.x + e.x) / 2, y: (a.y + e.y) / 2 }, path = [a, mid, e], shoulder = ribbon(path, 46, .135, apron), surface = ribbon(path, 30, .185, asphalt);
+        const mid = { x: (a.x + e.x) / 2, y: (a.y + e.y) / 2 }, path = [a, mid, e], shoulder = ribbon(path, 46, .135, apron, false), surface = ribbon(path, 30, .185, asphalt, false);
         if (shoulder)
             out.push(shoulder);
         if (surface)
