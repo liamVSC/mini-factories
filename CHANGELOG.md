@@ -1,3 +1,9 @@
+## v2.1.42 — 6 October 2026
+
+### CI regression alignment
+- Updated stale central/published-version regression assertions from v2.1.39/v2.1.40 to the current v2.1.42 runtime.
+- Synchronized the generated version runtime, PWA asset cache-busters and service-worker release cache.
+
 ## v2.1.41 — 6 October 2026
 
 ### Release assertions
