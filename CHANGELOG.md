@@ -1,3 +1,8 @@
+## v2.1.33 — 6 October 2026
+
+### Shop gate fixtures
+- Corrected shop regression fixtures to place buildings north of their south-facing exterior gate.
+
 ## v2.1.32 — 6 October 2026
 
 ### Type-specific gate fixtures
