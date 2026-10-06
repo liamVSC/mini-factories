@@ -196,24 +196,26 @@ test('bridge state requires an actual river crossing',()=>{
 
 test('settings and changelog modals stay contained within mobile viewport',()=>{
   const css=readSource(new URL('../styles.css',import.meta.url));
-  const modalRule=css.match(/#settingsMenu,#changeLogPage\\{([^}]*)\\}/)?.[1]||'';
-  const boxRule=css.match(/#settingsMenu \\.box,#changeLogPage \\.box\\{([^}]*)\\}/)?.[1]||'';
-  const landscapeRule=css.match(/@media \\(max-width:700px\\) and \\(orientation:landscape\\)\\{([\\s\\S]*?)\\}/)?.[1]||'';
-  assert.match(modalRule,/position:fixed/);
-  assert.match(modalRule,/inset:0/);
-  assert.match(modalRule,/width:100vw/);
-  assert.match(modalRule,/height:100dvh/);
-  assert.match(boxRule,/position:relative/);
-  assert.match(boxRule,/left:auto/);
-  assert.match(boxRule,/right:auto/);
-  assert.match(boxRule,/top:auto/);
-  assert.match(boxRule,/bottom:auto/);
-  assert.match(boxRule,/transform:none/);
-  assert.match(css,/@media \\(max-width:700px\\) and \\(orientation:landscape\\)/);
-  assert.match(css,/#settingsMenu \\.box,#changeLogPage \\.box\\{[^}]*width:min\\(520px,100%\\)/);
-  assert.match(css,/#settingsMenu \\.box,#changeLogPage \\.box\\{[^}]*max-width:100%/);
-  assert.match(css,/#settingsMenu \\.box,#changeLogPage \\.box\\{[^}]*max-height:calc\\(100dvh - 16px\\)/);
-  assert.ok(landscapeRule||css.includes('@media (max-width:700px) and (orientation:landscape)'));
+  const settingsCss=css.slice(css.indexOf('/* Settings modal mobile containment */'));
+  const mobileBlock=settingsCss.slice(0,settingsCss.indexOf('@media (max-width:700px) and (orientation:landscape)'));
+  const landscapeBlock=settingsCss.slice(settingsCss.indexOf('@media (max-width:700px) and (orientation:landscape)'),settingsCss.indexOf('@media (max-width:390px)'));
+  const modalBase=mobileBlock.match(/#settingsMenu,#changeLogPage\\{([^}]*)\\}/)?.[1]||'';
+  const boxBase=mobileBlock.match(/#settingsMenu \\.box,#changeLogPage \\.box\\{([^}]*)\\}/)?.[1]||'';
+  assert.match(modalBase,/position:fixed/);
+  assert.match(modalBase,/inset:0/);
+  assert.match(modalBase,/width:100vw/);
+  assert.match(modalBase,/height:100dvh/);
+  assert.match(boxBase,/position:relative/);
+  assert.match(boxBase,/left:auto/);
+  assert.match(boxBase,/right:auto/);
+  assert.match(boxBase,/top:auto/);
+  assert.match(boxBase,/bottom:auto/);
+  assert.match(boxBase,/transform:none/);
+  assert.match(landscapeBlock,/@media \\(max-width:700px\\) and \\(orientation:landscape\\)/);
+  assert.match(landscapeBlock,/#settingsMenu,#changeLogPage\\{[^}]*inset:0/);
+  assert.match(landscapeBlock,/#settingsMenu \\.box,#changeLogPage \\.box\\{[^}]*width:min\\(520px,100%\\)/);
+  assert.match(landscapeBlock,/#settingsMenu \\.box,#changeLogPage \\.box\\{[^}]*max-width:100%/);
+  assert.match(landscapeBlock,/#settingsMenu \\.box,#changeLogPage \\.box\\{[^}]*max-height:calc\\(100dvh - 16px\\)/);
 });
 
 test('mobile lifecycle, viewport and WebGL recovery remain guarded',()=>{
