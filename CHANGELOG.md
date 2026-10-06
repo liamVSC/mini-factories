@@ -1,3 +1,9 @@
+## v2.1.25 — 6 October 2026
+
+### Routing typecheck
+- Removed obsolete empty gate-connector arrays from yard-only road routing.
+- Keeps road routing strictly yard/gate based while restoring strict TypeScript inference.
+
 ## v2.1.24 — 6 October 2026
 
 ### Truck collision safety
