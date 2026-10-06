@@ -4,7 +4,7 @@ declare global {
 }
 
 // Single source of truth for the currently published game version.
-// v2.1.20: align remaining renderer and central-version regression assertions with the published runtime.
+// v2.1.21: align remaining renderer and central-version regression assertions with the published runtime.
 globalThis.MINI_FACTORIES_VERSION='2.1.20';
 globalThis.MINI_FACTORIES_VERSION_DATE='6 Oct 2026';
 
