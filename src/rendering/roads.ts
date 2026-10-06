@@ -71,13 +71,13 @@ function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['ki
   return g;
 }
 export function roadMesh(r:any){
-  const p=rounded(r.points||[]),g=new THREE.Group();if(p.length<2)return g;
+  const p=smoothRoadPath(r.points||[]),g=new THREE.Group();if(p.length<2)return g;
   const mats={asphalt:material('#353b3c',.92),shoulder:material('#6b7370',.98),line:material('#e9ebe5',.7),curb:material('#a0a6a1',.75),rail:material('#a9895c',.8,.1)};
   const parts=bridgeRouteSegments(p);for(const [index,part] of parts.entries()){const rising=part.kind==='transition'&&parts[index+1]?.kind==='bridge';const mesh=roadSegmentMesh(part.points,part.kind,mats,index===0||index===parts.length-1,rising);g.add(mesh);}
   return g;
 }
 function roadJunctions(roads:any[]){const clusters:any[]=[];
-  for(let i=0;i<roads.length;i++)for(let j=i+1;j<roads.length;j++){const a=rounded(roads[i]?.points||[]),b=rounded(roads[j]?.points||[]);
+  for(let i=0;i<roads.length;i++)for(let j=i+1;j<roads.length;j++){const a=smoothRoadPath(roads[i]?.points||[]),b=smoothRoadPath(roads[j]?.points||[]);
     for(let ai=1;ai<a.length;ai++)for(let bi=1;bi<b.length;bi++){const p=a[ai-1],q=a[ai],u=b[bi-1],v=b[bi],den=(q.x-p.x)*(v.y-u.y)-(q.y-p.y)*(v.x-u.x);if(Math.abs(den)<1e-9)continue;
       const t=((u.x-p.x)*(v.y-u.y)-(u.y-p.y)*(v.x-u.x))/den,ss=((u.x-p.x)*(q.y-p.y)-(u.y-p.y)*(q.x-p.x))/den;if(t<-.000001||t>1.000001||ss<-.000001||ss>1.000001)continue;
       const point={x:p.x+t*(q.x-p.x),y:p.y+t*(q.y-p.y)};let cluster=clusters.find(v=>Math.hypot(v.x-point.x,v.y-point.y)<10);if(!cluster){cluster={x:point.x,y:point.y,roads:new Set([i,j])};clusters.push(cluster);}else{cluster.roads.add(i);cluster.roads.add(j);}

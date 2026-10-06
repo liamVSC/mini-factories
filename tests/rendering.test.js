@@ -164,8 +164,8 @@ test('road renderer handles caps, junctions, yards and bridge transitions',()=>{
 test('road mesh and junction detection share the authoritative rounded polyline',()=>{
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
   assert.match(source,/export function roadMesh\(r:any\)/);
-  assert.match(source,/const p=rounded\(r\.points\|\|\[\]\),g=new THREE\.Group\(\)/);
-  assert.match(source,/const a=rounded\(roads\[i\]\?\.points\|\|\[\]\),b=rounded\(roads\[j\]\?\.points\|\|\[\]\)/);
+  assert.match(source,/const p=smoothRoadPath\(r\.points\|\|\[\]\),g=new THREE\.Group\(\)/);
+  assert.match(source,/const a=smoothRoadPath\(roads\[i\]\?\.points\|\|\[\]\),b=smoothRoadPath\(roads\[j\]\?\.points\|\|\[\]\)/);
 });
 
 test('renderer facade delegates roads, buildings and trucks to focused modules',()=>{

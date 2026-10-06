@@ -230,7 +230,7 @@ function roadSegmentMesh(points, kind, materials, addCaps = false, rising = fals
     return g;
 }
 export function roadMesh(r) {
-    const p = rounded(r.points || []), g = new THREE.Group();
+    const p = smoothRoadPath(r.points || []), g = new THREE.Group();
     if (p.length < 2)
         return g;
     const mats = { asphalt: material('#353b3c', .92), shoulder: material('#6b7370', .98), line: material('#e9ebe5', .7), curb: material('#a0a6a1', .75), rail: material('#a9895c', .8, .1) };
@@ -246,7 +246,7 @@ function roadJunctions(roads) {
     const clusters = [];
     for (let i = 0; i < roads.length; i++)
         for (let j = i + 1; j < roads.length; j++) {
-            const a = rounded(roads[i]?.points || []), b = rounded(roads[j]?.points || []);
+            const a = smoothRoadPath(roads[i]?.points || []), b = smoothRoadPath(roads[j]?.points || []);
             for (let ai = 1; ai < a.length; ai++)
                 for (let bi = 1; bi < b.length; bi++) {
                     const p = a[ai - 1], q = a[ai], u = b[bi - 1], v = b[bi], den = (q.x - p.x) * (v.y - u.y) - (q.y - p.y) * (v.x - u.x);
