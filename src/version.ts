@@ -4,8 +4,8 @@ declare global {
 }
 
 // Single source of truth for the currently published game version.
-// v2.1.28: support point-only routing endpoints while preserving live building gate routing.
-globalThis.MINI_FACTORIES_VERSION='2.1.28';
+// v2.1.29: align routing regression fixtures with exterior yard gates.
+globalThis.MINI_FACTORIES_VERSION='2.1.29';
 globalThis.MINI_FACTORIES_VERSION_DATE='6 Oct 2026';
 
 export {};
