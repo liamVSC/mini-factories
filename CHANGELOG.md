@@ -1,3 +1,11 @@
+## v2.1.12 — 6 October 2026
+
+### Road renderer CI fix
+- Corrected the road shadow-reception fix so the renderer's ribbon and disc primitives actually accept and apply the explicit `receiveShadow` flag.
+- Disabled shadow reception consistently on road pavement, shoulders, curbs, markings, caps, junction patches and yard transitions without weakening the existing render-order/elevation separation.
+- Fixed the TypeScript compile failure introduced by the previous incomplete signature change.
+- Bumped the published game and service-worker cache version.
+
 ## v2.1.11 — 6 October 2026
 
 ### CI and road shadow stability
