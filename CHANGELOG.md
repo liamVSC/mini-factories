@@ -1,3 +1,9 @@
+## v2.1.65 — 6 October 2026
+
+### CI verification
+- Corrected the executable-runtime pathspec so `.js.map` source maps are excluded from the JavaScript-only reproducibility gate.
+- Synchronized the published runtime and service-worker cache at v2.1.65.
+
 ## v2.1.64 — 6 October 2026
 
 ### CI diagnostics
