@@ -45,7 +45,13 @@ export function routeNetworkValid(state, route) {
     return route.laneIds.every((id, index) => { const lane = laneGraph.lanesById.get(id); return !!lane && lane.roadId === route.laneRoadIds[index]; });
 }
 export function routeOnRoadNetwork(s, a, b) {
-    const aa = buildingRoadAttachment(s, a), bb = buildingRoadAttachment(s, b);
+    const pointEndpoint = (value) => {
+        if (!finitePoint(value) || ('kind' in value) || ('id' in value))
+            return null;
+        const point = { x: value.x, y: value.y };
+        return { roadPoint: point, point, canonical: false, distance: 0, segment: 0, road: null, entrance: undefined };
+    };
+    const aa = pointEndpoint(a) || buildingRoadAttachment(s, a), bb = pointEndpoint(b) || buildingRoadAttachment(s, b);
     if (!aa || !bb)
         return null;
     const startPoint = aa.canonical && aa.entrance ? aa.entrance : aa.roadPoint, endPoint = bb.canonical && bb.entrance ? bb.entrance : bb.roadPoint, startRoadPoint = aa.roadPoint, endRoadPoint = bb.roadPoint;
