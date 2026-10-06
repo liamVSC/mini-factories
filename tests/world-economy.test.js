@@ -347,7 +347,7 @@ test('road endpoints may connect through an intersection without off-road routin
 test('truck dispatch and delivery complete on a connected road', () => {
   const s = baseState();
   const f = building('Food', 0, 0);
-  const shop = building('Market', 220, 0);
+  const shop = building('Market', 360, 0);
   f.stock = 3;
   f.dispatchTimer = 0;
   shop.demand = 3;
