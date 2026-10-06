@@ -1,3 +1,9 @@
+## v2.1.76 — 6 October 2026
+
+### Economy test hardening
+- Updated stale economy regression fixtures to use current building gate geometry and valid road topology.
+- Synchronized the published runtime and service-worker cache at v2.1.76.
+
 ## v2.1.75 — 6 October 2026
 
 ### CI verification
