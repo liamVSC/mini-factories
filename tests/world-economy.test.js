@@ -1118,9 +1118,13 @@ test('factory trucks physically start at the factory dock and keep the gate conn
   const factoryGate=buildingModule.buildingRoadEntrance(factory);
   const shopGate=buildingModule.buildingRoadEntrance(shop);
   assert.ok(factoryGate&&shopGate);
+  // Build a real connected road around the building footprints. The gate
+  // connectors must leave each building before joining the shared spine.
+  const spineX=300;
   s.roads.push(
-    road([{x:factoryGate.x,y:factoryGate.y},{x:factoryGate.x,y:0}]),
-    road([{x:shopGate.x,y:shopGate.y},{x:shopGate.x,y:0}])
+    road([{x:factoryGate.x,y:factoryGate.y},{x:spineX,y:factoryGate.y}]),
+    road([{x:spineX,y:factoryGate.y},{x:spineX,y:shopGate.y}]),
+    road([{x:spineX,y:shopGate.y},{x:shopGate.x,y:shopGate.y}])
   );
   const routed=routeOnRoadNetwork(s,factory,shop);
   assert.ok(routed);
