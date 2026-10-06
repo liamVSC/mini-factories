@@ -1,3 +1,9 @@
+## v2.1.67 — 6 October 2026
+
+### CI verification
+- Corrected the live CI workflow to exclude source-map metadata from the executable browser-runtime reproducibility check.
+- Synchronized the published runtime and service-worker cache at v2.1.67.
+
 ## v2.1.66 — 6 October 2026
 
 ### CI diagnostics
