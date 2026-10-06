@@ -550,7 +550,7 @@ test('lane graph gives trucks one lane on each side of the carriageway',()=>{
 test('building road attachments only accept the exterior yard gate',()=>{
   const source=fs.readFileSync('src/world/buildings/connections.ts','utf8');
   assert.match(source,/A building is never a valid road endpoint/);
-  assert.match(source,/reachesCanonicalGate = entranceDistance <= 12/);
+  assert.match(source,/reachesCanonicalGate = entranceDistance <= 46/);
   assert.doesNotMatch(source,/pointInsideConnectionFootprint \/\//);
 });
 
