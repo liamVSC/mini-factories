@@ -1,3 +1,10 @@
+## v2.1.44 — 6 October 2026
+
+### Economy lane metadata regression
+- Remap live truck lane IDs by stable road ID, direction and lane index when the derived graph is rebuilt.
+- Preserve normal rerouting for genuinely missing or stale lane metadata.
+- Keep direct factory-to-shop delivery working when an unrelated warehouse network exists.
+
 ## v2.1.43 — 6 October 2026
 
 ### Economy direct-delivery regression
