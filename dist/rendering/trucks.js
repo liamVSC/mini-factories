@@ -58,14 +58,15 @@ export function updateTrucks(root, truckMeshes, trucks) {
             continue;
         }
         const progress = typeof t.t === 'number' ? t.t : 0;
-        const p = routePoint(t.route, progress);
+        const visualRoute = Array.isArray(t.laneRoute) && t.laneRoute.length >= 2 ? t.laneRoute : t.route;
+        const p = routePoint(visualRoute, progress);
         if (!p) {
             m.visible = false;
             continue;
         }
         m.visible = true;
         m.position.set(p.x, 1, p.y);
-        const q = routePoint(t.route, Math.min(1, progress + .015)) || p;
+        const q = routePoint(visualRoute, Math.min(1, progress + .015)) || p;
         m.rotation.y = -Math.atan2(q.y - p.y, q.x - p.x);
     }
 }
