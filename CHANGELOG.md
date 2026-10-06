@@ -1,3 +1,11 @@
+## v2.1.11 — 6 October 2026
+
+### CI and road shadow stability
+- Fixed the road renderer regression where road ribbons and discs still had `receiveShadow=true` despite the v2.1.10 release claiming shadow reception had been disabled.
+- Added an explicit shadow-reception parameter to road ribbon/disc primitives and disabled shadow reception for pavement, shoulders, curbs, markings, caps, junction patches and yard transitions.
+- Kept the existing explicit elevation/render-order separation that prevents road Z-fighting.
+- Bumped the published game and service-worker cache version.
+
 ## v2.1.10 — 6 October 2026
 
 ### Road visual stability
