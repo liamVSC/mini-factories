@@ -24,8 +24,13 @@ export function routeNetworkValid(state:GameState,route:StoredRoute|null|undefin
   const roadIds=new Set(state.roads.map(road=>road?.id).filter(Boolean));if(!route.laneRoadIds.every(id=>!!id&&roadIds.has(id)))return false;
   const laneGraph=buildLaneGraph(roadNetwork(state),{lanesPerDirection:1});return route.laneIds.every((id,index)=>{const lane=laneGraph.lanesById.get(id);return !!lane&&lane.roadId===route.laneRoadIds[index];});
 }
-export function routeOnRoadNetwork(s:GameState,a:Building,b:Building):Record<string,unknown>|null{
-  const aa=buildingRoadAttachment(s,a),bb=buildingRoadAttachment(s,b);if(!aa||!bb)return null;
+export function routeOnRoadNetwork(s:GameState,a:Building|Point,b:Building|Point):Record<string,unknown>|null{
+  const pointEndpoint=(value:Building|Point):{roadPoint:Point;point:Point;canonical:false;distance:number;segment:number;road:Road|null;entrance:undefined}|null=>{
+    if(!finitePoint(value)||('kind' in value)||('id' in value))return null;
+    const point={x:value.x,y:value.y};
+    return {roadPoint:point,point,canonical:false,distance:0,segment:0,road:null,entrance:undefined};
+  };
+  const aa=pointEndpoint(a)||buildingRoadAttachment(s,a as Building),bb=pointEndpoint(b)||buildingRoadAttachment(s,b as Building);if(!aa||!bb)return null;
   const startPoint=aa.canonical&&aa.entrance?aa.entrance:aa.roadPoint,endPoint=bb.canonical&&bb.entrance?bb.entrance:bb.roadPoint,
     startRoadPoint=aa.roadPoint,endRoadPoint=bb.roadPoint;
   const network=roadNetwork(s,[startRoadPoint,endRoadPoint]),start=nearestGraphNode(network,startRoadPoint),end=nearestGraphNode(network,endRoadPoint);if(!start||!end)return null;
