@@ -1,3 +1,10 @@
+## v2.1.43 — 6 October 2026
+
+### Economy direct-delivery regression
+- Preserved direct factory-to-shop dispatch when no complete warehouse supply path exists.
+- Stopped freshly generated delivery routes from being rejected solely because derived lane IDs were re-numbered by an equivalent road-graph build.
+- Kept road-network revision and stable road-ID validation as the authoritative stale-route guards.
+
 ## v2.1.42 — 6 October 2026
 
 ### CI regression alignment
