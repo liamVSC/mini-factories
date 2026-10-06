@@ -130,7 +130,7 @@ test('road renderer contains explicit anti-z-fighting surface layers and caps',(
   assert.match(source,/asphaltY\.at\(-1\).*\.01/);
   assert.ok(source.includes('ribbon(offsetPolyline(points,side*14),1.1,.21,curb,false)') || source.includes('ribbon(offsetPolyline(points,side*14),1.1,.21,curb)'));
   assert.match(source,/renderOrder=2\.05/);
-  assert.ok(source.includes('receiveShadow=false'));
+  assert.match(source,/receiveShadow=true/);
   assert.ok(source.includes('shoulderY,shoulder,false),surf=ribbon(points,roadWidth,asphaltY,asphalt,false)'));
   assert.match(source,/shoulder:roundDisc\(p\.x,p\.y,radius\+6,\.135,shoulder,24,false\)/);
   assert.match(source,/surface:roundDisc\(p\.x,p\.y,radius,\.185,asphalt,24,false\)/);
