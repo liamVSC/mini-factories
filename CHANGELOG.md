@@ -1,3 +1,9 @@
+## v2.1.51 — 6 October 2026
+
+### CI/runtime synchronization
+- Corrected the central version literal after the CI-generated runtime check exposed a metadata-only mismatch.
+- Kept the published runtime and service-worker cache synchronized at v2.1.51.
+
 ## v2.1.50 — 6 October 2026
 
 ### CI/runtime synchronization
