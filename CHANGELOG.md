@@ -1,3 +1,9 @@
+## v2.1.60 — 6 October 2026
+
+### Generated runtime synchronization
+- Synchronized the committed version source map with the actual TypeScript build output.
+- Bumped the published runtime and service-worker cache to v2.1.60.
+
 ## v2.1.59 — 6 October 2026
 
 ### Release synchronization
