@@ -1,3 +1,9 @@
+## v2.1.61 — 6 October 2026
+
+### CI verification
+- Changed generated-runtime reproducibility to enforce all committed executable browser JavaScript while excluding non-runtime source-map metadata.
+- Synchronized the published runtime and service-worker cache at v2.1.61.
+
 ## v2.1.60 — 6 October 2026
 
 ### Generated runtime synchronization
