@@ -49,7 +49,7 @@ jobs:
 
       - name: Verify committed browser runtime is reproducible
         run: |
-          git diff --exit-code --ignore-space-at-eol -- 'dist/**/*.js' 'dist/*.js' ':!dist/**/*.js.map' ':!dist/*.js.map'
+          git diff --exit-code --ignore-space-at-eol -- 'dist/**/*.js' 'dist/*.js' ':(exclude)dist/**/*.js.map' ':(exclude)dist/*.js.map'
           test -f dist/index.js
           test -f dist/game.js
           test -f dist/render3d.js
