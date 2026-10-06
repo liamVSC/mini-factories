@@ -196,9 +196,10 @@ function roadSegmentMesh(points, kind, materials, addCaps = false) {
         g.add(sh);
     if (surf)
         g.add(surf);
-    if (addCaps)
-        for (const cap of roadCaps(points, roadWidth, shoulderWidth, asphaltY, shoulderY, asphalt, shoulder))
+    if (addCaps) {
+        for (const cap of roadCaps(points, roadWidth, shoulderWidth, asphaltY + .025, shoulderY + .025, asphalt, shoulder))
             g.add(cap);
+    }
     if (!isBridge && !isTransition) {
         for (const side of [-1, 1]) {
             const c = ribbon(offsetPolyline(points, side * 14), 1.1, .82, curb);
@@ -260,7 +261,16 @@ function roadJunctions(roads) {
         }
     return clusters.map(v => ({ x: v.x, y: v.y, degree: v.roads.size }));
 }
-function junctionMesh(p, roadsAtPoint) { const asphalt = material('#353b3c', .92), shoulder = material('#6b7370', .98), degree = Math.max(3, roadsAtPoint || 3), radius = degree >= 4 ? 24 : 20; return { shoulder: roundDisc(p.x, p.y, radius + 6, .56, shoulder, 24), surface: roundDisc(p.x, p.y, radius, .76, asphalt, 24) }; }
+function junctionMesh(p, roadsAtPoint) {
+    const asphalt = material('#353b3c', .92), shoulder = material('#6b7370', .98);
+    const degree = Math.max(3, roadsAtPoint || 3), radius = degree >= 4 ? 24 : 20;
+    // Keep the junction cover above the overlapping road ribbons so crossings
+    // have one authoritative visible surface instead of coplanar depth fighting.
+    return {
+        shoulder: roundDisc(p.x, p.y, radius + 6, .63, shoulder, 24),
+        surface: roundDisc(p.x, p.y, radius, .79, asphalt, 24)
+    };
+}
 function rebuildJunctionPatches(roads) { const out = []; for (const p of roadJunctions(roads)) {
     const j = junctionMesh(p, p.degree);
     out.push(j.shoulder, j.surface);

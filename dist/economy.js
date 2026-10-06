@@ -309,17 +309,28 @@ function trafficConflict(s, t, network, laneGraph, controls) {
 function fullLaneMovementRoute(route) {
     if (!route)
         return null;
+    // Keep the physical truck path continuous from the building dock through
+    // the canonical gate, onto the road lane, and back through the destination
+    // gate/dock. The previous implementation omitted the gate connectors.
     const parts = [];
-    for (const part of [route.startYard, route.lanePoints, route.endYard]) {
-        if (!Array.isArray(part) || part.length < 2)
-            continue;
+    const append = (part) => {
+        if (!Array.isArray(part))
+            return;
         for (const p of part) {
             if (!Number.isFinite(Number(p?.x)) || !Number.isFinite(Number(p?.y)))
                 continue;
             const q = { x: Number(p.x), y: Number(p.y) };
-            if (!parts.length || !parts.at(-1) || dist(q, parts.at(-1)) > .01)
+            if (!parts.length || dist(q, parts.at(-1)) > .01)
                 parts.push(q);
         }
+    };
+    append(route.startYard);
+    if (Array.isArray(route.startYard) && route.startYard.length)
+        append([route.start]);
+    append(route.lanePoints);
+    if (Array.isArray(route.endYard) && route.endYard.length) {
+        append([route.end]);
+        append(route.endYard);
     }
     if (parts.length < 2)
         return null;
