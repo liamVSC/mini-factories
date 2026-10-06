@@ -264,9 +264,9 @@ test('published game version stays aligned across app shell and service worker',
   const html=readSource(new URL('../index.html',import.meta.url));
   const version=readSource(new URL('../src/version.ts',import.meta.url));
   assert.match(sw,/mini-factories-v229/);
-  assert.match(sw,/VERSION='2\.1\.17'/);
+  assert.match(sw,/VERSION='2\.1\.18'/);
   assert.match(sw,/dist\/game\.js\?v=9/);
   assert.match(sw,/render3d-clean\.js\?v=9/);
   assert.match(html,/dist\/game\.js\?v=9/);
-  assert.match(version,/MINI_FACTORIES_VERSION='2\.1\.17'/);
+  assert.match(version,/MINI_FACTORIES_VERSION='2\.1\.19'/);
 });
