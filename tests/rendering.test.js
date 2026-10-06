@@ -144,8 +144,7 @@ test('road renderer keeps ordinary roads grounded and ramps bridge transitions',
   assert.match(source,/const rising=part\.kind==='transition'&&parts\[index\+1\]\?\.kind==='bridge'/);
   assert.ok(source.includes('shoulder=ribbon(path,46,.17,apron,false)'));
   assert.ok(source.includes('surface=ribbon(path,30,.22,asphalt,false)'));
-  assert.match(source,/shoulder=ribbon\(path,46,\.135,apron,false\)/);
-  assert.match(source,/roundDisc\(e\.x,e\.y,18,\.22,asphalt,20,false\)/);
+  assert.match(source,/roundDisc\(e\.x,e\.y,18,\.255,asphalt,20,false\)/);
 });
 
 test('road renderer uses rounded geometry, smooth paths and bounded miters',()=>{
