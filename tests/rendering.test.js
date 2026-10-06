@@ -197,9 +197,9 @@ test('bridge state requires an actual river crossing',()=>{
 test('settings and changelog modals stay contained within mobile viewport',()=>{
   const css=readSource(new URL('../styles.css',import.meta.url));
   const settingsCss=css.slice(css.lastIndexOf('/* Settings modal mobile containment */'));
-  const mobileStart=settingsCss.indexOf('@media(max-width:700px)');
-  const landscapeStart=settingsCss.indexOf('@media (max-width:700px) and (orientation:landscape)');
-  const smallStart=settingsCss.indexOf('@media (max-width:390px)');
+  const mobileStart=settingsCss.indexOf('@media (max-width:700px){');
+  const landscapeStart=settingsCss.indexOf('@media (max-width:700px) and (orientation:landscape){');
+  const smallStart=settingsCss.indexOf('@media (max-width:390px){');
   const baseBlock=settingsCss.slice(0,mobileStart);
   const mobileBlock=settingsCss.slice(mobileStart,landscapeStart);
   const landscapeBlock=settingsCss.slice(landscapeStart,smallStart);
@@ -217,7 +217,6 @@ test('settings and changelog modals stay contained within mobile viewport',()=>{
   assert.match(boxMobile,/width:min\(380px,100%\)/);
   assert.match(boxMobile,/max-width:100%/);
   assert.match(boxMobile,/max-height:calc\(100dvh - env\(safe-area-inset-top\) - env\(safe-area-inset-bottom\) - 20px\)/);
-  assert.match(landscapeBlock,/@media \(max-width:700px\) and \(orientation:landscape\)/);
   assert.match(landscapeBlock,/#settingsMenu,#changeLogPage\{[^}]*inset:0/);
   assert.match(landscapeBlock,/#settingsMenu \.box,#changeLogPage \.box\{[^}]*width:min\(520px,100%\)/);
   assert.match(landscapeBlock,/#settingsMenu \.box,#changeLogPage \.box\{[^}]*max-width:100%/);
