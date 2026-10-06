@@ -73,7 +73,7 @@ test('editing a road endpoint preserves a valid topology and invalidates its der
 
 test('disconnected road components do not produce a lane route',()=>{
   const s=roadState();
-  const factory={id:'factory',x:-120,y:0,kind:'factory',r:25};
+  const factory={id:'factory',x:-120,y:-108,kind:'factory',r:25};
   const shop={id:'shop',x:120,y:200,kind:'shop',r:25};
   s.buildings=[factory,shop];
   assert.equal(addRoad(s,[{x:-120,y:0},{x:0,y:0}]),true);
@@ -337,7 +337,7 @@ test('topology revision is invalidated by road mutation without rebuilding persi
 
 test('routing exposes connected components and rejects disconnected endpoints before lane search',()=>{
   const s=roadState();
-  const a={id:'a',x:-120,y:0,kind:'factory',r:25};
+  const a={id:'a',x:-120,y:-108,kind:'factory',r:25};
   const b={id:'b',x:120,y:200,kind:'shop',r:25};
   s.buildings=[a,b];
   assert.equal(addRoad(s,[{x:-120,y:0},{x:0,y:0}]),true);
@@ -350,7 +350,7 @@ test('routing exposes connected components and rejects disconnected endpoints be
 
 test('routing carries the road-network revision and detects stale derived routes',()=>{
   const s=roadState();
-  const a={id:'a',x:-120,y:0,kind:'factory',r:25};
+  const a={id:'a',x:-120,y:-108,kind:'factory',r:25};
   const b={id:'b',x:120,y:99,kind:'shop',r:25};
   s.buildings=[a,b];
   assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
@@ -422,7 +422,7 @@ test('building placement command restores building list and cash on undo',()=>{
 
 test('route validation rejects stale lane IDs even when road revision and road IDs still match',()=>{
   const s=roadState();
-  const a={id:'a',x:-120,y:0,kind:'factory',r:25};
+  const a={id:'a',x:-120,y:-108,kind:'factory',r:25};
   const b={id:'b',x:120,y:99,kind:'shop',r:25};
   s.buildings=[a,b];
   assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
@@ -435,7 +435,7 @@ test('route validation rejects stale lane IDs even when road revision and road I
 
 test('truck update reroutes an active truck after a road revision instead of consuming cached route geometry',()=>{
   const s=roadState();
-  const factory={id:'factory',x:-120,y:0,kind:'factory',r:25,type:'Steel',level:1,stock:0,max:4,production:0,demand:0,served:0,satisfaction:0,loading:0,logistics:0,contract:null};
+  const factory={id:'factory',x:-120,y:-108,kind:'factory',r:25,type:'Steel',level:1,stock:0,max:4,production:0,demand:0,served:0,satisfaction:0,loading:0,logistics:0,contract:null};
   const shop={id:'shop',x:120,y:99,kind:'shop',r:25,type:'Market',level:1,stock:0,max:8,production:0,demand:3,served:0,satisfaction:100,loading:0,logistics:0,contract:null};
   s.buildings=[factory,shop];
   assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
@@ -481,7 +481,7 @@ test('truck update reroutes an active truck after a road revision instead of con
 
 test('truck update safely retires and returns cargo when a road mutation disconnects its route',()=>{
   const s=roadState();
-  const factory={id:'factory',x:-120,y:0,kind:'factory',r:25,type:'Steel',level:1,stock:0,max:4,production:0,demand:0,served:0,satisfaction:0,loading:0,logistics:0,contract:null};
+  const factory={id:'factory',x:-120,y:-108,kind:'factory',r:25,type:'Steel',level:1,stock:0,max:4,production:0,demand:0,served:0,satisfaction:0,loading:0,logistics:0,contract:null};
   const shop={id:'shop',x:120,y:99,kind:'shop',r:25,type:'Market',level:1,stock:0,max:8,production:0,demand:3,served:0,satisfaction:100,loading:0,logistics:0,contract:null};
   s.buildings=[factory,shop];
   assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
