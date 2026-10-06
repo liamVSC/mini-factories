@@ -1,3 +1,9 @@
+## v2.1.31 — 6 October 2026
+
+### Regression alignment
+- Updated remaining building logistics fixtures to use exterior gate-aligned positions.
+- Updated the central-version regression expectation.
+
 ## v2.1.30 — 6 October 2026
 
 ### TypeScript routing fix
