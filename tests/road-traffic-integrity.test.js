@@ -545,3 +545,17 @@ test('lane graph gives trucks one lane on each side of the carriageway',()=>{
   assert.match(source,/lateralOffset/);
   assert.match(source,/lanesPerDirection/);
 });
+
+
+test('building road attachments only accept the exterior yard gate',()=>{
+  const source=fs.readFileSync('src/world/buildings/connections.ts','utf8');
+  assert.match(source,/A building is never a valid road endpoint/);
+  assert.match(source,/reachesCanonicalGate = entranceDistance <= 12/);
+  assert.doesNotMatch(source,/pointInsideConnectionFootprint \/\//);
+});
+
+test('road routing starts and ends at exterior yard gates',()=>{
+  const source=fs.readFileSync('src/world/roads/routing.ts','utf8');
+  assert.match(source,/aa\.canonical&&aa\.entrance\?aa\.entrance/);
+  assert.match(source,/bb\.canonical&&bb\.entrance\?bb\.entrance/);
+});
