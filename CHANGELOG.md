@@ -1,3 +1,9 @@
+## v2.1.77 — 6 October 2026
+
+### Economy regression fixtures
+- Moved the direct factory-to-shop fixture onto the same valid road geometry used by the current building clearance rules.
+- Synchronized the published runtime and service-worker cache at v2.1.77.
+
 ## v2.1.76 — 6 October 2026
 
 ### Economy test hardening
