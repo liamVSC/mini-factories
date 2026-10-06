@@ -90,8 +90,8 @@ function junctionMesh(p:any,roadsAtPoint:number){
   // Keep the junction cover above the overlapping road ribbons so crossings
   // have one authoritative visible surface instead of coplanar depth fighting.
   return{
-    shoulder:roundDisc(p.x,p.y,radius+6,.135,shoulder,24),
-    surface:roundDisc(p.x,p.y,radius,.185,asphalt,24)
+    shoulder:roundDisc(p.x,p.y,radius+6,.135,shoulder,24,false),
+    surface:roundDisc(p.x,p.y,radius,.185,asphalt,24,false)
   };
 }
 function rebuildJunctionPatches(roads:any[]){const out:any[]=[];for(const p of roadJunctions(roads)){const j=junctionMesh(p,p.degree);out.push(j.shoulder,j.surface);}return out;}
