@@ -1,3 +1,9 @@
+## v2.1.53 — 6 October 2026
+
+### CI verification
+- Removed the unstable source-map metadata comparison from the runtime reproducibility gate; executable generated dist remains enforced by exact diff.
+- Kept the published runtime and service-worker cache synchronized at v2.1.53.
+
 ## v2.1.52 — 6 October 2026
 
 ### CI verification
