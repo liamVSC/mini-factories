@@ -1,8 +1,8 @@
+const boundContexts = new WeakSet();
 export function bindLifecycle(ctx, loop) {
-    let bound = false;
-    if (bound)
+    if (boundContexts.has(ctx))
         return;
-    bound = true;
+    boundContexts.add(ctx);
     window.addEventListener('pagehide', loop.suspend, { capture: true });
     window.addEventListener('beforeunload', () => ctx.save(true), { capture: true });
     document.addEventListener('visibilitychange', () => {
