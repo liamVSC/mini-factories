@@ -1,3 +1,10 @@
+## v2.1.72 — 6 October 2026
+
+### CI verification
+- Scoped generated-runtime reproducibility to the three published browser entry bundles used by the PWA.
+- Kept non-runtime source-map metadata out of the runtime gate.
+- Synchronized the published runtime and service-worker cache at v2.1.72.
+
 ## v2.1.71 — 6 October 2026
 
 ### CI verification
