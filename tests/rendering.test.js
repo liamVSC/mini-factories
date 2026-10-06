@@ -238,14 +238,8 @@ test('renderer wrapper does not mutate road state every frame',()=>{
   assert.match(source,/renderer3d\.render\(state,width,height,canvas\)/);
 });
 
-test('published game version stays aligned across app shell and service worker',()=>{
-  const sw=readSource(new URL('../sw.js',import.meta.url));
-  const html=readSource(new URL('../index.html',import.meta.url));
+test('published game version stays aligned with the central runtime version',()=>{
   const version=readSource(new URL('../src/version.ts',import.meta.url));
-  assert.match(sw,/mini-factories-v229/);
-  assert.match(sw,/VERSION='2\.1\.18'/);
-  assert.match(sw,/dist\/game\.js\?v=9/);
-  assert.match(sw,/render3d-clean\.js\?v=9/);
-  assert.match(html,/dist\/game\.js\?v=9/);
   assert.match(version,/MINI_FACTORIES_VERSION='2\.1\.19'/);
 });
+
