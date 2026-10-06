@@ -1085,7 +1085,7 @@ test('junction traffic distinguishes straight-through movement from turning move
 test('factory to shop remains direct when no warehouse is present',()=>{
   const s=baseState();
   const f=building('Food',0,0);
-  const shop=building('Market',220,0);
+  const shop=building('Market',360,0);
   f.stock=3;shop.demand=3;
   s.buildings.push(f,shop);
   const factoryGate=buildingModule.buildingRoadEntrance(f);
