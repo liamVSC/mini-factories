@@ -1,3 +1,9 @@
+## v2.1.63 — 6 October 2026
+
+### CI verification
+- Replaced the stale-lockfile `npm ci` step with the project’s working package-manifest install command.
+- Synchronized the published runtime and service-worker cache at v2.1.63.
+
 ## v2.1.62 — 6 October 2026
 
 ### CI verification
