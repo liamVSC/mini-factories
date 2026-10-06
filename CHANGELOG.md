@@ -1,3 +1,9 @@
+## v2.1.75 — 6 October 2026
+
+### CI verification
+- Removed stale entry-file existence checks for generated files no longer emitted by the current build while retaining the tracked runtime verification.
+- Synchronized the published runtime and service-worker cache at v2.1.75.
+
 ## v2.1.74 — 6 October 2026
 
 ### CI verification
