@@ -1,6 +1,7 @@
 ## v2.1.41 — 6 October 2026
 
 ### Release assertions
+- Hardened GitHub Actions dependency installation and browser-runtime verification so CI does not mutate `main` during its own run.
 - Updated the final central and published-version regression expectations.
 
 ## v2.1.40 — 6 October 2026
