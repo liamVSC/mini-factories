@@ -240,6 +240,6 @@ test('renderer wrapper does not mutate road state every frame',()=>{
 
 test('published game version stays aligned with the central runtime version',()=>{
   const version=readSource(new URL('../src/version.ts',import.meta.url));
-  assert.match(version,/MINI_FACTORIES_VERSION='2\.1\.19'/);
+  assert.match(version,/MINI_FACTORIES_VERSION='2\.1\.20'/);
 });
 
