@@ -39,7 +39,7 @@ export function ribbon(points:Array<{x:number;y:number}>,width:number,y:number|n
 }
 function roundDisc(x:number,z:number,radius:number,y:number,mat:any,segments=20,receiveShadow=true){const g=new THREE.Mesh(new THREE.CircleGeometry(radius,segments),mat);g.rotation.x=-Math.PI/2;g.position.set(x,y,z);g.receiveShadow=receiveShadow;g.renderOrder=2.05;return g;}
 function roadCaps(points:Array<{x:number;y:number}>,roadWidth:number,shoulderWidth:number,y:number,shoulderY:number,asphalt:any,shoulder:any){
-  if(points.length<2)return[];const out:any[]=[];for(const p of[points[0],points.at(-1)!]){out.push(roundDisc(p.x,p.y,shoulderWidth/2,shoulderY,shoulder,20,false),roundDisc(p.x,p.y,roadWidth/2,y,asphalt,20,false));}return out;
+  if(points.length<2)return[];const out:any[]=[];for(const p of[points[0],points.at(-1)!]){out.push(roundDisc(p.x,p.y,shoulderWidth/2,shoulderY+.025,shoulder,20,false),roundDisc(p.x,p.y,roadWidth/2,y+.035,asphalt,20,false));}return out;
 }
 function centerRoadMarkings(points:Array<{x:number;y:number}>,y:number|number[],mat:any){
   const out:any[]=[];for(let i=0;i<points.length-1;i++){const a=points[i],b=points[i+1],len=Math.hypot(b.x-a.x,b.y-a.y),dash=14,gap=10,count=Math.max(1,Math.floor(len/(dash+gap)));
@@ -62,7 +62,7 @@ function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['ki
   const shoulderY=isBridge?.52:isTransition?transitionHeights(points.length,.12,rising?.52:.12):.12;
   const asphaltY=isBridge?.72:isTransition?transitionHeights(points.length,.16,rising?.72:.16):.16;
   const markY=isBridge?.9:isTransition?transitionHeights(points.length,.24,rising?.9:.24):.24;
-  const sh=ribbon(points,shoulderWidth,shoulderY,shoulder,false),surf=ribbon(points,roadWidth,asphaltY,asphalt,false);if(sh)g.add(sh);if(surf)g.add(surf);
+  const sh=ribbon(points,shoulderWidth,shoulderY,shoulder,false),surf=ribbon(points,roadWidth,asphaltY,asphalt,false);if(sh){sh.position.y+=.015;g.add(sh);}if(surf){surf.position.y+=.035;g.add(surf);}
   if(addCaps){
     for(const cap of roadCaps(points,roadWidth,shoulderWidth,(Array.isArray(asphaltY)?asphaltY.at(-1)??.16:asphaltY)+.01,(Array.isArray(shoulderY)?shoulderY.at(-1)??.12:shoulderY)+.01,asphalt,shoulder))g.add(cap);
   }
@@ -90,14 +90,14 @@ function junctionMesh(p:any,roadsAtPoint:number){
   // Keep the junction cover above the overlapping road ribbons so crossings
   // have one authoritative visible surface instead of coplanar depth fighting.
   return{
-    shoulder:roundDisc(p.x,p.y,radius+6,.135,shoulder,24,false),
-    surface:roundDisc(p.x,p.y,radius,.185,asphalt,24,false)
+    shoulder:roundDisc(p.x,p.y,radius+6,.17,shoulder,24,false),
+    surface:roundDisc(p.x,p.y,radius,.22,asphalt,24,false)
   };
 }
 function rebuildJunctionPatches(roads:any[]){const out:any[]=[];for(const p of roadJunctions(roads)){const j=junctionMesh(p,p.degree);out.push(j.shoulder,j.surface);}return out;}
 export function roadYardTransitions(s:any){const out:any[]=[];const asphalt=material('#353b3c',.92),apron=material('#777d78',.98),seen=new Set<string>();
   for(const building of s.buildings||[]){const attachment=buildingRoadAttachment(s,building);if(!attachment?.roadPoint||!attachment?.entrance)continue;const a=attachment.roadPoint,e=attachment.entrance,key=building.id+':'+a.x.toFixed(1)+','+a.y.toFixed(1);if(seen.has(key))continue;seen.add(key);
-    const mid={x:(a.x+e.x)/2,y:(a.y+e.y)/2},path=[a,mid,e],shoulder=ribbon(path,46,.135,apron,false),surface=ribbon(path,30,.185,asphalt,false);if(shoulder)out.push(shoulder);if(surface)out.push(surface);out.push(roundDisc(e.x,e.y,18,.22,asphalt,20,false));
+    const mid={x:(a.x+e.x)/2,y:(a.y+e.y)/2},path=[a,mid,e],shoulder=ribbon(path,46,.17,apron,false),surface=ribbon(path,30,.22,asphalt,false);if(shoulder)out.push(shoulder);if(surface)out.push(surface);out.push(roundDisc(e.x,e.y,18,.255,asphalt,20,false));
   }return out;
 }
 export function buildRoadGroup(roads:any[],state:any){
