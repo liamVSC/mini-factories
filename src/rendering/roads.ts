@@ -58,7 +58,9 @@ function bridgeRouteSegments(points:Array<{x:number;y:number}>):RoadMeshPart[]{
 function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['kind'],materials:any,addCaps=false){
   const {asphalt,shoulder,line,curb}=materials,g=new THREE.Group(),isBridge=kind==='bridge',isTransition=kind==='transition',roadWidth=isBridge?27:28,shoulderWidth=isBridge?30:36,shoulderY=isBridge?.52:isTransition?.56:.58,asphaltY=isBridge?.72:isTransition?.74:.69,markY=isBridge?.9:isTransition?.88:.86;
   const sh=ribbon(points,shoulderWidth,shoulderY,shoulder),surf=ribbon(points,roadWidth,asphaltY,asphalt);if(sh)g.add(sh);if(surf)g.add(surf);
-  if(addCaps)for(const cap of roadCaps(points,roadWidth,shoulderWidth,asphaltY,shoulderY,asphalt,shoulder))g.add(cap);
+  if(addCaps){
+    for(const cap of roadCaps(points,roadWidth,shoulderWidth,asphaltY+.025,shoulderY+.025,asphalt,shoulder))g.add(cap);
+  }
   if(!isBridge&&!isTransition){for(const side of[-1,1]){const c=ribbon(offsetPolyline(points,side*14),1.1,.82,curb);if(c)g.add(c);}for(const m of centerRoadMarkings(points,markY,line))g.add(m);for(const m of edgeRoadMarkings(points,.89,line))g.add(m);}
   else if(isBridge){for(const m of centerRoadMarkings(points,markY,line))g.add(m);for(const side of[-1,1])for(let i=0;i<points.length-1;i++){const a=points[i],b=points[i+1],dx=b.x-a.x,dz=b.y-a.y,l=Math.hypot(dx,dz)||1;box(g,l,.7,.8,materials.rail,(a.x+b.x)/2-(dz/l)*side*16,2.3,(a.y+b.y)/2+(dx/l)*side*16,-Math.atan2(dz,dx));}}
   return g;
@@ -77,7 +79,16 @@ function roadJunctions(roads:any[]){const clusters:any[]=[];
     }
   }return clusters.map(v=>({x:v.x,y:v.y,degree:v.roads.size}));
 }
-function junctionMesh(p:any,roadsAtPoint:number){const asphalt=material('#353b3c',.92),shoulder=material('#6b7370',.98),degree=Math.max(3,roadsAtPoint||3),radius=degree>=4?24:20;return{shoulder:roundDisc(p.x,p.y,radius+6,.56,shoulder,24),surface:roundDisc(p.x,p.y,radius,.76,asphalt,24)};}
+function junctionMesh(p:any,roadsAtPoint:number){
+  const asphalt=material('#353b3c',.92),shoulder=material('#6b7370',.98);
+  const degree=Math.max(3,roadsAtPoint||3),radius=degree>=4?24:20;
+  // Keep the junction cover above the overlapping road ribbons so crossings
+  // have one authoritative visible surface instead of coplanar depth fighting.
+  return{
+    shoulder:roundDisc(p.x,p.y,radius+6,.63,shoulder,24),
+    surface:roundDisc(p.x,p.y,radius,.79,asphalt,24)
+  };
+}
 function rebuildJunctionPatches(roads:any[]){const out:any[]=[];for(const p of roadJunctions(roads)){const j=junctionMesh(p,p.degree);out.push(j.shoulder,j.surface);}return out;}
 export function roadYardTransitions(s:any){const out:any[]=[];const asphalt=material('#353b3c',.92),apron=material('#777d78',.98),seen=new Set<string>();
   for(const building of s.buildings||[]){const attachment=buildingRoadAttachment(s,building);if(!attachment?.roadPoint||!attachment?.entrance)continue;const a=attachment.roadPoint,e=attachment.entrance,key=building.id+':'+a.x.toFixed(1)+','+a.y.toFixed(1);if(seen.has(key))continue;seen.add(key);
