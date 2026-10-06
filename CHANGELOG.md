@@ -1,3 +1,8 @@
+## v2.1.37 — 6 October 2026
+
+### Release regression alignment
+- Updated final central and published-version regression expectations.
+
 ## v2.1.36 — 6 October 2026
 
 ### Core routing fixtures
