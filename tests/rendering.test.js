@@ -122,30 +122,9 @@ test('road snapping recognizes the canonical gate',()=>{
   }
 });
 
-test('road renderer contains explicit anti-z-fighting surface layers and caps',()=>{
-  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
-  assert.match(source,/shoulderY=isBridge\?\.52:isTransition\?transitionHeights\(points\.length,\.12,rising\?\.52:\.12\):\.12/);
-  assert.match(source,/asphaltY=isBridge\?\.72:isTransition\?transitionHeights\(points\.length,\.16,rising\?\.72:\.16\):\.16/);
-  assert.match(source,/markY=isBridge\?\.9:isTransition\?transitionHeights\(points\.length,\.24,rising\?\.9:\.24\):\.24/);
-  assert.match(source,/asphaltY\.at\(-1\).*\.01/);
-  assert.ok(source.includes('ribbon(offsetPolyline(points,side*14),1.1,.21,curb,false)') || source.includes('ribbon(offsetPolyline(points,side*14),1.1,.21,curb)'));
-  assert.match(source,/renderOrder=2\.05/);
-  assert.match(source,/receiveShadow=true/);
-  assert.ok(source.includes('shoulderY,shoulder,false),surf=ribbon(points,roadWidth,asphaltY,asphalt,false)'));
-  assert.ok(source.includes('shoulder:roundDisc(p.x,p.y,radius+6,.17,shoulder,24,false)'));
-  assert.ok(source.includes('surface:roundDisc(p.x,p.y,radius,.22,asphalt,24,false)'));
-});
+test('road renderer builds the requested carriageway and roadside profile',()=>{ const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url)); assert.match(source,/roadWidth=30,roadHalfWidth=15,curbWidth=1\.4,sidewalkWidth=15/); assert.match(source,/sidewalkStrips/); assert.match(source,/curbY=isBridge/); assert.match(source,/centerRoadMarkings/); assert.doesNotMatch(source,/edgeRoadMarkings/); assert.doesNotMatch(source,/shoulderWidth/); assert.doesNotMatch(source,/shoulderY/); });
 
-test('road renderer keeps ordinary roads grounded and ramps bridge transitions',()=>{
-  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
-  assert.match(source,/transitionHeights\(count:number,start:number,end:number\)/);
-  assert.ok(source.includes('ribbon(points,shoulderWidth,shoulderY,shoulder,false)'));
-  assert.ok(source.includes('ribbon(points,roadWidth,asphaltY,asphalt,false)'));
-  assert.match(source,/const rising=part\.kind==='transition'&&parts\[index\+1\]\?\.kind==='bridge'/);
-  assert.ok(source.includes('shoulder=ribbon(path,46,.17,apron,false)'));
-  assert.ok(source.includes('surface=ribbon(path,30,.22,asphalt,false)'));
-  assert.match(source,/roundDisc\(e\.x,e\.y,18,\.255,asphalt,20,false\)/);
-});
+test('road renderer keeps junction sidewalks without a giant road slab',()=>{ const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url)); assert.match(source,/function junctionMesh/); assert.match(source,/const inner=16\.4,outer=31\.4,segments=24/); assert.match(source,/geometry\.setIndex/); assert.doesNotMatch(source,/shoulder:roundDisc/); assert.doesNotMatch(source,/surface:roundDisc/); });
 
 test('road renderer uses rounded geometry, smooth paths and bounded miters',()=>{
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
