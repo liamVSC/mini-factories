@@ -95,7 +95,7 @@ export function ribbon(points, width, y, mat, receiveShadow = true) {
         verts.push(left[i].x, h, left[i].y, right[i].x, h, right[i].y);
         if (i) {
             const q = (i - 1) * 2, r = i * 2;
-            idx.push(q, q + 1, r, r, r + 1, q + 1);
+            idx.push(q, r, q + 1, q + 1, r, r + 1);
         }
     }
     const geo = new THREE.BufferGeometry();
