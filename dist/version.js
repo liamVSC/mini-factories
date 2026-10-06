@@ -1,6 +1,6 @@
 // Single source of truth for the currently published game version.
-// v2.1.53: audit and harden lifecycle binding, gate-only road endpoints, and generated-runtime verification and CI synchronization.
-globalThis.MINI_FACTORIES_VERSION = '2.1.51';
+// v2.1.54: audit and harden lifecycle binding, gate-only road endpoints, and generated-runtime verification and CI synchronization.
+globalThis.MINI_FACTORIES_VERSION = '2.1.54';
 globalThis.MINI_FACTORIES_VERSION_DATE = '6 Oct 2026';
 export {};
 //# sourceMappingURL=version.js.map

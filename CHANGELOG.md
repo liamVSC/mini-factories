@@ -1,3 +1,10 @@
+## v2.1.54 — 6 October 2026
+
+### Economy and test integrity
+- Restored direct factory-to-shop delivery when a warehouse is connected to the factory but cannot reach the shop.
+- Fixed stale version assertions and the malformed rendering version test.
+- Synchronized the central runtime version and service-worker cache.
+
 ## v2.1.53 — 6 October 2026
 
 ### CI verification

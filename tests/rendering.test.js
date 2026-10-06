@@ -257,9 +257,8 @@ test('renderer wrapper does not mutate road state every frame',()=>{
 
 test('published game version stays aligned with the central runtime version',()=>{
   const version=readSource(new URL('../src/version.ts',import.meta.url));
-  assert.match(version,new RegExp(`MINI_FACTORIES_VERSION='${globalThis.MINI_FACTORIES_VERSION.replace(/[.*+?^${}()|[\]\\]/g,'\\  assert.match(version,/MINI_FACTORIES_VERSION='2.1.44'/);')}'`));
+  assert.ok(version.includes(`globalThis.MINI_FACTORIES_VERSION='${globalThis.MINI_FACTORIES_VERSION}'`));
 });
-
 
 
 test('truck renderer follows the derived directional lane route instead of the road centreline',()=>{
