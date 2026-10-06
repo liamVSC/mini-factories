@@ -46,7 +46,7 @@ function centerRoadMarkings(points:Array<{x:number;y:number}>,y:number|number[],
     for(let n=0;n<count;n++){const s=n*(dash+gap),e=Math.min(len,s+dash);if(e<=s)continue;const t0=s/len,t1=e/len,p0={x:a.x+(b.x-a.x)*t0,y:a.y+(b.y-a.y)*t0},p1={x:a.x+(b.x-a.x)*t1,y:a.y+(b.y-a.y)*t1},h0=Array.isArray(y)?((y[i]??y.at(-1)??0)*(1-t0)+(y[i+1]??y.at(-1)??0)*t0):y,h1=Array.isArray(y)?((y[i]??y.at(-1)??0)*(1-t1)+(y[i+1]??y.at(-1)??0)*t1):y,m=ribbon([p0,p1],.8,[h0,h1],mat,false);if(m)out.push(m);}
   }return out;
 }
-function sidewalkStrips(points:Array<{x:number;y:number}>,roadHalfWidth:number,curbWidth:number,sidewalkWidth:number,y:number,mat:any){
+function sidewalkStrips(points:Array<{x:number;y:number}>,roadHalfWidth:number,curbWidth:number,sidewalkWidth:number,y:any,mat:any){
   const out:any[]=[];
   const inner=roadHalfWidth+curbWidth;
   const center=inner+sidewalkWidth/2;
