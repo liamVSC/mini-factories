@@ -194,6 +194,14 @@ test('bridge state requires an actual river crossing',()=>{
   assert.equal(segmentCrossesRiver({x:0,y:300},{x:0,y:550}),true);
 });
 
+test('settings and changelog modals stay contained within mobile viewport',()=>{
+  const css=readSource(new URL('../styles.css',import.meta.url));
+  assert.match(css,/#settingsMenu,#changeLogPage\\{position:fixed;inset:0;width:100vw;max-width:100vw;height:100dvh/);
+  assert.match(css,/#settingsMenu \.box,#changeLogPage \.box\\{box-sizing:border-box;position:relative;left:auto;right:auto;top:auto;bottom:auto;transform:none/);
+  assert.match(css,/@media \\(max-width:700px\\) and \\(orientation:landscape\\)\\{/);
+  assert.match(css,/#settingsMenu \.box,#changeLogPage \.box\\{width:min\\(520px,100%\\);max-width:100%;max-height:calc\\(100dvh - 16px\\)/);
+});
+
 test('mobile lifecycle, viewport and WebGL recovery remain guarded',()=>{
   const lifecycle=readSource(new URL('../src/game/loop.ts',import.meta.url))+'\n'+readSource(new URL('../src/game/lifecycle.ts',import.meta.url));
   const camera=readSource(new URL('../src/game/camera.ts',import.meta.url))+'\n'+readSource(new URL('../src/game/input.ts',import.meta.url));
