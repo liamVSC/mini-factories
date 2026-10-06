@@ -512,17 +512,6 @@ function addToWarehouse(warehouse, type, n) {
 function dispatchTruck(s, { route, source, destination, cargo, cargoType = source?.type, contractId = 0, longDistance = false, valuePerUnit = 0, stage = 'delivery' }) {
     if (!route || !cargo)
         return false;
-    // Fresh routes are generated from the live road graph immediately before
-    // dispatch. Lane IDs are derived metadata, so validate the authoritative
-    // road revision and stable road references here rather than rejecting a
-    // fresh route because an equivalent graph materialisation numbered lanes
-    // differently.
-    const routeRevision = Number(route.roadNetworkRevision);
-    if (!Number.isFinite(routeRevision) || routeRevision !== (Number(s.roadNetworkRevision) || 0))
-        return false;
-    const liveRoadIds = new Set((s.roads || []).map((road) => road?.id).filter(Boolean));
-    if (!Array.isArray(route.laneRoadIds) || !route.laneRoadIds.length || route.laneRoadIds.some((id) => !id || !liveRoadIds.has(id)))
-        return false;
     // Keep the simulation bounded under sustained demand. Finished trucks are
     // removed each tick, so this only limits genuinely in-flight congestion.
     if ((s.trucks || []).length >= 80)
@@ -705,39 +694,13 @@ export function updateEconomy(s, dt, flash) {
         if (Number.isFinite(Number(t.routeNetworkRevision)) && Number(t.routeNetworkRevision) !== (Number(s.roadNetworkRevision) || 0))
             t.routeInvalidated = true;
         // Lane IDs are derived metadata rather than persistent road identifiers.
-        // If graph materialisation re-numbers an otherwise live lane, remap it
-        // using the stable road ID plus direction/lane index. A genuinely stale or
-        // missing lane still invalidates the route and follows the normal reroute
-        // path.
-        if (!t.routeInvalidated && Array.isArray(t.laneIds) && t.laneIds.length && Array.isArray(t.laneRoadIds)) {
-            const remapped = [];
-            let canRemap = t.laneIds.length === t.laneRoadIds.length;
-            if (canRemap) {
-                for (let i = 0; i < t.laneIds.length; i++) {
-                    const oldLane = laneGraph?.lanesById.get(t.laneIds[i]);
-                    const roadId = t.laneRoadIds[i];
-                    if (!roadId) {
-                        canRemap = false;
-                        break;
-                    }
-                    const replacement = laneGraph?.lanes.find((lane) => lane.roadId === roadId &&
-                        (!oldLane || lane.reverse === oldLane.reverse) &&
-                        (!oldLane || lane.laneIndex === oldLane.laneIndex));
-                    if (!replacement) {
-                        canRemap = false;
-                        break;
-                    }
-                    remapped.push(replacement.id);
-                }
-            }
-            if (canRemap) {
-                t.laneIds = remapped;
-                t.currentLaneIndex = Math.min(remapped.length - 1, Math.max(0, t.currentLaneIndex || 0));
-                t.currentLaneId = remapped[t.currentLaneIndex] || null;
-            }
-            else {
+        // A fresh route may legitimately carry a lane ID whose derived graph
+        // materialisation maps it to another equivalent road edge. Only a missing
+        // lane ID is enough to prove the cached route is stale; the authoritative
+        // road revision remains the mutation invalidation boundary.
+        if (!t.routeInvalidated && Array.isArray(t.laneIds) && t.laneIds.length) {
+            if (t.laneIds.some((id) => !laneGraph?.lanesById.has(id)))
                 t.routeInvalidated = true;
-            }
         }
         // Road deletion can invalidate a live truck route. Re-route from the
         // truck's current physical position when an alternate network path exists.
