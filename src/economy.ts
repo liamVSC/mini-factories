@@ -587,9 +587,35 @@ export function updateEconomy(s: any, dt: any, flash: any){
     // network, preventing stale lane transitions after edits/junction changes.
     if(Number.isFinite(Number(t.routeNetworkRevision))&&Number(t.routeNetworkRevision)!==(Number(s.roadNetworkRevision)||0))t.routeInvalidated=true;
     // Lane IDs are derived metadata rather than persistent road identifiers.
-    // The road-network revision is the authoritative invalidation boundary;
-    // do not repeatedly invalidate a live route merely because an equivalent
-    // lane graph assigned different derived IDs.
+    // If graph materialisation re-numbers an otherwise live lane, remap it
+    // using the stable road ID plus direction/lane index. A genuinely stale or
+    // missing lane still invalidates the route and follows the normal reroute
+    // path.
+    if(!t.routeInvalidated&&Array.isArray(t.laneIds)&&t.laneIds.length&&Array.isArray(t.laneRoadIds)){
+      const remapped:string[]=[];
+      let canRemap=t.laneIds.length===t.laneRoadIds.length;
+      if(canRemap){
+        for(let i=0;i<t.laneIds.length;i++){
+          const oldLane=laneGraph?.lanesById.get(t.laneIds[i]);
+          const roadId=t.laneRoadIds[i];
+          if(!roadId){canRemap=false;break;}
+          const replacement=laneGraph?.lanes.find((lane:any)=>
+            lane.roadId===roadId&&
+            (!oldLane||lane.reverse===oldLane.reverse)&&
+            (!oldLane||lane.laneIndex===oldLane.laneIndex)
+          );
+          if(!replacement){canRemap=false;break;}
+          remapped.push(replacement.id);
+        }
+      }
+      if(canRemap){
+        t.laneIds=remapped;
+        t.currentLaneIndex=Math.min(remapped.length-1,Math.max(0,t.currentLaneIndex||0));
+        t.currentLaneId=remapped[t.currentLaneIndex]||null;
+      }else{
+        t.routeInvalidated=true;
+      }
+    }
     // Road deletion can invalidate a live truck route. Re-route from the
     // truck's current physical position when an alternate network path exists.
     // If the endpoints are now disconnected, safely return the cargo instead
