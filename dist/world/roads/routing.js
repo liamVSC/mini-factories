@@ -52,7 +52,7 @@ export function routeOnRoadNetwork(s, a, b) {
     const network = roadNetwork(s, [startPoint, endPoint]), start = nearestGraphNode(network, startPoint), end = nearestGraphNode(network, endPoint);
     if (!start || !end)
         return null;
-    const components = componentIndex(network), startComponent = components.get(start), laneGraph = buildLaneGraph(network, { lanesPerDirection: 2 }), roadResult = shortestRoadPath(network, start, end);
+    const components = componentIndex(network), startComponent = components.get(start), laneGraph = buildLaneGraph(network, { lanesPerDirection: 1 }), roadResult = shortestRoadPath(network, start, end);
     if (!roadResult?.path || roadResult.path.length < 2)
         return null;
     const laneResult = findLaneRoute(laneGraph, start, end);
