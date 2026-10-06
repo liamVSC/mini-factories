@@ -41,18 +41,18 @@ export function routeNetworkValid(state, route) {
     const roadIds = new Set(state.roads.map(road => road?.id).filter(Boolean));
     if (!route.laneRoadIds.every(id => !!id && roadIds.has(id)))
         return false;
-    const laneGraph = buildLaneGraph(roadNetwork(state), { lanesPerDirection: 2 });
+    const laneGraph = buildLaneGraph(roadNetwork(state), { lanesPerDirection: 1 });
     return route.laneIds.every((id, index) => { const lane = laneGraph.lanesById.get(id); return !!lane && lane.roadId === route.laneRoadIds[index]; });
 }
 export function routeOnRoadNetwork(s, a, b) {
     const aa = buildingRoadAttachment(s, a), bb = buildingRoadAttachment(s, b);
     if (!aa || !bb)
         return null;
-    const startPoint = aa.roadPoint || aa.point, endPoint = bb.roadPoint || bb.point, startGate = aa.canonical ? aa.entrance || aa.point : startPoint, endGate = bb.canonical ? bb.entrance || bb.point : endPoint;
+    const startPoint = aa.canonical && aa.entrance ? aa.entrance : aa.roadPoint, endPoint = bb.canonical && bb.entrance ? bb.entrance : bb.roadPoint, startGate = startPoint, endGate = endPoint;
     const network = roadNetwork(s, [startPoint, endPoint]), start = nearestGraphNode(network, startPoint), end = nearestGraphNode(network, endPoint);
     if (!start || !end)
         return null;
-    const components = componentIndex(network), startComponent = components.get(start), laneGraph = buildLaneGraph(network, { lanesPerDirection: 2 }), roadResult = shortestRoadPath(network, start, end);
+    const components = componentIndex(network), startComponent = components.get(start), laneGraph = buildLaneGraph(network, { lanesPerDirection: 1 }), roadResult = shortestRoadPath(network, start, end);
     if (!roadResult?.path || roadResult.path.length < 2)
         return null;
     const laneResult = findLaneRoute(laneGraph, start, end);
@@ -69,7 +69,7 @@ export function routeOnRoadNetwork(s, a, b) {
         }
     const yardPath = (building, fromGateToDock = false) => { const dock = buildingPrimaryDock(building), entrance = buildingRoadEntrance(building); if (!dock || !entrance)
         return []; const turnX = dock.point.x + ((dock.normal?.y || 0) > 0 ? 48 : -48), midY = (entrance.y + dock.approach.y) / 2, turn = { x: turnX, y: midY }; return fromGateToDock ? [{ x: entrance.x, y: entrance.y }, turn, { x: dock.approach.x, y: dock.approach.y }] : [{ x: dock.approach.x, y: dock.approach.y }, turn, { x: entrance.x, y: entrance.y }]; };
-    const startYard = aa.canonical ? yardPath(a, false) : [], endYard = bb.canonical ? yardPath(b, true) : [], startGateConnector = aa.canonical && dist(startGate, startPoint) > .01 ? [startGate, startPoint] : [], endGateConnector = bb.canonical && dist(endGate, endPoint) > .01 ? [endPoint, endGate] : [], combined = [...startYard, ...startGateConnector, ...routePoints, ...endGateConnector, ...endYard], combinedPoints = combined.filter((p, i) => i === 0 || dist(p, combined[i - 1]) > .01), yardDistance = length(startYard) + length(endYard);
+    const startYard = aa.canonical ? yardPath(a, false) : [], endYard = bb.canonical ? yardPath(b, true) : [], combined = [...startYard, ...routePoints, ...endYard], combinedPoints = combined.filter((p, i) => i === 0 || dist(p, combined[i - 1]) > .01), yardDistance = length(startYard) + length(endYard);
     return { points: combinedPoints, distance: Math.max(0, routeDistance + yardDistance), networkDistance: routeDistance, yardDistance: Math.max(0, yardDistance), laneIds, laneRoadIds: laneIds.map(id => laneGraph.lanesById.get(id)?.roadId || null), graphNodeCount: network.nodes.length, laneCount: laneGraph.lanes.length, lanePoints, laneTransitions: laneGeometry.transitions, start: { x: startPoint.x, y: startPoint.y }, end: { x: endPoint.x, y: endPoint.y }, startYard: startYard.map(p => ({ ...p })), endYard: endYard.map(p => ({ ...p })), roadNetworkRevision: Math.max(0, Math.floor(Number(s.roadNetworkRevision) || 0)), componentId: startComponent === undefined ? null : startComponent };
 }
 export function roadPath(s, a, b) { if (!finitePoint(a) || !finitePoint(b))

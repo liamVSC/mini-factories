@@ -204,8 +204,20 @@ function trafficConflict(s, t, network, laneGraph, controls) {
         const q = truckMovementPoint(o);
         if (!q)
             continue;
-        if (o.routeKey === t.routeKey && o.t > t.t && dist(p, q) < 34)
-            return true;
+        const separation = dist(p, q);
+        if (separation < 24) {
+            // Hard physical safety envelope: delivery and return trips may share the
+            // same road network but must never occupy the same space. Do this before
+            // junction logic so opposing-direction trucks are stopped as well.
+            const otherProgress = Number.isFinite(o.t) ? o.t : 0;
+            const sameRoute = o.routeKey === t.routeKey;
+            const sameDirection = sameRoute && Math.abs(otherProgress - (Number.isFinite(t.t) ? t.t : 0)) < 0.18;
+            const otherIsAhead = sameRoute && otherProgress > (Number.isFinite(t.t) ? t.t : 0);
+            if (sameDirection || otherIsAhead || String(o.id).localeCompare(String(t.id)) < 0)
+                return true;
+            if (separation < 12)
+                return true;
+        }
     }
     controls = controls || buildJunctionControls(network, laneGraph);
     const controlRoute = t.centerlineRoute || t.route;
@@ -663,7 +675,7 @@ export function updateEconomy(s, dt, flash) {
         f.dispatchTimer = 0;
     }
     const trafficNetwork = roadNetwork(s);
-    const laneGraph = trafficNetwork?.edges?.length ? buildLaneGraph(trafficNetwork, { lanesPerDirection: 2 }) : null;
+    const laneGraph = trafficNetwork?.edges?.length ? buildLaneGraph(trafficNetwork, { lanesPerDirection: 1 }) : null;
     const junctionControls = trafficNetwork && laneGraph ? buildJunctionControls(trafficNetwork, laneGraph) : null;
     for (const t of s.trucks) {
         // Buildings are live state, not stable object identities. If a building
