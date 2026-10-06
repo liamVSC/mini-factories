@@ -1,3 +1,9 @@
+## v2.1.79 — 6 October 2026
+
+### CI verification
+- Excluded intentionally generated `dist` output from the source working-tree cleanliness assertion after build/test execution.
+- Synchronized the central runtime version and service-worker cache at v2.1.79.
+
 ## v2.1.78 — 6 October 2026
 
 ### Economy regression hardening
