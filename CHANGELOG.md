@@ -1,3 +1,9 @@
+## v2.1.68 — 6 October 2026
+
+### CI verification
+- Switched the generated JavaScript reproducibility gate to explicit Git pathspec exclusions for source maps.
+- Synchronized the published runtime and service-worker cache at v2.1.68.
+
 ## v2.1.67 — 6 October 2026
 
 ### CI verification
