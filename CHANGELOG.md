@@ -1,3 +1,9 @@
+## v2.1.66 — 6 October 2026
+
+### CI diagnostics
+- Added the exact executable `dist` path list to the reproducibility failure output.
+- Synchronized the published runtime and service-worker cache at v2.1.66.
+
 ## v2.1.65 — 6 October 2026
 
 ### CI verification
