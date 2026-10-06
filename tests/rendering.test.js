@@ -124,11 +124,22 @@ test('road snapping recognizes the canonical gate',()=>{
 
 test('road renderer contains explicit anti-z-fighting surface layers and caps',()=>{
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
-  assert.match(source,/shoulderY=isBridge\?\.52:isTransition\?\.56:\.58/);
-  assert.match(source,/asphaltY=isBridge\?\.72:isTransition\?\.74:\.69/);
-  assert.match(source,/markY=isBridge\?\.9:isTransition\?\.88:\.86/);
-  assert.match(source,/asphaltY\+\.025,shoulderY\+\.025/);
+  assert.match(source,/shoulderY=isBridge\?\.52:isTransition\?transitionHeights\(points\.length,\.12,rising\?\.52:\.12\):\.12/);
+  assert.match(source,/asphaltY=isBridge\?\.72:isTransition\?transitionHeights\(points\.length,\.16,rising\?\.72:\.16\):\.16/);
+  assert.match(source,/markY=isBridge\?\.9:isTransition\?transitionHeights\(points\.length,\.24,rising\?\.9:\.24\):\.24/);
+  assert.match(source,/asphaltY\.at\(-1\).*\.01/);
+  assert.match(source,/ribbon\(offsetPolyline\(points,side\*14\),1\.1,\.21,curb\)/;
   assert.match(source,/renderOrder=2\.05/);
+});
+
+test('road renderer keeps ordinary roads grounded and ramps bridge transitions',()=>{
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
+  assert.match(source,/transitionHeights\(count:number,start:number,end:number\)/);
+  assert.match(source,/ribbon\(points,shoulderWidth,shoulderY,shoulder\)/);
+  assert.match(source,/ribbon\(points,roadWidth,asphaltY,asphalt\)/);
+  assert.match(source,/const rising=part\.kind==='transition'&&parts\[index\+1\]\?\.kind==='bridge'/);
+  assert.match(source,/shoulder=ribbon\(path,46,\.12,apron\)/);
+  assert.match(source,/surface=ribbon\(path,30,\.16,asphalt\)/);
 });
 
 test('road renderer uses rounded geometry, smooth paths and bounded miters',()=>{
