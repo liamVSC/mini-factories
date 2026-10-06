@@ -510,7 +510,18 @@ function addToWarehouse(warehouse, type, n) {
     return take;
 }
 function dispatchTruck(s, { route, source, destination, cargo, cargoType = source?.type, contractId = 0, longDistance = false, valuePerUnit = 0, stage = 'delivery' }) {
-    if (!route || !cargo || !routeNetworkValid(s, route))
+    if (!route || !cargo)
+        return false;
+    // Fresh routes are generated from the live road graph immediately before
+    // dispatch. Lane IDs are derived metadata, so validate the authoritative
+    // road revision and stable road references here rather than rejecting a
+    // fresh route because an equivalent graph materialisation numbered lanes
+    // differently.
+    const routeRevision = Number(route.roadNetworkRevision);
+    if (!Number.isFinite(routeRevision) || routeRevision !== (Number(s.roadNetworkRevision) || 0))
+        return false;
+    const liveRoadIds = new Set((s.roads || []).map(road => road?.id).filter(Boolean));
+    if (!Array.isArray(route.laneRoadIds) || !route.laneRoadIds.length || route.laneRoadIds.some(id => !id || !liveRoadIds.has(id)))
         return false;
     // Keep the simulation bounded under sustained demand. Finished trucks are
     // removed each tick, so this only limits genuinely in-flight congestion.
@@ -693,13 +704,10 @@ export function updateEconomy(s, dt, flash) {
         // network, preventing stale lane transitions after edits/junction changes.
         if (Number.isFinite(Number(t.routeNetworkRevision)) && Number(t.routeNetworkRevision) !== (Number(s.roadNetworkRevision) || 0))
             t.routeInvalidated = true;
-        // Lane IDs are generated from the derived graph, so the ID alone is not a
-        // stable reference after a road mutation. Validate the persisted road IDs
-        // behind them before allowing the truck to continue.
-        if (!t.routeInvalidated && Array.isArray(t.laneIds) && t.laneIds.length && Array.isArray(t.laneRoadIds)) {
-            if (t.laneRoadIds.length !== t.laneIds.length || t.laneIds.some((id, i) => laneGraph?.lanesById.get(id)?.roadId !== t.laneRoadIds[i]))
-                t.routeInvalidated = true;
-        }
+        // Lane IDs are derived metadata rather than persistent road identifiers.
+        // The road-network revision is the authoritative invalidation boundary;
+        // do not repeatedly invalidate a live route merely because an equivalent
+        // lane graph assigned different derived IDs.
         // Road deletion can invalidate a live truck route. Re-route from the
         // truck's current physical position when an alternate network path exists.
         // If the endpoints are now disconnected, safely return the cargo instead
@@ -898,16 +906,3 @@ export function updateEconomy(s, dt, flash) {
         s.companyLevel++;
         s.xpToNext = Math.round(100 * Math.pow(1.22, s.companyLevel - 1));
         flash('Company Level ' + s.companyLevel);
-    }
-    s.congestion = Math.min(1, (s.trucks.length + s.trucks.filter((t) => t.wait > 0).length * 1.5) / Math.max(3, s.roads.length * 2));
-    const reduction = s.trucks.reduce((n, t) => n + (t.source?.logistics || 0), 0) / Math.max(1, s.trucks.length);
-    s.cash -= s.roads.length * dt * .055 * (1 + s.congestion * Math.max(.55, 1 - reduction * .12));
-    const g = s.goals[s.objective];
-    if (g && g.done(s))
-        s.objective = Math.min(5, s.objective + 1);
-    if (s.cash <= 0) {
-        s.cash = 0;
-        s.gameOver = true;
-    }
-}
-//# sourceMappingURL=economy.js.map
