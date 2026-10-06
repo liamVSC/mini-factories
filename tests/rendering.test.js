@@ -132,8 +132,8 @@ test('road renderer contains explicit anti-z-fighting surface layers and caps',(
   assert.match(source,/renderOrder=2\.05/);
   assert.match(source,/receiveShadow=true/);
   assert.ok(source.includes('shoulderY,shoulder,false),surf=ribbon(points,roadWidth,asphaltY,asphalt,false)'));
-  assert.match(source,/shoulder:roundDisc\(p\.x,p\.y,radius\+6,\.135,shoulder,24,false\)/);
-  assert.match(source,/surface:roundDisc\(p\.x,p\.y,radius,\.185,asphalt,24,false\)/);
+  assert.match(source,/shoulder:roundDisc\\(p\\.x,p\\.y,radius\\+6,\\.17,shoulder,24,false\\)/);
+  assert.match(source,/surface:roundDisc\\(p\\.x,p\\.y,radius,\\.22,asphalt,24,false\\)/);
 });
 
 test('road renderer keeps ordinary roads grounded and ramps bridge transitions',()=>{
@@ -142,8 +142,8 @@ test('road renderer keeps ordinary roads grounded and ramps bridge transitions',
   assert.ok(source.includes('ribbon(points,shoulderWidth,shoulderY,shoulder,false)'));
   assert.ok(source.includes('ribbon(points,roadWidth,asphaltY,asphalt,false)'));
   assert.match(source,/const rising=part\.kind==='transition'&&parts\[index\+1\]\?\.kind==='bridge'/);
-  assert.ok(source.includes('shoulder=ribbon(path,46,.135,apron,false)'));
-  assert.ok(source.includes('surface=ribbon(path,30,.185,asphalt,false)'));
+  assert.ok(source.includes('shoulder=ribbon(path,46,.17,apron,false)'));
+  assert.ok(source.includes('surface=ribbon(path,30,.22,asphalt,false)'));
   assert.match(source,/shoulder=ribbon\(path,46,\.135,apron,false\)/);
   assert.match(source,/roundDisc\(e\.x,e\.y,18,\.22,asphalt,20,false\)/);
 });
@@ -264,10 +264,10 @@ test('published game version stays aligned across app shell and service worker',
   const sw=readSource(new URL('../sw.js',import.meta.url));
   const html=readSource(new URL('../index.html',import.meta.url));
   const version=readSource(new URL('../src/version.ts',import.meta.url));
-  assert.match(sw,/mini-factories-v227/);
-  assert.match(sw,/VERSION='2\.1\.16'/);
+  assert.match(sw,/mini-factories-v228/);
+  assert.match(sw,/VERSION='2\.1\.17'/);
   assert.match(sw,/dist\/game\.js\?v=9/);
   assert.match(sw,/render3d-clean\.js\?v=9/);
   assert.match(html,/dist\/game\.js\?v=9/);
-  assert.match(version,/MINI_FACTORIES_VERSION='2\.1\.16'/);
+  assert.match(version,/MINI_FACTORIES_VERSION='2\.1\.17'/);
 });
