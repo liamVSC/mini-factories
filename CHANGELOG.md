@@ -1,3 +1,9 @@
+## v2.1.29 — 6 October 2026
+
+### Regression fixture alignment
+- Updated routing fixtures to place test buildings behind their exterior gate anchors.
+- Keeps regression roads outside protected building shells while testing the same gate-to-pavement behaviour.
+
 ## v2.1.28 — 6 October 2026
 
 ### Routing endpoint compatibility
