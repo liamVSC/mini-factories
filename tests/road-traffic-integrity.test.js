@@ -580,7 +580,7 @@ test('placement validation rejects building overlap and invalid river terrain',(
   assert.ok(factoryType&&foodType);
   s.buildings=[{id:'existing',x:0,y:0,kind:'factory',r:25,type:'Steel'}];
   assert.equal(buildingPhysicalPlacementReason(s,foodType,20,20),'Too close to another factory');
-  assert.equal(buildingPhysicalPlacementReason({...s,buildings:[]},foodType,0,600),'Too close to the river');
+  assert.equal(buildingPhysicalPlacementReason({...s,buildings:[]},foodType,0,500),'Too close to the river');
 });
 
 test('placement validation keeps the building site and yard inside the playable area',()=>{
