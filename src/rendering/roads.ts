@@ -115,7 +115,7 @@ function roadMesh(r:any,state:any=null){
   return g;
 }
 function roadJunctions(roads:any[],state:any=null){
-  if(state)return roadNetwork(state).junctions.map(point=>({x:point.x,y:point.y,degree:roadNetwork(state).adjacency.get(point)?.length||3}));
+  if(state){const network=roadNetwork(state);return network.junctions.map(point=>({x:point.x,y:point.y,degree:network.adjacency.get(point)?.length||3}));}
   return [];
 }
 function junctionMesh(p:any,roadsAtPoint:number){
@@ -146,5 +146,5 @@ export function roadYardTransitions(s:any){const out:any[]=[];const asphalt=mate
   }return out;
 }
 export function buildRoadGroup(roads:any[],state:any){
-  const group=new THREE.Group();for(const [index,r] of (roads||[]).entries()){const g=roadMesh(r);g.userData.road=r;g.position.y=index*.002;g.renderOrder=2+index*.001;group.add(g);}for(const patch of rebuildJunctionPatches(roads||[],state))group.add(patch);for(const transition of roadYardTransitions(state))group.add(transition);return group;
+  const group=new THREE.Group();for(const [index,r] of (roads||[]).entries()){const g=roadMesh(r,state);g.userData.road=r;g.position.y=index*.002;g.renderOrder=2+index*.001;group.add(g);}for(const patch of rebuildJunctionPatches(roads||[],state))group.add(patch);for(const transition of roadYardTransitions(state))group.add(transition);return group;
 }

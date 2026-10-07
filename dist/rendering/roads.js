@@ -334,7 +334,7 @@ export function roadYardTransitions(s) {
 export function buildRoadGroup(roads, state) {
     const group = new THREE.Group();
     for (const [index, r] of (roads || []).entries()) {
-        const g = roadMesh(r);
+        const g = roadMesh(r, state);
         g.userData.road = r;
         g.position.y = index * .002;
         g.renderOrder = 2 + index * .001;
