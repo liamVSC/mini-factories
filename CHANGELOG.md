@@ -1,18 +1,16 @@
 # Changelog
 
-## v2.1.83 — 7 October 2026
+## v2.1.84 — 7 October 2026
 
-### Building yards and placement validation
-- Added a canonical exterior yard/access area for every logistics building between its dock and road gate.
-- Kept the building footprint separate from the road-access area; road routing was not changed.
-- Strengthened building placement validation so building footprints and reserved yards cannot overlap existing building sites.
-- Validated building yards against playable-world bounds and river clearance so placement cannot create invalid access areas.
-- Added regression coverage for yard geometry, building overlap, world bounds, and terrain clearance.
-- Published the synchronized runtime and service-worker cache.
+### PWA update loop fix
+- Fixed the "Update available" prompt appearing repeatedly after service-worker activation.
+- New service workers now notify the page through the standard waiting-worker flow instead of forcing an update prompt during installation.
+- Refresh now activates the waiting service worker with SKIP_WAITING and reloads only after the new controller takes over.
+- Removed the unregister-and-cache-delete update path that could recreate the update state indefinitely.
 
 ### Verification
-- Typecheck: passed
-- Build: passed
-- Full test suite: passed
-- Browser audit: passed on desktop and mobile
-- GitHub Pages deployment: passed
+- Typecheck: pending
+- Build: pending
+- Full test suite: pending
+- Browser audit: pending
+- GitHub Pages deployment: pending
