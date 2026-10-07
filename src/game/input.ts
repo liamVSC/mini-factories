@@ -113,6 +113,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
   });
 
   canvas.addEventListener('pointerup',event=>{
+    const screen=camera.screenPosition(event);
     const wasMulti=!!cameraGesture?.multi||!!pinch;
     pointers.delete(event.pointerId);
     if(wasMulti){
