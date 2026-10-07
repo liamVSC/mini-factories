@@ -4,7 +4,8 @@ import {
   buildingRoadEntrance,
   buildingRoadFootprint,
   buildingRoadHitbox,
-  buildingFootprintRadius
+  buildingFootprintRadius,
+  buildingYardHitbox
 } from './geometry.js';
 import type { Building, GameState } from '../../state.js';
 
@@ -20,17 +21,17 @@ export function resolveBuildingRoadEndpoint(
   directionTarget = point
 ): BuildingRoadEndpoint | null {
   const building = target || state.buildings?.find(candidate => {
-    const hit = buildingRoadHitbox(candidate, 0);
-    const insideShell =
-      Number(point?.x) >= hit.minX &&
-      Number(point?.x) <= hit.maxX &&
-      Number(point?.y) >= hit.minY &&
-      Number(point?.y) <= hit.maxY;
+    const yard = buildingYardHitbox(candidate, 0);
+    const insideYard =
+      Number(point?.x) >= yard.minX &&
+      Number(point?.x) <= yard.maxX &&
+      Number(point?.y) >= yard.minY &&
+      Number(point?.y) <= yard.maxY;
     const entrance = buildingRoadEntrance(candidate);
     const nearGate =
       !!entrance &&
       Math.hypot(entrance.x - Number(point?.x), entrance.y - Number(point?.y)) <= 18;
-    return insideShell || nearGate;
+    return insideYard || nearGate;
   });
   if (!building) return null;
   const resolved = buildingConnectionPoint(building, directionTarget ?? point ?? { x: building.x, y: building.y });
@@ -42,9 +43,9 @@ export function buildingRoadDistance(
   point: { x: number; y: number } | null | undefined
 ): number {
   if (!building || !point) return Infinity;
-  const hit = buildingRoadHitbox(building, 6);
-  const dx = Math.max(hit.minX - point.x, 0, point.x - hit.maxX);
-  const dy = Math.max(hit.minY - point.y, 0, point.y - hit.maxY);
+  const yard = buildingYardHitbox(building, 0);
+  const dx = Math.max(yard.minX - point.x, 0, point.x - yard.maxX);
+  const dy = Math.max(yard.minY - point.y, 0, point.y - yard.maxY);
   const entrance = buildingRoadEntrance(building);
   const gateDistance = entrance ? Math.hypot(entrance.x - point.x, entrance.y - point.y) : Infinity;
   return Math.min(Math.hypot(dx, dy), gateDistance);
@@ -129,7 +130,9 @@ export function buildingRoadAttachment(
 }
 
 export function buildingRoadEndpointClearance(building: Building): number {
-  return buildingFootprintRadius(building);
+  // Keep the existing physical connection radius, but add a small visual
+  // safety margin so the road/shoulder cannot turn back into the building.
+  return buildingFootprintRadius(building) + 14;
 }
 
 export function nearestBuildingRoadTarget(
