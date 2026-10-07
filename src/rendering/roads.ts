@@ -143,7 +143,7 @@ function junctionMesh(p:any,roadsAtPoint:number){
 function rebuildJunctionPatches(roads:any[],state:any){const out:any[]=[];for(const p of roadJunctions(roads,state))out.push(junctionMesh(p,p.degree));return out;}
 export function roadYardTransitions(s:any){const out:any[]=[];const asphalt=material('#353b3c',.92),apron=material('#777d78',.98),seen=new Set<string>();
   for(const building of s.buildings||[]){const attachment=buildingRoadAttachment(s,building);if(!attachment?.roadPoint||!attachment?.entrance)continue;const a=attachment.roadPoint,e=attachment.entrance,key=building.id+':'+a.x.toFixed(1)+','+a.y.toFixed(1);if(seen.has(key))continue;seen.add(key);
-    const mid={x:(a.x+e.x)/2,y:(a.y+e.y)/2},path=[a,mid,e],shoulder=ribbon(path,46,.34,apron,false),surface=ribbon(path,30,.22,asphalt,false);if(shoulder)out.push(shoulder);if(surface)out.push(surface);out.push(roundDisc(e.x,e.y,18,.28,asphalt,20,false));
+    const mid={x:(a.x+e.x)/2,y:(a.y+e.y)/2},path=[a,mid,e],shoulder=ribbon(path,46,.34,apron,false),surface=ribbon(path,30,.22,asphalt,false);if(shoulder)out.push(shoulder);if(surface)out.push(surface);
   }return out;
 }
 export function buildRoadGroup(roads:any[],state:any){
