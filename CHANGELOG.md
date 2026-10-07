@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.1.87 — 7 October 2026
+
+### Camera controls
+- Zoom now stays anchored to the cursor/finger position instead of jumping toward a fixed distance.
+- Desktop camera controls remain compatible with selection and building/road modes: left-drag pans, right/middle-drag orbits, and Shift+left-drag orbits.
+- Two-finger gestures now support pinch zoom, pan, and twist-to-orbit on touch devices.
+- Camera yaw interpolation now takes the shortest rotation path, avoiding long spins when crossing the angle boundary.
+- Added regression coverage for the camera control semantics.
+
+### Verification
+- Typecheck: pending
+- Build: pending
+- Full test suite: pending
+- Browser audit: pending
+- GitHub Pages deployment: pending
+
 ## v2.1.86 — 7 October 2026
 
 ### Road/building clearance and gate hardening
