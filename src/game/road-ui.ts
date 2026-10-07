@@ -1,5 +1,5 @@
-import { AddRoadCommand, DeleteRoadCommand, MoveRoadEndpointCommand, executeCommand } from '../commands.js';
-import { roadBuildingTarget, roadTarget, roadPreview, roadSegmentAtPoint, roadEndpointAtPoint, roadEndpointPreview, dist } from '../world/roads/index.js';
+import { AddRoadCommand, DeleteRoadCommand, executeCommand } from '../commands.js';
+import { roadBuildingTarget, roadTarget, roadPreview, roadSegmentAtPoint, dist } from '../world/roads/index.js';
 import type { RoadTarget } from '../world/roads/placement.js';
 import { setPreview } from '../render.js';
 import type { Point } from '../world/worldTypes.js';
@@ -49,8 +49,6 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
     ctx.drag=null;
     ctx.state.roadEditSelection=undefined;
     ctx.state.roadEditHover=undefined;
-    ctx.state.roadEditEndpoint=undefined;
-    ctx.state.roadEditEndpointPreview=undefined;
     $('#road')?.classList.toggle('active',ctx.state.mode==='road');
     $('#erase')?.classList.toggle('active',false);
     $('#tip')!.textContent=ctx.state.mode==='road'?'Drag on the map to build a road.':'Build roads between factories and shops.';
@@ -75,8 +73,6 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
     ctx.drag=null;
     ctx.state.mode='select';
     ctx.state.roadEditSelection=undefined;
-    ctx.state.roadEditEndpoint=undefined;
-    ctx.state.roadEditEndpointPreview=undefined;
     ctx.roadEditAction=null;
     const element=$<HTMLElement>('#roadEditor');
     element.classList.add('open');
@@ -99,7 +95,7 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
     $('#tip')!.textContent='Build roads between factories and shops.';
   }
 
-  function setEditAction(action:'move'|'remove'){
+  function setEditAction(action:'remove'){
     ctx.roadEditAction=action;
     const element=$<HTMLElement>('#roadEditor');
     element.classList.remove('open');
@@ -111,7 +107,7 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
     ctx.state.roadEditEndpointPreview=undefined;
     ctx.setMenuActive('erase');
     $('#erase')?.classList.add('active');
-    $('#tip')!.textContent=action==='move'?'Drag a road endpoint':'Tap any part of a road to delete it';
+    $('#tip')!.textContent='Tap any part of a road to delete it';
   }
 
   function pointerDown(event:PointerEvent){
@@ -123,15 +119,6 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
       return;
     }
     if(ctx.state.mode!=='erase')return;
-    if(ctx.roadEditAction==='move'){
-      const endpoint=roadEndpointAtPoint(ctx.state,point,camera.worldHitTolerance(30));
-      if(endpoint){
-        ctx.drag={start:endpoint.point,current:endpoint.point};
-        ctx.state.roadEditEndpoint={roadId:endpoint.roadId,index:endpoint.index,point:endpoint.point};
-        ctx.state.roadEditEndpointPreview=roadEndpointPreview(ctx.state,endpoint.road,endpoint.index,point);
-      }
-      return;
-    }
     const hit=roadSegmentAtPoint(ctx.state,point,camera.worldHitTolerance(26));
     if(hit&&ctx.roadEditAction==='remove'){
       const result=executeCommand(ctx.commands,ctx.state,new DeleteRoadCommand(point));
@@ -152,13 +139,6 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
       catch{preview={path:[ctx.drag.start,ctx.drag.current],start:ctx.drag.start as RoadTarget,end:ctx.drag.current as RoadTarget,blocked:true,blockedReason:'preview-error'};}
       setPreview(preview?.path??null,preview?.start??null,preview?.end??null,preview?.blocked??false);
       $('#tip')!.textContent=roadPreviewTip(preview);
-      return;
-    }
-    if(ctx.state.mode==='erase'&&ctx.drag&&ctx.state.roadEditEndpoint){
-      const endpoint=ctx.state.roadEditEndpoint;
-      const road=ctx.state.roads.find(item=>item.id===endpoint.roadId);
-      if(road)ctx.state.roadEditEndpointPreview=roadEndpointPreview(ctx.state,road,endpoint.index,point);
-      setPreview(null,null,null,false);
       return;
     }
     if(ctx.state.mode==='erase'){
@@ -188,10 +168,7 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
       if(result.result===true){ctx.markWorldDirty();ctx.save(true);ctx.sync();}
       return;
     }
-    if(ctx.state.mode==='erase'&&ctx.drag&&ctx.state.roadEditEndpoint){
-      const drag=ctx.drag;
-      const endpoint=ctx.state.roadEditEndpoint;
-      ctx.drag=null;
+    ctx.drag=null;
       const point=camera.worldPosition(event);
       if(!point)return;
       const result=executeCommand(ctx.commands,ctx.state,new MoveRoadEndpointCommand(endpoint.roadId,endpoint.index,point));
