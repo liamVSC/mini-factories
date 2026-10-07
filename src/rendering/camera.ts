@@ -60,6 +60,8 @@ export class RenderCamera{
     this.desired.z+=before.y-after.y;
     this.bounds();
   }
+  snapshot():CameraSnapshot{return {...this.desired};}
+  restore(snapshot:CameraSnapshot){this.desired={...snapshot};this.target={...snapshot};this.bounds();this.update();}
   reset(){this.desired={x:0,z:0,yaw:0,pitch:DEFAULT_PITCH,distance:DEFAULT_DISTANCE};}
   focus(x:number,y:number){this.desired.x=Number(x)||0;this.desired.z=Number(y)||0;this.bounds();}
 }
