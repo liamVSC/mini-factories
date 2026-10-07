@@ -4,7 +4,7 @@ import type { Point, Road } from '../worldTypes.js';
 import {dist,finitePoint,validRoadPoints,cleanRoadPoints,projectSegment,projectOnPolyline,segmentIntersection,length,endpointSegmentBlocked as endpointSegmentBlockedGeometry} from './geometry.js';
 import {validateRoadGeometry} from './validation.js';
 import {riverY,WORLD_BOUNDS,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from '../terrain.js';
-import {buildingHitbox,buildingVisualHitbox,nearestBuilding,buildingRoadEntrance,buildingYardHitbox} from '../buildings/geometry.js';
+import {buildingHitbox,buildingVisualHitbox,nearestBuilding,buildingRoadEntrance} from '../buildings/geometry.js';
 import {resolveBuildingRoadEndpoint,resolveBuildingRoadTarget,buildingRoadEndpointClearance} from '../buildings/connections.js';
 
 const ROAD_BUILDING_SNAP_TOLERANCE=46,ROAD_PREVIEW_BUILDING_SNAP_TOLERANCE=18,ROAD_BUILDING_CLEARANCE=6;
@@ -16,30 +16,10 @@ export function snap(s:GameState,p:Point):Point|RoadTarget|Building{const b=near
 export function segmentCrossesRiver(a:Point,b:Point):boolean{if(!finitePoint(a)||!finitePoint(b))return false;const span=Math.max(1,dist(a,b)),samples=Math.max(4,Math.ceil(span/12));let previousSign:number|null=null;for(let i=0;i<=samples;i++){const t=i/samples,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t,side=y-riverY(x);if(Math.abs(side)<1)continue;const sign=Math.sign(side);if(previousSign!==null&&sign!==previousSign)return true;previousSign=sign;}return false;}
 export function segmentNearRiver(a:Point,b:Point,threshold=45):boolean{if(!finitePoint(a)||!finitePoint(b)||!Number.isFinite(threshold))return false;const span=Math.max(1,dist(a,b)),samples=Math.max(3,Math.ceil(span/24));for(let i=0;i<=samples;i++){const t=i/samples,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;if(Math.abs(y-riverY(x))<threshold)return true;}return false;}
 function segmentIntersectsRect(a:Point,b:Point,rect:{minX:number;maxX:number;minY:number;maxY:number}):boolean{const inside=(p:Point)=>p.x>=rect.minX&&p.x<=rect.maxX&&p.y>=rect.minY&&p.y<=rect.maxY;if(inside(a)||inside(b))return true;const edges:[[Point,Point],[Point,Point],[Point,Point],[Point,Point]]=[[{x:rect.minX,y:rect.minY},{x:rect.maxX,y:rect.minY}],[{x:rect.maxX,y:rect.minY},{x:rect.maxX,y:rect.maxY}],[{x:rect.maxX,y:rect.maxY},{x:rect.minX,y:rect.maxY}],[{x:rect.minX,y:rect.maxY},{x:rect.minX,y:rect.minY}]];return edges.some(([u,v])=>!!segmentIntersection(a,b,u,v));}
-function segmentCrossesRectBeforeEndpoint(a:Point,b:Point,rect:{minX:number;maxX:number;minY:number;maxY:number},endpoint:'start'|'end'):boolean{const inside=(p:Point)=>p.x>=rect.minX&&p.x<=rect.maxX&&p.y>=rect.minY&&p.y<=rect.maxY;for(let i=0;i<24;i++){const t=endpoint==='start'?(i+1)/24:i/24;if(endpoint==='end'&&i===23)break;if(inside({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t}))return true;}return false;}
-function gateApproachAllowed(building:Building,a:Point,b:Point,endpoint:'start'|'end'):boolean{const entrance=buildingRoadEntrance(building);if(!entrance)return false;const dock=buildingRoadEntrance(building);if(!dock)return false;const gate={x:entrance.x,y:entrance.y};const reference={x:building.x,y:building.y};const outward={x:gate.x-reference.x,y:gate.y-reference.y};const outwardLength=Math.hypot(outward.x,outward.y)||1;outward.x/=outwardLength;outward.y/=outwardLength;const fromGate=endpoint==='start'?{x:b.x-gate.x,y:b.y-gate.y}:{x:a.x-gate.x,y:a.y-gate.y};return Math.hypot(fromGate.x,fromGate.y)>.01&&(fromGate.x*outward.x+fromGate.y*outward.y)>=.55;}
 export function roadPathBlocked(s:GameState,points:Point[],endpointBuildings:{start?:Building|null;end?:Building|null}={}):boolean{
  if(!validRoadPoints(points,0))return true;const startBuilding=endpointBuildings.start||null,endBuilding=endpointBuildings.end||null;
- const sameBuilding=(x:Building|null,y:Building|null)=>x===y||!!(x?.id&&y?.id&&x.id===y.id);
- for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];
-  for(const building of s.buildings){
-   const isStart=sameBuilding(building,startBuilding)&&i===1,isEnd=sameBuilding(building,endBuilding)&&i===points.length-1;
-   if(isStart||isEnd){
-    const endpoint=isStart?a:b,entrance=buildingRoadEntrance(building),atCanonical=!!entrance&&Math.hypot(endpoint.x-entrance.x,endpoint.y-entrance.y)<=1;
-    if(atCanonical){
-      const yard=buildingYardHitbox(building,4);
-      if(!gateApproachAllowed(building,a,b,isStart?'start':'end')||segmentCrossesRectBeforeEndpoint(a,b,yard,isStart?'start':'end'))return true;
-      continue;
-    }
-    if(dist(endpoint,{x:building.x,y:building.y})<=1)return true;
-    if(endpointSegmentBlockedGeometry(building,a,b,isStart?'start':'end',buildingRoadEndpointClearance(building)))return true;
-    continue;
-   }
-   const rect=buildingHitbox(building,ROAD_BUILDING_CLEARANCE),yard=buildingYardHitbox(building,4);
-   if(segmentIntersectsRect(a,b,rect)||segmentIntersectsRect(a,b,yard))return true;
-  }
- }
- return false;
+ if(!!startBuilding!==!!endBuilding){const building=startBuilding||endBuilding!;const point=startBuilding?points.at(-1)!:points[0];const rect=buildingVisualHitbox(building,0);if(point.x>=rect.minX&&point.x<=rect.maxX&&point.y>=rect.minY&&point.y<=rect.maxY)return true;}
+ for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];for(const building of s.buildings){const sameBuilding=(x:Building|null,y:Building|null)=>x===y||!!(x?.id&&y?.id&&x.id===y.id),isStart=sameBuilding(building,startBuilding)&&i===1,isEnd=sameBuilding(building,endBuilding)&&i===points.length-1;if(isStart||isEnd){const endpoint=isStart?a:b,entrance=buildingRoadEntrance(building),atCanonical=!!entrance&&Math.hypot(endpoint.x-entrance.x,endpoint.y-entrance.y)<=1;if(dist(endpoint,{x:building.x,y:building.y})<=1||atCanonical)continue;if(endpointSegmentBlockedGeometry(building,a,b,isStart?'start':'end',buildingRoadEndpointClearance(building)))return true;continue;}const rect=buildingHitbox(building,ROAD_BUILDING_CLEARANCE),startsInside=a.x>=rect.minX&&a.x<=rect.maxX&&a.y>=rect.minY&&a.y<=rect.maxY,endsInside=b.x>=rect.minX&&b.x<=rect.maxX&&b.y>=rect.minY&&b.y<=rect.maxY;const gateExit=(i===1&&startBuilding&&building.id!==startBuilding.id&&!!buildingRoadEntrance(startBuilding)&&Math.hypot(a.x-buildingRoadEntrance(startBuilding)!.x,a.y-buildingRoadEntrance(startBuilding)!.y)<=1)||(i===points.length-1&&endBuilding&&building.id!==endBuilding.id&&!!buildingRoadEntrance(endBuilding)&&Math.hypot(b.x-buildingRoadEntrance(endBuilding)!.x,b.y-buildingRoadEntrance(endBuilding)!.y)<=1);if(gateExit&&(startsInside!==endsInside))continue;if(segmentIntersectsRect(a,b,rect))return true;}}return false;
 }
 export function roadPathIntersectsBuildingFootprint(s:GameState,points:Point[],endpointBuildings:{start?:Building|null;end?:Building|null}={}):boolean{for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];for(const building of s.buildings){const rect=buildingHitbox(building,ROAD_BUILDING_CLEARANCE),startsInside=a.x>=rect.minX&&a.x<=rect.maxX&&a.y>=rect.minY&&a.y<=rect.maxY,endsInside=b.x>=rect.minX&&b.x<=rect.maxX&&b.y>=rect.minY&&b.y<=rect.maxY,isStart=!!endpointBuildings.start&&building.id===endpointBuildings.start.id&&i===1,isEnd=!!endpointBuildings.end&&building.id===endpointBuildings.end.id&&i===points.length-1;if(isStart||isEnd)continue;const gateExit=(i===1&&endpointBuildings.start&&building.id!==endpointBuildings.start.id&&!!buildingRoadEntrance(endpointBuildings.start)&&Math.hypot(a.x-buildingRoadEntrance(endpointBuildings.start)!.x,a.y-buildingRoadEntrance(endpointBuildings.start)!.y)<=1)||(i===points.length-1&&endpointBuildings.end&&building.id!==endpointBuildings.end.id&&!!buildingRoadEntrance(endpointBuildings.end)&&Math.hypot(b.x-buildingRoadEntrance(endpointBuildings.end)!.x,b.y-buildingRoadEntrance(endpointBuildings.end)!.y)<=1);if(gateExit&&(startsInside!==endsInside))continue;if(segmentIntersectsRect(a,b,rect))return true;}}return false;}
 export function simplifyRoad(points:Point[]):Point[]{const p=cleanRoadPoints(points);if(p.length<=2)return p;const out=[p[0]];for(let i=1;i<p.length-1;i++){const a=out.at(-1)!,b=p[i],c=p[i+1],ab={x:b.x-a.x,y:b.y-a.y},bc={x:c.x-b.x,y:c.y-b.y};if(Math.abs(ab.x*bc.y-ab.y*bc.x)<1.5)continue;out.push(b);}out.push(p.at(-1)!);return out;}
