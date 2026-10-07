@@ -261,8 +261,8 @@ test('new-game to save/load preserves the authoritative world coordinates and ro
   const end=buildingRoadEntrance(shop);
   assert.ok(Number.isFinite(start.x)&&Number.isFinite(start.y));
   assert.ok(Number.isFinite(end.x)&&Number.isFinite(end.y));
-  const roadStart={x:-240,y:-900};
-  const roadEnd={x:240,y:-900};
+  const roadStart={x:-160,y:0};
+  const roadEnd={x:160,y:0};
   assert.equal(addRoad(state,[roadStart,roadEnd]),true);
   assert.equal(state.roads.length,1);
   assert.ok(state.roadNetworkRevision>0);
