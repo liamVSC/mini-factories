@@ -228,6 +228,40 @@ export function buildingPrimaryDock(
   return buildingDockPoints(building)[0] ?? null;
 }
 
+export interface BuildingYard {
+  dock: BuildingDock;
+  entrance: BuildingRoadEntrance;
+  hitbox: BuildingHitbox;
+}
+
+/** The reserved exterior access area between a building dock and its road gate. */
+export function buildingYardHitbox(
+  building: Pick<Building, 'kind' | 'x' | 'y'>,
+  tolerance = 0
+): BuildingHitbox {
+  const dock = buildingPrimaryDock(building);
+  const entrance = buildingRoadEntrance(building);
+  if (!dock || !entrance) return buildingRoadHitbox(building, tolerance);
+  const centerX = (dock.point.x + entrance.x) / 2;
+  const centerY = (dock.point.y + entrance.y) / 2;
+  const along = Math.max(10, Math.hypot(entrance.x - dock.point.x, entrance.y - dock.point.y) / 2 + 8 + tolerance);
+  const across = Math.max(10, dock.width / 2 + 10 + tolerance);
+  const horizontal = Math.abs(dock.normal.x) > Math.abs(dock.normal.y);
+  return {
+    minX: centerX - (horizontal ? along : across),
+    maxX: centerX + (horizontal ? along : across),
+    minY: centerY - (horizontal ? across : along),
+    maxY: centerY + (horizontal ? across : along)
+  };
+}
+
+export function buildingYard(building: Pick<Building, 'kind' | 'x' | 'y'>): BuildingYard | null {
+  const dock = buildingPrimaryDock(building);
+  const entrance = buildingRoadEntrance(building);
+  if (!dock || !entrance) return null;
+  return { dock, entrance, hitbox: buildingYardHitbox(building) };
+}
+
 export interface BuildingRoadEntrance {
   x: number;
   y: number;

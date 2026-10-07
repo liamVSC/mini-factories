@@ -2,6 +2,7 @@ import type { Building } from '../../state.js';
 import { buildingFootprint, buildingClearance } from './geometry.js';
 import { isInsideWorldBounds } from '../roads/validation.js';
 import { riverY, WORLD_MARGIN } from '../terrain.js';
+import { buildingYardHitbox, buildingVisualHitbox } from './geometry.js';
 
 export const FACTORY_MIN_DISTANCE = 250;
 export const FACTORY_MIN_SPAWN_RADIUS = 720;
@@ -112,12 +113,21 @@ export function factorySpawnCandidates(seed: number, attempt = 0): Array<{ x: nu
   return candidates;
 }
 
+function rectsOverlap(a: { minX:number; maxX:number; minY:number; maxY:number }, b: { minX:number; maxX:number; minY:number; maxY:number }): boolean {
+  return a.minX < b.maxX && a.maxX > b.minX && a.minY < b.maxY && a.maxY > b.minY;
+}
+
 function validCandidate(building: Building, buildings: Building[]): boolean {
   if (!isInsideWorldBounds(building, WORLD_MARGIN)) return false;
   const footprint = buildingFootprint(building);
   const riverClearance = 105 + Math.max(footprint.halfDepth, footprint.halfWidth) * 0.18;
   if (Math.abs(Number(building.y) - riverY(Number(building.x))) < riverClearance) return false;
-  return !buildings.some(other => buildingPlacementConflict(building, other));
+  const yard = buildingYardHitbox(building, 4);
+  return !buildings.some(other => {
+    if (buildingPlacementConflict(building, other)) return true;
+    return rectsOverlap(yard, buildingVisualHitbox(other, 4)) ||
+      rectsOverlap(buildingYardHitbox(other, 4), buildingVisualHitbox(building, 4));
+  });
 }
 
 export function repairBuildingLayout(buildings: Building[], seed = 1): Building[] {

@@ -7,7 +7,9 @@ export {
   buildingDockPoints,
   buildingPrimaryDock,
   buildingRoadEntrance,
-  buildingConnectionPoint
+  buildingConnectionPoint,
+  buildingYardHitbox,
+  buildingYard
 } from './geometry.js';
 
 export {
