@@ -53,6 +53,8 @@ test('camera controls preserve cursor zoom, smoothing and touch rotation semanti
   assert.match(camera,/camera\.twist\(shortestAngleDelta\(pinch\.angle,angle\)\)/);
   assert.match(camera,/button===0&&event\.shiftKey/);
   assert.match(camera,/camera\.zoomAt\(point,factor\)/);
+  assert.match(camera,/Math\.exp\(-event\.deltaY\*\.0015\)/);
+  assert.match(camera,/Math\.max\(\.82,Math\.min\(1\.22/);
 });
 
 test('render trace preserves saved x/y through world x/z and projection',()=>{
