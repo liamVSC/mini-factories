@@ -14,6 +14,8 @@ export function createCameraController(ctx:GameContext){
   function zoomAt(point:{x:number;y:number},factor:number){const next=Math.max(.55,Math.min(2.4,ctx.state.camera.zoom*factor));ctx.state.camera.zoom=next;zoomAtScreen(point.x,point.y,factor,width,height);}
   function worldHitTolerance(screenPixels=22){const cx=width*.5,cy=height*.5;const a=screenToWorld(cx,cy,width,height);const b=screenToWorld(cx+screenPixels,cy,width,height);if(!a||!b)return 22;return Math.max(8,Math.min(70,Math.hypot(b.x-a.x,b.y-a.y)));}
   function reset(){resetCamera();ctx.state.renderVersion=(ctx.state.renderVersion||0)+1;}
+  function snapshot(){return {x:ctx.state.camera.x,y:ctx.state.camera.y,zoom:ctx.state.camera.zoom};}
+  function restore(snapshot:{x:number;y:number;zoom:number}){ctx.state.camera={x:snapshot.x,y:snapshot.y,zoom:snapshot.zoom};resizeRenderer(width,height);}
   window.addEventListener('resize',resize,{passive:true});
   window.visualViewport?.addEventListener('resize',resize,{passive:true});
   window.visualViewport?.addEventListener('scroll',resize,{passive:true});
