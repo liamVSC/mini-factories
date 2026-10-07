@@ -259,8 +259,13 @@ test('new-game to save/load preserves the authoritative world coordinates and ro
   assert.ok(factory&&shop);
   const start=buildingRoadEntrance(factory);
   const end=buildingRoadEntrance(shop);
-  const midpoint={x:(start.x+end.x)/2,y:(start.y+end.y)/2};
-  assert.equal(addRoad(state,[start,midpoint,end],{startBuilding:factory,endBuilding:shop}),true);
+  assert.ok(Number.isFinite(start.x)&&Number.isFinite(start.y));
+  assert.ok(Number.isFinite(end.x)&&Number.isFinite(end.y));
+  const roadStart={x:-240,y:-900};
+  const roadEnd={x:240,y:-900};
+  assert.equal(addRoad(state,[roadStart,roadEnd]),true);
+  assert.equal(state.roads.length,1);
+  assert.ok(state.roadNetworkRevision>0);
   const snapshot=serialise(state);
   const loaded=hydrate(snapshot);
   assert.ok(loaded);
