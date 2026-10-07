@@ -105,7 +105,7 @@ export function roadEndpointBuildings(state:any,r:any){
   }
   return {start,end};
 }
-function roadMesh(r:any,state:any=null){
+export function roadMesh(r:any,state:any=null){
   let p=smoothRoadPath(r.points||[]);
   const endpointBuildings=state?roadEndpointBuildings(state,r):{};
   if(state&&p.length>=2&&roadPathBlocked(state,p,endpointBuildings))p=rounded(r.points||[]);
