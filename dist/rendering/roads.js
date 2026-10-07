@@ -241,7 +241,7 @@ function roadSegmentMesh(points, kind, materials, addCaps = false, rising = fals
     return g;
 }
 function roadEndpointBuildings(state, r) { let start = null, end = null; for (const building of state?.buildings || []) { const attachment = buildingRoadAttachment(state, building); if (attachment?.road?.id !== r?.id) continue; const first = r.points?.[0], last = r.points?.at(-1), rp = attachment.roadPoint; if (first && rp && Math.hypot(rp.x - first.x, rp.y - first.y) <= 46) start = building; if (last && rp && Math.hypot(rp.x - last.x, rp.y - last.y) <= 46) end = building; } return { start, end }; }
-export function roadMesh(r, state = null) {
+function roadMesh(r, state = null) {
     let p = smoothRoadPath(r.points || []);
     const endpointBuildings = state ? roadEndpointBuildings(state, r) : {};
     if (state && p.length >= 2 && roadPathBlocked(state, p, endpointBuildings)) p = rounded(r.points || []);
