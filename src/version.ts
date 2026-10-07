@@ -4,8 +4,8 @@ declare global {
 }
 
 // Single source of truth for the currently published game version.
-// v2.1.86: enforce building road clearance, yard/gate-only snapping, and clean gate termination.
-globalThis.MINI_FACTORIES_VERSION='2.1.86';
+// v2.1.87: improve desktop and touch camera controls without changing world interaction semantics.
+globalThis.MINI_FACTORIES_VERSION='2.1.87';
 globalThis.MINI_FACTORIES_VERSION_DATE='7 Oct 2026';
 
 export {};
