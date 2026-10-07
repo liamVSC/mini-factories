@@ -182,7 +182,6 @@ export function createUiController(ctx:GameContext){
     $<HTMLButtonElement>('#erase').onclick=()=>ctx.setRoadEditorOpen(true);
     $<HTMLButtonElement>('#roadEditorClose').onclick=()=>ctx.closeRoadEditor();
     $<HTMLButtonElement>('#roadEditorCancel').onclick=()=>ctx.closeRoadEditor();
-    $<HTMLButtonElement>('#roadEditMove').onclick=()=>ctx.setRoadEditAction('move');
     $<HTMLButtonElement>('#roadEditRemove').onclick=()=>ctx.setRoadEditAction('remove');
     $<HTMLButtonElement>('#research').onclick=showResearch;
     $<HTMLButtonElement>('#company').onclick=showCompany;
