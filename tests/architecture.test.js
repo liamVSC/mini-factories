@@ -11,6 +11,7 @@ import {hydrate} from '../dist/persistence/load.js';
 import {addRoad,routeOnRoadNetwork,roadNetwork,roadAttachment,buildingRoadAttachment,buildingLogisticsAccess,endpointTarget,WORLD_HALF_SIZE,WORLD_MARGIN,WORLD_BOUNDS,isInsideWorldBounds} from '../dist/world.js';
 import * as commands from '../dist/commands.js';
 import {resolveBuildingRoadEndpoint} from '../dist/world/buildings/connections.js';
+import {roadPathBlocked,roadPathIntersectsBuildingFootprint} from '../dist/world/roads/placement.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from '../dist/laneGraph.js';
 import {createCommandHistory,AddRoadCommand,PlaceBuildingCommand,DeleteRoadCommand} from '../dist/commands.js';
 import {seed} from '../dist/world/buildings/index.js';
@@ -82,6 +83,7 @@ test('building-road attachment has one canonical source shared by routing compat
   assert.ok(Number.isFinite(compatibility.point.y));
 });
 
+test('road paths cannot begin inside or cross a building footprint',()=>{const s=freshState();const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,-108,'factory-1');s.buildings.push(factory);const path=[{x:factory.x,y:factory.y},{x:factory.x+220,y:factory.y}];assert.equal(roadPathBlocked(s,path),true);assert.equal(roadPathIntersectsBuildingFootprint(s,path),true);});
 test('road topology connects true T junctions without falsely joining parallel roads',()=>{const s=freshState();s.roads.push({id:'main',points:[{x:-120,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},{id:'branch',points:[{x:0,y:50},{x:0,y:6}],bridge:false,condition:1,age:0});const network=roadNetwork(s);assert.ok(network.junctions.some(p=>Math.abs(p.x)<1e-9&&Math.abs(p.y)<1e-9));const parallel=freshState();parallel.roads.push({id:'a',points:[{x:-120,y:0},{x:120,y:0}],bridge:false,condition:1,age:0},{id:'b',points:[{x:-120,y:8},{x:120,y:8}],bridge:false,condition:1,age:0});assert.equal(roadNetwork(parallel).junctions.length,0);});
 test('renderer isolates invalid world objects so UI and base map can still start',()=>{const source=readFileSync(new URL('../src/render3d-clean.ts',import.meta.url),'utf8');assert.equal(source.includes('try{sceneRuntime.root.add(buildRoadGroup(state.roads,state));}'),true);assert.equal(source.includes("catch(error){console.warn('Mini Factories: road renderer recovered"),true);assert.equal(source.includes("worldKey=buildingKey(state)+'|'+roadKey(state);"),true);});
 test('road renderer protects building footprints and raises the roadside path',()=>{const source=readFileSync(new URL('../src/rendering/roads.ts',import.meta.url),'utf8');assert.match(source,/roadPathBlocked\(state,p,endpointBuildings\)/);assert.match(source,/p=rounded\(r\.points\|\|\[\]\)/);assert.match(source,/roadNetwork\(state\)/);assert.match(source,/\.34.*apron/);assert.match(source,/curbY=.*\.46/);});
