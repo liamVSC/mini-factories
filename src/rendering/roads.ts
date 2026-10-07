@@ -3,6 +3,7 @@ import {riverY} from '../world.js';
 import {buildingRoadAttachment} from '../world/buildings/connections.js';
 import {roadNetwork} from '../world/roads/topology.js';
 import {roadPathBlocked} from '../world/roads/placement.js';
+import {buildingPrimaryDock} from '../world/buildings/geometry.js';
 import {box,material} from './three.js';
 
 export type RoadMeshPart={kind:'road'|'transition'|'bridge';points:Array<{x:number;y:number}>};
@@ -141,9 +142,9 @@ function junctionMesh(p:any,roadsAtPoint:number){
   return mesh;
 }
 function rebuildJunctionPatches(roads:any[],state:any){const out:any[]=[];for(const p of roadJunctions(roads,state))out.push(junctionMesh(p,p.degree));return out;}
-export function roadYardTransitions(s:any){const out:any[]=[];const asphalt=material('#353b3c',.92),apron=material('#777d78',.98),seen=new Set<string>();
-  for(const building of s.buildings||[]){const attachment=buildingRoadAttachment(s,building);if(!attachment?.roadPoint||!attachment?.entrance)continue;const a=attachment.roadPoint,e=attachment.entrance,key=building.id+':'+a.x.toFixed(1)+','+a.y.toFixed(1);if(seen.has(key))continue;seen.add(key);
-    const mid={x:(a.x+e.x)/2,y:(a.y+e.y)/2},path=[a,mid,e],shoulder=ribbon(path,46,.34,apron,false),surface=ribbon(path,30,.22,asphalt,false);if(shoulder)out.push(shoulder);if(surface)out.push(surface);
+export function roadYardTransitions(s:any){const out:any[]=[];const apron=material('#777d78',.98),loading=material('#858b86',.98),seen=new Set<string>();
+  for(const building of s.buildings||[]){const attachment=buildingRoadAttachment(s,building),dock=buildingPrimaryDock(building);if(!attachment?.roadPoint||!attachment?.entrance||!dock)continue;const gate=attachment.roadPoint,e=attachment.entrance,key=building.id+':'+gate.x.toFixed(1)+','+gate.y.toFixed(1);if(seen.has(key))continue;seen.add(key);
+    const turnX=dock.point.x+((dock.normal?.y||0)>0?48:-48),midY=(e.y+dock.approach.y)/2,turn={x:turnX,y:midY},path=[gate,turn,dock.approach],yardApron=ribbon(path,46,.34,apron,false),loadingApron=ribbon([dock.approach,dock.point],dock.width+12,.36,loading,false);if(yardApron)out.push(yardApron);if(loadingApron)out.push(loadingApron);
   }return out;
 }
 export function buildRoadGroup(roads:any[],state:any){
