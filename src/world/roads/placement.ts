@@ -4,7 +4,7 @@ import type { Point, Road } from '../worldTypes.js';
 import {dist,finitePoint,validRoadPoints,cleanRoadPoints,projectSegment,projectOnPolyline,segmentIntersection,length,endpointSegmentBlocked as endpointSegmentBlockedGeometry} from './geometry.js';
 import {validateRoadGeometry} from './validation.js';
 import {riverY,WORLD_BOUNDS,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from '../terrain.js';
-import {buildingHitbox,buildingVisualHitbox,nearestBuilding,buildingRoadEntrance,buildingYardHitbox} from '../buildings/geometry.js';
+import {buildingHitbox,buildingVisualHitbox,nearestBuilding,buildingRoadEntrance} from '../buildings/geometry.js';
 import {resolveBuildingRoadEndpoint,resolveBuildingRoadTarget,buildingRoadEndpointClearance} from '../buildings/connections.js';
 
 const ROAD_BUILDING_SNAP_TOLERANCE=46,ROAD_PREVIEW_BUILDING_SNAP_TOLERANCE=18,ROAD_BUILDING_CLEARANCE=6;
