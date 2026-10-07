@@ -139,7 +139,7 @@ test('road renderer keeps junction sidewalks without a giant road slab',()=>{
   assert.match(source,/function junctionMesh/);
   assert.match(source,/const inner=16\.4,outer=31\.4,segments=24/);
   assert.match(source,/geometry\.setIndex/);
-  assert.match(source,/function rebuildJunctionPatches/);
+  assert.match(source,/function rebuildJunctionPatches\(roads:any\[\],state:any\)/);
 });
 
 test('road renderer uses rounded geometry, smooth paths and bounded miters',()=>{
@@ -157,7 +157,7 @@ test('road renderer handles caps, junctions, yards and bridge transitions',()=>{
   assert.match(source,/function bridgeRouteSegments\(points:Array<\{x:number;y:number\}>\)/);
   assert.match(source,/function roadJunctions\(roads:any\[\],state:any=null\)/);
   assert.match(source,/function junctionMesh\(p:any,roadsAtPoint:number\)/);
-  assert.match(source,/function rebuildJunctionPatches\(roads:any\[\],state:any=null\)/);
+  assert.match(source,/function rebuildJunctionPatches\(roads:any\[\],state:any\)/);
   assert.match(source,/export function roadYardTransitions\(s:any\)/);
   assert.match(source,/function transitionHeights/);
 });
