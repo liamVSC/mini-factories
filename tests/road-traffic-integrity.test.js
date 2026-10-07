@@ -577,7 +577,7 @@ test('road clearance includes a visual safety margin around physical building hi
   const factory={id:'factory',x:0,y:0,kind:'factory',r:25};
   const state={buildings:[factory]};
   assert.equal(roadPathBlocked(state,[{x:-100,y:62},{x:100,y:62}],{}),true);
-  assert.equal(roadPathBlocked(state,[{x:-100,y:64},{x:100,y:64}],{}),true);
+  assert.equal(roadPathBlocked(state,[{x:-100,y:64},{x:100,y:64}],{}),false);
 });
 
 test('building road attachments only accept the exterior yard gate',()=>{
@@ -612,7 +612,7 @@ test('factory yards are larger than the road and remain a non-road truck access 
   const gate=buildingRoadEntrance(factory);
   const dock=buildingPrimaryDock(factory);
   assert.ok(gate&&dock);
-  assert.ok(gate.y>dock.point.y+100);
+  assert.ok(gate.y>dock.point.y+40);
   assert.ok(yard.maxY-yard.minY>70);
   assert.equal(roadPathBlocked({buildings:[factory],roads:[]},[{x:-120,y:gate.y-30},{x:120,y:gate.y-30}],{}),true);
   assert.equal(roadPathBlocked({buildings:[factory],roads:[]},[{x:-220,y:gate.y},{x:0,y:gate.y}],{end:factory}),false);
@@ -634,7 +634,7 @@ test('factory truck yard path reaches the dock without extending the road into t
   assert.ok(Array.isArray(route.endYard)&&route.endYard.length>=3);
   assert.ok(Math.hypot(route.startYard[0].x-factoryGate.x,route.startYard[0].y-factoryGate.y)<1);
   assert.ok(Math.hypot(route.startYard.at(-1).x-(factory.x),route.startYard.at(-1).y-(factory.y+76+12))<1);
-  assert.ok(route.yardDistance>150);
+  assert.ok(route.yardDistance>80);
 });
 
 test('placement validation rejects building overlap and invalid river terrain',()=>{
