@@ -45,6 +45,16 @@ test('camera projection keeps seeded buildings visually distinct',()=>{
   assert.equal(new Set(projected.map(p=>`${p.x.toFixed(9)},${p.y.toFixed(9)}`)).size,projected.length);
 });
 
+test('camera controls preserve cursor zoom, smoothing and touch rotation semantics',()=>{
+  const camera=readSource(new URL('../src/rendering/camera.ts',import.meta.url))+'\n'+readSource(new URL('../src/game/camera.ts',import.meta.url))+'\n'+readSource(new URL('../src/game/input.ts',import.meta.url));
+  assert.match(camera,/this\.desired\.distance\/factor/);
+  assert.match(camera,/shortestAngleDelta\(this\.target\.yaw,this\.desired\.yaw\)/);
+  assert.match(camera,/function twist\(delta:number\)/);
+  assert.match(camera,/camera\.twist\(shortestAngleDelta\(pinch\.angle,angle\)\)/);
+  assert.match(camera,/button===0&&event\.shiftKey/);
+  assert.match(camera,/camera\.zoomAt\(point,factor\)/);
+});
+
 test('render trace preserves saved x/y through world x/z and projection',()=>{
   const building={id:'factory-a',kind:'factory',type:'Steel',x:-320,y:240};
   const world=savedBuildingToWorldPosition(building);
