@@ -43,6 +43,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
       pinch={distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),angle:angleBetween(a,b)};
       pinchCenter={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
       cameraGesture={multi:true,startX:0,startY:0,lastX:0,lastY:0,moved:true,pointerId:event.pointerId,button:event.button};
+      buildGesture=null;
       ctx.drag=null;
       clearPreviews();
       return;
