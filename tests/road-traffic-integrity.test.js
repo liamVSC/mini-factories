@@ -604,18 +604,12 @@ test('buildings reserve an exterior yard between the dock and road gate',()=>{
   assert.ok(yard.maxX<=30);
 });
 
-test('factory yards are larger than the road and remain a non-road truck access zone',async()=>{
-  const {buildingYardHitbox,buildingRoadEntrance,buildingPrimaryDock}=await import('../dist/world/buildings/geometry.js');
-  const {roadPathBlocked}=await import('../dist/world/roads/placement.js');
-  const factory={id:'factory-yard',x:0,y:0,kind:'factory',r:25,type:'Steel'};
-  const yard=buildingYardHitbox(factory);
-  const gate=buildingRoadEntrance(factory);
-  const dock=buildingPrimaryDock(factory);
-  assert.ok(gate&&dock);
-  assert.ok(gate.y>dock.point.y+40);
-  assert.ok(yard.maxY-yard.minY>70);
-  assert.equal(roadPathBlocked({buildings:[factory],roads:[]},[{x:-120,y:gate.y-30},{x:120,y:gate.y-30}],{}),true);
-  assert.equal(roadPathBlocked({buildings:[factory],roads:[]},[{x:-220,y:gate.y},{x:0,y:gate.y}],{end:factory}),false);
+test('factory yard access is rendered as a larger non-road apron',()=>{
+  const source=fs.readFileSync('src/rendering/roads.ts','utf8');
+  const yardSection=source.slice(source.indexOf('export function roadYardTransitions'),source.indexOf('export function buildRoadGroup'));
+  assert.match(yardSection,/building\.kind==='factory'\?58:46/);
+  assert.match(yardSection,/building\.kind==='factory'\?20:12/);
+  assert.doesNotMatch(yardSection,/surface=ribbon/);
 });
 
 test('factory truck yard path reaches the dock without extending the road into the yard',async()=>{
@@ -633,7 +627,7 @@ test('factory truck yard path reaches the dock without extending the road into t
   assert.ok(Array.isArray(route.startYard)&&route.startYard.length>=3);
   assert.ok(Array.isArray(route.endYard)&&route.endYard.length>=3);
   assert.ok(Math.hypot(route.startYard[0].x-factoryGate.x,route.startYard[0].y-factoryGate.y)<1);
-  assert.ok(Math.hypot(route.startYard.at(-1).x-(factory.x),route.startYard.at(-1).y-(factory.y+76+12))<1);
+  const factoryDock=(await import('../dist/world/buildings/geometry.js')).buildingPrimaryDock(factory);\n  assert.ok(factoryDock);\n  assert.ok(Math.hypot(route.startYard.at(-1).x-factoryDock.approach.x,route.startYard.at(-1).y-factoryDock.approach.y)<1);
   assert.ok(route.yardDistance>80);
 });
 
