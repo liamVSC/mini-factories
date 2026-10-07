@@ -604,6 +604,36 @@ test('buildings reserve an exterior yard between the dock and road gate',()=>{
   assert.ok(yard.maxX<=30);
 });
 
+test('factory yards are larger than the road and remain a non-road truck access zone',async()=>{
+  const {buildingYardHitbox,buildingRoadEntrance,buildingPrimaryDock}=await import('../dist/world/buildings/geometry.js');
+  const {roadPathBlocked}=await import('../dist/world/roads/placement.js');
+  const factory={id:'factory-yard',x:0,y:0,kind:'factory',r:25,type:'Steel'};
+  const yard=buildingYardHitbox(factory);
+  const gate=buildingRoadEntrance(factory);
+  const dock=buildingPrimaryDock(factory);
+  assert.ok(gate&&dock);
+  assert.ok(gate.y>dock.point.y+100);
+  assert.ok(yard.maxY-yard.minY>70);
+  assert.equal(roadPathBlocked({buildings:[factory],roads:[]},[{x:-120,y:gate.y-30},{x:120,y:gate.y-30}],{}),true);
+  assert.equal(roadPathBlocked({buildings:[factory],roads:[]},[{x:-220,y:gate.y},{x:0,y:gate.y}],{end:factory}),false);
+});
+
+test('factory truck yard path reaches the dock without extending the road into the yard',async()=>{
+  const {routeOnRoadNetwork}=await import('../dist/world/roads/routing.js');
+  const {addRoad}=await import('../dist/world/roads/index.js');
+  const factory={id:'factory-yard-route',x:0,y:160,kind:'factory',r:25,type:'Steel'};
+  const shop={id:'shop-yard-route',x:320,y:160,kind:'shop',r:25,type:'Market'};
+  const state={buildings:[factory,shop],roads:[],roadNetworkRevision:0};
+  assert.equal(addRoad(state,[{x:factory.x,y:factory.y+112+12},{x:shop.x,y:shop.y-68-12}]),true);
+  const route=routeOnRoadNetwork(state,factory,shop);
+  assert.ok(route);
+  assert.ok(Array.isArray(route.startYard)&&route.startYard.length>=3);
+  assert.ok(Array.isArray(route.endYard)&&route.endYard.length>=3);
+  assert.deepEqual(route.startYard[0],{x:factory.x,y:factory.y+112});
+  assert.ok(Math.hypot(route.startYard.at(-1).x-(factory.x),route.startYard.at(-1).y-(factory.y+76+12))<1);
+  assert.ok(route.yardDistance>200);
+});
+
 test('placement validation rejects building overlap and invalid river terrain',()=>{
   const s=roadState();
   const factoryType=TYPES.find(t=>t.name==='Steel');
