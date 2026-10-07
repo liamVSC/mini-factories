@@ -51,12 +51,21 @@ export function buildingRoadDistance(
   point: { x: number; y: number } | null | undefined
 ): number {
   if (!building || !point) return Infinity;
+  const shell = buildingRoadHitbox(building, 0);
+  const shellDx = Math.max(shell.minX - point.x, 0, point.x - shell.maxX);
+  const shellDy = Math.max(shell.minY - point.y, 0, point.y - shell.maxY);
   const yard = buildingYardHitbox(building, 0);
-  const dx = Math.max(yard.minX - point.x, 0, point.x - yard.maxX);
-  const dy = Math.max(yard.minY - point.y, 0, point.y - yard.maxY);
+  const yardDx = Math.max(yard.minX - point.x, 0, point.x - yard.maxX);
+  const yardDy = Math.max(yard.minY - point.y, 0, point.y - yard.maxY);
   const entrance = buildingRoadEntrance(building);
   const gateDistance = entrance ? Math.hypot(entrance.x - point.x, entrance.y - point.y) : Infinity;
-  return Math.min(Math.hypot(dx, dy), gateDistance);
+  // Shell clicks identify the building, but the returned point is always the
+  // canonical gate. This prevents arbitrary building-edge endpoints.
+  return Math.min(
+    Math.hypot(shellDx, shellDy),
+    Math.hypot(yardDx, yardDy),
+    gateDistance
+  );
 }
 
 export interface BuildingRoadTarget {
