@@ -20,6 +20,7 @@ import {buildingFootprint,buildingSiteFootprint,buildingVisualFootprint,building
 
 import {buildJunctionControls,movementPermission,stopLinePoint} from '../dist/junctionControl.js';
 
+test('hydrate drops invalid roads and repairs duplicate road ids',()=>{const s=freshState();const loaded=hydrate({version:6,buildings:[],roads:[{id:'road-1',points:[{x:0,y:0},{x:40,y:0}],condition:2,age:-4},{id:'road-1',points:[{x:0,y:20},{x:40,y:20}],condition:-1,age:3},{id:'outside',points:[{x:2000,y:0},{x:2100,y:0}]}]});assert.ok(loaded);assert.equal(loaded.roads.length,2);assert.equal(new Set(loaded.roads.map(r=>r.id)).size,2);assert.equal(loaded.roads[0].condition,1);assert.equal(loaded.roads[0].age,0);assert.ok(loaded.roads.every(r=>r.points.every(p=>Math.abs(p.x)<=1276&&Math.abs(p.y)<=1276)));});
 test('seed is a one-time initialization transaction',()=>{
   const s=freshState();
   assert.equal(s.seeded,false);
