@@ -7,7 +7,7 @@ import {riverY,WORLD_BOUNDS,WORLD_MARGIN,WORLD_EDGE_SNAP_DISTANCE} from '../terr
 import {buildingHitbox,buildingVisualHitbox,nearestBuilding,buildingRoadEntrance} from '../buildings/geometry.js';
 import {resolveBuildingRoadEndpoint,resolveBuildingRoadTarget,buildingRoadEndpointClearance} from '../buildings/connections.js';
 
-const ROAD_BUILDING_SNAP_TOLERANCE=46,ROAD_PREVIEW_BUILDING_SNAP_TOLERANCE=18,ROAD_BUILDING_CLEARANCE=14;
+const ROAD_BUILDING_SNAP_TOLERANCE=46,ROAD_PREVIEW_BUILDING_SNAP_TOLERANCE=18,ROAD_BUILDING_CLEARANCE=6;
 export interface RoadTarget extends Point {distance:number;road?:Road;building?:Building;edgeSnapped?:boolean;edgeX?:boolean;edgeY?:boolean;gridSnapped?:boolean;segment?:number;along?:number}
 export function roadBuildingTarget(s:GameState,p:Point):Building|null{return resolveBuildingRoadTarget(s,p,ROAD_BUILDING_SNAP_TOLERANCE)?.building||null}
 export function nearestRoad(s:GameState,p:Point):RoadTarget|null{let best:RoadTarget|null=null;for(const road of s.roads){const points=validRoadPoints(road?.points,0);if(!points)continue;const q=projectOnPolyline(points,p);if(q&&(!best||q.distance<best.distance))best={x:q.point.x,y:q.point.y,road,distance:q.distance,segment:q.segment,along:q.along};}return best&&best.distance<=46?best:null}
