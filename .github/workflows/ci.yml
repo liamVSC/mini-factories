@@ -57,7 +57,7 @@ jobs:
         run: timeout --signal=TERM --kill-after=30s 8m npm test
 
       - name: Verify working tree is clean
-        run: git diff --exit-code -- . ':(exclude:test-results)' ':(exclude)dist'
+        run: git diff --exit-code -- . ':(exclude)test-results' ':(exclude)dist'
 
   browser:
     name: Browser audit
