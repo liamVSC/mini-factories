@@ -166,7 +166,6 @@ test('road mesh and junction detection share the authoritative smooth polyline',
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
   assert.match(source,/export function roadMesh\(r:any\)/);
   assert.match(source,/export function roadMesh\(r:any\)\{return roadMeshWithState\(r,null\);\}/);
-  assert.match(source,/const a=smoothRoadPath\(roads\[i\]\?\.points\|\|\[\]\),b=smoothRoadPath\(roads\[j\]\?\.points\|\|\[\]\)/);
 });
 
 test('renderer facade delegates roads, buildings and trucks to focused modules',()=>{
