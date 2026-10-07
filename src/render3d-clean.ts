@@ -22,14 +22,20 @@ function roadKey(state:GameState){
 }
 function rebuildWorld(state:GameState){
   sceneRuntime.clearRoot();buildingMeshes.clear();truckMeshes.clear();
-  sceneRuntime.root.add(buildRoadGroup(state.roads,state));
+  // A malformed road must never prevent the base map, buildings or UI from rendering.
+  // Keep the world rebuild atomic from the renderer's point of view: roads are optional,
+  // while the terrain/building scene is still a valid playable state.
+  try{sceneRuntime.root.add(buildRoadGroup(state.roads,state));}
+  catch(error){console.warn('Mini Factories: road renderer recovered from an invalid road state',error);}
   for(const building of state.buildings){
-    const model=makeBuilding(building),anchor=new THREE.Group();
-    anchor.name=`building-anchor-${building.id}`;
-    anchor.position.set(Number(building.x)||0,0,Number(building.y)||0);
-    anchor.add(model);sceneRuntime.root.add(anchor);buildingMeshes.set(building.id,model);
+    try{
+      const model=makeBuilding(building),anchor=new THREE.Group();
+      anchor.name=`building-anchor-${building.id}`;
+      anchor.position.set(Number(building.x)||0,0,Number(building.y)||0);
+      anchor.add(model);sceneRuntime.root.add(anchor);buildingMeshes.set(building.id,model);
+    }catch(error){console.warn('Mini Factories: building renderer skipped an invalid building',building.id,error);}
   }
-  syncTrucks(sceneRuntime.root,truckMeshes,state.trucks);
+  try{syncTrucks(sceneRuntime.root,truckMeshes,state.trucks);}catch(error){console.warn('Mini Factories: truck renderer recovered from invalid truck state',error);}
   worldKey=buildingKey(state)+'|'+roadKey(state);
 }
 function updateSelection(state:GameState){
