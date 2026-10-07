@@ -165,7 +165,10 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
   canvas.addEventListener('wheel',event=>{
     event.preventDefault();
     const point=camera.screenPosition(event);
-    const factor=event.deltaY>0?.9:1.1;
+    // Trackpads and mouse wheels report very different delta magnitudes; use a
+    // continuous, bounded factor so zoom remains smooth without allowing a
+    // single wheel event to jump across the usable camera range.
+    const factor=Math.max(.82,Math.min(1.22,Math.exp(-event.deltaY*.0015)));
     camera.zoomAt(point,factor);
   },{passive:false});
 
