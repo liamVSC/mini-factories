@@ -17,5 +17,5 @@ export function createCameraController(ctx:GameContext){
   window.addEventListener('resize',resize,{passive:true});
   window.visualViewport?.addEventListener('resize',resize,{passive:true});
   window.visualViewport?.addEventListener('scroll',resize,{passive:true});
-  return {resize,screenPosition,worldPosition,pan,orbit,zoomAt,worldHitTolerance,reset};
+  return {resize,screenPosition,worldPosition,pan,orbit,twist,zoomAt,worldHitTolerance,reset};
 }
