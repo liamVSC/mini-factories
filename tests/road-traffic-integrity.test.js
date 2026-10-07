@@ -550,10 +550,31 @@ test('building-connected road creation resolves centre-point endpoints to the ex
 });
 
 
+test('building endpoint snapping only accepts the reserved yard or canonical gate',async()=>{
+  const {resolveBuildingRoadTarget}=await import('../dist/world/buildings/connections.js');
+  const factory={id:'factory',x:0,y:0,kind:'factory',r:25};
+  const state={buildings:[factory]};
+  assert.equal(resolveBuildingRoadTarget(state,{x:0,y:0},46),null);
+  const gate=buildingRoadEntrance(factory);
+  const resolved=resolveBuildingRoadTarget(state,gate,18);
+  assert.ok(resolved);
+  assert.equal(resolved.building.id,factory.id);
+  assert.ok(Math.hypot(resolved.point.x-gate.x,resolved.point.y-gate.y)<.01);
+});
+
+test('road clearance includes a visual safety margin around physical building hitboxes',async()=>{
+  const {roadPathBlocked}=await import('../dist/world/roads/placement.js');
+  const factory={id:'factory',x:0,y:0,kind:'factory',r:25};
+  const state={buildings:[factory]};
+  assert.equal(roadPathBlocked(state,[{x:-100,y:70},{x:100,y:70}],{}),true);
+  assert.equal(roadPathBlocked(state,[{x:-100,y:72},{x:100,y:72}],{}),false);
+});
+
 test('building road attachments only accept the exterior yard gate',()=>{
   const source=fs.readFileSync('src/world/buildings/connections.ts','utf8');
   assert.match(source,/A building is never a valid road endpoint/);
   assert.match(source,/reachesCanonicalGate = entranceDistance <= 46/);
+  assert.match(source,/buildingYardHitbox/);
   assert.doesNotMatch(source,/pointInsideConnectionFootprint \/\//);
 });
 
