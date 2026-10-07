@@ -1,6 +1,7 @@
 import { freshState, goalList } from '../state.js';
 import { newId } from '../core/ids.js';
 import { repairBuildingLayout, validateBuildingLayout } from '../world/buildings/layout.js';
+import { validateRoadGeometry } from '../world/roads/validation.js';
 const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const clampNumber = (value, min, max, fallback = min) => Math.max(min, Math.min(max, finite(value, fallback)));
 export function hydrate(d) {
@@ -52,7 +53,13 @@ export function hydrate(d) {
     s.roadNetworkRevision = Math.max(0, Math.floor(finite(s.roadNetworkRevision, 0)));
     for (const key of Object.keys(s.research))
         s.research[key] = clampNumber(s.research[key], 0, 3, 0);
-    s.buildings = s.buildings.filter((b) => !!b && Number.isFinite(Number(b.x)) && Number.isFinite(Number(b.y)) && !!b.type && !!b.kind).map((b) => {
+    const seenBuildingIds = new Set();
+    s.buildings = s.buildings.filter((b) => !!b && Number.isFinite(Number(b.x)) && Number.isFinite(Number(b.y)) && !!b.type && ['factory', 'shop', 'warehouse'].includes(String(b.kind))).map((b) => {
+        let id = typeof b.id === 'string' && b.id ? b.id : newId();
+        if (seenBuildingIds.has(id))
+            id = newId();
+        seenBuildingIds.add(id);
+        b.id = id;
         b.x = finite(b.x);
         b.y = finite(b.y);
         b.r = clampNumber(b.r, 20, 60, 25);
@@ -92,16 +99,27 @@ export function hydrate(d) {
     if (validateBuildingLayout(s.buildings).length)
         s.buildings = repairBuildingLayout(s.buildings, s.layoutSeed + 7919);
     const roads = s.roads;
-    s.roads = roads
-        .filter(r => r && Array.isArray(r.points) && r.points.length >= 2 && r.points.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y)))
-        .map(r => ({
-        ...r,
-        id: typeof r.id === 'string' && r.id ? r.id : newId(),
-        points: r.points.map((p) => ({ x: Number(p.x), y: Number(p.y) })),
-        bridge: !!r.bridge,
-        condition: Number.isFinite(Number(r.condition)) ? Number(r.condition) : 1,
-        age: Number.isFinite(Number(r.age)) ? Number(r.age) : 0
-    }));
+    const seenRoadIds = new Set();
+    s.roads = roads.flatMap(r => {
+        if (!r || !Array.isArray(r.points))
+            return [];
+        const normalized = r.points.map(p => ({ x: Number(p?.x), y: Number(p?.y) }));
+        const validation = validateRoadGeometry(normalized);
+        if (!validation.ok)
+            return [];
+        let id = typeof r.id === 'string' && r.id ? r.id : newId();
+        if (seenRoadIds.has(id))
+            id = newId();
+        seenRoadIds.add(id);
+        return [{
+                ...r,
+                id,
+                points: validation.points.map(p => ({ x: p.x, y: p.y })),
+                bridge: !!r.bridge,
+                condition: clampNumber(r.condition, 0, 1, 1),
+                age: Math.max(0, finite(r.age, 0))
+            }];
+    });
     s.buildMode = null;
     return s;
 }
