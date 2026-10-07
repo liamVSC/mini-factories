@@ -25,6 +25,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
   let pinch:{distance:number;angle:number}|null=null;
   let pinchCenter:{x:number;y:number}|null=null;
   let cameraGesture:{multi:boolean;startX:number;startY:number;lastX:number;lastY:number;moved:boolean;pointerId:number;button:number}|null=null;
+  let buildGesture:{pointerId:number;startX:number;startY:number;moved:boolean}|null=null;
 
   const clearPreviews=()=>{
     setPreview([],{x:0,y:0},{x:0,y:0},false);
@@ -49,22 +50,8 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
 
     if(ctx.state.mode==='build'){
       const point=camera.worldPosition(event);
-      const type=ctx.state.buildMode;
-      if(!point||!type)return;
-      const target=buildingPlacementTarget(ctx.state,type,point);
-      const reason=target?canPlaceBuildingAt(ctx.state,type,target.point.x,target.point.y):'Invalid placement';
-      if(reason||!target){build.updateBuildingPlacementPreview(point);ctx.flash(reason||'Invalid placement');return;}
-      const result=executeCommand(ctx.commands,ctx.state,new PlaceBuildingCommand(type,target.point.x,target.point.y));
-      if(result.ok){
-        ctx.markWorldDirty();
-        ctx.state.buildMode=null;
-        ctx.state.mode='select';
-        ctx.setMenuActive(null);
-        setBuildingPreview(null,null,false);
-        ctx.save(true);
-        ctx.sync();
-        ctx.flash('Building constructed');
-      }
+      if(point)build.updateBuildingPlacementPreview(point);
+      buildGesture={pointerId:event.pointerId,startX:screen.x,startY:screen.y,moved:false};
       return;
     }
 
@@ -135,7 +122,22 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
     }
     if(pointers.size<2)pinch=null;
 
-    if(ctx.state.mode==='road'||ctx.state.mode==='erase'){
+    if(ctx.state.mode==='build'&&buildGesture?.pointerId===event.pointerId){
+      if(Math.hypot(screen.x-buildGesture.startX,screen.y-buildGesture.startY)<=7){
+        const point=camera.worldPosition(event);
+        const type=ctx.state.buildMode;
+        if(point&&type){
+          const target=buildingPlacementTarget(ctx.state,type,point);
+          const reason=target?canPlaceBuildingAt(ctx.state,type,target.point.x,target.point.y):'Invalid placement';
+          if(reason||!target){build.updateBuildingPlacementPreview(point);ctx.flash(reason||'Invalid placement');}
+          else{
+            const result=executeCommand(ctx.commands,ctx.state,new PlaceBuildingCommand(type,target.point.x,target.point.y));
+            if(result.ok){ctx.markWorldDirty();ctx.state.buildMode=null;ctx.state.mode='select';ctx.setMenuActive(null);setBuildingPreview(null,null,false);ctx.save(true);ctx.sync();ctx.flash('Building constructed');}
+          }
+        }
+      }
+      buildGesture=null;
+    }else if(ctx.state.mode==='road'||ctx.state.mode==='erase'){
       road.pointerUp(event);
     }else if(ctx.state.mode==='select'&&cameraGesture?.pointerId===event.pointerId&&!cameraGesture.moved){
       const point=camera.worldPosition(event);
@@ -147,6 +149,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
       }
     }
     cameraGesture=null;
+    buildGesture=null;
   });
 
   const cancel=()=>{
@@ -156,6 +159,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
     pinch=null;
     pinchCenter=null;
     cameraGesture=null;
+    buildGesture=null;
     setPreview([],{x:0,y:0},{x:0,y:0},false);
   };
 
