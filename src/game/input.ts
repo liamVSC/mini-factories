@@ -98,7 +98,6 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
       camera.twist(shortestAngleDelta(pinch.angle,angle));
       pinch={distance,angle};
       pinchCenter=center;
-      ctx.state.camera.zoom=Math.max(.55,Math.min(2.4,ctx.state.camera.zoom*zoomFactor));
       cameraGesture={multi:true,startX:0,startY:0,lastX:0,lastY:0,moved:true,pointerId:event.pointerId,button:event.button};
       return;
     }
@@ -168,7 +167,6 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
     const point=camera.screenPosition(event);
     const factor=event.deltaY>0?.9:1.1;
     camera.zoomAt(point,factor);
-    ctx.state.camera.zoom=Math.max(.55,Math.min(2.4,ctx.state.camera.zoom*factor));
   },{passive:false});
 
   for(const type of ['gesturestart','gesturechange','gestureend']){
