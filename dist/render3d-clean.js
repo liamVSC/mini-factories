@@ -20,16 +20,32 @@ function rebuildWorld(state) {
     sceneRuntime.clearRoot();
     buildingMeshes.clear();
     truckMeshes.clear();
-    sceneRuntime.root.add(buildRoadGroup(state.roads, state));
-    for (const building of state.buildings) {
-        const model = makeBuilding(building), anchor = new THREE.Group();
-        anchor.name = `building-anchor-${building.id}`;
-        anchor.position.set(Number(building.x) || 0, 0, Number(building.y) || 0);
-        anchor.add(model);
-        sceneRuntime.root.add(anchor);
-        buildingMeshes.set(building.id, model);
+    // A malformed road must never prevent the base map, buildings or UI from rendering.
+    try {
+        sceneRuntime.root.add(buildRoadGroup(state.roads, state));
     }
-    syncTrucks(sceneRuntime.root, truckMeshes, state.trucks);
+    catch (error) {
+        console.warn('Mini Factories: road renderer recovered from an invalid road state', error);
+    }
+    for (const building of state.buildings) {
+        try {
+            const model = makeBuilding(building), anchor = new THREE.Group();
+            anchor.name = `building-anchor-${building.id}`;
+            anchor.position.set(Number(building.x) || 0, 0, Number(building.y) || 0);
+            anchor.add(model);
+            sceneRuntime.root.add(anchor);
+            buildingMeshes.set(building.id, model);
+        }
+        catch (error) {
+            console.warn('Mini Factories: building renderer skipped an invalid building', building.id, error);
+        }
+    }
+    try {
+        syncTrucks(sceneRuntime.root, truckMeshes, state.trucks);
+    }
+    catch (error) {
+        console.warn('Mini Factories: truck renderer recovered from invalid truck state', error);
+    }
     worldKey = buildingKey(state) + '|' + roadKey(state);
 }
 function updateSelection(state) {
