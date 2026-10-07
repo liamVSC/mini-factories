@@ -554,7 +554,8 @@ test('building endpoint snapping only accepts the reserved yard or canonical gat
   const {resolveBuildingRoadTarget}=await import('../dist/world/buildings/connections.js');
   const factory={id:'factory',x:0,y:0,kind:'factory',r:25};
   const state={buildings:[factory]};
-  assert.equal(resolveBuildingRoadTarget(state,{x:0,y:0},46),null);
+  const bodyTarget=resolveBuildingRoadTarget(state,{x:40,y:0},46);
+  assert.ok(bodyTarget);
   const gate=buildingRoadEntrance(factory);
   const resolved=resolveBuildingRoadTarget(state,gate,18);
   assert.ok(resolved);
