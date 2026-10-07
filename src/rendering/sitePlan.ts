@@ -7,10 +7,10 @@ import {
 } from '../world/buildings/geometry.js';
 
 const MODEL_SPECS = Object.freeze({
-  factory: Object.freeze({ width: 192, depth: 146, height: 50, gateWidth: 50 }),
-  warehouse: Object.freeze({ width: 212, depth: 150, height: 40, gateWidth: 54 }),
-  shop: Object.freeze({ width: 180, depth: 120, height: 34, gateWidth: 44 }),
-  default: Object.freeze({ width: 180, depth: 120, height: 34, gateWidth: 44 })
+  factory: Object.freeze({ width: 144, depth: 108, height: 62, gateWidth: 50 }),
+  warehouse: Object.freeze({ width: 156, depth: 108, height: 50, gateWidth: 54 }),
+  shop: Object.freeze({ width: 136, depth: 90, height: 42, gateWidth: 44 }),
+  default: Object.freeze({ width: 136, depth: 90, height: 42, gateWidth: 44 })
 });
 
 function stableHash(value: string): number {
