@@ -1,5 +1,4 @@
 const CACHE='mini-factories-v294';
-const VERSION='2.1.82';
 const APP_SHELL=[
   './','./index.html','./styles.css?v=1','./dist/game.js?v=29','./dist/version.js?v=29','./dist/state.js','./dist/world.js','./dist/economy.js',
   './dist/core/types.js','./dist/core/rng.js','./dist/core/ids.js','./dist/commands.js','./dist/junctionControl.js',
@@ -18,7 +17,7 @@ async function cacheShell(){
 
 async function notifyClients(){
   const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-  for(const client of clients)client.postMessage({type:'mini-factories-update',version:VERSION});
+  for(const client of clients)client.postMessage({type:'mini-factories-update'});
 }
 
 self.addEventListener('install',event=>{
