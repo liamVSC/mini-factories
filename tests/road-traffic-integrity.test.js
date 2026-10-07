@@ -17,6 +17,7 @@ import {
   buildingDockPoints,
   buildingRoadEntrance,
   buildingPhysicalPlacementReason,
+  buildingYardHitbox,
   seed
 } from '../dist/world.js';
 import {buildLaneGraph,laneRouteGeometry,laneChangeRequired} from '../dist/laneGraph.js';
@@ -560,4 +561,31 @@ test('road routing starts and ends at exterior yard gates',()=>{
   const source=fs.readFileSync('src/world/roads/routing.ts','utf8');
   assert.match(source,/aa\.canonical&&aa\.entrance\?aa\.entrance/);
   assert.match(source,/bb\.canonical&&bb\.entrance\?bb\.entrance/);
+});
+
+test('buildings reserve an exterior yard between the dock and road gate',()=>{
+  const factory={id:'factory',x:0,y:0,kind:'factory',r:25,type:'Steel'};
+  const yard=buildingYardHitbox(factory);
+  assert.ok(yard.maxY>yard.minY);
+  assert.ok(yard.maxY>56);
+  assert.ok(yard.minY>=48);
+  assert.ok(yard.minX<yard.maxX);
+  assert.ok(yard.maxX<=30);
+});
+
+test('placement validation rejects building overlap and invalid river terrain',()=>{
+  const s=roadState();
+  const factoryType=TYPES.find(t=>t.name==='Steel');
+  const foodType=TYPES.find(t=>t.name==='Food');
+  assert.ok(factoryType&&foodType);
+  s.buildings=[{id:'existing',x:0,y:0,kind:'factory',r:25,type:'Steel'}];
+  assert.equal(buildingPhysicalPlacementReason(s,foodType,20,20),'Too close to another factory');
+  assert.equal(buildingPhysicalPlacementReason({...s,buildings:[]},foodType,0,0),'Too close to the river');
+});
+
+test('placement validation keeps the building site and yard inside the playable area',()=>{
+  const s=roadState();
+  const foodType=TYPES.find(t=>t.name==='Food');
+  assert.ok(foodType);
+  assert.equal(buildingPhysicalPlacementReason(s,foodType,999999,999999),'Outside the playable area');
 });
