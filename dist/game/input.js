@@ -134,8 +134,6 @@ export function bindInput(ctx, camera, build, road) {
         pinch = null;
         pinchCenter = null;
         cameraGesture = null;
-        ctx.state.roadEditEndpoint = undefined;
-        ctx.state.roadEditEndpointPreview = undefined;
         setPreview([], { x: 0, y: 0 }, { x: 0, y: 0 }, false);
     };
     canvas.addEventListener('lostpointercapture', cancel);
