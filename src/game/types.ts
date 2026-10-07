@@ -11,7 +11,7 @@ export interface GameContext {
   canvas: HTMLCanvasElement;
   buildFilter: string;
   buildMenuOpen: boolean;
-  roadEditAction: 'move'|'remove'|null;
+  roadEditAction: 'remove'|null;
   drag: RoadDragState | null;
   markWorldDirty():void;
   save(force?:boolean):void;
@@ -23,7 +23,7 @@ export interface GameContext {
   closeBuildMenu():void;
   closeRoadEditor():void;
   startRoadFromPoint(point:Point):void;
-  setRoadEditAction(action:'move'|'remove'):void;
+  setRoadEditAction(action:'remove'):void;
   setRoadEditorOpen(open:boolean):void;
   toggleRoadMode():void;
   reset():void;
