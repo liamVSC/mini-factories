@@ -7,7 +7,7 @@ import {
 } from '../world/buildings/geometry.js';
 
 const MODEL_SPECS = Object.freeze({
-  factory: Object.freeze({ width: 144, depth: 108, height: 62, gateWidth: 50 }),
+  factory: Object.freeze({ width: 164, depth: 120, height: 68, gateWidth: 58 }),
   warehouse: Object.freeze({ width: 156, depth: 108, height: 50, gateWidth: 54 }),
   shop: Object.freeze({ width: 136, depth: 90, height: 42, gateWidth: 44 }),
   default: Object.freeze({ width: 136, depth: 90, height: 42, gateWidth: 44 })
@@ -51,7 +51,7 @@ export function buildingSitePlan(building: Pick<Building, 'id' | 'type' | 'kind'
   const parkingZ = (rearZ + rearShellZ) / 2;
   const serviceSide = variant % 2 ? 1 : -1;
   const serviceX = serviceSide * Math.min(width / 2 + 16, site.halfWidth - 14);
-  const turnX = dockX + (dock.normal.y > 0 ? 58 : -58);
+  const turnX = dockX + (dock.normal.y > 0 ? (kind === 'factory' ? 72 : 58) : (kind === 'factory' ? -72 : -58));
   const turnZ = (entrance.y + dock.approach.y) / 2 - y;
 
   return {
@@ -79,10 +79,10 @@ export function buildingSitePlan(building: Pick<Building, 'id' | 'type' | 'kind'
     courtWidth: site.halfWidth * 2 - 12,
     turnX,
     turnZ,
-    turnRadius: Math.max(18, Math.min(34, Math.abs(gateZ - approachZ) / 2 - 4)),
+    turnRadius: Math.max(18, Math.min(kind === 'factory' ? 42 : 34, Math.abs(gateZ - approachZ) / 2 - 4)),
     parkingZ,
     parkingDepth,
-    parkingWidth: Math.min(144, site.halfWidth * 2 - 28),
+    parkingWidth: Math.min(kind === 'factory' ? 168 : 144, site.halfWidth * 2 - 28),
     serviceSide,
     serviceX,
     fenceX: site.halfWidth - 4
