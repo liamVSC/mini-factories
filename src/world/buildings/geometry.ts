@@ -118,6 +118,22 @@ export function buildingPhysicalPlacementReason(
   const riverClearance =
     105 + Math.max(candidate.footprint.halfDepth, candidate.footprint.halfWidth) * 0.18;
   if (Math.abs(py - riverY(px)) < riverClearance) return 'Too close to the river';
+
+  const yard = buildingYardHitbox({ kind: type.kind, x: px, y: py });
+  const yardPoints = [
+    { x: yard.minX, y: yard.minY },
+    { x: yard.maxX, y: yard.minY },
+    { x: yard.minX, y: yard.maxY },
+    { x: yard.maxX, y: yard.maxY },
+    { x: (yard.minX + yard.maxX) / 2, y: (yard.minY + yard.maxY) / 2 }
+  ];
+  if (yardPoints.some(point => !isInsideWorldBounds(point, WORLD_MARGIN))) {
+    return 'Building yard is outside the playable area';
+  }
+  const yardRiverClearance = 70;
+  if (yardPoints.some(point => Math.abs(point.y - riverY(point.x)) < yardRiverClearance)) {
+    return 'Building yard is too close to the river';
+  }
   return null;
 }
 
