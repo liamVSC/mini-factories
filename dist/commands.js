@@ -1,4 +1,4 @@
-import { addRoad, eraseRoad, editRoadEndpoint, roadEndpointPreview, roadSegmentAtPoint } from './world/roads/index.js';
+import { addRoad, eraseRoad, roadSegmentAtPoint } from './world/roads/index.js';
 import { placeBuilding } from './world/buildings/index.js';
 function clone(value) {
     if (typeof structuredClone === 'function')
@@ -69,20 +69,6 @@ export class DeleteRoadCommand extends MutationCommand {
     constructor(point) { super('delete-road', ['roads', 'trucks', 'roadNetworkRevision', 'trafficReservations']); this.point = point; }
     validate(state) { return roadSegmentAtPoint(state, this.point) ? { ok: true } : { ok: false, reason: 'no-road' }; }
     apply(state) { return eraseRoad(state, this.point); }
-}
-export class MoveRoadEndpointCommand extends MutationCommand {
-    roadId;
-    index;
-    point;
-    constructor(roadId, index, point) { super('move-road-endpoint', ['roads', 'trucks', 'roadNetworkRevision', 'trafficReservations']); this.roadId = roadId; this.index = index; this.point = point; }
-    validate(state) {
-        const road = state.roads.find(r => r?.id === this.roadId);
-        if (!road)
-            return { ok: false, reason: 'road-not-found' };
-        const preview = roadEndpointPreview(state, road, this.index, this.point);
-        return preview && !preview.blocked && !preview.duplicate ? { ok: true } : { ok: false, reason: 'invalid-endpoint' };
-    }
-    apply(state) { return editRoadEndpoint(state, this.roadId, this.index, this.point) || false; }
 }
 export class PlaceBuildingCommand extends MutationCommand {
     type;
