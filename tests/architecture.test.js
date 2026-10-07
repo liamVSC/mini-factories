@@ -82,6 +82,14 @@ test('building-road attachment has one canonical source shared by routing compat
   assert.ok(Number.isFinite(compatibility.point.y));
 });
 
+test('camera supports pan and desktop orbit controls',()=>{
+  const input=readFileSync(new URL('../src/game/input.ts',import.meta.url),'utf8');
+  const camera=readFileSync(new URL('../src/game/camera.ts',import.meta.url),'utf8');
+  assert.equal(input.includes('cameraGesture.button===2||cameraGesture.button===1'),true);
+  assert.equal(input.includes("contextmenu',event=>event.preventDefault()"),true);
+  assert.equal(camera.includes('function orbit(dx:number,dy:number)'),true);
+  assert.equal(camera.includes('controlCamera(0,0,0,-dx*0.008,-dy*0.006)'),true);
+});
 test('PWA startup and service-worker updates never force a reload loop',()=>{
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
   assert.equal(html.includes('const reloadAfterControllerChange=()=>{show()};'),true);
