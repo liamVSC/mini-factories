@@ -27,7 +27,7 @@ export function buildRoadIntersections(valid, nodes, marks, virtualEdges) {
             }
         }
     }
-    const junctionTolerance = 6;
+    const junctionTolerance = 10;
     const connectEndpoint = (road, index, node) => { const endpoint = addNode(nodes, road.points[index], .5), d = dist(endpoint, node); if (d > .001)
         virtualEdges.push({ a: endpoint, b: node, d, road }); };
     for (let ri = 0; ri < valid.length; ri++)
@@ -49,6 +49,9 @@ export function buildRoadIntersections(valid, nodes, marks, virtualEdges) {
                     const q = projectSegment(aEnd.point, bRoad.points[j - 1], bRoad.points[j]);
                     if (q.distance > junctionTolerance)
                         continue;
+                    const dx = aEnd.point.x - (aEnd.index === 0 ? aRoad.points[1].x : aRoad.points[aRoad.points.length - 2].x), dy = aEnd.point.y - (aEnd.index === 0 ? aRoad.points[1].y : aRoad.points[aRoad.points.length - 2].y), sx = bRoad.points[j].x - bRoad.points[j - 1].x, sy = bRoad.points[j].y - bRoad.points[j - 1].y, angleSin = Math.abs(dx * sy - dy * sx) / (Math.hypot(dx, dy) * Math.hypot(sx, sy) || 1);
+                    if (angleSin < .35)
+                        continue;
                     const n = addNode(nodes, q.point, .5);
                     connectEndpoint(aRoad, aEnd.index, n);
                     marks.get(bRoad)[j - 1].push(n);
@@ -57,6 +60,9 @@ export function buildRoadIntersections(valid, nodes, marks, virtualEdges) {
                 for (let i = 1; i < aRoad.points.length; i++) {
                     const q = projectSegment(bEnd.point, aRoad.points[i - 1], aRoad.points[i]);
                     if (q.distance > junctionTolerance)
+                        continue;
+                    const dx = bEnd.point.x - (bEnd.index === 0 ? bRoad.points[1].x : bRoad.points[bRoad.points.length - 2].x), dy = bEnd.point.y - (bEnd.index === 0 ? bRoad.points[1].y : bRoad.points[bRoad.points.length - 2].y), sx = aRoad.points[i].x - aRoad.points[i - 1].x, sy = aRoad.points[i].y - aRoad.points[i - 1].y, angleSin = Math.abs(dx * sy - dy * sx) / (Math.hypot(dx, dy) * Math.hypot(sx, sy) || 1);
+                    if (angleSin < .35)
                         continue;
                     const n = addNode(nodes, q.point, .5);
                     connectEndpoint(bRoad, bEnd.index, n);

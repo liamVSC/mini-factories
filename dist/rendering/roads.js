@@ -1,6 +1,8 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6';
 import { riverY } from '../world.js';
 import { buildingRoadAttachment } from '../world/buildings/connections.js';
+import { roadNetwork } from '../world/roads/topology.js';
+import { roadPathBlocked } from '../world/roads/placement.js';
 import { box, material } from './three.js';
 export function rounded(points) {
     const out = [];
@@ -200,11 +202,11 @@ function bridgeRouteSegments(points) {
 }
 function transitionHeights(count, start, end) { return Array.from({ length: count }, (_, i) => start + (end - start) * (count <= 1 ? 0 : i / (count - 1))); }
 function roadSegmentMesh(points, kind, materials, addCaps = false, rising = false) {
-    const { asphalt, sidewalk, line, curb } = materials, g = new THREE.Group(), isBridge = kind === 'bridge', isTransition = kind === 'transition', roadWidth = 30, roadHalfWidth = 15, curbWidth = 1.4, sidewalkWidth = 15;
-    const sidewalkY = isBridge ? .58 : isTransition ? transitionHeights(points.length, .23, rising ? .58 : .23) : .23;
-    const asphaltY = isBridge ? .72 : isTransition ? transitionHeights(points.length, .16, rising ? .72 : .16) : .16;
-    const curbY = isBridge ? .78 : isTransition ? transitionHeights(points.length, .38, rising ? .78 : .38) : .38;
-    const markY = isBridge ? .9 : isTransition ? transitionHeights(points.length, .24, rising ? .9 : .24) : .24;
+    const { asphalt, sidewalk, line, curb } = materials, g = new THREE.Group(), isBridge = kind === 'bridge', isTransition = kind === 'transition', roadWidth = 30, roadHalfWidth = 15, curbWidth = 2, sidewalkWidth = 15;
+    const sidewalkY = isBridge ? .68 : isTransition ? transitionHeights(points.length, .34, rising ? .68 : .34) : .34;
+    const asphaltY = isBridge ? .82 : isTransition ? transitionHeights(points.length, .16, rising ? .82 : .16) : .16;
+    const curbY = isBridge ? .88 : isTransition ? transitionHeights(points.length, .46, rising ? .88 : .46) : .46;
+    const markY = isBridge ? .98 : isTransition ? transitionHeights(points.length, .49, rising ? .98 : .49) : .49;
     const sidewalkMeshes = sidewalkStrips(points, roadHalfWidth, curbWidth, sidewalkWidth, sidewalkY, sidewalk);
     for (const mesh of sidewalkMeshes) {
         mesh.position.y += .015;
@@ -238,8 +240,12 @@ function roadSegmentMesh(points, kind, materials, addCaps = false, rising = fals
     }
     return g;
 }
-export function roadMesh(r) {
-    const p = smoothRoadPath(r.points || []), g = new THREE.Group();
+function roadEndpointBuildings(state, r) { let start = null, end = null; for (const building of state?.buildings || []) { const attachment = buildingRoadAttachment(state, building); if (attachment?.road?.id !== r?.id) continue; const first = r.points?.[0], last = r.points?.at(-1), rp = attachment.roadPoint; if (first && rp && Math.hypot(rp.x - first.x, rp.y - first.y) <= 46) start = building; if (last && rp && Math.hypot(rp.x - last.x, rp.y - last.y) <= 46) end = building; } return { start, end }; }
+export function roadMesh(r, state = null) {
+    let p = smoothRoadPath(r.points || []);
+    const endpointBuildings = state ? roadEndpointBuildings(state, r) : {};
+    if (state && p.length >= 2 && roadPathBlocked(state, p, endpointBuildings)) p = rounded(r.points || []);
+    const g = new THREE.Group();
     if (p.length < 2)
         return g;
     const mats = { asphalt: material('#353b3c', .92), sidewalk: material('#777d78', .98), line: material('#e9ebe5', .7), curb: material('#a0a6a1', .75), rail: material('#a9895c', .8, .1) };
@@ -251,7 +257,9 @@ export function roadMesh(r) {
     }
     return g;
 }
-function roadJunctions(roads) {
+function roadJunctions(roads, state = null) { if (state) { const network = roadNetwork(state); return network.junctions.map(point => ({ x: point.x, y: point.y, degree: network.adjacency.get(point)?.length || 3 })); }
+    return []; }
+function legacyRoadJunctions(roads) {
     const clusters = [];
     for (let i = 0; i < roads.length; i++)
         for (let j = i + 1; j < roads.length; j++) {
@@ -300,7 +308,7 @@ function junctionMesh(p, roadsAtPoint) {
     mesh.renderOrder = 2.04;
     return mesh;
 }
-function rebuildJunctionPatches(roads) { const out = []; for (const p of roadJunctions(roads)) {
+function rebuildJunctionPatches(roads, state) { const out = []; for (const p of roadJunctions(roads, state)) {
     out.push(junctionMesh(p, p.degree));
 } return out; }
 export function roadYardTransitions(s) {
@@ -314,12 +322,12 @@ export function roadYardTransitions(s) {
         if (seen.has(key))
             continue;
         seen.add(key);
-        const mid = { x: (a.x + e.x) / 2, y: (a.y + e.y) / 2 }, path = [a, mid, e], shoulder = ribbon(path, 46, .17, apron, false), surface = ribbon(path, 30, .22, asphalt, false);
+        const mid = { x: (a.x + e.x) / 2, y: (a.y + e.y) / 2 }, path = [a, mid, e], shoulder = ribbon(path, 46, .34, apron, false), surface = ribbon(path, 30, .22, asphalt, false);
         if (shoulder)
             out.push(shoulder);
         if (surface)
             out.push(surface);
-        out.push(roundDisc(e.x, e.y, 18, .255, asphalt, 20, false));
+        out.push(roundDisc(e.x, e.y, 18, .28, asphalt, 20, false));
     }
     return out;
 }
@@ -332,7 +340,7 @@ export function buildRoadGroup(roads, state) {
         g.renderOrder = 2 + index * .001;
         group.add(g);
     }
-    for (const patch of rebuildJunctionPatches(roads || []))
+    for (const patch of rebuildJunctionPatches(roads || [], state))
         group.add(patch);
     for (const transition of roadYardTransitions(state))
         group.add(transition);
