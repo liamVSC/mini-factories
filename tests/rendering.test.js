@@ -232,6 +232,45 @@ test('settings and changelog modals stay contained within mobile viewport',()=>{
   assert.match(landscapeBlock,/#settingsMenu \.box,#changeLogPage \.box\{[^}]*max-width:100%/);
   assert.match(landscapeBlock,/#settingsMenu \.box,#changeLogPage \.box\{[^}]*max-height:calc\(100dvh - 16px\)/);
 });
+test('PWA lifecycle suspends on freeze and resumes after page restore without duplicate loop ownership',()=>{
+  const lifecycle=readSource(new URL('../src/game/lifecycle.ts',import.meta.url));
+  const loop=readSource(new URL('../src/game/loop.ts',import.meta.url));
+  assert.match(lifecycle,/window\\.addEventListener\\('freeze',loop\\.suspend/);
+  assert.doesNotMatch(lifecycle,/document\\.addEventListener\\('freeze',loop\\.suspend/);
+  assert.match(lifecycle,/window\\.addEventListener\\('pageshow',loop\\.resume/);
+  assert.match(lifecycle,/document\\.addEventListener\\('visibilitychange'/);
+  assert.match(loop,/if\\(!running\\|\\|animationFrame\\)return/);
+  assert.match(loop,/last=performance\\.now\\(\\)/);
+});
+
+test('new-game to save/load preserves the authoritative world coordinates and road topology',async()=>{
+  const {freshState}=await import('../dist/state.js');
+  const {seed}=await import('../dist/world/buildings/index.js');
+  const {serialise}=await import('../dist/persistence/save.js');
+  const {hydrate}=await import('../dist/persistence/load.js');
+  const {buildingRoadEntrance}=await import('../dist/world/buildings/geometry.js');
+  const {addRoad}=await import('../dist/world/roads/creation.js');
+  const state=freshState();
+  state.cash=100000;
+  assert.equal(seed(state),true);
+  assert.equal(state.buildings.length,6);
+  const factory=state.buildings.find(b=>b.kind==='factory');
+  const shop=state.buildings.find(b=>b.kind==='shop');
+  assert.ok(factory&&shop);
+  const start=buildingRoadEntrance(factory);
+  const end=buildingRoadEntrance(shop);
+  const midpoint={x:(start.x+end.x)/2,y:(start.y+end.y)/2};
+  assert.equal(addRoad(state,[start,midpoint,end],{startBuilding:factory,endBuilding:shop}),true);
+  const snapshot=serialise(state);
+  const loaded=hydrate(snapshot);
+  assert.ok(loaded);
+  assert.deepEqual(loaded.buildings.map(b=>[b.id,b.x,b.y]),state.buildings.map(b=>[b.id,b.x,b.y]));
+  assert.equal(loaded.roads.length,state.roads.length);
+  assert.deepEqual(loaded.roads.map(r=>r.points),state.roads.map(r=>r.points));
+  assert.equal(loaded.roadNetworkRevision,state.roadNetworkRevision);
+  assert.equal(loaded.seeded,true);
+});
+
 test('mobile lifecycle, viewport and WebGL recovery remain guarded',()=>{
   const lifecycle=readSource(new URL('../src/game/loop.ts',import.meta.url))+'\n'+readSource(new URL('../src/game/lifecycle.ts',import.meta.url));
   const camera=readSource(new URL('../src/game/camera.ts',import.meta.url))+'\n'+readSource(new URL('../src/game/input.ts',import.meta.url));
