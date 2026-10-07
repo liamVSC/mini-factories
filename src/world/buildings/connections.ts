@@ -21,6 +21,12 @@ export function resolveBuildingRoadEndpoint(
   directionTarget = point
 ): BuildingRoadEndpoint | null {
   const building = target || state.buildings?.find(candidate => {
+    const hit = buildingRoadHitbox(candidate, 0);
+    const insideShell =
+      Number(point?.x) >= hit.minX &&
+      Number(point?.x) <= hit.maxX &&
+      Number(point?.y) >= hit.minY &&
+      Number(point?.y) <= hit.maxY;
     const yard = buildingYardHitbox(candidate, 0);
     const insideYard =
       Number(point?.x) >= yard.minX &&
@@ -31,7 +37,9 @@ export function resolveBuildingRoadEndpoint(
     const nearGate =
       !!entrance &&
       Math.hypot(entrance.x - Number(point?.x), entrance.y - Number(point?.y)) <= 18;
-    return insideYard || nearGate;
+    // Clicking the building still identifies the building, but the resolved
+    // endpoint is always canonicalized to the yard gate.
+    return insideShell || insideYard || nearGate;
   });
   if (!building) return null;
   const resolved = buildingConnectionPoint(building, directionTarget ?? point ?? { x: building.x, y: building.y });
