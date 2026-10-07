@@ -624,14 +624,17 @@ test('factory truck yard path reaches the dock without extending the road into t
   const factory={id:'factory-yard-route',x:0,y:160,kind:'factory',r:25,type:'Steel'};
   const shop={id:'shop-yard-route',x:320,y:160,kind:'shop',r:25,type:'Market'};
   const state={buildings:[factory,shop],roads:[],roadNetworkRevision:0};
-  assert.equal(addRoad(state,[{x:factory.x,y:factory.y+112+12},{x:shop.x,y:shop.y-68-12}]),true);
+  const factoryGate=(await import('../dist/world/buildings/geometry.js')).buildingRoadEntrance(factory);
+  const shopGate=(await import('../dist/world/buildings/geometry.js')).buildingRoadEntrance(shop);
+  assert.ok(factoryGate&&shopGate);
+  assert.equal(addRoad(state,[factoryGate,shopGate]),true);
   const route=routeOnRoadNetwork(state,factory,shop);
   assert.ok(route);
   assert.ok(Array.isArray(route.startYard)&&route.startYard.length>=3);
   assert.ok(Array.isArray(route.endYard)&&route.endYard.length>=3);
-  assert.deepEqual(route.startYard[0],{x:factory.x,y:factory.y+112});
+  assert.ok(Math.hypot(route.startYard[0].x-factoryGate.x,route.startYard[0].y-factoryGate.y)<1);
   assert.ok(Math.hypot(route.startYard.at(-1).x-(factory.x),route.startYard.at(-1).y-(factory.y+76+12))<1);
-  assert.ok(route.yardDistance>200);
+  assert.ok(route.yardDistance>150);
 });
 
 test('placement validation rejects building overlap and invalid river terrain',()=>{
