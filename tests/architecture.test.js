@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -82,7 +83,6 @@ test('building-road attachment has one canonical source shared by routing compat
 });
 
 test('road endpoint editing is not exposed as a command or UI control',()=>{
-  const {readFileSync}=require('node:fs');
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
   assert.equal(html.includes('roadEditMove'),false);
   assert.equal(typeof commands.MoveRoadEndpointCommand,'undefined');
