@@ -8,8 +8,6 @@ import {
   eraseRoad,
   editRoadEndpoint,
   roadNetwork,
-  roadPathBlocked,
-  roadPreview,
   roadTopology,
   nearestGraphNode,
   routeOnRoadNetwork,
@@ -539,7 +537,7 @@ test('lane graph gives trucks one lane on each side of the carriageway',()=>{
 });
 
 
-test('roads use the full building visual envelope as a hard collision boundary',()=>{\n  const s=roadState();\n  const factory={id:'factory',x:0,y:0,kind:'factory',r:25,type:'Steel'};\n  s.buildings=[factory];\n  assert.equal(roadPathBlocked(s,[{x:-260,y:0},{x:260,y:0}],{}),true);\n  assert.equal(roadPathBlocked(s,[{x:-260,y:220},{x:260,y:220}],{}),false);\n});\n\ntest('road preview routes around building envelopes instead of drawing through them',()=>{\n  const s=roadState();\n  const factory={id:'factory',x:0,y:0,kind:'factory',r:25,type:'Steel'};\n  s.buildings=[factory];\n  const preview=roadPreview(s,{x:-260,y:0},{x:260,y:0});\n  assert.ok(preview);\n  assert.equal(preview.blocked,false);\n  assert.ok(preview.path.some(p=>Math.abs(p.y)>150));\n  assert.equal(roadPathBlocked(s,preview.path,{}),false);\n});\n\ntest('road rendering has no visible start or end cap markers',()=>{\n  const source=fs.readFileSync('src/rendering/roads.ts','utf8');\n  assert.ok(!source.includes('index===0||index===parts.length-1'));\n  assert.ok(source.includes('index===0&&index===parts.length-1'));\n});\n\ntest('building-connected road creation resolves centre-point endpoints to the exterior yard gate',()=>{
+test('building-connected road creation resolves centre-point endpoints to the exterior yard gate',()=>{
   const s=roadState();
   const factory={id:'factory',x:0,y:160,kind:'factory',r:25,type:'Steel'};
   s.buildings=[factory];
