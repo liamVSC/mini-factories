@@ -10,7 +10,8 @@ export function createCameraController(ctx:GameContext){
   function worldPosition(event:PointerEvent){const point=screenPosition(event);return screenToWorld(point.x,point.y,width,height);}
   function pan(dx:number,dy:number){panScreen(dx,dy,width,height);}
   function orbit(dx:number,dy:number){controlCamera(0,0,0,-dx*0.008,-dy*0.006);}
-  function zoomAt(point:{x:number;y:number},zoom:number){ctx.state.camera.zoom=Math.max(.55,Math.min(2.4,zoom));zoomAtScreen(point.x,point.y,ctx.state.camera.zoom,width,height);}
+  function twist(delta:number){controlCamera(0,0,0,delta,0);}
+  function zoomAt(point:{x:number;y:number},factor:number){const next=Math.max(.55,Math.min(2.4,ctx.state.camera.zoom*factor));ctx.state.camera.zoom=next;zoomAtScreen(point.x,point.y,factor,width,height);}
   function worldHitTolerance(screenPixels=22){const cx=width*.5,cy=height*.5;const a=screenToWorld(cx,cy,width,height);const b=screenToWorld(cx+screenPixels,cy,width,height);if(!a||!b)return 22;return Math.max(8,Math.min(70,Math.hypot(b.x-a.x,b.y-a.y)));}
   function reset(){resetCamera();ctx.state.renderVersion=(ctx.state.renderVersion||0)+1;}
   window.addEventListener('resize',resize,{passive:true});
