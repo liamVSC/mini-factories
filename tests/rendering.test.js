@@ -278,6 +278,30 @@ test('new-game to save/load preserves the authoritative world coordinates and ro
   assert.equal(loaded.seeded,true);
 });
 
+test('camera gesture separation keeps navigation from triggering gameplay actions',()=>{
+  const input=readSource(new URL('../src/game/input.ts',import.meta.url));
+  const camera=readSource(new URL('../src/game/camera.ts',import.meta.url));
+  const renderingCamera=readSource(new URL('../src/rendering/camera.ts',import.meta.url));
+  assert.match(input,/buildGesture=\{pointerId:event\.pointerId/);
+  assert.match(input,/Math\.hypot\(screen\.x-buildGesture\.startX,screen\.y-buildGesture\.startY\)<=7/);
+  assert.match(input,/cameraGesture\?\.pointerId===event\.pointerId&&!cameraGesture\.moved/);
+  assert.match(input,/pointers\.size===2/);
+  assert.match(input,/camera\.zoomAt\(center,zoomFactor\)/);
+  assert.match(input,/camera\.pan\(center\.x-pinchCenter\.x,center\.y-pinchCenter\.y\)/);
+  assert.match(camera,/window\.visualViewport\?\.addEventListener\('resize',resize/);
+  assert.match(renderingCamera,/snapshot\(\):CameraSnapshot/);
+  assert.match(renderingCamera,/restore\(snapshot:CameraSnapshot\)/);
+});
+
+test('camera state is explicitly preserved by lifecycle resize paths',()=>{
+  const camera=readSource(new URL('../src/game/camera.ts',import.meta.url));
+  const renderingCamera=readSource(new URL('../src/rendering/camera.ts',import.meta.url));
+  assert.match(camera,/function snapshot\(\)/);
+  assert.match(camera,/function restore\(snapshot:\{x:number;y:number;zoom:number\}\)/);
+  assert.match(renderingCamera,/this\.target=\{\.\.\.snapshot\}/);
+  assert.match(renderingCamera,/this\.desired=\{\.\.\.snapshot\}/);
+});
+
 test('mobile lifecycle, viewport and WebGL recovery remain guarded',()=>{
   const lifecycle=readSource(new URL('../src/game/loop.ts',import.meta.url))+'\n'+readSource(new URL('../src/game/lifecycle.ts',import.meta.url));
   const camera=readSource(new URL('../src/game/camera.ts',import.meta.url))+'\n'+readSource(new URL('../src/game/input.ts',import.meta.url));
