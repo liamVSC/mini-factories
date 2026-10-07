@@ -16,7 +16,7 @@ interface Footprint {
 
 const PLACEMENT_FOOTPRINTS: Readonly<Record<string, Footprint>> = Object.freeze({
   warehouse: Object.freeze({ halfWidth: 115, halfDepth: 170 }),
-  factory: Object.freeze({ halfWidth: 100, halfDepth: 150 }),
+  factory: Object.freeze({ halfWidth: 108, halfDepth: 175 }),
   shop: Object.freeze({ halfWidth: 95, halfDepth: 130 }),
   default: Object.freeze({ halfWidth: 50, halfDepth: 62 })
 });
@@ -182,7 +182,7 @@ export function nearestBuilding(
 
 const SHELL_FOOTPRINTS: Readonly<Record<string, Footprint>> = Object.freeze({
   warehouse: Object.freeze({ halfWidth: 82, halfDepth: 56 }),
-  factory: Object.freeze({ halfWidth: 75, halfDepth: 56 }),
+  factory: Object.freeze({ halfWidth: 84, halfDepth: 62 }),
   shop: Object.freeze({ halfWidth: 75, halfDepth: 50 }),
   default: Object.freeze({ halfWidth: 48, halfDepth: 40 })
 });
