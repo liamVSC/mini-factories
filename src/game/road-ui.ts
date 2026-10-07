@@ -87,8 +87,6 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
     ctx.roadEditAction=null;
     ctx.state.mode='select';
     ctx.state.roadEditSelection=undefined;
-    ctx.state.roadEditEndpoint=undefined;
-    ctx.state.roadEditEndpointPreview=undefined;
     ctx.drag=null;
     ctx.setMenuActive(null);
     $('#erase')?.classList.remove('active');
@@ -103,8 +101,6 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
     ctx.state.mode='erase';
     ctx.drag=null;
     ctx.state.roadEditSelection=undefined;
-    ctx.state.roadEditEndpoint=undefined;
-    ctx.state.roadEditEndpointPreview=undefined;
     ctx.setMenuActive('erase');
     $('#erase')?.classList.add('active');
     $('#tip')!.textContent='Tap any part of a road to delete it';
@@ -169,16 +165,6 @@ export function createRoadController(ctx:GameContext,camera:CameraApi){
       return;
     }
     ctx.drag=null;
-      const point=camera.worldPosition(event);
-      if(!point)return;
-      const result=executeCommand(ctx.commands,ctx.state,new MoveRoadEndpointCommand(endpoint.roadId,endpoint.index,point));
-      ctx.state.roadEditEndpoint=undefined;
-      ctx.state.roadEditEndpointPreview=undefined;
-      setPreview(null,null,null,false);
-      if(result.ok){ctx.markWorldDirty();ctx.save(true);ctx.sync();ctx.flash('Road endpoint moved');}
-      else ctx.flash('Invalid road endpoint');
-      return;
-    }
     ctx.drag=null;
   }
 
