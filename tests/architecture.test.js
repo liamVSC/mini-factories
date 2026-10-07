@@ -8,6 +8,7 @@ import {freshState,makeBuilding} from '../dist/state.js';
 import {serialise} from '../dist/persistence/save.js';
 import {hydrate} from '../dist/persistence/load.js';
 import {addRoad,routeOnRoadNetwork,roadNetwork,roadAttachment,buildingRoadAttachment,buildingLogisticsAccess,endpointTarget,WORLD_HALF_SIZE,WORLD_MARGIN,WORLD_BOUNDS,isInsideWorldBounds} from '../dist/world.js';
+import * as commands from '../dist/commands.js';
 import {resolveBuildingRoadEndpoint} from '../dist/world/buildings/connections.js';
 import {buildLaneGraph,findLaneRoute,laneRouteToNodePath,laneRouteGeometry} from '../dist/laneGraph.js';
 import {createCommandHistory,AddRoadCommand,PlaceBuildingCommand,DeleteRoadCommand} from '../dist/commands.js';
@@ -80,6 +81,12 @@ test('building-road attachment has one canonical source shared by routing compat
   assert.ok(Number.isFinite(compatibility.point.y));
 });
 
+test('road endpoint editing is not exposed as a command or UI control',()=>{
+  const {readFileSync}=require('node:fs');
+  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+  assert.equal(html.includes('roadEditMove'),false);
+  assert.equal(typeof commands.MoveRoadEndpointCommand,'undefined');
+});
 test('road creation uses the canonical building endpoint connection',()=>{
   const s=freshState();
   s.cash=5000;
