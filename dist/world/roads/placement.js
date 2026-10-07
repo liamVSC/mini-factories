@@ -51,8 +51,6 @@ export function roadPathBlocked(s, points, endpointBuildings = {}) {
                 continue;
             }
             const rect = buildingHitbox(building, 6), startsInside = a.x >= rect.minX && a.x <= rect.maxX && a.y >= rect.minY && a.y <= rect.maxY, endsInside = b.x >= rect.minX && b.x <= rect.maxX && b.y >= rect.minY && b.y <= rect.maxY;
-            if (startsInside && i === 1 && !endsInside)
-                continue;
             if (segmentIntersectsRect(a, b, rect))
                 return true;
         }
@@ -64,10 +62,6 @@ export function roadPathIntersectsBuildingFootprint(s, points, endpointBuildings
     for (const building of s.buildings) {
         const rect = buildingHitbox(building, 0), startsInside = a.x >= rect.minX && a.x <= rect.maxX && a.y >= rect.minY && a.y <= rect.maxY, endsInside = b.x >= rect.minX && b.x <= rect.maxX && b.y >= rect.minY && b.y <= rect.maxY, isStart = !!endpointBuildings.start && building.id === endpointBuildings.start.id && i === 1, isEnd = !!endpointBuildings.end && building.id === endpointBuildings.end.id && i === points.length - 1;
         if (isStart || isEnd)
-            continue;
-        if (i === 1 && startsInside && !endsInside)
-            continue;
-        if (i === points.length - 1 && endsInside && !startsInside)
             continue;
         if (segmentIntersectsRect(a, b, rect))
             return true;
