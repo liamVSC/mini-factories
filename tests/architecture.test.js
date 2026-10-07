@@ -82,6 +82,11 @@ test('building-road attachment has one canonical source shared by routing compat
   assert.ok(Number.isFinite(compatibility.point.y));
 });
 
+test('PWA startup and service-worker updates never force a reload loop',()=>{
+  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+  assert.equal(html.includes('const reloadAfterControllerChange=()=>{show()};'),true);
+  assert.equal(html.includes('setTimeout(()=>{if(document.visibilityState===\'visible\')location.reload()},700)'),false);
+});
 test('road endpoint editing is not exposed as a command or UI control',()=>{
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
   assert.equal(html.includes('roadEditMove'),false);
