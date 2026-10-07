@@ -51,7 +51,12 @@ export function hydrate(d: PersistedData | null | undefined): GameState | null {
   s.trafficSignals.cycle=Math.max(8,Math.min(30,finite(s.trafficSignals.cycle,12)));
   s.roadNetworkRevision=Math.max(0,Math.floor(finite(s.roadNetworkRevision,0)));
   for(const key of Object.keys(s.research) as Array<keyof GameState['research']>)s.research[key]=clampNumber(s.research[key],0,3,0);
-  s.buildings = s.buildings.filter((b): b is Building => !!b && Number.isFinite(Number(b.x)) && Number.isFinite(Number(b.y)) && !!b.type && !!b.kind).map((b: Building) => {
+  const seenBuildingIds = new Set<string>();
+  s.buildings = s.buildings.filter((b): b is Building => !!b && Number.isFinite(Number(b.x)) && Number.isFinite(Number(b.y)) && !!b.type && ['factory','shop','warehouse'].includes(String(b.kind))).map((b: Building) => {
+    let id = typeof b.id === 'string' && b.id ? b.id : newId();
+    if(seenBuildingIds.has(id)) id = newId();
+    seenBuildingIds.add(id);
+    b.id=id;
     b.x=finite(b.x);b.y=finite(b.y);b.r=clampNumber(b.r,20,60,25);b.level=Math.max(1,Math.floor(finite(b.level,1)));
     b.max=Math.max(1,Math.floor(finite(b.max,b.kind==='factory'?4:b.kind==='warehouse'?24:8)));
     b.stock=Math.max(0,finite(b.stock,0));b.production=Math.max(0,finite(b.production,0));b.demand=Math.max(0,finite(b.demand,0));
