@@ -626,10 +626,10 @@ test('factory truck yard path reaches the dock without extending the road into t
   assert.ok(route);
   assert.ok(Array.isArray(route.startYard)&&route.startYard.length>=3);
   assert.ok(Array.isArray(route.endYard)&&route.endYard.length>=3);
-  assert.ok(Math.hypot(route.startYard[0].x-factoryGate.x,route.startYard[0].y-factoryGate.y)<1);
+  assert.ok(Math.hypot(route.startYard.at(-1).x-factoryGate.x,route.startYard.at(-1).y-factoryGate.y)<1);
   const factoryDock=(await import('../dist/world/buildings/geometry.js')).buildingPrimaryDock(factory);
   assert.ok(factoryDock);
-  assert.ok(Math.hypot(route.startYard.at(-1).x-factoryDock.approach.x,route.startYard.at(-1).y-factoryDock.approach.y)<1);
+  assert.ok(Math.hypot(route.startYard[0].x-factoryDock.approach.x,route.startYard[0].y-factoryDock.approach.y)<1);
   assert.ok(route.yardDistance>80);
 });
 
