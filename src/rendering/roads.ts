@@ -98,7 +98,7 @@ export function roadEndpointBuildings(state:any,r:any){
   let start:any=null,end:any=null;
   for(const building of state?.buildings||[]){
     const attachment=buildingRoadAttachment(state,building);
-    if(attachment?.road?.id!==r?.id)continue;
+    if(!attachment||attachment.road?.id!==r?.id)continue;
     const first=r.points?.[0],last=r.points?.at(-1),rp=attachment.roadPoint;
     if(first&&rp&&Math.hypot(rp.x-first.x,rp.y-first.y)<=46)start=building;
     if(last&&rp&&Math.hypot(rp.x-last.x,rp.y-last.y)<=46)end=building;
