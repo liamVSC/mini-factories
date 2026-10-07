@@ -105,7 +105,7 @@ export function roadEndpointBuildings(state:any,r:any){
   }
   return {start,end};
 }
-export function roadMesh(r:any,state:any=null){
+export function roadMesh(r:any){return roadMeshWithState(r,null);}\nfunction roadMeshWithState(r:any,state:any=null){
   let p=smoothRoadPath(r.points||[]);
   const endpointBuildings=state?roadEndpointBuildings(state,r):{};
   if(state&&p.length>=2&&roadPathBlocked(state,p,endpointBuildings))p=rounded(r.points||[]);
@@ -146,5 +146,5 @@ export function roadYardTransitions(s:any){const out:any[]=[];const asphalt=mate
   }return out;
 }
 export function buildRoadGroup(roads:any[],state:any){
-  const group=new THREE.Group();for(const [index,r] of (roads||[]).entries()){const g=roadMesh(r,state);g.userData.road=r;g.position.y=index*.002;g.renderOrder=2+index*.001;group.add(g);}for(const patch of rebuildJunctionPatches(roads||[],state))group.add(patch);for(const transition of roadYardTransitions(state))group.add(transition);return group;
+  const group=new THREE.Group();for(const [index,r] of (roads||[]).entries()){const g=roadMeshWithState(r,state);g.userData.road=r;g.position.y=index*.002;g.renderOrder=2+index*.001;group.add(g);}for(const patch of rebuildJunctionPatches(roads||[],state))group.add(patch);for(const transition of roadYardTransitions(state))group.add(transition);return group;
 }
