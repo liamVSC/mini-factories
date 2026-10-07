@@ -563,6 +563,37 @@ test('building endpoint snapping only accepts the reserved yard or canonical gat
   assert.ok(Math.hypot(resolved.point.x-gate.x,resolved.point.y-gate.y)<.01);
 });
 
+test('roads never use a building yard as a through-road and gate approaches stay outside the yard',async()=>{
+  const {roadPathBlocked}=await import('../dist/world/roads/placement.js');
+  const factory={id:'factory',x:0,y:0,kind:'factory',r:25};
+  const state={buildings:[factory]};
+  const gate=buildingRoadEntrance(factory);
+  const yard=buildingYardHitbox(factory,4);
+  assert.ok(gate);
+  assert.ok(gate.y>yard.minY&&gate.y<yard.maxY);
+  assert.equal(roadPathBlocked(state,[{x:-140,y:90},{x:140,y:90}],{}),true);
+  assert.equal(roadPathBlocked(state,[gate,{x:gate.x,y:180}],{start:factory}),false);
+  assert.equal(roadPathBlocked(state,[gate,{x:140,y:90}],{start:factory}),true);
+  assert.equal(roadPathBlocked(state,[{x:0,y:180},gate],{end:factory}),false);
+});
+
+test('building route keeps road geometry separate from the yard and sends the truck through the yard to the dock',()=>{
+  const s=roadState();
+  const factory={id:'factory',x:0,y:0,kind:'factory',r:25,type:'Steel'};
+  const shop={id:'shop',x:320,y:0,kind:'shop',r:25,type:'Market'};
+  s.buildings=[factory,shop];
+  assert.equal(addRoad(s,[{x:-200,y:108},{x:0,y:108}]),true);
+  assert.equal(addRoad(s,[{x:320,y:108},{x:520,y:108}]),true);
+  const route=routeOnRoadNetwork(s,factory,shop);
+  assert.ok(route);
+  assert.ok(Array.isArray(route.startYard)&&route.startYard.length>=2);
+  assert.ok(Array.isArray(route.endYard)&&route.endYard.length>=2);
+  assert.ok(route.startYard.some((p)=>Math.hypot(p.x-factory.x,p.y-factory.y)>50));
+  assert.ok(route.startYard.some((p)=>Math.hypot(p.x-factory.x,p.y-factory.y)<80));
+  assert.ok(Math.hypot(route.startYard.at(-1).x-buildingDockPoints(factory)[0].approach.x,route.startYard.at(-1).y-buildingDockPoints(factory)[0].approach.y)<.01);
+  assert.ok(Math.hypot(route.endYard[0].x-buildingRoadEntrance(shop).x,route.endYard[0].y-buildingRoadEntrance(shop).y)<.01);
+});
+ 
 test('road clearance includes a visual safety margin around physical building hitboxes',async()=>{
   const {roadPathBlocked}=await import('../dist/world/roads/placement.js');
   const factory={id:'factory',x:0,y:0,kind:'factory',r:25};
