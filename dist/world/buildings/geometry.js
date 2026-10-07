@@ -115,9 +115,9 @@ export function nearestBuilding(state, point) {
     return buildingAtPoint(state, point, 18);
 }
 const SHELL_FOOTPRINTS = Object.freeze({
-    warehouse: Object.freeze({ halfWidth: 115, halfDepth: 170}),
-    factory: Object.freeze({ halfWidth: 100, halfDepth: 150}),
-    shop: Object.freeze({ halfWidth: 95, halfDepth: 130}),
+    warehouse: Object.freeze({ halfWidth: 82, halfDepth: 56 }),
+    factory: Object.freeze({ halfWidth: 75, halfDepth: 56 }),
+    shop: Object.freeze({ halfWidth: 75, halfDepth: 50 }),
     default: Object.freeze({ halfWidth: 48, halfDepth: 40 })
 });
 export function buildingFootprint(building) {
