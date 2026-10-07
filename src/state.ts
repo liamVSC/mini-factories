@@ -1,5 +1,5 @@
 import { TYPES } from './core/types.js';
-import type { Road, Truck, Point } from './world/worldTypes.js';
+import type { Road, Truck } from './world/worldTypes.js';
 
 export { TYPES };
 
@@ -100,8 +100,6 @@ export interface GameState {
   buildMode: BuildingType | null;
   roadEditSelection?: unknown;
   roadEditHover?: unknown;
-  roadEditEndpoint?: { roadId:string; index:number; point:Point };
-  roadEditEndpointPreview?: unknown;
   camera: CameraState;
 }
 
