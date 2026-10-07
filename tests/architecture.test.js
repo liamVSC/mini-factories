@@ -20,7 +20,7 @@ import {buildingFootprint,buildingSiteFootprint,buildingVisualFootprint,building
 
 import {buildJunctionControls,movementPermission,stopLinePoint} from '../dist/junctionControl.js';
 
-test('game version has exactly one source of truth',()=>{const source=readFileSync(new URL('../src/version.ts',import.meta.url),'utf8');const runtime=readFileSync(new URL('../dist/version.js',import.meta.url),'utf8');const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');assert.equal(source.includes("globalThis.MINI_FACTORIES_VERSION='2.1.83';"),true);assert.equal(runtime.includes("globalThis.MINI_FACTORIES_VERSION = '2.1.83';"),true);assert.equal(sw.includes('const VERSION='),false);assert.equal(sw.includes('version:VERSION'),false);});
+test('game version has exactly one source of truth',()=>{const source=readFileSync(new URL('../src/version.ts',import.meta.url),'utf8');const runtime=readFileSync(new URL('../dist/version.js',import.meta.url),'utf8');const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');assert.equal(source.includes("globalThis.MINI_FACTORIES_VERSION='2.1.84';"),true);assert.equal(runtime.includes("globalThis.MINI_FACTORIES_VERSION = '2.1.84';"),true);assert.equal(sw.includes('const VERSION='),false);assert.equal(sw.includes('version:VERSION'),false);});
 test('hydrate drops unknown building kinds and repairs duplicate building ids',()=>{const loaded=hydrate({version:6,buildings:[{id:'building-1',type:'Food',kind:'factory',x:0,y:-108},{id:'building-1',type:'Market',kind:'shop',x:400,y:108},{id:'bad',type:'Broken',kind:'invalid',x:800,y:0}],roads:[]});assert.ok(loaded);assert.equal(loaded.buildings.length,2);assert.equal(new Set(loaded.buildings.map(b=>b.id)).size,2);assert.equal(loaded.buildings.every(b=>['factory','shop','warehouse'].includes(b.kind)),true);});
 test('hydrate drops invalid roads and repairs duplicate road ids',()=>{const s=freshState();const loaded=hydrate({version:6,buildings:[],roads:[{id:'road-1',points:[{x:0,y:0},{x:40,y:0}],condition:2,age:-4},{id:'road-1',points:[{x:0,y:20},{x:40,y:20}],condition:-1,age:3},{id:'outside',points:[{x:2000,y:0},{x:2100,y:0}]}]});assert.ok(loaded);assert.equal(loaded.roads.length,2);assert.equal(new Set(loaded.roads.map(r=>r.id)).size,2);assert.equal(loaded.roads[0].condition,1);assert.equal(loaded.roads[0].age,0);assert.ok(loaded.roads.every(r=>r.points.every(p=>Math.abs(p.x)<=1276&&Math.abs(p.y)<=1276)));});
 test('seed is a one-time initialization transaction',()=>{
@@ -100,8 +100,8 @@ test('camera supports pan and desktop orbit controls',()=>{
 });
 test('PWA startup and service-worker updates never force a reload loop',()=>{
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-  assert.equal(html.includes('const reloadAfterControllerChange=()=>{show()};'),true);
-  assert.equal(html.includes('setTimeout(()=>{if(document.visibilityState===\'visible\')location.reload()},700)'),false);
+  assert.equal(html.includes("navigator.serviceWorker?.addEventListener?.('controllerchange',()=>{if(refreshing)location.reload()});"),true);
+  assert.equal(html.includes('unregister()'),false);assert.equal(html.includes("postMessage({type:'SKIP_WAITING'})"),true);assert.equal(html.includes('setTimeout(()=>{if(document.visibilityState===\'visible\')location.reload()},700)'),false);
 });
 test('road endpoint editing is not exposed as a command or UI control',()=>{
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
