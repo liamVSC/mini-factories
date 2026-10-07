@@ -235,12 +235,12 @@ test('settings and changelog modals stay contained within mobile viewport',()=>{
 test('PWA lifecycle suspends on freeze and resumes after page restore without duplicate loop ownership',()=>{
   const lifecycle=readSource(new URL('../src/game/lifecycle.ts',import.meta.url));
   const loop=readSource(new URL('../src/game/loop.ts',import.meta.url));
-  assert.match(lifecycle,/window\\.addEventListener\\('freeze',loop\\.suspend/);
-  assert.doesNotMatch(lifecycle,/document\\.addEventListener\\('freeze',loop\\.suspend/);
-  assert.match(lifecycle,/window\\.addEventListener\\('pageshow',loop\\.resume/);
+  assert.ok(lifecycle.includes("window.addEventListener('freeze',loop.suspend"));
+  assert.ok(!lifecycle.includes("document.addEventListener('freeze',loop.suspend"));
+  assert.ok(lifecycle.includes("window.addEventListener('pageshow',loop.resume"));
   assert.match(lifecycle,/document\\.addEventListener\\('visibilitychange'/);
-  assert.match(loop,/if\\(!running\\|\\|animationFrame\\)return/);
-  assert.match(loop,/last=performance\\.now\\(\\)/);
+  assert.ok(loop.includes('if(!running||animationFrame)return;'));
+  assert.ok(loop.includes('last=performance.now();'));
 });
 
 test('new-game to save/load preserves the authoritative world coordinates and road topology',async()=>{
