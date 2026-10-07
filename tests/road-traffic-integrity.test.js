@@ -623,7 +623,7 @@ test('factory truck yard path reaches the dock without extending the road into t
   const {addRoad}=await import('../dist/world/roads/index.js');
   const factory={id:'factory-yard-route',x:0,y:160,kind:'factory',r:25,type:'Steel'};
   const shop={id:'shop-yard-route',x:320,y:160,kind:'shop',r:25,type:'Market'};
-  const state={buildings:[factory,shop],roads:[],roadNetworkRevision:0};
+  const state={buildings:[factory,shop],roads:[],roadNetworkRevision:0,cash:10000};
   const factoryGate=(await import('../dist/world/buildings/geometry.js')).buildingRoadEntrance(factory);
   const shopGate=(await import('../dist/world/buildings/geometry.js')).buildingRoadEntrance(shop);
   assert.ok(factoryGate&&shopGate);
