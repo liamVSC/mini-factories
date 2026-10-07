@@ -77,7 +77,7 @@ export function bindInput(ctx, camera, build, road) {
             if (pinchCenter)
                 camera.pan(center.x - pinchCenter.x, center.y - pinchCenter.y);
             pinchCenter = center;
-            cameraGesture = { multi: true, startX: 0, startY: 0, lastX: 0, lastY: 0, moved: true, pointerId: event.pointerId };
+            cameraGesture = { multi: true, startX: 0, startY: 0, lastX: 0, lastY: 0, moved: true, pointerId: event.pointerId, button: event.button };
             return;
         }
         if (cameraGesture?.multi)
