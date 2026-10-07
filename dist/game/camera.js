@@ -1,4 +1,4 @@
-import { resizeRenderer, screenToWorld, panScreen, zoomAtScreen, resetCamera } from '../render.js';
+import { resizeRenderer, screenToWorld, panScreen, zoomAtScreen, resetCamera, controlCamera } from '../render.js';
 export function createCameraController(ctx) {
     let width = 0;
     let height = 0;
@@ -28,6 +28,7 @@ export function createCameraController(ctx) {
         return screenToWorld(point.x, point.y, width, height);
     }
     function pan(dx, dy) { panScreen(dx, dy, width, height); }
+    function orbit(dx, dy) { controlCamera(0, 0, 0, -dx * 0.008, -dy * 0.006); }
     function zoomAt(point, zoom) {
         ctx.state.camera.zoom = Math.max(.55, Math.min(2.4, zoom));
         zoomAtScreen(point.x, point.y, ctx.state.camera.zoom, width, height);
@@ -44,6 +45,6 @@ export function createCameraController(ctx) {
     window.addEventListener('resize', resize, { passive: true });
     window.visualViewport?.addEventListener('resize', resize, { passive: true });
     window.visualViewport?.addEventListener('scroll', resize, { passive: true });
-    return { resize, screenPosition, worldPosition, pan, zoomAt, worldHitTolerance, reset };
+    return { resize, screenPosition, worldPosition, pan, orbit, zoomAt, worldHitTolerance, reset };
 }
 //# sourceMappingURL=camera.js.map
