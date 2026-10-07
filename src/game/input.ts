@@ -8,6 +8,7 @@ interface CameraApi {
   screenPosition(event:PointerEvent|WheelEvent):{x:number;y:number};
   worldPosition(event:PointerEvent):Point|null;
   pan(dx:number,dy:number):void;
+  orbit(dx:number,dy:number):void;
   zoomAt(point:{x:number;y:number},zoom:number):void;
   worldHitTolerance(screenPixels?:number):number;
 }
@@ -19,7 +20,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
   const pointers=new Map<number,{x:number;y:number}>();
   let pinch:{distance:number;zoom:number}|null=null;
   let pinchCenter:{x:number;y:number}|null=null;
-  let cameraGesture:{multi:boolean;startX:number;startY:number;lastX:number;lastY:number;moved:boolean;pointerId:number}|null=null;
+  let cameraGesture:{multi:boolean;startX:number;startY:number;lastX:number;lastY:number;moved:boolean;pointerId:number;button:number}|null=null;
 
   const clearPreviews=()=>{
     setPreview([],{x:0,y:0},{x:0,y:0},false);
@@ -36,7 +37,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
       const [a,b]=[...pointers.values()];
       pinch={distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),zoom:ctx.state.camera.zoom};
       pinchCenter={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
-      cameraGesture={multi:true,startX:0,startY:0,lastX:0,lastY:0,moved:true,pointerId:event.pointerId};
+      cameraGesture={multi:true,startX:0,startY:0,lastX:0,lastY:0,moved:true,pointerId:event.pointerId,button:event.button};
       ctx.drag=null;
       clearPreviews();
       return;
@@ -69,7 +70,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
     }
 
     if(ctx.state.mode==='select'){
-      cameraGesture={multi:false,startX:screen.x,startY:screen.y,lastX:screen.x,lastY:screen.y,moved:false,pointerId:event.pointerId};
+      cameraGesture={multi:false,startX:screen.x,startY:screen.y,lastX:screen.x,lastY:screen.y,moved:false,pointerId:event.pointerId,button:event.button};
       ctx.drag=null;
     }
   });
@@ -106,7 +107,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
     if(cameraGesture?.pointerId===event.pointerId&&ctx.state.mode==='select'){
       const dx=screen.x-cameraGesture.lastX,dy=screen.y-cameraGesture.lastY;
       if(Math.hypot(screen.x-cameraGesture.startX,screen.y-cameraGesture.startY)>7)cameraGesture.moved=true;
-      if(cameraGesture.moved&&(dx||dy))camera.pan(dx,dy);
+      if(cameraGesture.moved&&(dx||dy)){if(cameraGesture.button===2||cameraGesture.button===1)camera.orbit(dx,dy);else camera.pan(dx,dy);}
       cameraGesture.lastX=screen.x;
       cameraGesture.lastY=screen.y;
     }
@@ -118,7 +119,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
     if(wasMulti){
       pinch=null;
       pinchCenter=null;
-      cameraGesture=pointers.size?{multi:true,startX:0,startY:0,lastX:0,lastY:0,moved:true,pointerId:event.pointerId}:null;
+      cameraGesture=pointers.size?{multi:true,startX:0,startY:0,lastX:0,lastY:0,moved:true,pointerId:event.pointerId,button:event.button}:null;
       return;
     }
     if(pointers.size<2)pinch=null;
@@ -149,6 +150,7 @@ export function bindInput(ctx:GameContext,camera:CameraApi,build:BuildApi,road:R
 
   canvas.addEventListener('lostpointercapture',cancel);
   canvas.addEventListener('pointercancel',cancel);
+  canvas.addEventListener('contextmenu',event=>event.preventDefault());
   canvas.addEventListener('wheel',event=>{
     event.preventDefault();
     const point=camera.screenPosition(event);
