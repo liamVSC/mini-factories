@@ -563,6 +563,15 @@ test('building endpoint snapping only accepts the reserved yard or canonical gat
   assert.ok(Math.hypot(resolved.point.x-gate.x,resolved.point.y-gate.y)<.01);
 });
 
+test('yard truck access is rendered as an apron/loading drive, not a second road',()=>{
+  const source=fs.readFileSync('src/rendering/roads.ts','utf8');
+  const yardSection=source.slice(source.indexOf('export function roadYardTransitions'),source.indexOf('export function buildRoadGroup'));
+  assert.match(yardSection,/buildingPrimaryDock/);
+  assert.match(yardSection,/yardApron=ribbon/);
+  assert.match(yardSection,/loadingApron=ribbon/);
+  assert.doesNotMatch(yardSection,/surface=ribbon\(path,30/);
+});
+
 test('road clearance includes a visual safety margin around physical building hitboxes',async()=>{
   const {roadPathBlocked}=await import('../dist/world/roads/placement.js');
   const factory={id:'factory',x:0,y:0,kind:'factory',r:25};
