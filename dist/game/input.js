@@ -23,7 +23,7 @@ export function bindInput(ctx, camera, build, road) {
             const [a, b] = [...pointers.values()];
             pinch = { distance: Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)), zoom: ctx.state.camera.zoom };
             pinchCenter = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-            cameraGesture = { multi: true, startX: 0, startY: 0, lastX: 0, lastY: 0, moved: true, pointerId: event.pointerId };
+            cameraGesture = { multi: true, startX: 0, startY: 0, lastX: 0, lastY: 0, moved: true, pointerId: event.pointerId, button: event.button };
             ctx.drag = null;
             clearPreviews();
             return;
@@ -58,7 +58,7 @@ export function bindInput(ctx, camera, build, road) {
             return;
         }
         if (ctx.state.mode === 'select') {
-            cameraGesture = { multi: false, startX: screen.x, startY: screen.y, lastX: screen.x, lastY: screen.y, moved: false, pointerId: event.pointerId };
+            cameraGesture = { multi: false, startX: screen.x, startY: screen.y, lastX: screen.x, lastY: screen.y, moved: false, pointerId: event.pointerId, button: event.button };
             ctx.drag = null;
         }
     });
@@ -95,7 +95,10 @@ export function bindInput(ctx, camera, build, road) {
             if (Math.hypot(screen.x - cameraGesture.startX, screen.y - cameraGesture.startY) > 7)
                 cameraGesture.moved = true;
             if (cameraGesture.moved && (dx || dy))
-                camera.pan(dx, dy);
+                if (cameraGesture.button === 2 || cameraGesture.button === 1)
+                    camera.orbit(dx, dy);
+                else
+                    camera.pan(dx, dy);
             cameraGesture.lastX = screen.x;
             cameraGesture.lastY = screen.y;
         }
@@ -138,6 +141,7 @@ export function bindInput(ctx, camera, build, road) {
     };
     canvas.addEventListener('lostpointercapture', cancel);
     canvas.addEventListener('pointercancel', cancel);
+    canvas.addEventListener('contextmenu', event => event.preventDefault());
     canvas.addEventListener('wheel', event => {
         event.preventDefault();
         const point = camera.screenPosition(event);
