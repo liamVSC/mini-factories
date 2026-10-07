@@ -567,8 +567,8 @@ test('road clearance includes a visual safety margin around physical building hi
   const {roadPathBlocked}=await import('../dist/world/roads/placement.js');
   const factory={id:'factory',x:0,y:0,kind:'factory',r:25};
   const state={buildings:[factory]};
-  assert.equal(roadPathBlocked(state,[{x:-100,y:70},{x:100,y:70}],{}),true);
-  assert.equal(roadPathBlocked(state,[{x:-100,y:72},{x:100,y:72}],{}),false);
+  assert.equal(roadPathBlocked(state,[{x:-100,y:62},{x:100,y:62}],{}),true);
+  assert.equal(roadPathBlocked(state,[{x:-100,y:64},{x:100,y:64}],{}),false);
 });
 
 test('building road attachments only accept the exterior yard gate',()=>{
