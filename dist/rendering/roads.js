@@ -252,7 +252,7 @@ function roadMesh(r, state = null) {
     const parts = bridgeRouteSegments(p);
     for (const [index, part] of parts.entries()) {
         const rising = part.kind === 'transition' && parts[index + 1]?.kind === 'bridge';
-        const mesh = roadSegmentMesh(part.points, part.kind, mats, index === 0 || index === parts.length - 1, rising);
+        const mesh = roadSegmentMesh(part.points, part.kind, mats, index === 0 && index === parts.length - 1, rising);
         g.add(mesh);
     }
     return g;
