@@ -7,7 +7,7 @@ import {
 } from '../world/buildings/geometry.js';
 
 const MODEL_SPECS = Object.freeze({
-  factory: Object.freeze({ width: 164, depth: 120, height: 68, gateWidth: 58 }),
+  factory: Object.freeze({ width: 144, depth: 108, height: 68, gateWidth: 58 }),
   warehouse: Object.freeze({ width: 156, depth: 108, height: 50, gateWidth: 54 }),
   shop: Object.freeze({ width: 136, depth: 90, height: 42, gateWidth: 44 }),
   default: Object.freeze({ width: 136, depth: 90, height: 42, gateWidth: 44 })
