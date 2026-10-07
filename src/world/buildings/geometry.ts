@@ -15,10 +15,10 @@ interface Footprint {
 }
 
 const PLACEMENT_FOOTPRINTS: Readonly<Record<string, Footprint>> = Object.freeze({
-  warehouse: Object.freeze({ halfWidth: 115, halfDepth: 170 }),
-  factory: Object.freeze({ halfWidth: 100, halfDepth: 150 }),
-  shop: Object.freeze({ halfWidth: 95, halfDepth: 130 }),
-  default: Object.freeze({ halfWidth: 50, halfDepth: 62 })
+  warehouse: Object.freeze({ halfWidth: 132, halfDepth: 190 }),
+  factory: Object.freeze({ halfWidth: 116, halfDepth: 168 }),
+  shop: Object.freeze({ halfWidth: 108, halfDepth: 146 }),
+  default: Object.freeze({ halfWidth: 56, halfDepth: 72 })
 });
 
 function footprintForKind(kind: string | undefined): Footprint {
@@ -26,10 +26,10 @@ function footprintForKind(kind: string | undefined): Footprint {
 }
 
 const ROAD_CONNECTION_FOOTPRINTS: Readonly<Record<string, Footprint>> = Object.freeze({
-  warehouse: Object.freeze({ halfWidth: 48, halfDepth: 36 }),
-  factory: Object.freeze({ halfWidth: 40, halfDepth: 32 }),
-  shop: Object.freeze({ halfWidth: 36, halfDepth: 36 }),
-  default: Object.freeze({ halfWidth: 36, halfDepth: 36 })
+  warehouse: Object.freeze({ halfWidth: 52, halfDepth: 40 }),
+  factory: Object.freeze({ halfWidth: 44, halfDepth: 36 }),
+  shop: Object.freeze({ halfWidth: 40, halfDepth: 40 }),
+  default: Object.freeze({ halfWidth: 40, halfDepth: 40 })
 });
 
 function roadConnectionFootprintForKind(kind: string | undefined): Footprint {
@@ -181,10 +181,10 @@ export function nearestBuilding(
 }
 
 const SHELL_FOOTPRINTS: Readonly<Record<string, Footprint>> = Object.freeze({
-  warehouse: Object.freeze({ halfWidth: 82, halfDepth: 56 }),
-  factory: Object.freeze({ halfWidth: 75, halfDepth: 56 }),
-  shop: Object.freeze({ halfWidth: 75, halfDepth: 50 }),
-  default: Object.freeze({ halfWidth: 48, halfDepth: 40 })
+  warehouse: Object.freeze({ halfWidth: 112, halfDepth: 78 }),
+  factory: Object.freeze({ halfWidth: 100, halfDepth: 76 }),
+  shop: Object.freeze({ halfWidth: 94, halfDepth: 62 }),
+  default: Object.freeze({ halfWidth: 54, halfDepth: 44 })
 });
 
 export function buildingFootprint(building: Pick<Building, 'kind'>): Footprint {
@@ -205,16 +205,16 @@ interface DockSpec {
 
 const DOCK_SPECS: Readonly<Record<string, readonly DockSpec[]>> = {
   factory: [
-    { name: 'north-loading', x: 0, y: 56, normal: { x: 0, y: 1 }, width: 28 },
-    { name: 'south-loading', x: -38, y: -56, normal: { x: 0, y: -1 }, width: 18 }
+    { name: 'north-loading', x: 0, y: 76, normal: { x: 0, y: 1 }, width: 34 },
+    { name: 'south-loading', x: -44, y: -76, normal: { x: 0, y: -1 }, width: 22 }
   ],
   warehouse: [
-    { name: 'north-main', x: 0, y: 60, normal: { x: 0, y: 1 }, width: 32 },
-    { name: 'north-secondary', x: -48, y: 60, normal: { x: 0, y: 1 }, width: 18 },
-    { name: 'south-secondary', x: 48, y: -60, normal: { x: 0, y: -1 }, width: 18 }
+    { name: 'north-main', x: 0, y: 78, normal: { x: 0, y: 1 }, width: 38 },
+    { name: 'north-secondary', x: -58, y: 78, normal: { x: 0, y: 1 }, width: 22 },
+    { name: 'south-secondary', x: 58, y: -78, normal: { x: 0, y: -1 }, width: 22 }
   ],
   default: [
-    { name: 'front-entrance', x: 0, y: -47, normal: { x: 0, y: -1 }, width: 18 }
+    { name: 'front-entrance', x: 0, y: -62, normal: { x: 0, y: -1 }, width: 22 }
   ]
 };
 
@@ -232,8 +232,8 @@ export function buildingDockPoints(building: Pick<Building, 'kind' | 'x' | 'y'>)
     ...dock,
     point: { x: x + dock.x, y: y + dock.y },
     approach: {
-      x: x + dock.x + dock.normal.x * 10,
-      y: y + dock.y + dock.normal.y * 10
+      x: x + dock.x + dock.normal.x * 12,
+      y: y + dock.y + dock.normal.y * 12
     }
   }));
 }
@@ -260,8 +260,8 @@ export function buildingYardHitbox(
   if (!dock || !entrance) return buildingRoadHitbox(building, tolerance);
   const centerX = (dock.point.x + entrance.x) / 2;
   const centerY = (dock.point.y + entrance.y) / 2;
-  const along = Math.max(10, Math.hypot(entrance.x - dock.point.x, entrance.y - dock.point.y) / 2 + 8 + tolerance);
-  const across = Math.max(10, dock.width / 2 + 10 + tolerance);
+  const along = Math.max(10, Math.hypot(entrance.x - dock.point.x, entrance.y - dock.point.y) / 2 + 12 + tolerance);
+  const across = Math.max(10, dock.width / 2 + 12 + tolerance);
   const horizontal = Math.abs(dock.normal.x) > Math.abs(dock.normal.y);
   return {
     minX: centerX - (horizontal ? along : across),
@@ -289,7 +289,7 @@ export function buildingRoadEntrance(
 ): BuildingRoadEntrance | null {
   const dock = buildingPrimaryDock(building);
   if (!dock) return null;
-  const gateOffset = 42;
+  const gateOffset = 62;
   return {
     x: dock.approach.x + dock.normal.x * gateOffset,
     y: dock.approach.y + dock.normal.y * gateOffset,
