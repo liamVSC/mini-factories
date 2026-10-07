@@ -12,7 +12,7 @@ export function bindLifecycle(ctx:GameContext,loop:{resume():void;suspend():void
     if(document.visibilityState==='hidden')loop.suspend();
     else loop.resume();
   },{passive:true});
-  document.addEventListener('freeze',loop.suspend,{passive:true});
+  window.addEventListener('freeze',loop.suspend,{passive:true});
   window.addEventListener('pageshow',loop.resume,{capture:true});
   window.addEventListener('online',()=>{
     ctx.save(true);
