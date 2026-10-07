@@ -155,9 +155,9 @@ test('road renderer handles caps, junctions, yards and bridge transitions',()=>{
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
   assert.match(source,/function roadCaps\(points:Array<\{x:number;y:number\}>/);
   assert.match(source,/function bridgeRouteSegments\(points:Array<\{x:number;y:number\}>\)/);
-  assert.match(source,/function roadJunctions\(roads:any\[\]\)/);
+  assert.match(source,/function roadJunctions\(roads:any\[\],state:any=null\)/);
   assert.match(source,/function junctionMesh\(p:any,roadsAtPoint:number\)/);
-  assert.match(source,/function rebuildJunctionPatches\(roads:any\[\]\)/);
+  assert.match(source,/function rebuildJunctionPatches\(roads:any\[\],state:any=null\)/);
   assert.match(source,/export function roadYardTransitions\(s:any\)/);
   assert.match(source,/function transitionHeights/);
 });
@@ -165,7 +165,7 @@ test('road renderer handles caps, junctions, yards and bridge transitions',()=>{
 test('road mesh and junction detection share the authoritative smooth polyline',()=>{
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
   assert.match(source,/export function roadMesh\(r:any\)/);
-  assert.match(source,/const p=smoothRoadPath\(r\.points\|\|\[\]\),g=new THREE\.Group\(\)/);
+  assert.match(source,/export function roadMesh\(r:any\)\{return roadMeshWithState\(r,null\);\}/);
   assert.match(source,/const a=smoothRoadPath\(roads\[i\]\?\.points\|\|\[\]\),b=smoothRoadPath\(roads\[j\]\?\.points\|\|\[\]\)/);
 });
 
