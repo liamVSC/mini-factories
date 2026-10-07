@@ -2,7 +2,7 @@ import { freshState, goalList } from '../state.js';
 import { newId } from '../core/ids.js';
 import type { Building, Contract, GameState } from '../state.js';
 import {buildingFootprint,buildingClearance} from '../world/buildings/geometry.js';
-import {isInsideWorldBounds} from '../world/roads/validation.js';
+import {isInsideWorldBounds,validateRoadGeometry} from '../world/roads/validation.js';
 import {riverY} from '../world/terrain.js';
 import {repairBuildingLayout,validateBuildingLayout} from '../world/buildings/layout.js';
 
@@ -81,16 +81,24 @@ export function hydrate(d: PersistedData | null | undefined): GameState | null {
   if(validateBuildingLayout(s.buildings).length)s.buildings=repairBuildingLayout(s.buildings,s.layoutSeed+7919);
   interface PersistedRoad { id?: string; points: Array<{x: number; y: number}>; bridge?: unknown; condition?: unknown; age?: unknown; [key: string]: unknown }
   const roads = s.roads as PersistedRoad[];
-  s.roads = roads
-    .filter(r => r && Array.isArray(r.points) && r.points.length >= 2 && r.points.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y)))
-    .map(r => ({
+  const seenRoadIds = new Set<string>();
+  s.roads = roads.flatMap(r => {
+    if(!r || !Array.isArray(r.points)) return [];
+    const normalized = r.points.map((p: {x: number; y: number}) => ({x: Number(p?.x), y: Number(p?.y)}));
+    const validation = validateRoadGeometry(normalized);
+    if(!validation.ok) return [];
+    let id = typeof r.id === 'string' && r.id ? r.id : newId();
+    if(seenRoadIds.has(id)) id = newId();
+    seenRoadIds.add(id);
+    return [{
       ...r,
-      id: typeof r.id === 'string' && r.id ? r.id : newId(),
-      points: r.points.map((p: {x: number; y: number}) => ({x: Number(p.x), y: Number(p.y)})),
+      id,
+      points: validation.points.map(p => ({x: p.x, y: p.y})),
       bridge: !!r.bridge,
-      condition: Number.isFinite(Number(r.condition)) ? Number(r.condition) : 1,
-      age: Number.isFinite(Number(r.age)) ? Number(r.age) : 0
-    }));
+      condition: clampNumber(r.condition,0,1,1),
+      age: Math.max(0,finite(r.age,0))
+    }];
+  });
   s.buildMode=null;
   return s;
 }
