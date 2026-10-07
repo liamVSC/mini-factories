@@ -238,7 +238,7 @@ test('PWA lifecycle suspends on freeze and resumes after page restore without du
   assert.ok(lifecycle.includes("window.addEventListener('freeze',loop.suspend"));
   assert.ok(!lifecycle.includes("document.addEventListener('freeze',loop.suspend"));
   assert.ok(lifecycle.includes("window.addEventListener('pageshow',loop.resume"));
-  assert.match(lifecycle,/document\\.addEventListener\\('visibilitychange'/);
+  assert.ok(lifecycle.includes("document.addEventListener('visibilitychange'"));
   assert.ok(loop.includes('if(!running||animationFrame)return;'));
   assert.ok(loop.includes('last=performance.now();'));
 });
