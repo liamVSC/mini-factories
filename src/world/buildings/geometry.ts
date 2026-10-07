@@ -181,9 +181,9 @@ export function nearestBuilding(
 }
 
 const SHELL_FOOTPRINTS: Readonly<Record<string, Footprint>> = Object.freeze({
-  warehouse: Object.freeze({ halfWidth: 115, halfDepth: 170}),
-  factory: Object.freeze({ halfWidth: 100, halfDepth: 150}),
-  shop: Object.freeze({ halfWidth: 95, halfDepth: 130}),
+  warehouse: Object.freeze({ halfWidth: 82, halfDepth: 56 }),
+  factory: Object.freeze({ halfWidth: 75, halfDepth: 56 }),
+  shop: Object.freeze({ halfWidth: 75, halfDepth: 50 }),
   default: Object.freeze({ halfWidth: 48, halfDepth: 40 })
 });
 
