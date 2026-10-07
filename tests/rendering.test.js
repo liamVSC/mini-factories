@@ -125,7 +125,7 @@ test('road snapping recognizes the canonical gate',()=>{
 
 test('road renderer builds the requested carriageway and roadside profile',()=>{
   const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
-  assert.match(source,/roadWidth=30,roadHalfWidth=15,curbWidth=1\.4,sidewalkWidth=15/);
+  assert.match(source,/roadWidth=30,roadHalfWidth=15,curbWidth=2,sidewalkWidth=15/);
   assert.match(source,/function sidewalkStrips/);
   assert.match(source,/const sidewalkY=isBridge/);
   assert.match(source,/const curbY=isBridge/);
