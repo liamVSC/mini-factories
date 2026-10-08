@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6';
-import {riverY,WORLD_BOUNDS,WORLD_MARGIN} from './world.js';
+import {riverY,WORLD_BOUNDS,WORLD_MARGIN,RIVER_WATER_CENTER_Y,RIVER_WATER_HEIGHT,TERRAIN_SURFACE_Y} from './world.js';
 import {buildingSitePlan} from './rendering/sitePlan.js';
 import {offsetRoadPath,roadDashSegments,smoothRoadPath} from './rendering/roadGeometry.js';
 import {truckRenderPose} from './rendering/truckMotion.js';
@@ -29,6 +29,44 @@ function fence(g,x1,z1,x2,z2,metal){const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz
 function parkedMarkings(g,plan,paint){const count=Math.max(4,Math.floor(plan.parkingWidth/12)),stall=plan.parkingWidth/count;for(const row of[-1,1]){const z=plan.parkingZ+row*8,lines=[];for(let i=0;i<=count;i++)lines.push({x:-plan.parkingWidth/2+i*stall,y:.28,z});instancedBoxes(g,.42,.08,15,paint,lines);box(g,plan.parkingWidth,.08,.42,paint,0,.28,z-7.5,0,false);box(g,plan.parkingWidth,.08,.42,paint,0,.28,z+7.5,0,false);}}
 function palletStack(g,x,z,wood){box(g,6,.5,5,wood,x,.4,z,0,false);for(const ox of[-2,0,2])box(g,.65,.8,5,wood,x+ox,.95,z,0,false);box(g,5,2.3,4,material('#a98255',.94),x,2.5,z);box(g,5,2.3,4,material('#b58a5b',.94),x,4.9,z);}
 function container(g,x,z,metal,accent){box(g,28,9,11,metal,x,4.6,z);const ribs=[];for(let i=-5;i<=5;i++)ribs.push({x:x+i*2.4,y:4.6,z:z+5.7});instancedBoxes(g,.3,8.5,.3,accent,ribs);box(g,.4,8.5,.4,accent,x-13.8,4.6,z,0,false);box(g,.4,8.5,.4,accent,x+13.8,4.6,z,0,false);}
+function treeGeometry(key,create){return cachedGeometry(cylinderGeometries,key,create);}
+function tree(g,x,z,scale=1,materials){
+ const [trunkMat,leafMat,leafMat2]=materials;
+ cyl(g,1.15*scale,8*scale,trunkMat,x,4*scale,z,8);
+ const lower=part(g,treeGeometry('tree-canopy-lower',()=>new THREE.ConeGeometry(6,12,8)),leafMat,x,11*scale,z,0,true);lower.scale.set(scale,scale,scale);
+ const upper=part(g,treeGeometry('tree-canopy-upper',()=>new THREE.ConeGeometry(4.5,10,8)),leafMat2,x,17*scale,z,0,true);upper.scale.set(scale,scale,scale);
+}
+function distanceToRoad(x,z,roads){
+ let best=Infinity;
+ for(const road of roads||[]){const points=road.points||[];for(let i=1;i<points.length;i++){
+  const a=points[i-1],b=points[i],dx=b.x-a.x,dz=b.y-a.y,len2=dx*dx+dz*dz;
+  const t=len2>0?Math.max(0,Math.min(1,((x-a.x)*dx+(z-a.y)*dz)/len2)):0;
+  const px=a.x+t*dx,pz=a.y+t*dz;best=Math.min(best,Math.hypot(x-px,z-pz));
+ }}
+ return best;
+}
+function addForest(s){
+ const g=new THREE.Group();g.name='forest-resource-layer';
+ const trunkMat=material('#6b4b32',.98),leafMat=material('#3e6b45',.98),leafMat2=material('#527c4e',.98);
+ const patches=[[-900,-760,230],[-500,820,190],[720,-860,210],[980,700,220],[-1040,240,150],[1060,-170,160]];
+ let seed=173;
+ for(const [cx,cz,radius] of patches){
+  const count=Math.round(radius/7);
+  for(let i=0;i<count;i++){
+   seed=(seed*1664525+1013904223)>>>0;
+   const angle=(seed/4294967296)*Math.PI*2;
+   seed=(seed*1664525+1013904223)>>>0;
+   const distance=Math.sqrt(seed/4294967296)*radius;
+   const x=cx+Math.cos(angle)*distance,z=cz+Math.sin(angle)*distance;
+   if(Math.abs(z-riverY(x))<75)continue;
+   if(distanceToRoad(x,z,s.roads)<34)continue;
+   if((s.buildings||[]).some(b=>Math.hypot(x-(Number(b.x)||0),z-(Number(b.y)||0))<105))continue;
+   const scale=.78+((seed>>>8)%45)/100;
+   tree(g,x,z,scale,[trunkMat,leafMat,leafMat2]);
+  }
+ }
+ root.add(g);
+}
 function dumpster(g,x,z,metal,dark){box(g,10,4,6,metal,x,2.4,z);box(g,10.5,.6,6.5,dark,x,4.7,z);for(const side of[-1,1])cyl(g,.8,.65,dark,x+side*3.2,1,z-3,8);}
 function forklift(g,x,z,metal,dark,glassMat){box(g,8,4,5,dark,x,3,z);box(g,4,4,4,metal,x-1,7,z);box(g,3,2.5,4,glassMat,x-1,7,z+2.1,0,false);for(const side of[-1,1]){const wheel=cyl(g,1.35,1,material('#252a29',.98),x,1.5,z+side*2.7,12);wheel.rotation.x=Math.PI/2;}for(const side of[-1,1])box(g,.5,7,.6,metal,x+4.7,4.7,z+side*1.6);box(g,3,.5,.6,metal,x+5.8,1,z,0,false);}
 function siteLights(g,plan,metal,lightMat){for(const side of[-1,1]){const x=side*(plan.site.halfWidth-15);const z=plan.courtZ;box(g,.8,17,.8,metal,x,8.5,z);box(g,3,.55,1.6,lightMat,x,17.2,z);}}
@@ -251,10 +289,10 @@ function roadMesh(r){
 }
 function truckMesh(){const g=new THREE.Group(),cab=material('#5d6764',.82,.12),trailer=material('#aeb5b1',.9),dark=material('#242a2a',.98),glassMat=glass('#3b5c62'),metal=material('#6c7570',.75,.18);box(g,7,6.8,7,cab,4,4.3,0);box(g,3,3.2,6.5,glassMat,7.1,5.3,0);box(g,12,7.8,7.6,trailer,-4.5,4.7,0);box(g,12.2,.6,7.9,metal,-4.5,8.8,0);for(const x of[-7,-2.5,3.8,6.4])for(const z of[-3.85,3.85]){const w=cyl(g,1.55,1.15,dark,x,1.65,z,16);w.rotation.x=Math.PI/2;}box(g,.5,1.2,.6,material('#e6d7aa',.5),7.7,4,-3.1);box(g,.5,1.2,.6,material('#e6d7aa',.5),7.7,4,3.1);return g;}
 function routePoint(points,t){if(!Array.isArray(points)||points.length<2)return null;let total=0;for(let i=1;i<points.length;i++)total+=Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y);if(total<.01)return points[0];let want=Math.max(0,Math.min(1,t))*total,run=0;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],len=Math.hypot(b.x-a.x,b.y-a.y);if(run+len>=want){const q=(want-run)/len;return{x:a.x+(b.x-a.x)*q,y:a.y+(b.y-a.y)*q};}run+=len;}return points.at(-1);}
-function rebuildWorld(s){for(const g of [...root.children]){root.remove(g);const materials=materialsIn(g);g.traverse(o=>{if(o.geometry&&!sharedGeometries.has(o.geometry))o.geometry.dispose();});disposeMaterials(materials);}buildingMeshes.clear();truckMeshes.clear();const roads=new THREE.Group();for(const r of s.roads||[]){const g=roadMesh(r);g.userData.road=r;roads.add(g);}root.add(roads);for(const b of s.buildings||[]){const model=makeBuilding(b),anchor=new THREE.Group();anchor.name='building-anchor-'+b.id;anchor.position.set(Number(b.x)||0,0,Number(b.y)||0);anchor.add(model);root.add(anchor);buildingMeshes.set(b.id,model);}for(const t of s.trucks||[]){const m=truckMesh();root.add(m);truckMeshes.set(t.id,m);}worldKey=buildingKey(s)+'|'+roadKey(s);}
+function rebuildWorld(s){for(const g of [...root.children]){root.remove(g);const materials=materialsIn(g);g.traverse(o=>{if(o.geometry&&!sharedGeometries.has(o.geometry))o.geometry.dispose();});disposeMaterials(materials);}buildingMeshes.clear();truckMeshes.clear();const roads=new THREE.Group();for(const r of s.roads||[]){const g=roadMesh(r);g.userData.road=r;roads.add(g);}root.add(roads);addForest(s);for(const b of s.buildings||[]){const model=makeBuilding(b),anchor=new THREE.Group();anchor.name='building-anchor-'+b.id;anchor.position.set(Number(b.x)||0,0,Number(b.y)||0);anchor.add(model);root.add(anchor);buildingMeshes.set(b.id,model);}for(const t of s.trucks||[]){const m=truckMesh();root.add(m);truckMeshes.set(t.id,m);}worldKey=buildingKey(s)+'|'+roadKey(s);}
 function updateTrucks(s){for(const [id,m] of truckMeshes){const t=(s.trucks||[]).find(x=>x.id===id);if(!t||t.dead){m.visible=false;continue;}const pose=truckRenderPose(t);if(!pose){m.visible=false;continue;}m.visible=true;m.position.set(pose.x,1,pose.y);m.rotation.y=pose.yaw;}}
 function updateSelection(s){for(const [id,m] of buildingMeshes){const selected=(s.buildings||[]).some(b=>b.id===id&&s.selected===b);m.traverse(o=>{if(!o.isMesh||!o.material?.emissive)return;o.material.emissive.setHex(selected?0x294634:0);o.material.emissiveIntensity=selected?.32:0;});}}
-function init(canvas){if(renderer)return;renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',stencil:false,depth:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,innerWidth<700?1.5:2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;scene=new THREE.Scene();scene.background=new THREE.Color('#b9c6b0');scene.fog=new THREE.Fog('#b9c6b0',900,2600);root=new THREE.Group();scene.add(root);previewGroup=new THREE.Group();scene.add(previewGroup);buildingPreviewGroup=new THREE.Group();scene.add(buildingPreviewGroup);scene.add(new THREE.HemisphereLight('#f5f8f4','#536057',1.55));const sun=new THREE.DirectionalLight('#fff5dc',2);sun.position.set(-300,480,260);sun.castShadow=true;sun.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);sun.shadow.camera.near=10;sun.shadow.camera.far=1600;sun.shadow.camera.left=-600;sun.shadow.camera.right=600;sun.shadow.camera.top=600;sun.shadow.camera.bottom=-600;scene.add(sun);const ground=material('#708762',1);box(scene,2600,2,2600,ground,0,-7,0,0,false);const terrain=material('#78996a',1);box(scene,2600,.12,2600,terrain,0,.02,0,0,false);const river=material('#65929d',.7,.05);for(let x=-1300;x<1300;x+=44){const x2=Math.min(1300,x+52),mid=(x+x2)/2,dy=riverY(x2)-riverY(x),ang=Math.atan2(dy,x2-x);box(scene,Math.hypot(x2-x,dy)+12,.65,82,river,mid,.05,(riverY(x)+riverY(x2))/2,-ang,false);}resize(viewport.width,viewport.height);}
+function init(canvas){if(renderer)return;renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',stencil:false,depth:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,innerWidth<700?1.5:2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;scene=new THREE.Scene();scene.background=new THREE.Color('#b9c6b0');scene.fog=new THREE.Fog('#b9c6b0',900,2600);root=new THREE.Group();scene.add(root);previewGroup=new THREE.Group();scene.add(previewGroup);buildingPreviewGroup=new THREE.Group();scene.add(buildingPreviewGroup);scene.add(new THREE.HemisphereLight('#f5f8f4','#536057',1.55));const sun=new THREE.DirectionalLight('#fff5dc',2);sun.position.set(-300,480,260);sun.castShadow=true;sun.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);sun.shadow.camera.near=10;sun.shadow.camera.far=1600;sun.shadow.camera.left=-600;sun.shadow.camera.right=600;sun.shadow.camera.top=600;sun.shadow.camera.bottom=-600;scene.add(sun);const ground=material('#708762',1);box(scene,2600,2,2600,ground,0,-7,0,0,false);const terrain=material('#78996a',1);box(scene,2600,.12,2600,terrain,0,TERRAIN_SURFACE_Y-.06,0,0,false);const river=material('#65929d',.7,.05);for(let x=-1300;x<1300;x+=44){const x2=Math.min(1300,x+52),mid=(x+x2)/2,dy=riverY(x2)-riverY(x),ang=Math.atan2(dy,x2-x);box(scene,Math.hypot(x2-x,dy)+12,RIVER_WATER_HEIGHT,82,river,mid,RIVER_WATER_CENTER_Y,(riverY(x)+riverY(x2))/2,-ang,false);}resize(viewport.width,viewport.height);}
 function resize(w,h){viewport.width=Math.max(1,w||innerWidth);viewport.height=Math.max(1,h||innerHeight);renderer?.setSize(viewport.width,viewport.height,false);if(camera){camera.aspect=viewport.width/viewport.height;camera.updateProjectionMatrix();}}
 function ensureCamera(){if(!camera)camera=new THREE.PerspectiveCamera(46,viewport.width/viewport.height,2,3400);const p=Math.max(.35,Math.min(1.35,target.pitch)),h=Math.cos(p)*target.distance;camera.position.set(target.x+Math.sin(target.yaw)*h,Math.sin(p)*target.distance,target.z+Math.cos(target.yaw)*h);camera.lookAt(target.x,0,target.z);}
 function bounds(){const l=(WORLD_BOUNDS.maxX-WORLD_BOUNDS.minX)/2-WORLD_MARGIN;desired.x=Math.max(-l,Math.min(l,desired.x));desired.z=Math.max(-l,Math.min(l,desired.z));}
