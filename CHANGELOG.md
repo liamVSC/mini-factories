@@ -1,3 +1,11 @@
+# Changelog
+
+## v2.1 — 8 Oct 2026
+- Lowered the river water surface visually below the grass while keeping bridge decks elevated.
+- Added deterministic low-poly forest/tree clusters as a future lumber resource visual.
+- Kept forest trees clear of existing roads, river crossings, and building areas.
+- Refreshed the PWA renderer cache version so the map changes are picked up by installed clients.
+
 # Mini Factories Change Log
 
 ## v3 — 2 October 2026
