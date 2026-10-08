@@ -16,7 +16,7 @@ interface Footprint {
 
 const PLACEMENT_FOOTPRINTS: Readonly<Record<string, Footprint>> = Object.freeze({
   warehouse: Object.freeze({ halfWidth: 115, halfDepth: 170 }),
-  factory: Object.freeze({ halfWidth: 100, halfDepth: 190 }),
+  factory: Object.freeze({ halfWidth: 100, halfDepth: 280 }),
   shop: Object.freeze({ halfWidth: 95, halfDepth: 130 }),
   default: Object.freeze({ halfWidth: 50, halfDepth: 62 })
 });
