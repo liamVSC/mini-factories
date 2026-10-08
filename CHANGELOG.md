@@ -2,6 +2,12 @@
 
 ## v1 — 8 October 2026
 
+### Map visuals
+- Lowered the river water surface below the grass plane while keeping bridges elevated above the water.
+- Added deterministic low-poly forest clusters as a future lumber resource visual.
+- Forest clusters are kept away from the river edge and are purely visual for now.
+- Refreshed the PWA cache so installed clients receive the new renderer.
+
 ### Published release
 - Promoted the current Mini Factories build to the v1 release.
 - Includes the current factory, yard, road, routing, camera, PWA and persistence improvements.
