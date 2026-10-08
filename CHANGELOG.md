@@ -1,5 +1,19 @@
 # Changelog
 
+## v1 — 8 October 2026
+
+### Published release
+- Promoted the current Mini Factories build to the v1 release.
+- Includes the current factory, yard, road, routing, camera, PWA and persistence improvements.
+- Cache version and runtime version are aligned to v1.
+
+### Verification
+- Typecheck: required to pass
+- Build: required to pass
+- Full test suite: required to pass
+- Browser audit: required to pass
+- GitHub Pages deployment: required to pass
+
 ## v2.1.87 — 7 October 2026
 
 ### Camera controls
