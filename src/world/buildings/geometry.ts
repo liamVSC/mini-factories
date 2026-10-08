@@ -16,7 +16,7 @@ interface Footprint {
 
 const PLACEMENT_FOOTPRINTS: Readonly<Record<string, Footprint>> = Object.freeze({
   warehouse: Object.freeze({ halfWidth: 115, halfDepth: 170 }),
-  factory: Object.freeze({ halfWidth: 100, halfDepth: 150 }),
+  factory: Object.freeze({ halfWidth: 100, halfDepth: 190 }),
   shop: Object.freeze({ halfWidth: 95, halfDepth: 130 }),
   default: Object.freeze({ halfWidth: 50, halfDepth: 62 })
 });
@@ -289,7 +289,7 @@ export function buildingRoadEntrance(
 ): BuildingRoadEntrance | null {
   const dock = buildingPrimaryDock(building);
   if (!dock) return null;
-  const gateOffset = 76;
+  const gateOffset = 42;
   return {
     x: dock.approach.x + dock.normal.x * gateOffset,
     y: dock.approach.y + dock.normal.y * gateOffset,
