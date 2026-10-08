@@ -235,6 +235,15 @@ test('lane-change metadata and junction signals/priority expose deterministic st
   assert.equal(conflict.allowed,false);
 });
 
+test('building yards extend substantially from the model to the exterior gate',()=>{
+  const source=fs.readFileSync('src/world/buildings/geometry.ts','utf8');
+  assert.match(source,/const gateOffset = 82;/);
+  const factory={id:'factory-yard-size',x:0,y:0,kind:'factory',r:25};
+  const yard=buildingYardHitbox(factory);
+  assert.ok(yard.maxY-yard.minY>=104);
+  assert.ok(yard.maxY<=150);
+});
+
 test('factories keep a dedicated separation buffer during placement and procedural spawning',()=>{
   const s=roadState();
   const steelType=TYPES.find(t=>t.name==='Steel');
