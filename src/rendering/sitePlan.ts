@@ -42,7 +42,9 @@ export function buildingSitePlan(building: Pick<Building, 'id' | 'type' | 'kind'
   const dockZ = dock.point.y - y;
   const approachZ = dock.approach.y - y;
   const gateZ = entrance.y - y;
-  const rearZ = -direction * (site.halfDepth - 6);
+  const renderSiteHalfWidth = kind === 'factory' ? 150 : site.halfWidth;
+  const renderSiteHalfDepth = kind === 'factory' ? 300 : site.halfDepth;
+  const rearZ = -direction * (renderSiteHalfDepth - 6);
   const courtStartZ = dockZ + direction * 4;
   const courtEndZ = gateZ - direction * 1;
   const courtDepth = Math.abs(courtEndZ - courtStartZ);
@@ -62,29 +64,29 @@ export function buildingSitePlan(building: Pick<Building, 'id' | 'type' | 'kind'
     height: spec.height + (variant === 1 ? 2 : variant === 3 ? -1 : 0),
     gateWidth: spec.gateWidth,
     shell,
-    site,
+    site: kind === 'factory' ? {halfWidth: renderSiteHalfWidth, halfDepth: renderSiteHalfDepth} : site,
     direction,
     dockX,
     dockZ,
     approachZ,
     gateZ,
     rearZ,
-    lotWidth: site.halfWidth * 2 - 8,
+    lotWidth: renderSiteHalfWidth * 2 - 8,
     lotDepth: Math.abs(gateZ - rearZ),
     lotZ: (gateZ + rearZ) / 2,
     courtStartZ,
     courtEndZ,
     courtDepth,
     courtZ: (courtStartZ + courtEndZ) / 2,
-    courtWidth: site.halfWidth * 2 - 12,
+    courtWidth: renderSiteHalfWidth * 2 - 12,
     turnX,
     turnZ,
     turnRadius: Math.max(18, Math.min(kind === 'factory' ? 42 : 34, Math.abs(gateZ - approachZ) / 2 - 4)),
     parkingZ,
     parkingDepth,
-    parkingWidth: Math.min(kind === 'factory' ? 168 : 144, site.halfWidth * 2 - 28),
+    parkingWidth: Math.min(kind === 'factory' ? 240 : 144, renderSiteHalfWidth * 2 - 28),
     serviceSide,
     serviceX,
-    fenceX: site.halfWidth - 4
+    fenceX: renderSiteHalfWidth - 4
   };
 }
