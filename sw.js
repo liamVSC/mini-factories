@@ -1,14 +1,14 @@
-const CACHE='mini-factories-v2';
+const CACHE='mini-factories-v1';
 const APP_SHELL=[
-  './','./index.html','./styles.css?v=2','./dist/game.js?v=2','./dist/version.js?v=2','./dist/state.js','./dist/world.js','./dist/economy.js',
+  './','./index.html','./styles.css?v=1','./dist/game.js?v=1','./dist/version.js?v=1','./dist/state.js','./dist/world.js','./dist/economy.js',
   './dist/core/types.js','./dist/core/rng.js','./dist/core/ids.js','./dist/commands.js','./dist/junctionControl.js',
   './dist/world/terrain.js','./dist/world/buildings/spawning.js','./dist/world/buildings/index.js','./dist/world/buildings/layout.js','./dist/world/buildings/geometry.js','./dist/world/buildings/connections.js','./dist/world/buildings/placement.js','./dist/world/buildings/operations.js',
   './dist/world/roads/index.js','./dist/world/roads/creation.js','./dist/world/roads/editing.js','./dist/world/roads/geometry.js','./dist/world/roads/intersections.js','./dist/world/roads/placement.js','./dist/world/roads/routing.js','./dist/world/roads/topology.js','./dist/world/roads/validation.js',
   './dist/laneGraph.js','./dist/persistence/save.js','./dist/persistence/load.js','./dist/persistence/recovery.js',
-  './dist/render.js?v=2','./dist/render3d-clean.js?v=2','./icon.svg','./manifest.webmanifest',
-  'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=2'
+  './dist/render.js?v=1','./dist/render3d-clean.js?v=1','./icon.svg','./manifest.webmanifest',
+  'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=1'
 ];
-const EXTERNAL_ASSETS=new Set(['https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=2']);
+const EXTERNAL_ASSETS=new Set(['https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=1']);
 
 async function cacheShell(){
   const cache=await caches.open(CACHE);
