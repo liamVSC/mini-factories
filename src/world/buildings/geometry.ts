@@ -289,7 +289,7 @@ export function buildingRoadEntrance(
 ): BuildingRoadEntrance | null {
   const dock = buildingPrimaryDock(building);
   if (!dock) return null;
-  const gateOffset = 82;
+  const gateOffset = 76;
   return {
     x: dock.approach.x + dock.normal.x * gateOffset,
     y: dock.approach.y + dock.normal.y * gateOffset,
