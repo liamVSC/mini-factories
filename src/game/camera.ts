@@ -17,6 +17,7 @@ export function createCameraController(ctx:GameContext){
   function snapshot(){return {x:ctx.state.camera.x,y:ctx.state.camera.y,zoom:ctx.state.camera.zoom};}
   function restore(snapshot:{x:number;y:number;zoom:number}){ctx.state.camera={x:snapshot.x,y:snapshot.y,zoom:snapshot.zoom};resizeRenderer(width,height);}
   window.addEventListener('resize',resize,{passive:true});
+  window.addEventListener('orientationchange',resize,{passive:true});
   window.visualViewport?.addEventListener('resize',resize,{passive:true});
   window.visualViewport?.addEventListener('scroll',resize,{passive:true});
   return {resize,screenPosition,worldPosition,pan,orbit,twist,zoomAt,worldHitTolerance,reset};
