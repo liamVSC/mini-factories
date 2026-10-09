@@ -7,7 +7,7 @@ const APP_SHELL=[
   './dist/laneGraph.js','./dist/persistence/save.js','./dist/persistence/load.js','./dist/persistence/recovery.js',
   './dist/game/bootstrap.js','./dist/game/build-ui.js','./dist/game/camera.js','./dist/game/input.js','./dist/game/lifecycle.js','./dist/game/loop.js','./dist/game/road-ui.js','./dist/game/ui.js',
   './dist/render.js','./dist/render.js?v=1','./dist/render3d-clean.js','./dist/render3d-clean.js?v=1','./dist/render3d.js',
-  './dist/rendering/buildingTransform.js','./dist/rendering/buildings.js','./dist/rendering/camera.js','./dist/rendering/preview.js','./dist/rendering/roads.js','./dist/rendering/scene.js','./dist/rendering/sitePlan.js','./dist/rendering/three.js','./dist/rendering/trucks.js',
+  './dist/rendering/buildingTransform.js','./dist/rendering/buildings.js','./dist/rendering/camera.js','./dist/rendering/preview.js','./dist/rendering/roads.js','./dist/rendering/scene.js','./dist/rendering/sitePlan.js','./dist/rendering/surfaceHeights.js','./dist/rendering/three.js','./dist/rendering/trucks.js',
   './dist/version.js','./dist/world/worldTypes.js','./icon.svg','./manifest.webmanifest',
   'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6'
 ];
