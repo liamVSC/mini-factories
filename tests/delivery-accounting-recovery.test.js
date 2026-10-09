@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 
 const {freshState, makeBuilding, TYPES} = await import('../dist/state.js');
 const {route, updateEconomy} = await import('../dist/economy.js');
-const {addRoad, roadNetwork} = await import('../dist/world.js');
 const buildings = await import('../dist/world/buildings/index.js');
 
 function road(points) {
@@ -79,7 +78,7 @@ test('blocked or disconnected delivery routes never silently complete a sale', (
 
   // Break the only connecting path before dispatch; route resolution must fail
   // closed and no sale/accounting side effects may occur.
-  state.roads.splice(1, 1);
+  state.roads = [road([{ x: 900, y: 900 }, { x: 1100, y: 900 }])];
   assert.equal(route(state, factory, shop), null);
   for (let i = 0; i < 80; i++) updateEconomy(state, 0.2, () => {});
 
