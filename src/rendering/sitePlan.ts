@@ -42,8 +42,8 @@ export function buildingSitePlan(building: Pick<Building, 'id' | 'type' | 'kind'
   const dockZ = dock.point.y - y;
   const approachZ = dock.approach.y - y;
   const gateZ = entrance.y - y;
-  const renderSiteHalfWidth = kind === 'factory' ? 150 : site.halfWidth;
-  const renderSiteHalfDepth = kind === 'factory' ? 300 : site.halfDepth;
+  const renderSiteHalfWidth = kind === 'factory' ? 170 : site.halfWidth;
+  const renderSiteHalfDepth = kind === 'factory' ? 340 : site.halfDepth;
   const rearZ = -direction * (renderSiteHalfDepth - 6);
   const courtStartZ = dockZ + direction * 4;
   const courtEndZ = gateZ - direction * 1;
