@@ -243,7 +243,8 @@ test('factories keep a dedicated separation buffer during placement and procedur
   const first={id:'steel',x:0,y:-108,kind:'factory',r:25};
   s.buildings=[first];
   assert.equal(buildingPhysicalPlacementReason(s,foodType,120,0),'Too close to another factory');
-  assert.equal(buildingPhysicalPlacementReason(s,foodType,260,0),null);
+  assert.equal(buildingPhysicalPlacementReason(s,foodType,260,0),'Too close to another factory');
+  assert.equal(buildingPhysicalPlacementReason(s,foodType,400,0),null);
 
   const seeded=freshState();
   seeded.cash=5000;
