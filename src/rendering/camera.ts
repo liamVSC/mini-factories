@@ -62,6 +62,12 @@ export class RenderCamera{
   }
   snapshot():CameraSnapshot{return {...this.desired};}
   restore(snapshot:CameraSnapshot){this.desired={...snapshot};this.target={...snapshot};this.bounds();this.update();}
-  reset(){this.desired={x:0,z:0,yaw:0,pitch:DEFAULT_PITCH,distance:DEFAULT_DISTANCE};}
+  frame(x:number,z:number,distance=DEFAULT_DISTANCE,yaw=0,pitch=DEFAULT_PITCH){
+    this.desired={x:Number(x)||0,z:Number(z)||0,yaw:Number(yaw)||0,pitch:Math.max(MIN_PITCH,Math.min(MAX_PITCH,Number(pitch)||DEFAULT_PITCH)),distance:Math.max(MIN_DISTANCE,Math.min(MAX_DISTANCE,Number(distance)||DEFAULT_DISTANCE))};
+    this.target={...this.desired};
+    this.bounds();
+    this.update();
+  }
+  reset(){this.frame(0,0,DEFAULT_DISTANCE,0,DEFAULT_PITCH);}
   focus(x:number,y:number){this.desired.x=Number(x)||0;this.desired.z=Number(y)||0;this.bounds();}
 }
