@@ -397,10 +397,10 @@ test('deleting a multi-segment road reroutes a truck through an intersecting alt
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
   const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},240,0,'shop-1');
   s.buildings.push(factory,shop);
-  const main={id:'main-bend',points:[{x:0,y:0},{x:120,y:0},{x:400,y:0}],bridge:false,condition:1,age:0};
+  const main={id:'main-bend',points:[{x:0,y:0},{x:120,y:0},{x:240,y:0}],bridge:false,condition:1,age:0};
   const north={id:'north-a',points:[{x:0,y:0},{x:0,y:100}],bridge:false,condition:1,age:0};
   const north2={id:'north-b',points:[{x:0,y:100},{x:240,y:100}],bridge:false,condition:1,age:0};
-  const north3={id:'north-c',points:[{x:240,y:100},{x:400,y:0}],bridge:false,condition:1,age:0};
+  const north3={id:'north-c',points:[{x:240,y:100},{x:240,y:0}],bridge:false,condition:1,age:0};
   s.roads.push(main,north,north2,north3);
   const routed=routeOnRoadNetwork(s,factory,shop);
   assert.ok(routed);
@@ -837,12 +837,12 @@ test('economy remains finite during a sustained multi-truck simulation',()=>{
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-1');
   const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},240,0,'shop-1');
   s.buildings.push(factory,shop);
-  s.roads.push({id:'road-1',points:[{x:0,y:0},{x:400,y:0}],bridge:false,condition:1,age:0});
+  s.roads.push({id:'road-1',points:[{x:0,y:0},{x:240,y:0}],bridge:false,condition:1,age:0});
   factory.stock=4;
   for(let i=0;i<80;i++){
     s.trucks.push({
       id:'stress-'+i,
-      route:[{x:0,y:0},{x:400,y:0}],
+      route:[{x:0,y:0},{x:240,y:0}],
       routeKey:'stress-route',
       t:(i%20)/25,
       speed:.085,
