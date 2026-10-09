@@ -14,6 +14,33 @@ const cameraRuntime=new RenderCamera();
 const buildingMeshes=new Map<string,any>();
 const truckMeshes=new Map<string,any>();
 let worldKey='';
+let framedGameSeed:number|null=null;
+let lastRenderedState:GameState|null=null;
+
+function starterCameraFrame(state:GameState){
+  const factories=(state.buildings||[]).filter(building=>building.kind==='factory');
+  const shops=(state.buildings||[]).filter(building=>building.kind==='shop');
+  if(!factories.length)return{x:0,z:0,distance:1250,yaw:0,pitch:.82};
+  let best:{factory:Building;shop:Building;separation:number}|null=null;
+  for(const factory of factories)for(const shop of shops){
+    const separation=Math.hypot(shop.x-factory.x,shop.y-factory.y);
+    if(!best||separation<best.separation)best={factory,shop,separation};
+  }
+  if(!best){
+    const factory=factories[0];
+    return{x:factory.x,z:factory.y,distance:1250,yaw:0,pitch:.82};
+  }
+  const {factory,shop,separation}=best;
+  // Align the closest factory/shop pair along the camera depth axis so both
+  // remain in the initial portrait viewport instead of spawning off-screen.
+  return{
+    x:(factory.x+shop.x)/2,
+    z:(factory.y+shop.y)/2,
+    distance:Math.max(1050,Math.min(1250,900+separation*.45)),
+    yaw:Math.atan2(shop.x-factory.x,shop.y-factory.y),
+    pitch:.82
+  };
+}
 
 function buildingKey(state:GameState){
   return JSON.stringify((state.buildings||[]).map(b=>[b.id,b.kind,b.type,b.x,b.y,b.color]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))));
@@ -58,6 +85,12 @@ export function render(state:GameState,width:number,height:number,canvas:HTMLCan
   if(!sceneRuntime.ready)sceneRuntime.init(target);
   if(sceneRuntime.recovering)return;
   sceneRuntime.resize(width,height);cameraRuntime.resize(width,height);
+  if(framedGameSeed!==state.gameSeed){
+    const frame=starterCameraFrame(state);
+    cameraRuntime.frame(frame.x,frame.z,frame.distance,frame.yaw,frame.pitch);
+    framedGameSeed=state.gameSeed;
+  }
+  lastRenderedState=state;
   const key=buildingKey(state)+'|'+roadKey(state);
   if(key!==worldKey)rebuildWorld(state);
   updateTrucks(sceneRuntime.root,truckMeshes,state.trucks);updateSelection(state);
@@ -71,7 +104,12 @@ export function screenToWorld(x:number,y:number,width=globalThis.innerWidth,heig
 export function worldToScreen(x:number,y:number,width=globalThis.innerWidth,height=globalThis.innerHeight){return cameraRuntime.worldToScreen(x,y,width,height);}
 export function panScreen(dx:number,dy:number,width=globalThis.innerWidth,height=globalThis.innerHeight){cameraRuntime.panScreen(dx,dy,width,height);}
 export function zoomAtScreen(x:number,y:number,zoom:number,width=globalThis.innerWidth,height=globalThis.innerHeight){cameraRuntime.zoomAtScreen(x,y,zoom,width,height);}
-export function resetCamera(){cameraRuntime.reset();}
+export function resetCamera(){
+  if(lastRenderedState){
+    const frame=starterCameraFrame(lastRenderedState);
+    cameraRuntime.frame(frame.x,frame.z,frame.distance,frame.yaw,frame.pitch);
+  }else cameraRuntime.reset();
+}
 export function focusCamera(x:number,y:number){cameraRuntime.focus(x,y);}
 export function renderDiagnostics(){
   const roadObjects:any[]=[],buildingObjects:any[]=[];
@@ -80,8 +118,8 @@ export function renderDiagnostics(){
       const bounds=new THREE.Box3().setFromObject(object);let descendants=0;object.traverse((child:any)=>{if(child!==object)descendants++;});
       roadObjects.push({id:object.userData.road.id,objectChildren:object.children.length,objectDescendants:descendants,visible:object.visible,bounds:{min:{x:bounds.min.x,z:bounds.min.z},max:{x:bounds.max.x,z:bounds.max.z}},logicalPoints:rounded(object.userData.road.points)});
     }
-    if(typeof object.name==='string'&&object.name.startsWith('building-anchor-')){const bounds=new THREE.Box3().setFromObject(object);buildingObjects.push({id:object.name.slice('building-anchor-'.length),position:{x:object.position.x,z:object.position.z},children:object.children.length,bounds:{min:{x:bounds.min.x,z:bounds.min.z},max:{x:bounds.max.x,z:bounds.max.z}}});}
+    if(typeof object.name==='string'&&object.name.startsWith('building-anchor-')){const bounds=new THREE.Box3().setFromObject(object);buildingObjects.push({id:object.name.slice('building-anchor-'.length),position:{x:object.position.x,z:object.position.z},projectedCenter:cameraRuntime.worldToScreen(object.position.x,object.position.z),children:object.children.length,bounds:{min:{x:bounds.min.x,z:bounds.min.z},max:{x:bounds.max.x,z:bounds.max.z}}});}
   });
-  return {roadObjectCount:roadObjects.length,roadObjects,buildingObjectCount:buildingObjects.length,buildingObjects,terrainSurfaceLevels:{water:WATER_SURFACE_Y,grass:GRASS_SURFACE_Y,road:ROAD_SURFACE_Y,bridge:BRIDGE_SURFACE_Y},environmentTreeCount:sceneRuntime.scene?.userData?.environmentTreeCount||0,rootObjectCount:sceneRuntime.root.children.length,rendererReady:sceneRuntime.ready,sceneReady:sceneRuntime.ready};
+  return {roadObjectCount:roadObjects.length,roadObjects,buildingObjectCount:buildingObjects.length,buildingObjects,viewport:{width:globalThis.innerWidth||1,height:globalThis.innerHeight||1},camera:cameraRuntime.snapshot(),terrainSurfaceLevels:{water:WATER_SURFACE_Y,grass:GRASS_SURFACE_Y,road:ROAD_SURFACE_Y,bridge:BRIDGE_SURFACE_Y},environmentTreeCount:sceneRuntime.scene?.userData?.environmentTreeCount||0,rootObjectCount:sceneRuntime.root.children.length,rendererReady:sceneRuntime.ready,sceneReady:sceneRuntime.ready};
 }
 if(typeof window!=='undefined')(window as any).__miniFactoriesRenderDiagnostics=renderDiagnostics;
