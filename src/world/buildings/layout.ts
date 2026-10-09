@@ -19,11 +19,10 @@ export interface BuildingLayoutIssue {
 }
 
 export function buildingOverlaps(a: Building, b: Building): boolean {
-  const af = buildingFootprint(a);
-  const bf = buildingFootprint(b);
-  const clearance = buildingClearance(a, b);
-  return Math.abs(Number(a.x) - Number(b.x)) < af.halfWidth + bf.halfWidth + clearance &&
-    Math.abs(Number(a.y) - Number(b.y)) < af.halfDepth + bf.halfDepth + clearance;
+  const clearance = buildingClearance(a, b) / 2;
+  const af = buildingVisualHitbox(a, clearance);
+  const bf = buildingVisualHitbox(b, clearance);
+  return rectsOverlap(af, bf);
 }
 
 export function buildingPlacementConflict(a: Building, b: Building): boolean {
