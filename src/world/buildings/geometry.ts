@@ -16,7 +16,7 @@ interface Footprint {
 
 const PLACEMENT_FOOTPRINTS: Readonly<Record<string, Footprint>> = Object.freeze({
   warehouse: Object.freeze({ halfWidth: 115, halfDepth: 170 }),
-  factory: Object.freeze({ halfWidth: 170, halfDepth: 340 }),
+  factory: Object.freeze({ halfWidth: 100, halfDepth: 190 }),
   shop: Object.freeze({ halfWidth: 95, halfDepth: 130 }),
   default: Object.freeze({ halfWidth: 50, halfDepth: 62 })
 });
@@ -41,6 +41,7 @@ export function buildingRoadFootprint(building: Pick<Building, 'kind'>): Footpri
 }
 
 export function buildingVisualFootprint(building: Pick<Building, 'kind'>): Footprint {
+  if(building.kind==='factory')return {halfWidth:170,halfDepth:340};
   return { ...(PLACEMENT_FOOTPRINTS[building.kind] ?? PLACEMENT_FOOTPRINTS.default) };
 }
 
@@ -116,6 +117,17 @@ export function buildingPhysicalPlacementReason(
       return candidate.kind === 'factory' && building.kind === 'factory'
         ? 'Too close to another factory'
         : 'Too close to another building';
+    }
+  }
+
+  // Placement must respect the full rendered yard, not only the smaller collision shell.
+  const candidateVisual=buildingVisualHitbox({kind:type.kind,x:px,y:py},0);
+  for(const building of state.buildings){
+    if(!finitePoint(building))continue;
+    const clearance=buildingClearance(candidate,building)/2;
+    const a=buildingVisualHitbox({kind:type.kind,x:px,y:py},clearance),b=buildingVisualHitbox(building,clearance);
+    if(a.minX<b.maxX&&a.maxX>b.minX&&a.minY<b.maxY&&a.maxY>b.minY){
+      return candidate.kind==='factory'&&building.kind==='factory'?'Too close to another factory':'Too close to another building';
     }
   }
 
