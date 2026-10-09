@@ -1,14 +1,17 @@
-const CACHE='mini-factories-v1';
+const CACHE='mini-factories-v1-r2';
 const APP_SHELL=[
   './','./index.html','./styles.css?v=1','./dist/game.js?v=1','./dist/version.js?v=1','./dist/state.js','./dist/world.js','./dist/economy.js',
   './dist/core/types.js','./dist/core/rng.js','./dist/core/ids.js','./dist/commands.js','./dist/junctionControl.js',
   './dist/world/terrain.js','./dist/world/buildings/spawning.js','./dist/world/buildings/index.js','./dist/world/buildings/layout.js','./dist/world/buildings/geometry.js','./dist/world/buildings/connections.js','./dist/world/buildings/placement.js','./dist/world/buildings/operations.js',
   './dist/world/roads/index.js','./dist/world/roads/creation.js','./dist/world/roads/editing.js','./dist/world/roads/geometry.js','./dist/world/roads/intersections.js','./dist/world/roads/placement.js','./dist/world/roads/routing.js','./dist/world/roads/topology.js','./dist/world/roads/validation.js',
   './dist/laneGraph.js','./dist/persistence/save.js','./dist/persistence/load.js','./dist/persistence/recovery.js',
-  './dist/render.js?v=1','./dist/render3d-clean.js?v=1','./icon.svg','./manifest.webmanifest',
-  'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=1'
+  './dist/game/bootstrap.js','./dist/game/build-ui.js','./dist/game/camera.js','./dist/game/input.js','./dist/game/lifecycle.js','./dist/game/loop.js','./dist/game/road-ui.js','./dist/game/ui.js',
+  './dist/render.js','./dist/render.js?v=1','./dist/render3d-clean.js','./dist/render3d-clean.js?v=1','./dist/render3d.js',
+  './dist/rendering/buildingTransform.js','./dist/rendering/buildings.js','./dist/rendering/camera.js','./dist/rendering/preview.js','./dist/rendering/roads.js','./dist/rendering/scene.js','./dist/rendering/sitePlan.js','./dist/rendering/three.js','./dist/rendering/trucks.js',
+  './dist/version.js','./dist/world/worldTypes.js','./icon.svg','./manifest.webmanifest',
+  'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6'
 ];
-const EXTERNAL_ASSETS=new Set(['https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=1']);
+const EXTERNAL_ASSETS=new Set(['https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6']);
 
 async function cacheShell(){
   const cache=await caches.open(CACHE);
