@@ -116,7 +116,8 @@ test('factories keep a full visual footprint clearance from each other',()=>{
   const s=baseState();
   const type=TYPES.find(t=>t.name==='Steel');
   s.buildings.push(makeBuilding(type,0,0,'existing'));
-  assert.equal(buildingPhysicalPlacementReason(s,type,260,0),null);
+  assert.equal(buildingPhysicalPlacementReason(s,type,260,0),'Too close to another factory');
+  assert.equal(buildingPhysicalPlacementReason(s,type,400,0),null);
   assert.equal(buildingPhysicalPlacementReason(s,type,249,0),'Too close to another factory');
 });
 
@@ -267,7 +268,8 @@ test('building placement uses the same factory clearance as save repair',()=>{
   const s=baseState();
   const type=TYPES.find(t=>t.name==='Steel');
   s.buildings.push(makeBuilding(type,0,0,'existing'));
-  assert.equal(buildingPhysicalPlacementReason(s,type,260,0),null);
+  assert.equal(buildingPhysicalPlacementReason(s,type,260,0),'Too close to another factory');
+  assert.equal(buildingPhysicalPlacementReason(s,type,400,0),null);
   assert.equal(buildingPhysicalPlacementReason(s,type,249,0),'Too close to another factory');
 });
 
