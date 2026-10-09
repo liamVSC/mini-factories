@@ -121,7 +121,6 @@ export function buildingPhysicalPlacementReason(
   }
 
   // Placement must respect the full rendered yard, not only the smaller collision shell.
-  const candidateVisual=buildingVisualHitbox({kind:type.kind,x:px,y:py},0);
   for(const building of state.buildings){
     if(!finitePoint(building))continue;
     const clearance=buildingClearance(candidate,building)/2;
