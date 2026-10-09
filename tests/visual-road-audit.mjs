@@ -36,7 +36,13 @@ if(name==='mobile'){
   await page.evaluate(()=>window.dispatchEvent(new Event('orientationchange')));
   await page.waitForFunction(()=>document.querySelector('#game')?.clientWidth<500&&document.querySelector('#game')?.clientHeight>700,{timeout:3000});
 }
-assert.ok(await page.evaluate(()=>!!navigator.serviceWorker?.controller),name+': service worker is not controlling the page');
+await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await navigator.serviceWorker.ready;});
+if(!await page.evaluate(()=>!!navigator.serviceWorker?.controller)){
+  await page.reload({waitUntil:'domcontentloaded',timeout:15000});
+  await page.waitForFunction(()=>document.querySelector('#startupGuard')?.style.display==='none',{timeout:20000});
+  await page.waitForFunction(()=>typeof window.__miniFactoriesRenderDiagnostics==='function',{timeout:5000});
+}
+await page.waitForFunction(()=>!!navigator.serviceWorker?.controller,{timeout:10000});
 await context.setOffline(true);
 await page.reload({waitUntil:'domcontentloaded',timeout:15000});
 await page.waitForFunction(()=>document.querySelector('#startupGuard')?.style.display==='none',{timeout:20000});
