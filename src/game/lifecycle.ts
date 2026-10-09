@@ -25,8 +25,7 @@ export function bindLifecycle(ctx:GameContext,loop:{resume():void;suspend():void
   },{passive:true});
 
   if('serviceWorker' in navigator){
-    window.addEventListener('load',()=>{
-      navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{});
-    });
+    // Begin installation as soon as the game bootstraps so the first background/resume cycle is cache-ready.
+    navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{});
   }
 }
