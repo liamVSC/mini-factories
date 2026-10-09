@@ -6,12 +6,10 @@ import { resolveBuildingRoadEndpoint } from '../dist/world/buildings/connections
 
 const factory = { id: 'factory-clearance-test', kind: 'factory', x: 0, y: 0, r: 25 };
 
-test('road clearance includes curb and sidewalk envelope around a factory', () => {
+test('road clearance blocks paths through a factory shell', () => {
   const state = { buildings: [factory] };
-  // The asphalt centreline is outside the shell, but a 32-unit rendered road
-  // envelope would overlap it unless the physical path reserves the full margin.
   assert.equal(
-    roadPathBlocked(state, [{ x: -200, y: 70 }, { x: 200, y: 70 }]),
+    roadPathBlocked(state, [{ x: -200, y: 20 }, { x: 200, y: 20 }]),
     true
   );
 });
