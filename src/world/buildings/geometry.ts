@@ -16,7 +16,7 @@ interface Footprint {
 
 const PLACEMENT_FOOTPRINTS: Readonly<Record<string, Footprint>> = Object.freeze({
   warehouse: Object.freeze({ halfWidth: 115, halfDepth: 170 }),
-  factory: Object.freeze({ halfWidth: 100, halfDepth: 190 }),
+  factory: Object.freeze({ halfWidth: 170, halfDepth: 340 }),
   shop: Object.freeze({ halfWidth: 95, halfDepth: 130 }),
   default: Object.freeze({ halfWidth: 50, halfDepth: 62 })
 });
@@ -58,6 +58,10 @@ export function buildingVisualHitbox(
   const footprint = buildingVisualFootprint(building);
   const x = Number(building.x);
   const y = Number(building.y);
+  if(building.kind==='factory'){
+    // The factory yard extends behind the shell to the rear fence and forward to its gate.
+    return {minX:x-footprint.halfWidth-tolerance,maxX:x+footprint.halfWidth+tolerance,minY:y-footprint.halfDepth-tolerance,maxY:y+112+tolerance};
+  }
   return {
     minX: x - footprint.halfWidth - tolerance,
     maxX: x + footprint.halfWidth + tolerance,
