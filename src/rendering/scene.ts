@@ -52,14 +52,22 @@ export class RenderScene{
     const sun=new THREE.DirectionalLight('#fff5dc',2);sun.position.set(-300,480,260);sun.castShadow=true;sun.shadow.mapSize.set(globalThis.innerWidth<700?1024:2048,globalThis.innerWidth<700?1024:2048);sun.shadow.camera.near=10;sun.shadow.camera.far=1600;sun.shadow.camera.left=-600;sun.shadow.camera.right=600;sun.shadow.camera.top=600;sun.shadow.camera.bottom=-600;scene.add(sun);
     box(scene,2600,2,2600,material('#708762',1),0,-7,0,0,false);
     const grass=material('#78996a',1),grassCenterY=GRASS_SURFACE_Y-.06,riverBankHalfWidth=42;
-    // Split the grass surface around the curved river; a full-width grass slab would hide lower water.
+    // Split the grass surface around the curved river; one instanced mesh keeps mobile draw calls low.
+    const grassStrips:Array<{x:number;width:number;depth:number;z:number}>=[];
     for(let x=-1300;x<1300;x+=52){
       const x2=Math.min(1300,x+52),width=x2-x+1,riverCenter=(riverY(x)+riverY(x2))/2;
       const northEnd=riverCenter-riverBankHalfWidth,southStart=riverCenter+riverBankHalfWidth;
       const northDepth=northEnd+1300,southDepth=1300-southStart;
-      if(northDepth>0)box(scene,width,.12,northDepth,grass,(x+x2)/2,grassCenterY,(-1300+northEnd)/2,0,false);
-      if(southDepth>0)box(scene,width,.12,southDepth,grass,(x+x2)/2,grassCenterY,(southStart+1300)/2,0,false);
+      if(northDepth>0)grassStrips.push({x:(x+x2)/2,width,depth:northDepth,z:(-1300+northEnd)/2});
+      if(southDepth>0)grassStrips.push({x:(x+x2)/2,width,depth:southDepth,z:(southStart+1300)/2});
     }
+    const grassMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),grass,grassStrips.length),grassMatrix=new THREE.Matrix4(),grassQuaternion=new THREE.Quaternion();
+    for(let i=0;i<grassStrips.length;i++){
+      const strip=grassStrips[i];
+      grassMatrix.compose(new THREE.Vector3(strip.x,grassCenterY,strip.z),grassQuaternion,new THREE.Vector3(strip.width,.12,strip.depth));
+      grassMesh.setMatrixAt(i,grassMatrix);
+    }
+    grassMesh.instanceMatrix.needsUpdate=true;grassMesh.receiveShadow=true;scene.add(grassMesh);
     const river=material('#65929d',.7,.05);
     for(let x=-1300;x<1300;x+=44){const x2=Math.min(1300,x+52),mid=(x+x2)/2,dy=riverY(x2)-riverY(x),ang=Math.atan2(dy,x2-x);box(scene,Math.hypot(x2-x,dy)+12,WATER_THICKNESS,82,river,mid,WATER_CENTER_Y,(riverY(x)+riverY(x2))/2,-ang,false);}
     addForest(scene);
