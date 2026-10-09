@@ -8,14 +8,27 @@ const APP_SHELL=[
   './dist/game/bootstrap.js','./dist/game/build-ui.js','./dist/game/camera.js','./dist/game/input.js','./dist/game/lifecycle.js','./dist/game/loop.js','./dist/game/road-ui.js','./dist/game/ui.js',
   './dist/render.js','./dist/render.js?v=1','./dist/render3d-clean.js','./dist/render3d-clean.js?v=1','./dist/render3d.js',
   './dist/rendering/buildingTransform.js','./dist/rendering/buildings.js','./dist/rendering/camera.js','./dist/rendering/preview.js','./dist/rendering/roads.js','./dist/rendering/scene.js','./dist/rendering/sitePlan.js','./dist/rendering/surfaceHeights.js','./dist/rendering/three.js','./dist/rendering/trucks.js',
-  './dist/version.js','./dist/world/worldTypes.js','./icon.svg','./manifest.webmanifest',
-  'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6'
+  './dist/version.js','./dist/world/worldTypes.js','./icon.svg','./manifest.webmanifest'
 ];
 const EXTERNAL_ASSETS=new Set(['https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6']);
+
+async function cacheExternalAsset(url,cache){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),4000);
+  try{
+    const response=await fetch(url,{mode:'cors',cache:'no-store',signal:controller.signal});
+    if(response.ok)await cache.put(url,response.clone());
+  }catch{
+    // A slow CDN must not keep the service worker stuck in the installing state.
+  }finally{
+    clearTimeout(timer);
+  }
+}
 
 async function cacheShell(){
   const cache=await caches.open(CACHE);
   await Promise.allSettled(APP_SHELL.map(url=>cache.add(url)));
+  await Promise.allSettled([...EXTERNAL_ASSETS].map(url=>cacheExternalAsset(url,cache)));
 }
 
 self.addEventListener('install',event=>{
