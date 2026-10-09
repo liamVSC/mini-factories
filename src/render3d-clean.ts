@@ -82,6 +82,6 @@ export function renderDiagnostics(){
     }
     if(typeof object.name==='string'&&object.name.startsWith('building-anchor-')){const bounds=new THREE.Box3().setFromObject(object);buildingObjects.push({id:object.name.slice('building-anchor-'.length),position:{x:object.position.x,z:object.position.z},children:object.children.length,bounds:{min:{x:bounds.min.x,z:bounds.min.z},max:{x:bounds.max.x,z:bounds.max.z}}});}
   });
-  return {roadObjectCount:roadObjects.length,roadObjects,buildingObjectCount:buildingObjects.length,buildingObjects,terrainSurfaceLevels:{water:WATER_SURFACE_Y,grass:GRASS_SURFACE_Y,road:ROAD_SURFACE_Y,bridge:BRIDGE_SURFACE_Y},rootObjectCount:sceneRuntime.root.children.length,rendererReady:sceneRuntime.ready,sceneReady:sceneRuntime.ready};
+  return {roadObjectCount:roadObjects.length,roadObjects,buildingObjectCount:buildingObjects.length,buildingObjects,terrainSurfaceLevels:{water:WATER_SURFACE_Y,grass:GRASS_SURFACE_Y,road:ROAD_SURFACE_Y,bridge:BRIDGE_SURFACE_Y},environmentTreeCount:sceneRuntime.scene?.userData?.environmentTreeCount||0,rootObjectCount:sceneRuntime.root.children.length,rendererReady:sceneRuntime.ready,sceneReady:sceneRuntime.ready};
 }
 if(typeof window!=='undefined')(window as any).__miniFactoriesRenderDiagnostics=renderDiagnostics;
