@@ -30,7 +30,9 @@ async function cacheShell(){
   const localCaching=Promise.allSettled(APP_SHELL.map(url=>cache.add(url)));
   // Never let one stalled local asset prevent the worker from activating and claiming the page.
   await Promise.race([localCaching,new Promise(resolve=>setTimeout(resolve,5000))]);
-  await Promise.allSettled([...EXTERNAL_ASSETS].map(url=>cacheExternalAsset(url,cache)));
+  const externalCaching=Promise.allSettled([...EXTERNAL_ASSETS].map(url=>cacheExternalAsset(url,cache)));
+  // Cache writes can stall independently of fetch aborts; keep installation bounded as well.
+  await Promise.race([externalCaching,new Promise(resolve=>setTimeout(resolve,4500))]);
 }
 
 self.addEventListener('install',event=>{
