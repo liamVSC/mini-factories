@@ -7,6 +7,7 @@ import { RenderScene } from './rendering/scene.js';
 import { setBuildingPreview as drawBuildingPreview, setRoadPreview } from './rendering/preview.js';
 import { buildRoadGroup, rounded } from './rendering/roads.js';
 import { syncTrucks, updateTrucks } from './rendering/trucks.js';
+import {BRIDGE_SURFACE_Y,GRASS_SURFACE_Y,ROAD_SURFACE_Y,WATER_SURFACE_Y} from './rendering/surfaceHeights.js';
 
 const sceneRuntime=new RenderScene();
 const cameraRuntime=new RenderCamera();
@@ -79,8 +80,8 @@ export function renderDiagnostics(){
       const bounds=new THREE.Box3().setFromObject(object);let descendants=0;object.traverse((child:any)=>{if(child!==object)descendants++;});
       roadObjects.push({id:object.userData.road.id,objectChildren:object.children.length,objectDescendants:descendants,visible:object.visible,bounds:{min:{x:bounds.min.x,z:bounds.min.z},max:{x:bounds.max.x,z:bounds.max.z}},logicalPoints:rounded(object.userData.road.points)});
     }
-    if(typeof object.name==='string'&&object.name.startsWith('building-anchor-'))buildingObjects.push({id:object.name.slice('building-anchor-'.length),position:{x:object.position.x,z:object.position.z},children:object.children.length});
+    if(typeof object.name==='string'&&object.name.startsWith('building-anchor-')){const bounds=new THREE.Box3().setFromObject(object);buildingObjects.push({id:object.name.slice('building-anchor-'.length),position:{x:object.position.x,z:object.position.z},children:object.children.length,bounds:{min:{x:bounds.min.x,z:bounds.min.z},max:{x:bounds.max.x,z:bounds.max.z}}});}
   });
-  return {roadObjectCount:roadObjects.length,roadObjects,buildingObjectCount:buildingObjects.length,buildingObjects,rootObjectCount:sceneRuntime.root.children.length,rendererReady:sceneRuntime.ready,sceneReady:sceneRuntime.ready};
+  return {roadObjectCount:roadObjects.length,roadObjects,buildingObjectCount:buildingObjects.length,buildingObjects,terrainSurfaceLevels:{water:WATER_SURFACE_Y,grass:GRASS_SURFACE_Y,road:ROAD_SURFACE_Y,bridge:BRIDGE_SURFACE_Y},rootObjectCount:sceneRuntime.root.children.length,rendererReady:sceneRuntime.ready,sceneReady:sceneRuntime.ready};
 }
 if(typeof window!=='undefined')(window as any).__miniFactoriesRenderDiagnostics=renderDiagnostics;
