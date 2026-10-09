@@ -76,14 +76,9 @@ function overlapsBuilding(
   building: Building,
   clearance: number
 ): boolean {
-  const other = buildingSiteFootprint(building);
-  const overlapX =
-    Math.abs(Number(building.x) - candidate.x) <
-    candidate.footprint.halfWidth + other.halfWidth + clearance;
-  const overlapY =
-    Math.abs(Number(building.y) - candidate.y) <
-    candidate.footprint.halfDepth + other.halfDepth + clearance;
-  return overlapX && overlapY;
+  const a=buildingVisualHitbox({kind:candidate.kind,x:candidate.x,y:candidate.y},clearance/2);
+  const b=buildingVisualHitbox(building,clearance/2);
+  return a.minX<b.maxX&&a.maxX>b.minX&&a.minY<b.maxY&&a.maxY>b.minY;
 }
 
 export function buildingPhysicalPlacementReason(
@@ -102,7 +97,7 @@ export function buildingPhysicalPlacementReason(
     kind: type.kind,
     x: px,
     y: py,
-    footprint: buildingSiteFootprint({ kind: type.kind } as Pick<Building, 'kind'>)
+    footprint: footprintForKind(type.kind)
   };
   for (const building of state.buildings) {
     if (!finitePoint(building)) continue;
@@ -117,16 +112,6 @@ export function buildingPhysicalPlacementReason(
       return candidate.kind === 'factory' && building.kind === 'factory'
         ? 'Too close to another factory'
         : 'Too close to another building';
-    }
-  }
-
-  // Placement must respect the full rendered yard, not only the smaller collision shell.
-  for(const building of state.buildings){
-    if(!finitePoint(building))continue;
-    const clearance=buildingClearance(candidate,building)/2;
-    const a=buildingVisualHitbox({kind:type.kind,x:px,y:py},clearance),b=buildingVisualHitbox(building,clearance);
-    if(a.minX<b.maxX&&a.maxX>b.minX&&a.minY<b.maxY&&a.maxY>b.minY){
-      return candidate.kind==='factory'&&building.kind==='factory'?'Too close to another factory':'Too close to another building';
     }
   }
 
@@ -207,7 +192,7 @@ export function buildingFootprint(building: Pick<Building, 'kind'>): Footprint {
 }
 
 export function buildingSiteFootprint(building: Pick<Building, 'kind'>): Footprint {
-  return footprintForKind(building.kind);
+  return buildingVisualFootprint(building);
 }
 
 interface DockSpec {
