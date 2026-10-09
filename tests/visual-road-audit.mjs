@@ -36,7 +36,8 @@ if(name==='mobile'){
   await page.evaluate(()=>window.dispatchEvent(new Event('orientationchange')));
   await page.waitForFunction(()=>document.querySelector('#game')?.clientWidth<500&&document.querySelector('#game')?.clientHeight>700,{timeout:3000});
 }
-await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await navigator.serviceWorker.ready;});
+const swStatus=await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});try{await Promise.race([navigator.serviceWorker.ready,new Promise((_,reject)=>setTimeout(()=>reject(new Error('service worker activation timed out')),12000))]);}catch(error){const reg=await navigator.serviceWorker.getRegistration();return {ready:false,error:String(error),installing:reg?.installing?.state||null,active:reg?.active?.state||null,waiting:reg?.waiting?.state||null};}const reg=await navigator.serviceWorker.getRegistration();return {ready:true,installing:reg?.installing?.state||null,active:reg?.active?.state||null,waiting:reg?.waiting?.state||null};});
+assert.ok(swStatus.ready,name+': service worker did not activate: '+JSON.stringify(swStatus));
 if(!await page.evaluate(()=>!!navigator.serviceWorker?.controller)){
   await page.reload({waitUntil:'domcontentloaded',timeout:15000});
   await page.waitForFunction(()=>document.querySelector('#startupGuard')?.style.display==='none',{timeout:20000});
