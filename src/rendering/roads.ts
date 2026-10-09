@@ -1,5 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm?v=6';
 import {riverY} from '../world.js';
+import {BRIDGE_SURFACE_Y,ROAD_SURFACE_Y} from './surfaceHeights.js';
 import {buildingRoadAttachment} from '../world/buildings/connections.js';
 import {roadNetwork} from '../world/roads/topology.js';
 import {roadPathBlocked} from '../world/roads/placement.js';
@@ -72,7 +73,7 @@ function transitionHeights(count:number,start:number,end:number){return Array.fr
 function roadSegmentMesh(points:Array<{x:number;y:number}>,kind:RoadMeshPart['kind'],materials:any,addCaps=false,rising=false){
   const {asphalt,sidewalk,line,curb}=materials,g=new THREE.Group(),isBridge=kind==='bridge',isTransition=kind==='transition',roadWidth=30,roadHalfWidth=15,curbWidth=2,sidewalkWidth=15;
   const sidewalkY=isBridge?.68:isTransition?transitionHeights(points.length,.34,rising?.68:.34):.34;
-  const asphaltY=isBridge?.82:isTransition?transitionHeights(points.length,.16,rising?.82:.16):.16;
+  const asphaltY=isBridge?BRIDGE_SURFACE_Y-.035:isTransition?transitionHeights(points.length,ROAD_SURFACE_Y-.035,rising?BRIDGE_SURFACE_Y-.035:ROAD_SURFACE_Y-.035):ROAD_SURFACE_Y-.035;
   const curbY=isBridge?.88:isTransition?transitionHeights(points.length,.46,rising?.88:.46):.46;
   const markY=isBridge?.98:isTransition?transitionHeights(points.length,.49,rising?.98:.49):.49;
   const sidewalkMeshes=sidewalkStrips(points,roadHalfWidth,curbWidth,sidewalkWidth,sidewalkY,sidewalk);
