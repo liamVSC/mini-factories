@@ -27,7 +27,9 @@ async function cacheExternalAsset(url,cache){
 
 async function cacheShell(){
   const cache=await caches.open(CACHE);
-  await Promise.allSettled(APP_SHELL.map(url=>cache.add(url)));
+  const localCaching=Promise.allSettled(APP_SHELL.map(url=>cache.add(url)));
+  // Never let one stalled local asset prevent the worker from activating and claiming the page.
+  await Promise.race([localCaching,new Promise(resolve=>setTimeout(resolve,5000))]);
   await Promise.allSettled([...EXTERNAL_ASSETS].map(url=>cacheExternalAsset(url,cache)));
 }
 
