@@ -34,14 +34,14 @@ function setupDelivery() {
 
 test('delivery accounting removes factory stock at dispatch and credits the shop exactly once', () => {
   const { state, factory, shop } = setupDelivery();
-  const cashBefore = state.cash;
+  const incomeBefore = state.deliveryIncome || 0;
   const initialStock = factory.stock;
   let deliveredUnits = 0;
   let deliveredCash = 0;
 
   // Dispatch is intentionally separated from delivery so the inventory debit
   // cannot be confused with the sale credit.
-  updateEconomy(state, 0.8, () => {});
+  for (let i = 0; i < 20 && state.trucks.length === 0; i++) updateEconomy(state, 0.2, () => {});
   assert.ok(state.trucks.length > 0, 'connected factory should dispatch a truck');
   assert.ok(factory.stock < initialStock, 'dispatch must debit factory stock');
   const dispatchedStock = factory.stock;
@@ -54,7 +54,7 @@ test('delivery accounting removes factory stock at dispatch and credits the shop
     updateEconomy(state, 0.2, () => {});
     if (state.orders > 0) {
       deliveredUnits = state.orders;
-      deliveredCash = state.cash - cashBefore;
+      deliveredCash = (state.deliveryIncome || 0) - incomeBefore;
       // Continue ticking beyond the arrival frame to detect duplicate credits.
       for (let j = 0; j < 30; j++) updateEconomy(state, 0.2, () => {});
       break;
@@ -63,7 +63,7 @@ test('delivery accounting removes factory stock at dispatch and credits the shop
 
   assert.ok(deliveredUnits >= expectedUnits, 'shop must receive the dispatched units');
   assert.equal(state.orders, deliveredUnits, 'delivery order count must not increase again after arrival');
-  assert.equal(state.cash - cashBefore, deliveredCash, 'delivery cash must not be credited twice');
+  assert.equal((state.deliveryIncome || 0) - incomeBefore, deliveredCash, 'delivery income must not be credited twice');
   assert.equal(deliveredCash, expectedValue, 'cash credit must equal the delivered load value');
   assert.equal(shop.served, deliveredUnits, 'shop service count must match completed deliveries');
   assert.equal(factory.stock, dispatchedStock, 'completed delivery must not debit factory stock a second time');
@@ -72,7 +72,7 @@ test('delivery accounting removes factory stock at dispatch and credits the shop
 
 test('blocked or disconnected delivery routes never silently complete a sale', () => {
   const { state, factory, shop } = setupDelivery();
-  const cashBefore = state.cash;
+  const incomeBefore = state.deliveryIncome || 0;
   const ordersBefore = state.orders;
   const servedBefore = shop.served || 0;
 
@@ -82,7 +82,7 @@ test('blocked or disconnected delivery routes never silently complete a sale', (
   assert.equal(route(state, factory, shop), null);
   for (let i = 0; i < 80; i++) updateEconomy(state, 0.2, () => {});
 
-  assert.equal(state.cash, cashBefore);
+  assert.equal((state.deliveryIncome || 0) - incomeBefore, 0);
   assert.equal(state.orders, ordersBefore);
   assert.equal(shop.served || 0, servedBefore);
   assert.equal(state.trucks.length, 0, 'no truck should remain stranded on a route that never existed');
