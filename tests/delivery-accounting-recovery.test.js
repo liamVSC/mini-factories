@@ -34,6 +34,7 @@ function setupDelivery() {
 
 test('delivery accounting removes factory stock at dispatch and credits the shop exactly once', () => {
   const { state, factory, shop } = setupDelivery();
+  shop.contract = { id: 77, type: 'Food', qty: 12, remaining: 12, reward: 100, expires: 500, initial: 12, urgent: false, inFlight: 0 };
   const incomeBefore = state.deliveryIncome || 0;
   const initialStock = factory.stock;
   let deliveredUnits = 0;
@@ -68,6 +69,9 @@ test('delivery accounting removes factory stock at dispatch and credits the shop
   assert.equal(shop.served, deliveredUnits, 'shop service count must match completed deliveries');
   assert.equal(factory.stock, dispatchedStock, 'completed delivery must not debit factory stock a second time');
   assert.equal(state.deliveredBy.Food, deliveredUnits, 'delivered-by accounting must match completed units');
+  assert.ok(shop.contract, 'a partially fulfilled contract should remain active');
+  assert.equal(shop.contract.remaining, 12 - deliveredUnits, 'contract remaining must decrease by the delivered units exactly once');
+  assert.equal(shop.contract.inFlight, 0, 'completed cargo must leave contract inFlight exactly once');
 });
 
 test('blocked or disconnected delivery routes never silently complete a sale', () => {
@@ -86,4 +90,58 @@ test('blocked or disconnected delivery routes never silently complete a sale', (
   assert.equal(state.orders, ordersBefore);
   assert.equal(shop.served || 0, servedBefore);
   assert.equal(state.trucks.length, 0, 'no truck should remain stranded on a route that never existed');
+});
+
+
+test('disconnect recovery restores cargo and reconciles contract inFlight exactly once', async () => {
+  const { state, factory, shop } = setupDelivery();
+  const { eraseRoad } = await import('../dist/world/roads/index.js');
+  shop.contract = { id: 91, type: 'Food', qty: 3, remaining: 3, reward: 100, expires: 500, initial: 3, urgent: false, inFlight: 2 };
+  const cargo = 2;
+  const stockBefore = factory.stock;
+  const deliveryRoute = route(state, factory, shop);
+  assert.ok(deliveryRoute, 'fixture must start with a valid delivery route');
+  const middle = state.roads[1];
+  assert.ok(middle, 'fixture must contain the connecting road segment');
+  const cutPoint = { x: 180, y: (middle.points[0].y + middle.points.at(-1).y) / 2 };
+  state.trucks.push({
+    id: 'contract-disconnect-recovery',
+    route: deliveryRoute.points.map(point => ({ ...point })),
+    centerlineRoute: deliveryRoute.points.map(point => ({ ...point })),
+    laneRoute: (deliveryRoute.lanePoints || deliveryRoute.points).map(point => ({ ...point })),
+    routeNetworkRevision: state.roadNetworkRevision,
+    laneIds: [...(deliveryRoute.laneIds || [])],
+    laneRoadIds: [...(deliveryRoute.laneRoadIds || [])],
+    currentLaneIndex: 0,
+    currentLaneId: deliveryRoute.laneIds?.[0] || null,
+    t: 0.35,
+    speed: 0.085,
+    currentSpeed: 0.085,
+    value: 50,
+    cargo,
+    cargoType: 'Food',
+    source: factory,
+    to: shop,
+    contractId: shop.contract.id,
+    stage: 'delivery',
+    wait: 0,
+    dead: false
+  });
+
+  assert.equal(eraseRoad(state, cutPoint), true, 'removing the connecting road must succeed');
+  assert.ok(state.roadNetworkRevision > 0, 'road deletion must invalidate cached truck routes');
+  updateEconomy(state, 0.01, () => {});
+
+  assert.equal(state.trucks.length, 0, 'disconnected truck must be retired');
+  assert.equal(factory.stock, stockBefore + cargo, 'recovered cargo must return to factory stock once');
+  assert.equal(shop.contract.inFlight, 0, 'recovered cargo must be removed from contract inFlight once');
+  assert.equal(shop.contract.remaining, 3, 'recovery must not count as a completed delivery');
+  assert.equal(state.orders, 0, 'recovery must not create a sale');
+  assert.equal(state.deliveryIncome, 0, 'recovery must not credit delivery income');
+
+  updateEconomy(state, 0.01, () => {});
+  assert.equal(state.trucks.length, 0, 'repeated ticks must not recreate the retired truck');
+  assert.equal(factory.stock, stockBefore + cargo, 'repeated ticks must not restore the same cargo twice');
+  assert.equal(shop.contract.inFlight, 0, 'repeated ticks must not reconcile inFlight twice');
+  assert.equal(shop.contract.remaining, 3, 'repeated ticks must not consume contract quantity');
 });
