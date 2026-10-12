@@ -71,7 +71,11 @@ test('delivery accounting removes factory stock at dispatch and credits the shop
   assert.equal(state.deliveredBy.Food, deliveredUnits, 'delivered-by accounting must match completed units');
   assert.ok(shop.contract, 'a partially fulfilled contract should remain active');
   assert.equal(shop.contract.remaining, 12 - deliveredUnits, 'contract remaining must decrease by the delivered units exactly once');
-  assert.equal(shop.contract.inFlight, 0, 'completed cargo must leave contract inFlight exactly once');
+  const activeContractCargo = state.trucks
+    .filter(candidate => candidate.stage === 'delivery' && candidate.contractId === shop.contract.id)
+    .reduce((total, candidate) => total + (candidate.cargo || 0), 0);
+  assert.equal(shop.contract.inFlight, activeContractCargo, 'contract inFlight must equal cargo on active contract delivery trucks');
+  assert.ok(shop.contract.inFlight <= shop.contract.remaining, 'inFlight cargo must never exceed the contract quantity still outstanding');
 });
 
 test('blocked or disconnected delivery routes never silently complete a sale', () => {
@@ -98,6 +102,8 @@ test('disconnect recovery restores cargo and reconciles contract inFlight exactl
   const { eraseRoad } = await import('../dist/world/roads/index.js');
   shop.contract = { id: 91, type: 'Food', qty: 3, remaining: 3, reward: 100, expires: 500, initial: 3, urgent: false, inFlight: 2 };
   const cargo = 2;
+  // The cargo was already debited from factory stock when this truck was dispatched.
+  factory.stock = Math.max(0, factory.stock - cargo);
   const stockBefore = factory.stock;
   const deliveryRoute = route(state, factory, shop);
   assert.ok(deliveryRoute, 'fixture must start with a valid delivery route');
