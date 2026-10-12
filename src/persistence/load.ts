@@ -117,11 +117,11 @@ export function hydrate(d: PersistedData | null | undefined): GameState | null {
     const destinationId = (saved.to as { id?: unknown } | null)?.id;
     const source = typeof sourceId === 'string' ? buildingsById.get(sourceId) : undefined;
     const destination = typeof destinationId === 'string' ? buildingsById.get(destinationId) : undefined;
-    const stage = String(saved.stage || 'delivery');
-    const cargo = finite(saved.cargo, 0);
+    const stage = String(saved.stage || '');
+    const cargo = finite(saved.cargo, -1);
     const route = Array.isArray(saved.route) ? saved.route as Array<{x?: unknown;y?: unknown}> : [];
     const validRoute = route.length >= 2 && route.every(point => Number.isFinite(Number(point?.x)) && Number.isFinite(Number(point?.y)));
-    if (!source || !destination || !validRoute || !['delivery', 'warehouse', 'return'].includes(stage) || cargo < 0) {
+    if (typeof saved.id !== 'string' || !saved.id || !source || !destination || !validRoute || !['delivery', 'warehouse', 'return'].includes(stage) || cargo < 0 || !Number.isFinite(Number(saved.t)) || !Number.isFinite(Number(saved.speed)) || Number(saved.speed) <= 0) {
       // A malformed vehicle must not leave its already-dispatched goods lost.
       // Refund cargo to the canonical source when that source still exists.
       if (source && cargo > 0) source.stock += cargo;

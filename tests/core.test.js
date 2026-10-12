@@ -911,7 +911,7 @@ test('stale traffic reservations expire on simulation time rather than browser t
 });
 
 
-test('play-sequence regression: build, dispatch, delete road, reroute, save/load, and resume dispatch',()=>{
+test('play-sequence regression: build, dispatch, delete road, reroute, save/load, and resume delivery',()=>{
   const s=freshState();
   const factory=makeBuilding({name:'Food',kind:'factory',need:null,color:'#fff'},0,0,'factory-seq');
   const shop=makeBuilding({name:'Market',kind:'shop',need:'Food',color:'#fff'},400,0,'shop-seq');
@@ -944,15 +944,15 @@ test('play-sequence regression: build, dispatch, delete road, reroute, save/load
   assert.ok(loaded);
   assert.equal(loaded.roads.length,3);
   assert.equal(loaded.roads.some(r=>r.id==='seq-direct'),false);
-  assert.deepEqual(loaded.trucks,[]);
-  assert.equal(loaded.buildings.find(b=>b.id==='factory-seq').stock,factory.stock);
-
+  assert.equal(loaded.trucks.length,1,'valid in-flight truck must survive save/load');
   const loadedFactory=loaded.buildings.find(b=>b.id==='factory-seq');
   const loadedShop=loaded.buildings.find(b=>b.id==='shop-seq');
-  loadedFactory.stock+=3;
-  loadedShop.demand=3;
-  updateEconomy(loaded,1.2,()=>{});
-  assert.equal(loaded.trucks.length,1);
+  assert.equal(loaded.trucks[0].source,loadedFactory,'truck source must be rebound to the canonical loaded factory');
+  assert.equal(loaded.trucks[0].to,loadedShop,'truck destination must be rebound to the canonical loaded shop');
+  assert.equal(loaded.trucks[0].cargo,active.cargo,'save/load must preserve cargo without refunding or duplicating it');
+  assert.equal(loadedFactory.stock,factory.stock);
+  updateEconomy(loaded,.01,()=>{});
+  assert.equal(loaded.trucks.length,1,'a resumed in-flight delivery must remain active');
   assert.ok(loaded.trucks[0].route.length>=2);
   assert.ok(loaded.trucks[0].route.some(p=>Math.abs(p.y-120)<1));
 });
