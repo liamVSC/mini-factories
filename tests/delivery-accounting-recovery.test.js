@@ -46,6 +46,9 @@ test('delivery accounting removes factory stock at dispatch and credits the shop
   assert.ok(state.trucks.length > 0, 'connected factory should dispatch a truck');
   assert.ok(factory.stock < initialStock, 'dispatch must debit factory stock');
   const dispatchedStock = factory.stock;
+  // Isolate delivery settlement from later production/dispatch cycles.
+  factory.production = -1000;
+  factory.dispatchTimer = -10000;
   const truck = state.trucks.find(candidate => candidate.stage === 'delivery');
   assert.ok(truck, 'a delivery truck should be active');
   const expectedUnits = truck.cargo;
@@ -67,7 +70,7 @@ test('delivery accounting removes factory stock at dispatch and credits the shop
   assert.equal((state.deliveryIncome || 0) - incomeBefore, deliveredCash, 'delivery income must not be credited twice');
   assert.equal(deliveredCash, expectedValue, 'cash credit must equal the delivered load value');
   assert.equal(shop.served, deliveredUnits, 'shop service count must match completed deliveries');
-  assert.equal(factory.stock, dispatchedStock, 'completed delivery must not debit factory stock a second time');
+  assert.equal(factory.stock, dispatchedStock, 'delivery settlement must not debit factory stock a second time');
   assert.equal(state.deliveredBy.Food, deliveredUnits, 'delivered-by accounting must match completed units');
   assert.ok(shop.contract, 'a partially fulfilled contract should remain active');
   assert.equal(shop.contract.remaining, 12 - deliveredUnits, 'contract remaining must decrease by the delivered units exactly once');
@@ -150,4 +153,24 @@ test('disconnect recovery restores cargo and reconciles contract inFlight exactl
   assert.equal(factory.stock, stockBefore + cargo, 'repeated ticks must not restore the same cargo twice');
   assert.equal(shop.contract.inFlight, 0, 'repeated ticks must not reconcile inFlight twice');
   assert.equal(shop.contract.remaining, 3, 'repeated ticks must not consume contract quantity');
+});
+
+
+test('contract dispatch never exceeds remaining units already in flight', () => {
+  const { state, factory, shop } = setupDelivery();
+  factory.stock = 12;
+  factory.production = -1000;
+  factory.dispatchTimer = 0;
+  shop.contract = { id: 103, type: 'Food', qty: 5, remaining: 5, reward: 100, expires: 500, initial: 5, urgent: false, inFlight: 0 };
+
+  for (let i = 0; i < 20; i++) updateEconomy(state, 0.2, () => {});
+
+  const contractTrucks = state.trucks.filter(truck => truck.stage === 'delivery' && truck.contractId === shop.contract.id);
+  const inFlightCargo = contractTrucks.reduce((total, truck) => total + (truck.cargo || 0), 0);
+  assert.equal(inFlightCargo, 5, 'dispatch should send only the five units still required by the contract');
+  assert.equal(shop.contract.inFlight, inFlightCargo, 'contract inFlight must equal active contract cargo');
+  assert.ok(shop.contract.inFlight <= shop.contract.remaining, 'contract inFlight must never exceed remaining contract units');
+  assert.equal(contractTrucks.length, 2, 'dispatch should send one full load and one partial load, not an extra truck');
+  assert.equal(shop.contract.remaining, 5, 'dispatching cargo must not count as delivery');
+  assert.equal(state.orders, 0, 'dispatching cargo must not create completed sales');
 });
