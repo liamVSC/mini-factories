@@ -527,7 +527,13 @@ export function updateEconomy(s: any, dt: any, flash: any){
     const contract=shop.contract?.type===f.type?shop.contract:null;
     const outstanding=contract?.inFlight||0;
     const capacity=3;
-    const needed=Math.max(0,(contract?.remaining||capacity)-outstanding);
+    const needed=contract
+      ?Math.max(0,contract.remaining-outstanding)
+      :capacity;
+    // Never dispatch extra contract-tagged cargo when all remaining units are
+    // already covered by trucks in flight. The old minimum-one fallback could
+    // repeatedly over-dispatch and push inFlight beyond the contract quantity.
+    if(contract&&needed<=0){f.dispatchTimer=0;continue;}
     let cargo=0,source=f,routeToUse=choiceRoute,stage='delivery',fromWarehouse=false;
     if(choiceHub&&choiceHub.inventory?.[f.type]>0&&routeToUse){
       cargo=Math.min(capacity,choiceHub.inventory[f.type],Math.max(1,needed||capacity));
