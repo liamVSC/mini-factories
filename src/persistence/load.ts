@@ -105,6 +105,55 @@ export function hydrate(d: PersistedData | null | undefined): GameState | null {
     }];
   });
   s.buildMode=null;
+  // Restore in-flight vehicles after canonical buildings and roads have been
+  // hydrated. JSON snapshots contain copies of source/destination buildings,
+  // so always rebind those references by stable building ID.
+  const buildingsById = new Map(s.buildings.map(building => [building.id, building]));
+  const persistedTrucks = Array.isArray(d.trucks) ? d.trucks as Array<Record<string, unknown>> : [];
+  const restoredTrucks: GameState['trucks'] = [];
+  for (const saved of persistedTrucks) {
+    if (!saved || typeof saved !== 'object') continue;
+    const sourceId = (saved.source as { id?: unknown } | null)?.id;
+    const destinationId = (saved.to as { id?: unknown } | null)?.id;
+    const source = typeof sourceId === 'string' ? buildingsById.get(sourceId) : undefined;
+    const destination = typeof destinationId === 'string' ? buildingsById.get(destinationId) : undefined;
+    const stage = String(saved.stage || 'delivery');
+    const cargo = finite(saved.cargo, 0);
+    const route = Array.isArray(saved.route) ? saved.route as Array<{x?: unknown;y?: unknown}> : [];
+    const validRoute = route.length >= 2 && route.every(point => Number.isFinite(Number(point?.x)) && Number.isFinite(Number(point?.y)));
+    if (!source || !destination || !validRoute || !['delivery', 'warehouse', 'return'].includes(stage) || cargo < 0) {
+      // A malformed vehicle must not leave its already-dispatched goods lost.
+      // Refund cargo to the canonical source when that source still exists.
+      if (source && cargo > 0) source.stock += cargo;
+      continue;
+    }
+    const truck = {
+      ...saved,
+      source,
+      to: destination,
+      cargo,
+      route: route.map(point => ({x: Number(point.x), y: Number(point.y)})),
+      centerlineRoute: Array.isArray(saved.centerlineRoute) ? (saved.centerlineRoute as Array<{x:number;y:number}>).map(point => ({x:Number(point.x),y:Number(point.y)})) : route.map(point => ({x:Number(point.x),y:Number(point.y)})),
+      laneRoute: Array.isArray(saved.laneRoute) ? (saved.laneRoute as Array<{x:number;y:number}>).filter(point => Number.isFinite(Number(point?.x)) && Number.isFinite(Number(point?.y))).map(point => ({x:Number(point.x),y:Number(point.y)})) : route.map(point => ({x:Number(point.x),y:Number(point.y)})),
+      laneIds: Array.isArray(saved.laneIds) ? [...saved.laneIds] : [],
+      laneRoadIds: Array.isArray(saved.laneRoadIds) ? [...saved.laneRoadIds] : [],
+      t: clampNumber(saved.t, 0, 1, 0),
+      routeNetworkRevision: Math.max(0, Math.floor(finite(saved.routeNetworkRevision, -1)))
+    } as GameState['trucks'][number];
+    restoredTrucks.push(truck);
+  }
+  s.trucks = restoredTrucks;
+  // The truck list is authoritative: never trust a saved inFlight number when
+  // the corresponding delivery cargo is missing, duplicated, or stale.
+  for (const building of s.buildings) {
+    if (building.kind !== 'shop' || !building.contract) continue;
+    building.contract.inFlight = s.trucks.reduce((total, truck) => {
+      const t = truck as Record<string, unknown>;
+      return total + (t.stage === 'delivery' && Number(t.contractId) === building.contract!.id && t.to === building
+        ? Math.max(0, finite(t.cargo, 0))
+        : 0);
+    }, 0);
+  }
   return s;
 }
 

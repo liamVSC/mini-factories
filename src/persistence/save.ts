@@ -9,7 +9,9 @@ export function serialise(state: GameState): Record<string, unknown> {
     version: 6,
     ...data,
     selected: null,
-    trucks: [],
+    // Trucks are persisted with their cargo; hydration rebinds building references
+    // to the canonical loaded buildings and reconciles contract in-flight totals.
+    trucks: Array.isArray(state.trucks) ? state.trucks : [],
     particles: []
   };
 }

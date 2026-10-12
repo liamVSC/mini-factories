@@ -51,3 +51,78 @@ test('hydration resets runtime state and clears orphaned contract in-flight carg
   assert.equal(loaded.buildings[0].contract.inFlight,0);
   assert.equal(loaded.buildings[0].contract.remaining,3);
 });
+
+
+test('in-flight cargo and contract accounting survive save/reload without duplicate stock or rewards', async () => {
+  const { serialise } = await import('../dist/persistence/save.js');
+  const { hydrate } = await import('../dist/persistence/load.js');
+  const { makeBuilding, TYPES } = await import('../dist/state.js');
+  const { buildingRoadEntrance } = await import('../dist/world/buildings/index.js');
+  const factory = makeBuilding(TYPES.find(type => type.name === 'Food'), 0, -108, 'persist-factory');
+  const shop = makeBuilding(TYPES.find(type => type.name === 'Market'), 360, 99, 'persist-shop');
+  factory.stock = 1; // two units were already dispatched from the original stock
+  factory.max = 4;
+  shop.contract = { id: 88, type: 'Food', qty: 4, initial: 4, remaining: 4, reward: 120, expires: 100, inFlight: 2, urgent: false };
+  const start = buildingRoadEntrance(factory);
+  const end = buildingRoadEntrance(shop);
+  assert.ok(start && end);
+  const state = freshState();
+  state.buildings = [factory, shop];
+  state.roads = [{ id: 'persist-road', points: [{x:start.x,y:start.y},{x:180,y:start.y},{x:180,y:end.y},{x:end.x,y:end.y}], age: 0, bridge: false, condition: 1 }];
+  state.trucks = [{
+    id: 'persist-truck', source: factory, to: shop, cargo: 2, cargoType: 'Food', contractId: 88,
+    stage: 'delivery', value: 40, t: 0.35, speed: 0.085, currentSpeed: 0.085,
+    route: [{x:start.x,y:start.y},{x:180,y:start.y},{x:180,y:end.y},{x:end.x,y:end.y}],
+    centerlineRoute: [{x:start.x,y:start.y},{x:180,y:start.y},{x:180,y:end.y},{x:end.x,y:end.y}],
+    laneRoute: [{x:start.x,y:start.y},{x:180,y:start.y},{x:180,y:end.y},{x:end.x,y:end.y}],
+    laneIds: [], laneRoadIds: [], routeNetworkRevision: state.roadNetworkRevision, wait: 0, dead: false
+  }];
+  const originalFactoryStock = factory.stock;
+  const originalCash = state.cash;
+  const snapshot = JSON.parse(JSON.stringify(serialise(state)));
+  const loaded = hydrate(snapshot);
+  assert.ok(loaded);
+  const loadedFactory = loaded.buildings.find(building => building.id === factory.id);
+  const loadedShop = loaded.buildings.find(building => building.id === shop.id);
+  assert.ok(loadedFactory && loadedShop);
+  assert.equal(loaded.trucks.length, 1);
+  assert.equal(loaded.trucks[0].source, loadedFactory, 'truck source must reference the canonical loaded factory');
+  assert.equal(loaded.trucks[0].to, loadedShop, 'truck destination must reference the canonical loaded shop');
+  assert.equal(loaded.trucks[0].cargo, 2);
+  assert.equal(loadedFactory.stock, originalFactoryStock, 'save/reload must not refund cargo that remains in flight');
+  assert.equal(loadedShop.contract?.remaining, 4, 'dispatch must not count as completed contract progress');
+  assert.equal(loadedShop.contract?.inFlight, 2, 'contract inFlight must be reconstructed from active cargo');
+  assert.equal(loaded.cash, originalCash, 'loading in-flight cargo must not credit money');
+  assert.equal(loaded.orders, 0);
+  assert.equal(loaded.deliveryIncome, 0);
+  assert.equal(loaded.trucks[0].routeNetworkRevision, loaded.roadNetworkRevision);
+});
+
+test('save/reload preserves return trucks without reintroducing delivered cargo', async () => {
+  const { serialise } = await import('../dist/persistence/save.js');
+  const { hydrate } = await import('../dist/persistence/load.js');
+  const { makeBuilding, TYPES } = await import('../dist/state.js');
+  const { buildingRoadEntrance } = await import('../dist/world/buildings/index.js');
+  const factory = makeBuilding(TYPES.find(type => type.name === 'Food'), 0, -108, 'return-factory');
+  const shop = makeBuilding(TYPES.find(type => type.name === 'Market'), 360, 99, 'return-shop');
+  const start = buildingRoadEntrance(factory);
+  const end = buildingRoadEntrance(shop);
+  assert.ok(start && end);
+  const state = freshState();
+  state.buildings = [factory, shop];
+  state.roads = [{ id: 'return-road', points: [{x:start.x,y:start.y},{x:180,y:start.y},{x:180,y:end.y},{x:end.x,y:end.y}], age: 0, bridge: false, condition: 1 }];
+  state.trucks = [{
+    id: 'return-truck', source: shop, to: factory, cargo: 0, cargoType: 'Food', contractId: 0,
+    stage: 'return', value: 0, t: 0.2, speed: 0.085, currentSpeed: 0.085,
+    route: [{x:end.x,y:end.y},{x:180,y:end.y},{x:180,y:start.y},{x:start.x,y:start.y}],
+    centerlineRoute: [{x:end.x,y:end.y},{x:180,y:end.y},{x:180,y:start.y},{x:start.x,y:start.y}],
+    laneRoute: [{x:end.x,y:end.y},{x:180,y:end.y},{x:180,y:start.y},{x:start.x,y:start.y}],
+    laneIds: [], laneRoadIds: [], routeNetworkRevision: state.roadNetworkRevision, wait: 0, dead: false
+  }];
+  const loaded = hydrate(JSON.parse(JSON.stringify(serialise(state))));
+  assert.ok(loaded);
+  assert.equal(loaded.trucks.length, 1);
+  assert.equal(loaded.trucks[0].stage, 'return');
+  assert.equal(loaded.trucks[0].cargo, 0);
+  assert.equal(loaded.trucks[0].value, 0);
+});
