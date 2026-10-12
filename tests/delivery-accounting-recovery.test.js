@@ -170,9 +170,9 @@ test('active contract cargo survives road deletion when the truck can reroute, w
   // Build an alternate path between the same junctions before deleting the
   // original segment, so an in-flight truck should reroute rather than recover.
   state.roads.push(
-    road([{ x: start.x, y: start.y }, { x: 260, y: start.y }]),
-    road([{ x: 260, y: start.y }, { x: 260, y: end.y }]),
-    road([{ x: 260, y: end.y }, { x: end.x, y: end.y }])
+    road([{ x: start.x, y: start.y }, { x: 100, y: start.y }]),
+    road([{ x: 100, y: start.y }, { x: 100, y: end.y }]),
+    road([{ x: 100, y: end.y }, { x: end.x, y: end.y }])
   );
   const originalRoute = route(state, factory, shop);
   assert.ok(originalRoute, 'fixture must start with a valid route');
