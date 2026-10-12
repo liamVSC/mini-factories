@@ -429,6 +429,7 @@ test('truck update reroutes an active truck after a road revision instead of con
   const factory={id:'factory',x:-120,y:-108,kind:'factory',r:25,type:'Steel',level:1,stock:0,max:4,production:0,demand:0,served:0,satisfaction:0,loading:0,logistics:0,contract:null};
   const shop={id:'shop',x:120,y:99,kind:'shop',r:25,type:'Market',level:1,stock:0,max:8,production:0,demand:3,served:0,satisfaction:100,loading:0,logistics:0,contract:null};
   s.buildings=[factory,shop];
+  shop.contract={id:55,type:'Steel',qty:3,remaining:3,reward:100,expires:500,initial:3,urgent:false,inFlight:1};
   assert.equal(addRoad(s,[{x:-120,y:0},{x:120,y:0}]),true);
   const route=routeOnRoadNetwork(s,factory,shop);
   assert.ok(route);
@@ -453,7 +454,7 @@ test('truck update reroutes an active truck after a road revision instead of con
     cargoType:'Steel',
     source:factory,
     to:shop,
-    contractId:0,
+    contractId:55,
     stage:'delivery',
     wait:0,
     dead:false
@@ -468,6 +469,14 @@ test('truck update reroutes an active truck after a road revision instead of con
   assert.ok(Array.isArray(truck.laneIds)&&truck.laneIds.length>0);
   assert.ok(truck.laneIds.every((id,i)=>buildLaneGraph(roadNetwork(s),{lanesPerDirection:2}).lanesById.get(id)?.roadId===truck.laneRoadIds[i]));
   assert.notDeepEqual(truck.route,before);
+  assert.equal(truck.cargo,1,'rerouting must preserve the in-flight cargo');
+  assert.equal(shop.contract.inFlight,1,'rerouting must not decrement or duplicate contract inFlight');
+  assert.equal(shop.contract.remaining,3,'rerouting must not count as delivery');
+  updateEconomy(s,.01,()=>{});
+  assert.equal(s.trucks.length,1,'repeated ticks must keep the rerouted truck active');
+  assert.equal(s.trucks[0].cargo,1,'repeated ticks must not duplicate or lose cargo');
+  assert.equal(shop.contract.inFlight,1,'repeated ticks must reconcile contract inFlight exactly once');
+  assert.equal(shop.contract.remaining,3,'repeated ticks must not consume contract quantity');
 });
 
 test('truck update safely retires and returns cargo when a road mutation disconnects its route',()=>{
