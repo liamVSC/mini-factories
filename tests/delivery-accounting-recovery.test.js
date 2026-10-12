@@ -156,6 +156,70 @@ test('disconnect recovery restores cargo and reconciles contract inFlight exactl
 });
 
 
+
+test('active contract cargo survives road deletion when the truck can reroute, without double reconciliation', async () => {
+  const { state, factory, shop } = setupDelivery();
+  const { eraseRoad } = await import('../dist/world/roads/index.js');
+  shop.contract = { id: 92, type: 'Food', qty: 3, remaining: 3, reward: 100, expires: 500, initial: 3, urgent: false, inFlight: 2 };
+  const cargo = 2;
+  factory.stock = Math.max(0, factory.stock - cargo);
+  const stockBefore = factory.stock;
+  const middle = state.roads[1];
+  assert.ok(middle, 'fixture must contain the original connecting segment');
+  const [start, end] = middle.points;
+  // Build an alternate path between the same junctions before deleting the
+  // original segment, so an in-flight truck should reroute rather than recover.
+  state.roads.push(
+    road([{ x: start.x, y: start.y }, { x: 260, y: start.y }]),
+    road([{ x: 260, y: start.y }, { x: 260, y: end.y }]),
+    road([{ x: 260, y: end.y }, { x: end.x, y: end.y }])
+  );
+  const originalRoute = route(state, factory, shop);
+  assert.ok(originalRoute, 'fixture must start with a valid route');
+  state.trucks.push({
+    id: 'contract-reroute-recovery',
+    route: originalRoute.points.map(point => ({ ...point })),
+    centerlineRoute: originalRoute.points.map(point => ({ ...point })),
+    laneRoute: (originalRoute.lanePoints || originalRoute.points).map(point => ({ ...point })),
+    routeNetworkRevision: state.roadNetworkRevision,
+    laneIds: [...(originalRoute.laneIds || [])],
+    laneRoadIds: [...(originalRoute.laneRoadIds || [])],
+    currentLaneIndex: 0,
+    currentLaneId: originalRoute.laneIds?.[0] || null,
+    t: 0.2,
+    speed: 0.085,
+    currentSpeed: 0.085,
+    value: 50,
+    cargo,
+    cargoType: 'Food',
+    source: factory,
+    to: shop,
+    contractId: shop.contract.id,
+    stage: 'delivery',
+    wait: 0,
+    dead: false
+  });
+
+  assert.equal(eraseRoad(state, { x: start.x, y: (start.y + end.y) / 2 }), true, 'deleting the original segment must succeed');
+  updateEconomy(state, 0.001, () => {});
+
+  assert.equal(state.trucks.length, 1, 'truck must remain active on the alternate route');
+  assert.notDeepEqual(state.trucks[0].route, originalRoute.points, 'truck must replace its stale route geometry');
+  assert.equal(state.trucks[0].cargo, cargo, 'rerouting must preserve cargo');
+  assert.equal(factory.stock, stockBefore, 'rerouting must not restore dispatched cargo');
+  assert.equal(shop.contract.inFlight, cargo, 'rerouting must not decrement or duplicate contract inFlight');
+  assert.equal(shop.contract.remaining, 3, 'rerouting must not count as delivery');
+  assert.equal(state.orders, 0, 'rerouting must not create a sale');
+  assert.equal(state.deliveryIncome || 0, 0, 'rerouting must not credit delivery income');
+
+  updateEconomy(state, 0.001, () => {});
+  assert.equal(state.trucks.length, 1, 'repeated ticks must not retire the rerouted truck');
+  assert.equal(state.trucks[0].cargo, cargo, 'repeated ticks must not duplicate or lose cargo');
+  assert.equal(factory.stock, stockBefore, 'repeated ticks must not restore cargo');
+  assert.equal(shop.contract.inFlight, cargo, 'repeated ticks must reconcile inFlight exactly once');
+  assert.equal(shop.contract.remaining, 3, 'repeated ticks must not consume contract quantity');
+});
+
 test('contract dispatch never exceeds remaining units already in flight', () => {
   const { state, factory, shop } = setupDelivery();
   factory.stock = 12;
