@@ -81,6 +81,13 @@ test('each logistics building has one canonical truck entrance',()=>{
   }
 });
 
+test('yard paving is vertically separated from the grass surface',()=>{
+  const renderer=readSource(new URL('../src/rendering/three.ts',import.meta.url));
+  assert.match(renderer,/Math\.max\(\.2,y\)/,'all yard surfaces must have a bottom above grass at Y=0.08');
+  const heights=readSource(new URL('../src/rendering/surfaceHeights.ts',import.meta.url));
+  assert.match(heights,/GRASS_SURFACE_Y\s*=\s*0\.08/);
+});
+
 test('site plans keep yard, gate, truck court and dock inside their footprint',()=>{
   for(const kind of ['factory','warehouse','shop']){
     const building={id:`site-${kind}`,kind,type:`${kind}-type`,x:340,y:-260};

@@ -41,7 +41,8 @@ export function cyl(g:any,r:number,h:number,mat:any,x:number,y:number,z:number,s
   const radius=Math.max(.1,Math.round(r*2)/2),height=Math.max(.1,Math.round(h*2)/2),key=`${radius},${height},${segments}`;
   return part(g,cachedGeometry(cylinderGeometries,key,()=>new THREE.CylinderGeometry(radius,radius,height,segments)),mat,x,y,z);
 }
-export function surface(g:any,w:number,d:number,mat:any,x:number,z:number,y=.12){box(g,w,.14,d,mat,x,y,z,0,false);}
+// Keep yard paving fully above the grass surface to prevent z-fighting/flicker.
+export function surface(g:any,w:number,d:number,mat:any,x:number,z:number,y=.12){box(g,w,.14,d,mat,x,Math.max(.2,y),z,0,false);}
 export function foundation(g:any,w:number,d:number,concrete:any,dark:any,x=0,z=0){
   box(g,w+8,.7,d+8,concrete,x,.45,z,0,false);box(g,w+3,1.1,d+3,dark,x,.95,z,0,false);
 }
