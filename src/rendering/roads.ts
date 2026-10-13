@@ -143,10 +143,34 @@ function junctionMesh(p:any,roadsAtPoint:number){
   return mesh;
 }
 function rebuildJunctionPatches(roads:any[],state:any){const out:any[]=[];for(const p of roadJunctions(roads,state))out.push(junctionMesh(p,p.degree));return out;}
-export function roadYardTransitions(s:any){const out:any[]=[];const apron=material('#777d78',.98),loading=material('#858b86',.98),seen=new Set<string>();
-  for(const building of s.buildings||[]){const attachment=buildingRoadAttachment(s,building),dock=buildingPrimaryDock(building);if(!attachment?.roadPoint||!attachment?.entrance||!dock)continue;const gate=attachment.roadPoint,e=attachment.entrance,key=building.id+':'+gate.x.toFixed(1)+','+gate.y.toFixed(1);if(seen.has(key))continue;seen.add(key);
-    const turnX=dock.point.x+((dock.normal?.y||0)>0?(building.kind==='factory'?72:48):(building.kind==='factory'?-72:-48)),midY=(e.y+dock.approach.y)/2,turn={x:turnX,y:midY},path=[gate,turn,dock.approach],yardApron=ribbon(path,building.kind==='factory'?58:46,.34,apron,false),loadingApron=ribbon([dock.approach,dock.point],dock.width+(building.kind==='factory'?20:12),.36,loading,false);if(yardApron)out.push(yardApron);if(loadingApron)out.push(loadingApron);
-  }return out;
+export function roadYardTransitions(s:any){
+  const out:any[]=[],asphalt=material('#454c4b',.96),loading=material('#858b86',.98),edge=material('#c2c5b9',.78),safety=material('#d2b452',.72),seen=new Set<string>();
+  for(const building of s.buildings||[]){
+    const attachment=buildingRoadAttachment(s,building),dock=buildingPrimaryDock(building);
+    if(!attachment?.roadPoint||!attachment?.entrance||!dock)continue;
+    const gate=attachment.roadPoint,e=attachment.entrance,key=building.id+':'+gate.x.toFixed(1)+','+gate.y.toFixed(1);
+    if(seen.has(key))continue;seen.add(key);
+    const turnX=dock.point.x+((dock.normal?.y||0)>0?(building.kind==='factory'?72:48):(building.kind==='factory'?-72:-48));
+    const midY=(e.y+dock.approach.y)/2,turn={x:turnX,y:midY},path=smoothRoadPath([gate,turn,dock.approach]);
+    const width=building.kind==='factory'?62:building.kind==='warehouse'?54:48;
+    const yardApron=ribbon(path,width,.34,asphalt,false);
+    if(yardApron)out.push(yardApron);
+    // Narrow pale edge bands define the driveway without creating a raised slab or clipping the yard.
+    for(const side of[-1,1]){
+      const edgeBand=ribbon(offsetPolyline(path,side*(width/2-2.2)),1.1,.385,edge,false);
+      if(edgeBand)out.push(edgeBand);
+    }
+    // A short transverse safety line makes the gate threshold legible from the normal camera height.
+    if(path.length>1){
+      const a=path[0],b=path[1],dx=b.x-a.x,dz=b.y-a.y,len=Math.hypot(dx,dz)||1;
+      const center={x:a.x+dx/len*8,y:a.y+dz/len*8},half=width/2-4;
+      const threshold=[{x:center.x-dz/len*half,y:center.y+dx/len*half},{x:center.x+dz/len*half,y:center.y-dx/len*half}];
+      const bar=ribbon(threshold,1.8,.405,safety,false);if(bar)out.push(bar);
+    }
+    const loadingApron=ribbon([dock.approach,dock.point],dock.width+(building.kind==='factory'?20:12),.36,loading,false);
+    if(loadingApron)out.push(loadingApron);
+  }
+  return out;
 }
 export function buildRoadGroup(roads:any[],state:any){
   const group=new THREE.Group();for(const [index,r] of (roads||[]).entries()){const g=roadMeshWithState(r,state);g.userData.road=r;g.position.y=index*.002;g.renderOrder=2+index*.001;group.add(g);}for(const patch of rebuildJunctionPatches(roads||[],state))group.add(patch);for(const transition of roadYardTransitions(state))group.add(transition);return group;
