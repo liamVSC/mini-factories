@@ -27,7 +27,7 @@ const {
   validateBuildingLayout,
   layoutIsValid
 } = await import('../dist/world.js');
-const {route, updateEconomy, upgrade} = await import('../dist/economy.js');
+const {route, updateEconomy, upgrade, warehouseLogisticsSpeedMultiplier} = await import('../dist/economy.js');
 const buildingModule = await import('../dist/world/buildings/index.js');
 const {hydrate} = await import('../dist/persistence/load.js');
 const {serialise} = await import('../dist/persistence/save.js');
@@ -1206,4 +1206,18 @@ test('warehouse logistics upgrade rejects insufficient funds without changing st
   const before={cash:s.cash,level:warehouse.level,max:warehouse.max,logistics:warehouse.logistics};
   assert.equal(upgrade(s,warehouse,2),false);
   assert.deepEqual({cash:s.cash,level:warehouse.level,max:warehouse.max,logistics:warehouse.logistics},before);
+});
+
+
+test('warehouse logistics levels measurably improve outgoing delivery truck speed',()=>{
+  const warehouse={kind:'warehouse',logistics:0};
+  assert.equal(warehouseLogisticsSpeedMultiplier(warehouse),1);
+  warehouse.logistics=1;
+  assert.equal(warehouseLogisticsSpeedMultiplier(warehouse),1.08);
+  warehouse.logistics=2;
+  assert.equal(warehouseLogisticsSpeedMultiplier(warehouse),1.16);
+  assert.equal(warehouseLogisticsSpeedMultiplier({kind:'factory',logistics:2}),1,
+    'warehouse logistics must not change factory-origin truck speed');
+  assert.equal(warehouseLogisticsSpeedMultiplier({kind:'warehouse',logistics:99}),1.16,
+    'legacy or malformed values must not exceed the two-level upgrade cap');
 });

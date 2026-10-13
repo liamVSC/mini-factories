@@ -8,6 +8,12 @@ import {buildJunctionControls,laneIndexForJunction,movementForLaneRoute,movement
 
 export function spec(type: any): any{return TYPES.find(t=>t.name===type)||TYPES[0]}
 
+export function warehouseLogisticsSpeedMultiplier(source: any): number{
+  if(source?.kind!=='warehouse')return 1;
+  const level=Math.max(0,Math.min(2,Number(source.logistics)||0));
+  return 1+level*.08;
+}
+
 function pointSegmentDistance(p: any, a: any, b: any){
   const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
   if(!len2)return dist(p,a);
@@ -464,7 +470,7 @@ function dispatchTruck(s: any, {route, source, destination, cargo, cargoType=sou
     laneRoadIds:Array.isArray(route.laneRoadIds)?[...route.laneRoadIds]:[],
     currentLaneIndex:0,currentLaneId:route.laneIds?.[0]||null,
     t:0,
-    speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04),
+    speed:.085*spec(source.type).speed*(1+(source.level-1)*.08+(source.loading||0)*.04)*warehouseLogisticsSpeedMultiplier(source),
     value:valuePerUnit*cargo,cargo,to:destination,source,contractId,longDistance,wait:0,stage,lane:movementLane,laneOffset
   });
   return true;

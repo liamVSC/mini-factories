@@ -72,7 +72,7 @@ export function createUiController(ctx:GameContext){
       }else if(warehouse){
         price=i===1?(building.level===1?180:320):240*((building.logistics||0)+1);
         label=i===1?'📦 Expand storage':'🚚 Improve logistics';
-        description=i===1?'Increase warehouse capacity.':'Reduce dispatch delays and congestion impact.';
+        description=i===1?'Increase warehouse capacity.':'Warehouse delivery trucks move up to 16% faster.';
         disabled=i===1?building.level>=3:(building.logistics||0)>=2;
       }
       element.innerHTML=label+' <span>£'+Math.round(price)+'</span><small>'+description+'</small>';
