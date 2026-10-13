@@ -70,13 +70,13 @@ export function createUiController(ctx:GameContext){
         [label,description]=labels[i-1];
         disabled=i===1?building.level>=3:i===2?building.max>=14:i===3?building.loading>=2:building.logistics>=2;
       }else if(warehouse){
-        price=i===1?(building.level===1?180:320):0;
+        price=i===1?(building.level===1?180:320):240*((building.logistics||0)+1);
         label=i===1?'📦 Expand storage':'🚚 Improve logistics';
-        description=i===1?'Increase warehouse capacity.':'Increase warehouse logistics efficiency.';
-        disabled=i===1?building.level>=3:false;
+        description=i===1?'Increase warehouse capacity.':'Reduce dispatch delays and congestion impact.';
+        disabled=i===1?building.level>=3:(building.logistics||0)>=2;
       }
       element.innerHTML=label+' <span>£'+Math.round(price)+'</span><small>'+description+'</small>';
-      element.disabled=disabled;
+      element.disabled=disabled||ctx.state.cash<price;
       element.onclick=()=>{
         if(!element.disabled&&upgrade(ctx.state,building,i)){
           ctx.save(true);ctx.sync();showPanel(building);
@@ -89,7 +89,7 @@ export function createUiController(ctx:GameContext){
     shop.onclick=null;
     if(building.kind==='shop'){
       shop.innerHTML='🏪 Upgrade shop <span>£'+(220*building.level)+'</span>';
-      shop.disabled=building.level>=3;
+      shop.disabled=building.level>=3||ctx.state.cash<220*building.level;
       shop.onclick=()=>{
         if(!shop.disabled&&upgrade(ctx.state,building,1)){
           ctx.save(true);ctx.sync();showPanel(building);

@@ -389,13 +389,23 @@ export function upgrade(s: any, b: any, n: any){
     s.cash-=price;return true;
   }
   if(b.kind==='warehouse'){
-    const price=b.level===1?180:b.level===2?320:0;
-    if(b.level>=3||s.cash<price)return false;
-    s.cash-=price;
-    b.level++;
-    b.max+=b.level===2?10:14;
-    b.logistics=Math.min(2,(b.logistics||0)+1);
-    return true;
+    if(n===1){
+      const price=b.level===1?180:b.level===2?320:0;
+      if(b.level>=3||s.cash<price)return false;
+      s.cash-=price;
+      b.level++;
+      b.max+=b.level===2?10:14;
+      return true;
+    }
+    if(n===2){
+      const logistics=b.logistics||0;
+      const price=240*(logistics+1);
+      if(logistics>=2||s.cash<price)return false;
+      s.cash-=price;
+      b.logistics=logistics+1;
+      return true;
+    }
+    return false;
   }
   const price=220*b.level;
   if(b.kind==='shop'&&b.level<3&&s.cash>=price){

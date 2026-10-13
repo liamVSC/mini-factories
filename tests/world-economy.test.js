@@ -27,7 +27,7 @@ const {
   validateBuildingLayout,
   layoutIsValid
 } = await import('../dist/world.js');
-const {route, updateEconomy} = await import('../dist/economy.js');
+const {route, updateEconomy, upgrade} = await import('../dist/economy.js');
 const buildingModule = await import('../dist/world/buildings/index.js');
 const {hydrate} = await import('../dist/persistence/load.js');
 const {serialise} = await import('../dist/persistence/save.js');
@@ -1169,4 +1169,41 @@ test('factory trucks physically start at the factory dock and keep the gate conn
   assert.deepEqual(truck.route[0],routed.points[0]);
   assert.deepEqual(truck.laneRoute[0],routed.startYard[0]);
   assert.ok(truck.laneRoute.some(p=>Math.hypot(p.x-factoryGate.x,p.y-factoryGate.y)<.01),'truck movement route must pass through the factory gate');
+});
+
+
+test('warehouse logistics upgrades are separate, priced and capped independently of storage',()=>{
+  const s=baseState();
+  const warehouse=building('Warehouse',0,0);
+  warehouse.level=1;
+  warehouse.max=24;
+  warehouse.logistics=0;
+  s.cash=1000;
+  s.buildings.push(warehouse);
+
+  assert.equal(upgrade(s,warehouse,2),true);
+  assert.equal(s.cash,760);
+  assert.equal(warehouse.logistics,1);
+  assert.equal(warehouse.level,1);
+  assert.equal(warehouse.max,24);
+
+  assert.equal(upgrade(s,warehouse,2),true);
+  assert.equal(s.cash,280);
+  assert.equal(warehouse.logistics,2);
+  assert.equal(warehouse.level,1);
+  assert.equal(warehouse.max,24);
+
+  const before={cash:s.cash,level:warehouse.level,max:warehouse.max,logistics:warehouse.logistics};
+  assert.equal(upgrade(s,warehouse,2),false);
+  assert.deepEqual({cash:s.cash,level:warehouse.level,max:warehouse.max,logistics:warehouse.logistics},before);
+});
+
+test('warehouse logistics upgrade rejects insufficient funds without changing state',()=>{
+  const s=baseState();
+  const warehouse=building('Warehouse',0,0);
+  warehouse.logistics=1;
+  s.cash=479;
+  const before={cash:s.cash,level:warehouse.level,max:warehouse.max,logistics:warehouse.logistics};
+  assert.equal(upgrade(s,warehouse,2),false);
+  assert.deepEqual({cash:s.cash,level:warehouse.level,max:warehouse.max,logistics:warehouse.logistics},before);
 });
