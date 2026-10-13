@@ -81,6 +81,15 @@ test('each logistics building has one canonical truck entrance',()=>{
   }
 });
 
+test('environment trees are distributed across multiple map regions, not only the corners',()=>{
+  const source=readSource(new URL('../src/rendering/scene.ts',import.meta.url));
+  assert.match(source,/const groves=\[\[-1080,-1080\],\[0,-1020\],\[1080,-1080\],\[-1020,-100\],\[1020,-100\]/);
+  assert.match(source,/\[-650,820\],\[0,1020\],\[650,820\]/);
+  assert.match(source,/for\(let ix=0;ix<5;ix\+\+\)for\(let iz=0;iz<5;iz\+\+\)/);
+  assert.match(source,/new THREE\.InstancedMesh/);
+  assert.match(source,/environmentTreeCount=trees\.length/);
+});
+
 test('yard paving is vertically separated from the grass surface',()=>{
   const renderer=readSource(new URL('../src/rendering/three.ts',import.meta.url));
   assert.match(renderer,/Math\.max\(\.2,y\)/,'all yard surfaces must have a bottom above grass at Y=0.08');
