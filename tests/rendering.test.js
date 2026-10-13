@@ -385,7 +385,7 @@ test('industrial buildings render visible loading-bay hazard markings',()=>{
   for(const model of ['factoryModel','warehouseModel','shopModel']){
     const start=source.indexOf(`function ${model}(`);
     assert.ok(start>=0);
-    const next=source.indexOf('\\nfunction ',start+1);
+    const next=source.indexOf('\nfunction ',start+1);
     const body=source.slice(start,next<0?source.length:next);
     assert.match(body,/dockSafetyMarkings\(/,`${model} must identify its loading apron visually`);
   }
