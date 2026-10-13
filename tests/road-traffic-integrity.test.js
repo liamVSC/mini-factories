@@ -617,7 +617,10 @@ test('buildings reserve an exterior yard between the dock and road gate',()=>{
 test('factory yard access is rendered as a larger non-road apron',()=>{
   const source=fs.readFileSync('src/rendering/roads.ts','utf8');
   const yardSection=source.slice(source.indexOf('export function roadYardTransitions'),source.indexOf('export function buildRoadGroup'));
-  assert.match(yardSection,/building\.kind==='factory'\?58:46/);
+  assert.match(yardSection,/building\.kind==='factory'\?62:building\.kind==='warehouse'\?54:48/);
+  assert.match(yardSection,/smoothRoadPath\(\[gate,turn,dock\.approach\]\)/);
+  assert.match(yardSection,/offsetPolyline\(path,side\*\(width\/2-2\.2\)\)/);
+  assert.match(yardSection,/ribbon\(threshold,1\.8,\.405,safety,false\)/);
   assert.match(yardSection,/building\.kind==='factory'\?20:12/);
   assert.doesNotMatch(yardSection,/surface=ribbon/);
 });
