@@ -88,6 +88,20 @@ test('yard paving is vertically separated from the grass surface',()=>{
   assert.match(heights,/GRASS_SURFACE_Y\s*=\s*0\.08/);
 });
 
+test('every building model uses the shared grass-clearance fix for its yard',()=>{
+  const buildings=readSource(new URL('../src/rendering/buildings.ts',import.meta.url));
+  const renderer=readSource(new URL('../src/rendering/three.ts',import.meta.url));
+  for(const model of ['factoryModel','warehouseModel','shopModel']){
+    const start=buildings.indexOf(`function ${model}(`);
+    assert.ok(start>=0,`${model} must exist`);
+    const next=buildings.indexOf('\nfunction ',start+1);
+    const body=buildings.slice(start,next<0?buildings.length:next);
+    assert.match(body,/yard\(g,plan,metal,accent\)/,`${model} must use the shared yard implementation`);
+  }
+  assert.match(renderer,/export function surface\(g:any,w:number,d:number,mat:any,x:number,z:number,y=\.12\)\{box\(g,w,\.14,d,mat,x,Math\.max\(\.2,y\),z,0,false\);\}/);
+  assert.match(renderer,/export function surface\(/);
+});
+
 test('site plans keep yard, gate, truck court and dock inside their footprint',()=>{
   for(const kind of ['factory','warehouse','shop']){
     const building={id:`site-${kind}`,kind,type:`${kind}-type`,x:340,y:-260};
