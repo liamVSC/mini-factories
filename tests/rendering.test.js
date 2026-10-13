@@ -376,3 +376,29 @@ test('truck renderer follows the derived directional lane route instead of the r
   assert.match(source,/routePoint\(visualRoute,progress\)/);
   assert.match(source,/routePoint\(visualRoute,Math\.min\(1,progress\+\.015\)\)/);
 });
+
+test('industrial buildings render visible loading-bay hazard markings',()=>{
+  const source=readSource(new URL('../src/rendering/buildings.ts',import.meta.url));
+  assert.match(source,/function dockSafetyMarkings\(/);
+  assert.match(source,/material\('#d5b54e'/);
+  assert.match(source,/box\(g,Math\.min\(2\.8,step\*\.52\),\.1,7,mat/);
+  for(const model of ['factoryModel','warehouseModel','shopModel']){
+    const start=source.indexOf(`function ${model}(`);
+    assert.ok(start>=0);
+    const next=source.indexOf('\\nfunction ',start+1);
+    const body=source.slice(start,next<0?source.length:next);
+    assert.match(body,/dockSafetyMarkings\(/,`${model} must identify its loading apron visually`);
+  }
+});
+
+test('road-to-yard transitions use smooth driveways, restrained edge bands and a gate threshold',()=>{
+  const source=readSource(new URL('../src/rendering/roads.ts',import.meta.url));
+  const start=source.indexOf('export function roadYardTransitions');
+  const end=source.indexOf('export function buildRoadGroup',start);
+  const transitions=source.slice(start,end);
+  assert.match(transitions,/path=smoothRoadPath\(\[gate,turn,dock\.approach\]\)/);
+  assert.match(transitions,/offsetPolyline\(path,side\*\(width\/2-2\.2\)\)/);
+  assert.match(transitions,/const threshold=\[/);
+  assert.match(transitions,/ribbon\(threshold,1\.8,\.405,safety,false\)/);
+  assert.match(transitions,/const loadingApron=ribbon\(\[dock\.approach,dock\.point\]/);
+});
