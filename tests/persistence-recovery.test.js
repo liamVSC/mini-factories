@@ -159,6 +159,8 @@ test('malformed persisted truck cargo is refunded instead of being discarded dur
 
   const persisted = JSON.parse(JSON.stringify(serialise(state)));
   assert.equal(persisted.trucks.length, 1, 'serialization must retain the record for recovery');
+  assert.deepEqual(persisted.trucks[0].route, [], 'recovery records must not persist stale route geometry');
+  assert.deepEqual(persisted.trucks[0].source, { id: factory.id }, 'recovery records must retain only the canonical source ID');
   const loaded = hydrate(persisted);
   assert.ok(loaded);
   const loadedFactory = loaded.buildings.find(building => building.id === factory.id);
