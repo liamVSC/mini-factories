@@ -35,6 +35,15 @@ function facadeFrame(g:any,w:number,d:number,h:number,dir:number,metal:any,accen
   for(const side of[-1,1])for(const z of[-d/2+3,d/2-3])box(g,1.1,h-2,1.4,metal,centerX+side*(w/2-1.5),1.5+(h-2)/2,centerZ+z);
 }
 
+function dockSafetyMarkings(g:any,centerX:number,z:number,width:number,dir:number,dark:any){
+  const safety=material('#d5b54e',.72),stripeCount=Math.max(8,Math.floor(width/6)),step=width/stripeCount;
+  // Low-profile alternating hazard bars sit on the loading apron, outside the building shell.
+  for(let i=0;i<stripeCount;i++){
+    const x=centerX-width/2+step*(i+.5),mat=i%2===0?safety:dark;
+    box(g,Math.min(2.8,step*.52),.1,7,mat,x,.34,z,dir*.22,false);
+  }
+}
+
 function factoryModel(b:any,plan:any){
   const g=new THREE.Group(),{width:w,depth:d,height:h,direction:dir,variant}=plan;
   const body=material('#747d79',.9),dark=material('#343b39',.97),metal=material('#59635f',.8,.18),accent=material(b.color||'#789a86',.55,.16),gl=glass(),roofMat=material('#414947',.96),foundationMat=material('#939891',.95);
@@ -43,7 +52,7 @@ function factoryModel(b:any,plan:any){
   for(const x of[-w*.31,0,w*.31])box(g,2.5,h-5,.8,metal,x,1.5+(h-5)/2,front+dir*.55);box(g,w*.42,1.2,.9,accent,0,10,front+dir*.65);
   const officeX=w*.31,officeW=w*.31,officeH=24,officeD=32,officeZ=front-dir*officeD*.38;box(g,officeW,officeH,officeD,material('#626e69',.86),officeX,1.5+officeH/2+4,officeZ);
   frontWindows(g,officeW-5,15,front+dir*.8,dir,4,gl,dark,5,5,officeX);frontWindows(g,w*.48,25,front+dir*.55,dir,5,gl,dark,7,5);
-  loadingDoor(g,plan.dockX,front,29,21,dir,metal,dark);loadingDoor(g,-w*.33,front,18,15,dir,metal,dark);loadingDoor(g,w*.33,-front,18,14,-dir,metal,dark);dockStrip(g,plan.dockX,front,74,dir,metal);
+  loadingDoor(g,plan.dockX,front,29,21,dir,metal,dark);loadingDoor(g,-w*.33,front,18,15,dir,metal,dark);loadingDoor(g,w*.33,-front,18,14,-dir,metal,dark);dockStrip(g,plan.dockX,front,74,dir,metal);dockSafetyMarkings(g,plan.dockX,front+dir*11,74,dir,dark);
   box(g,80,2,11,roofMat,plan.dockX,bodyTop+5,front+dir*7);for(const x of[plan.dockX-34,plan.dockX+34])box(g,1.3,5,1.3,metal,x,bodyTop+2.5,front+dir*8);
   box(g,w+4,1.5,d+4,roofMat,0,roofY,0);roofRibs(g,w,d,roofY+1.1,metal,6);
   for(const x of[-w*.25,0,w*.25]){box(g,14,.65,d*.62,gl,x,roofY+1.7,0,0,false);box(g,16,.7,1.2,metal,x,roofY+1.55,-d*.32);box(g,16,.7,1.2,metal,x,roofY+1.55,d*.32);}
@@ -62,7 +71,7 @@ function warehouseModel(b:any,plan:any){
   yard(g,plan,metal,accent);foundation(g,w,d,foundationMat,dark);box(g,w,h,d,body,0,1.5+h/2,0);facadeFrame(g,w,d,h,dir,metal,accent);
   box(g,w*.28,21,d*.28,dark,-w*.28,14,front-dir*d*.18);frontWindows(g,w*.28-4,14,front+dir*.6,dir,4,gl,dark,5,5,-w*.28);frontWindows(g,w*.22,27,front+dir*.48,dir,4,gl,dark,6,4);
   const doorXs=[-w*.29,0,w*.29],doorWidths=[22,30,22];for(let i=0;i<doorXs.length;i++)loadingDoor(g,doorXs[i],front,doorWidths[i],i===1?21:17,dir,metal,dark);
-  dockStrip(g,0,front,132,dir,metal);box(g,132,2,12,roofMat,0,bodyTop+5,front+dir*7);for(const x of[-61,-22,22,61])box(g,1.3,5,1.3,metal,x,bodyTop+2.5,front+dir*8);
+  dockStrip(g,0,front,132,dir,metal);dockSafetyMarkings(g,0,front+dir*11,132,dir,dark);box(g,132,2,12,roofMat,0,bodyTop+5,front+dir*7);for(const x of[-61,-22,22,61])box(g,1.3,5,1.3,metal,x,bodyTop+2.5,front+dir*8);
   box(g,w+4,2,d+4,roofMat,0,roofY,0);roofRibs(g,w,d,roofY+1.4,metal,7);
   const roofWingX=(variant%2?1:-1)*w*.07;box(g,w*.52,9,d*.74,body,roofWingX,bodyTop+5.5,-dir*d*.03);box(g,w*.52+3,1.3,d*.74+3,metal,roofWingX,bodyTop+10.6,-dir*d*.03);box(g,w*.18,15,d*.42,dark,-roofWingX*4.8,bodyTop+8,0);
   for(const x of[-w*.3,-w*.05,w*.2]){box(g,15,3.2,9,dark,x,bodyTop+4,0);box(g,11,1.2,6,metal,x,bodyTop+6,0);}
@@ -77,7 +86,7 @@ function shopModel(b:any,plan:any){
   yard(g,plan,metal,accent);foundation(g,mainW,mainD,foundationMat,dark,mainX,mainZ);box(g,mainW,h,mainD,body,mainX,1.5+h/2,mainZ);box(g,w*.29,h*.7,d*.48,dark,w*.34,1.5+h*.35,-dir*d*.07);facadeFrame(g,mainW,mainD,h,dir,metal,accent,mainX,mainZ);
   box(g,mainW,1.3,.9,accent,mainX,10,retailFront-dir*.55);frontWindows(g,mainW*.72,15,retailFront-dir*.58,-dir,7,gl,dark,9,7,mainX);
   const entranceX=mainX-mainW*.2;box(g,34,1.4,12,accent,entranceX,bodyTop-5,retailFront-dir*8);for(const x of[entranceX-15,entranceX+15])box(g,1,6,1,metal,x,bodyTop-8,retailFront-dir*12);box(g,5,10,.4,gl,entranceX,7,retailFront-dir*.78,0,false);
-  loadingDoor(g,plan.dockX,front,20,15,dir,metal,dark);dockStrip(g,plan.dockX,plan.dockZ,68,dir,metal);box(g,70,1.8,10,roofMat,plan.dockX,bodyTop+4,front+dir*6);box(g,w*.23,15,d*.45,dark,w*.34,bodyTop+7,dir*d*.03);box(g,w*.51,3,d*.35,metal,mainX,roofY,mainZ);
+  loadingDoor(g,plan.dockX,front,20,15,dir,metal,dark);dockStrip(g,plan.dockX,plan.dockZ,68,dir,metal);dockSafetyMarkings(g,plan.dockX,front+dir*11,68,dir,dark);box(g,70,1.8,10,roofMat,plan.dockX,bodyTop+4,front+dir*6);box(g,w*.23,15,d*.45,dark,w*.34,bodyTop+7,dir*d*.03);box(g,w*.51,3,d*.35,metal,mainX,roofY,mainZ);
   for(const side of[-1,1])sideWindows(g,mainX+side*mainW/2+side*.42,side,mainD,13,gl,dark,4,mainZ);for(const x of[-w*.28,w*.18])cyl(g,1.7,10,metal,x,bodyTop+6,0,14);return g;
 }
 
