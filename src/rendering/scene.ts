@@ -4,15 +4,17 @@ import {GRASS_SURFACE_Y,WATER_CENTER_Y,WATER_THICKNESS} from './surfaceHeights.j
 import {box,disposeObjectGroup,material} from './three.js';
 
 function addForest(scene:any){
-  const groves=[[-1080,-1080],[1080,-1080],[-1080,1080],[1080,1080]] as const;
+  // Distribute small groves around the map perimeter and outer playfield, not just its corners.
+  // Keep the central starter area open and avoid placing trees along the river corridor.
+  const groves=[[-1080,-1080],[0,-1020],[1080,-1080],[-1020,-100],[1020,-100],[-1080,1080],[-650,820],[0,1020],[650,820],[1080,1080],[-650,-720],[650,-720]] as const;
   const trees:Array<{x:number;z:number;trunkHeight:number;radius:number;height:number}>=[];
   for(let grove=0;grove<groves.length;grove++){
     const [cx,cz]=groves[grove];
-    for(let ix=0;ix<6;ix++)for(let iz=0;iz<6;iz++){
+    for(let ix=0;ix<5;ix++)for(let iz=0;iz<5;iz++){
       if((ix*13+iz*7+grove*5)%5===0)continue;
       const jitterX=(((ix*17+iz*11+grove*19)%9)-4)*1.7;
       const jitterZ=(((ix*7+iz*23+grove*13)%9)-4)*1.7;
-      trees.push({x:cx+(ix-2.5)*22+jitterX,z:cz+(iz-2.5)*22+jitterZ,trunkHeight:10+((ix*3+iz*5+grove)%5),radius:8+((ix*7+iz*3+grove)%5),height:19+((ix*5+iz*2+grove)%7)});
+      trees.push({x:cx+(ix-2)*24+jitterX,z:cz+(iz-2)*24+jitterZ,trunkHeight:10+((ix*3+iz*5+grove)%5),radius:8+((ix*7+iz*3+grove)%5),height:19+((ix*5+iz*2+grove)%7)});
     }
   }
   const trunks=new THREE.InstancedMesh(new THREE.CylinderGeometry(1,1,1,7),material('#6e5038',.98),trees.length);
