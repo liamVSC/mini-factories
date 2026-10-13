@@ -126,3 +126,49 @@ test('save/reload preserves return trucks without reintroducing delivered cargo'
   assert.equal(loaded.trucks[0].cargo, 0);
   assert.equal(loaded.trucks[0].value, 0);
 });
+
+
+test('malformed persisted truck cargo is refunded instead of being discarded during serialization', async () => {
+  const { serialise } = await import('../dist/persistence/save.js');
+  const { hydrate } = await import('../dist/persistence/load.js');
+  const { makeBuilding, TYPES } = await import('../dist/state.js');
+  const { buildingRoadEntrance } = await import('../dist/world/buildings/index.js');
+  const factory = makeBuilding(TYPES.find(type => type.name === 'Food'), 0, -108, 'malformed-cargo-factory');
+  const shop = makeBuilding(TYPES.find(type => type.name === 'Market'), 360, 99, 'malformed-cargo-shop');
+  factory.stock = 1;
+  shop.contract = { id: 89, type: 'Food', qty: 4, initial: 4, remaining: 4, reward: 120, expires: 100, inFlight: 2, urgent: false };
+  const start = buildingRoadEntrance(factory);
+  const end = buildingRoadEntrance(shop);
+  assert.ok(start && end);
+  const state = freshState();
+  state.buildings = [factory, shop];
+  state.roads = [{ id: 'malformed-cargo-road', points: [{x:start.x,y:start.y},{x:180,y:start.y},{x:180,y:end.y},{x:end.x,y:end.y}], age: 0, bridge: false, condition: 1 }];
+  state.trucks = [{
+    id: 'malformed-cargo-truck',
+    source: factory,
+    to: shop,
+    cargo: 2,
+    cargoType: 'Food',
+    contractId: 89,
+    stage: 'delivery',
+    value: 40,
+    t: 0.35,
+    speed: 0.085,
+    route: [{x: start.x, y: start.y}], // invalid route must be handled by hydration recovery
+  }];
+
+  const persisted = JSON.parse(JSON.stringify(serialise(state)));
+  assert.equal(persisted.trucks.length, 1, 'serialization must retain the record for recovery');
+  const loaded = hydrate(persisted);
+  assert.ok(loaded);
+  const loadedFactory = loaded.buildings.find(building => building.id === factory.id);
+  const loadedShop = loaded.buildings.find(building => building.id === shop.id);
+  assert.ok(loadedFactory && loadedShop);
+  assert.equal(loaded.trucks.length, 0, 'invalid truck must not be resumed');
+  assert.equal(loadedFactory.stock, 3, 'cargo must be refunded to its canonical source exactly once');
+  assert.equal(loadedShop.contract?.inFlight, 0, 'discarded delivery cargo must not remain inFlight');
+  assert.equal(loadedShop.contract?.remaining, 4, 'recovery must not count as a completed delivery');
+  assert.equal(loaded.cash, state.cash, 'recovery must not award sale proceeds');
+  assert.equal(loaded.orders, 0);
+  assert.equal(loaded.deliveryIncome, 0);
+});
